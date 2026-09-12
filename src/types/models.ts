@@ -1,0 +1,92 @@
+export type Gender = 'female' | 'male' | 'other' | 'prefer_not';
+export type RoomMode = 'party' | 'dating' | 'karaoke' | 'game' | 'private';
+export type GiftRarity = 'common' | 'rare' | 'epic' | 'legendary';
+
+export type Profile = {
+  id: string;
+  public_user_id?: string | null;
+  username: string | null;
+  display_name: string | null;
+  bio: string;
+  avatar_url: string | null;
+  gender: Gender | null;
+  birth_date: string | null;
+  country: string | null;
+  language: string;
+  is_host: boolean;
+  is_guest?: boolean;
+  is_verified: boolean;
+  level: number;
+  xp: number;
+  created_at: string;
+};
+
+export type Wallet = {
+  user_id: string;
+  coins: number;
+  diamonds: number;
+  updated_at: string;
+};
+
+export type Room = {
+  id: string;
+  host_id: string;
+  title: string;
+  topic: string | null;
+  cover_url: string | null;
+  mode: RoomMode;
+  max_seats: number;
+  is_live: boolean;
+  is_locked: boolean;
+  listener_count: number;
+  total_coins_earned: number;
+  created_at: string;
+  host?: Profile | null;
+  layout_code?: string | null;
+  theme_code?: string | null;
+  capacity_tier_code?: string | null;
+  audience_capacity?: number | null;
+  microphone_capacity?: number | null;
+  livekit_room_name?: string | null;
+};
+
+export type Gift = {
+  id: string;
+  code: string;
+  name: string;
+  emoji: string;
+  coin_cost: number;
+  diamond_value: number;
+  rarity: GiftRarity;
+  animation: string;
+  slug?: string | null;
+  category_code?: string | null;
+  thumbnail_url?: string | null;
+  animation_url?: string | null;
+  animation_type?: string | null;
+  duration_ms?: number | null;
+  full_screen?: boolean | null;
+  global_announcement?: boolean | null;
+  combo_enabled?: boolean | null;
+  combo_timeout_ms?: number | null;
+};
+
+export type CoinPackage = {
+  id: string;
+  sku: string;
+  title: string;
+  coins: number;
+  bonus_coins: number;
+  price_usd: number;
+  badge: string | null;
+};
+
+export type RoomSeat = {
+  id: string;
+  room_id: string;
+  seat_index: number;
+  user_id: string | null;
+  is_muted: boolean;
+  is_locked: boolean;
+  profile?: Profile | null;
+};
