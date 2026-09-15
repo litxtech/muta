@@ -8,20 +8,49 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_APP_ENV": "development"
+        "EXPO_PUBLIC_APP_ENV": "development",
+        "EXPO_PUBLIC_APP_NAME": "Tamuso",
+        "EXPO_PUBLIC_APP_SCHEME": "muta",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://vdkqrqtrftzhbtquzked.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_l5Xf8S00NXA-YZu2hmUoew_fnB18mdB",
+        "EXPO_PUBLIC_LIVEKIT_URL": "wss://muta-zf018zlr.livekit.cloud",
+        "EXPO_PUBLIC_LIVEKIT_TOKEN_URL": "https://vdkqrqtrftzhbtquzked.supabase.co/functions/v1/livekit-token",
+        "EXPO_PUBLIC_IAP_VERIFY_URL": "https://vdkqrqtrftzhbtquzked.supabase.co/functions/v1/iap-receipt-verify",
+        "EXPO_PUBLIC_RTC_PROVIDER": "livekit"
       },
       "android": {
-        "buildType": "apk",
-        "withoutCredentials": true
+        "buildType": "apk"
       },
       "ios": {
+        "simulator": false,
+        "resourceClass": "m-medium"
+      }
+    },
+    "development-simulator": {
+      "extends": "development",
+      "ios": {
         "simulator": true
+      }
+    },
+    "development-device": {
+      "extends": "development",
+      "ios": {
+        "simulator": false,
+        "resourceClass": "m-medium"
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_APP_ENV": "test"
+        "EXPO_PUBLIC_APP_ENV": "test",
+        "EXPO_PUBLIC_APP_NAME": "Tamuso Test",
+        "EXPO_PUBLIC_APP_SCHEME": "muta-test",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://vdkqrqtrftzhbtquzked.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_l5Xf8S00NXA-YZu2hmUoew_fnB18mdB",
+        "EXPO_PUBLIC_LIVEKIT_URL": "wss://muta-zf018zlr.livekit.cloud",
+        "EXPO_PUBLIC_LIVEKIT_TOKEN_URL": "https://vdkqrqtrftzhbtquzked.supabase.co/functions/v1/livekit-token",
+        "EXPO_PUBLIC_IAP_VERIFY_URL": "https://vdkqrqtrftzhbtquzked.supabase.co/functions/v1/iap-receipt-verify",
+        "EXPO_PUBLIC_RTC_PROVIDER": "livekit"
       },
       "android": {
         "buildType": "apk"
@@ -30,7 +59,15 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_APP_ENV": "production"
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_APP_NAME": "Tamuso",
+        "EXPO_PUBLIC_APP_SCHEME": "muta",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://vdkqrqtrftzhbtquzked.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_l5Xf8S00NXA-YZu2hmUoew_fnB18mdB",
+        "EXPO_PUBLIC_LIVEKIT_URL": "wss://muta-zf018zlr.livekit.cloud",
+        "EXPO_PUBLIC_LIVEKIT_TOKEN_URL": "https://vdkqrqtrftzhbtquzked.supabase.co/functions/v1/livekit-token",
+        "EXPO_PUBLIC_IAP_VERIFY_URL": "https://vdkqrqtrftzhbtquzked.supabase.co/functions/v1/iap-receipt-verify",
+        "EXPO_PUBLIC_RTC_PROVIDER": "livekit"
       },
       "android": {
         "buildType": "app-bundle"

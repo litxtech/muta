@@ -5,37 +5,89 @@ import {
   CihazPlatformunuGetir,
   UygulamaVersiyonunuGetir,
 } from '../../kimlik-dogrulama/oturum/CihazKimliginiGetir';
+import {
+  AndroidFcmTokeniniAl,
+  ExpoPushTokeniniAl,
+} from './ExpoPushTokeniniAl';
+
+type PushProvider = 'apns' | 'fcm' | 'expo' | 'none';
+
+async function tokenKaydet(
+  deviceId: string,
+  platform: string,
+  provider: PushProvider,
+  pushToken: string | null,
+): Promise<{ ok: boolean; hata?: string }> {
+  const { error } = await supabase.rpc('cihaz_push_token_kaydet', {
+    p_device_id: deviceId,
+    p_platform: platform === 'unknown' ? 'web' : platform,
+    p_push_provider: provider,
+    p_push_token: pushToken,
+    p_app_version: UygulamaVersiyonunuGetir(),
+    p_locale: null,
+    p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? null,
+  });
+  if (error) return { ok: false, hata: error.message };
+  return { ok: true };
+}
 
 /**
- * Notification Gateway istemcisi — APNs/FCM secret burada yok.
- * Token kaydi; gonderim backend outbox ile.
+ * Android → Firebase FCM device token (asıl).
+ * iOS → Expo Push Token (APNs / EAS).
+ * Expo token Android'de yedek olarak da kaydedilir.
  */
 export async function CihazPushTokeniniKaydet(input?: {
   pushToken?: string | null;
-}): Promise<{ ok: boolean; hata?: string }> {
+}): Promise<{ ok: boolean; hata?: string; token?: string | null }> {
   try {
     const deviceId = await CihazKimliginiGetir();
     const platform = CihazPlatformunuGetir();
-    const provider =
-      platform === 'ios' ? 'apns' : platform === 'android' ? 'fcm' : 'none';
+    const plat = platform === 'unknown' ? 'web' : platform;
 
-    const { error } = await supabase.rpc('cihaz_push_token_kaydet', {
-      p_device_id: deviceId,
-      p_platform: platform === 'unknown' ? 'web' : platform,
-      p_push_provider: provider,
-      p_push_token: input?.pushToken ?? null,
-      p_app_version: UygulamaVersiyonunuGetir(),
-      p_locale: null,
-      p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? null,
-    });
-    if (error) return { ok: false, hata: error.message };
-    return { ok: true };
+    if (Platform.OS === 'android') {
+      const fcm =
+        input?.pushToken && !input.pushToken.startsWith('ExponentPushToken')
+          ? input.pushToken
+          : await AndroidFcmTokeniniAl();
+
+      if (fcm) {
+        const r = await tokenKaydet(deviceId, plat, 'fcm', fcm);
+        if (!r.ok) return { ...r, token: fcm };
+      }
+
+      const expo = await ExpoPushTokeniniAl();
+      if (expo) {
+        await tokenKaydet(deviceId, plat, 'expo', expo);
+      }
+
+      if (!fcm && !expo) {
+        return {
+          ok: false,
+          hata: 'FCM token yok — google-services.json ve native build gerekli',
+          token: null,
+        };
+      }
+      return { ok: true, token: fcm ?? expo };
+    }
+
+    // iOS / diğer
+    let pushToken = input?.pushToken ?? null;
+    if (pushToken === undefined || pushToken === null) {
+      pushToken = await ExpoPushTokeniniAl();
+    }
+    const provider: PushProvider = pushToken ? 'expo' : BildirimPlatformuSec();
+    const r = await tokenKaydet(deviceId, plat, provider, pushToken);
+    if (!r.ok) return { ...r, token: pushToken };
+    return { ok: true, token: pushToken };
   } catch (e) {
-    return { ok: false, hata: e instanceof Error ? e.message : 'push kayit hatasi' };
+    return {
+      ok: false,
+      hata: e instanceof Error ? e.message : 'push kayit hatasi',
+    };
   }
 }
 
-export function BildirimPlatformuSec(): 'apns' | 'fcm' | 'none' {
+export function BildirimPlatformuSec(): PushProvider {
   if (Platform.OS === 'ios') return 'apns';
   if (Platform.OS === 'android') return 'fcm';
   return 'none';

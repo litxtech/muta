@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { OzellikBayragiAktifMiSunucu } from '../../ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
+import type { PolitikaKodu } from '../icerik/PolitikaMetinleri';
 
 export type PolitikaSurumu = {
   id: string;
@@ -27,11 +28,26 @@ export async function GuncelPolitikalariGetir(): Promise<PolitikaSurumu[]> {
 
 export async function PolitikaKabulEt(policyVersionId: string) {
   if (!(await OzellikBayragiAktifMiSunucu('policies_enabled'))) {
-    return { ok: false as const, hata: 'policies_enabled kapalı.' };
+    return { ok: false as const, hata: 'Politikalar şu an kapalı.' };
   }
   const { error } = await supabase.rpc('politika_kabul_et', {
     p_policy_version_id: policyVersionId,
   });
   if (error) return { ok: false as const, hata: error.message };
   return { ok: true as const };
+}
+
+/** Kayıt sonrası güncel zorunlu politikaları kabul kaydı */
+export async function KayitPolitikaKabulKaydet(
+  kodlar: PolitikaKodu[] = ['tos', 'privacy', 'child_safety'],
+): Promise<void> {
+  try {
+    const guncel = await GuncelPolitikalariGetir();
+    for (const kod of kodlar) {
+      const satir = guncel.find((g) => g.policy_code === kod);
+      if (satir?.id) await PolitikaKabulEt(satir.id);
+    }
+  } catch {
+    // Sessiz — kayit engellenmesin
+  }
 }

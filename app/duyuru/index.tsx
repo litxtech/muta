@@ -1,8 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { Alert, FlatList, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { GradientButton } from '../../src/components/GradientButton';
+import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { BosDurum } from '../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
   AktifDuyurulariGetir,
@@ -11,6 +13,10 @@ import {
 } from '../../src/moduller/duyurular/islemler/DuyuruIslemleri';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
+import {
+  BoslukTokenlari,
+  YaricapTokenlari,
+} from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export default function DuyuruEkrani() {
   const [items, setItems] = useState<Duyuru[]>([]);
@@ -38,44 +44,51 @@ export default function DuyuruEkrani() {
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="duyurular">
-        <View style={styles.content}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={styles.back}>← Geri</Text>
-          </Pressable>
-          <Text style={styles.title}>Announcements</Text>
-          <Text style={styles.sub}>Politikalardan ayrı domain</Text>
-          <FlatList
-            data={items}
-            keyExtractor={(item) => item.id}
-            ListEmptyComponent={<Text style={styles.empty}>Duyuru yok (010).</Text>}
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.body}>{item.body}</Text>
-                <GradientButton title="Okundu" variant="ghost" onPress={() => okundu(item.id)} />
-              </View>
-            )}
-          />
-        </View>
+        <EkranBasligi
+          title="Duyurular"
+          subtitle="Platform bildirimleri"
+        />
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <BosDurum
+              icon="megaphone-outline"
+              title="Duyuru yok"
+              body="Yeni duyurular yayınlandığında burada görünür."
+            />
+          }
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.body}>{item.body}</Text>
+              <GradientButton
+                title="Okundu"
+                variant="ghost"
+                onPress={() => okundu(item.id)}
+              />
+            </View>
+          )}
+        />
       </ModulHataSiniri>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, padding: 20, gap: 8 },
-  back: { ...TipografiTokenlari.caption, color: RenkTokenlari.primarySoft },
-  title: { ...TipografiTokenlari.title, color: RenkTokenlari.text },
-  sub: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
-  empty: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
+  list: {
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingBottom: BoslukTokenlari.xxxl,
+    gap: BoslukTokenlari.md,
+  },
   card: {
-    padding: 12,
-    borderRadius: 14,
+    padding: BoslukTokenlari.lg,
+    borderRadius: YaricapTokenlari.md,
     backgroundColor: RenkTokenlari.bgCard,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
-    marginBottom: 10,
-    gap: 8,
+    gap: BoslukTokenlari.sm,
   },
   cardTitle: { ...TipografiTokenlari.h2, color: RenkTokenlari.text },
   body: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },

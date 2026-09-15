@@ -1,6 +1,12 @@
 import { supabase } from '../../../lib/supabase';
 import type { GameControlConfig } from '../../oyunlar/ortak/tipler/OyunTipleri';
 
+export type AdminOyunKatalogSatiri = {
+  game_code: string;
+  name: string;
+  is_active: boolean;
+};
+
 export async function AdminOyunKontrolGetir(
   gameCode = 'match3',
 ): Promise<GameControlConfig | null> {
@@ -11,6 +17,25 @@ export async function AdminOyunKontrolGetir(
     .maybeSingle();
   if (error) throw error;
   return data as GameControlConfig | null;
+}
+
+/** Tüm oyun kontrol config'leri — admin aç/kapa listesi. */
+export async function AdminTumOyunKontrolleriniGetir(): Promise<GameControlConfig[]> {
+  const { data, error } = await supabase
+    .from('game_control_configs')
+    .select('*')
+    .order('game_code', { ascending: true });
+  if (error) throw error;
+  return (data as GameControlConfig[]) ?? [];
+}
+
+export async function AdminOyunKataloguGetir(): Promise<AdminOyunKatalogSatiri[]> {
+  const { data, error } = await supabase
+    .from('game_catalog')
+    .select('game_code, name, is_active')
+    .order('game_code', { ascending: true });
+  if (error) throw error;
+  return (data as AdminOyunKatalogSatiri[]) ?? [];
 }
 
 export async function AdminOyunKontrolGuncelle(params: {

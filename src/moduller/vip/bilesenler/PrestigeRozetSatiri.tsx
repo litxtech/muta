@@ -19,9 +19,9 @@ export function PrestigeRozetSatiri({
   return (
     <View style={styles.row}>
       {vipLevel > 0 ? <Chip label={`VIP ${vipLevel}`} hot /> : null}
-      {gifterLevel ? <Chip label={`Gifter ${gifterLevel}`} /> : null}
-      {charmLevel ? <Chip label={`Charm ${charmLevel}`} /> : null}
-      {rechargeLevel ? <Chip label={`Recharge ${rechargeLevel}`} /> : null}
+      {gifterLevel ? <Chip label={`Hediye ${gifterLevel}`} /> : null}
+      {charmLevel ? <Chip label={`Çekicilik ${charmLevel}`} /> : null}
+      {rechargeLevel ? <Chip label={`Yükleme ${rechargeLevel}`} /> : null}
     </View>
   );
 }

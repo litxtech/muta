@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { TextField } from '../../src/components/TextField';
 import { GradientButton } from '../../src/components/GradientButton';
+import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
+import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { colors, typography } from '../../src/theme/colors';
+import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export default function ForgotPasswordScreen() {
   const { resetPassword } = useAuth();
@@ -13,48 +16,63 @@ export default function ForgotPasswordScreen() {
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async () => {
-    if (!email) {
-      Alert.alert('E-posta gerekli');
+    const mail = email.trim().toLowerCase();
+    if (!mail.includes('@')) {
+      Alert.alert('E-posta gerekli', 'Kayıtlı e-posta adresini yaz.');
       return;
     }
     setLoading(true);
-    const { error } = await resetPassword(email);
+    const { error } = await resetPassword(mail);
     setLoading(false);
     if (error) {
       Alert.alert('Hata', error);
       return;
     }
-    Alert.alert(
-      'Mail gönderildi',
-      'SMTP ayarlıysa şifre sıfırlama bağlantısı e-postana geldi.',
-      [{ text: 'Tamam', onPress: () => router.back() }],
-    );
+    router.push({
+      pathname: '/(auth)/dogrula-kod',
+      params: { email: mail, amac: 'recovery' },
+    });
   };
 
   return (
-    <Screen>
-      <View style={styles.content}>
-        <Text style={styles.title}>Şifre sıfırla</Text>
-        <Text style={styles.sub}>
-          Kayıtlı e-postanı yaz. Supabase SMTP üzerinden reset linki gönderilir.
-        </Text>
-        <TextField
-          label="E-posta"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="sen@mail.com"
+    <Screen edges={['top']}>
+      <KlavyeGuvenliAlan>
+        <EkranBasligi
+          title="Şifre sıfırla"
+          subtitle="Kayıtlı e-postana 6 haneli kod gönderilir"
+          onBack={() => router.back()}
         />
-        <GradientButton title="Reset linki gönder" onPress={onSubmit} loading={loading} />
-        <GradientButton title="Geri" variant="ghost" onPress={() => router.back()} />
-      </View>
+        <View style={styles.content}>
+          <KlavyeKapatan style={styles.flex}>
+            <TextField
+              label="E-posta"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="sen@mail.com"
+              returnKeyType="done"
+              blurOnSubmit
+              onSubmitEditing={() => void onSubmit()}
+            />
+            <GradientButton
+              title="Doğrulama kodu gönder"
+              onPress={onSubmit}
+              loading={loading}
+            />
+          </KlavyeKapatan>
+        </View>
+      </KlavyeGuvenliAlan>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, padding: 24, gap: 14, justifyContent: 'center' },
-  title: { ...typography.title, color: colors.text },
-  sub: { ...typography.body, color: colors.textMuted, marginBottom: 8 },
+  content: {
+    flex: 1,
+    paddingHorizontal: BoslukTokenlari.xl,
+    gap: BoslukTokenlari.lg,
+    paddingTop: BoslukTokenlari.lg,
+  },
+  flex: { flex: 1, gap: BoslukTokenlari.lg },
 });

@@ -36,6 +36,10 @@ where key in (
 - `/platform` — events + missions hub
 - `/duyuru`, `/politika`, `/guvenlik`, `/bildirimler`
 
+## Ek: Oda sohbeti
+`012_oda_sohbet.sql` — `room_chat_messages` + `oda_sohbet_mesaji_gonder`  
+Oda ekranında chat paneli; host kalkanı → mute/kick/ban.
+
 ## Notlar
 - Super Admin RBAC / APNs worker / risk engine bu fazda yok (admin follow-up)
 - Misafir: gorev odulu / rapor `oy_kullan` kapisi

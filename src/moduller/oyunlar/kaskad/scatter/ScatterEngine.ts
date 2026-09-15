@@ -1,5 +1,5 @@
 /**
- * Scatter / Portal — bonus tetikleme.
+ * Scatter / Portal — bonus tetikleme ve retrigger.
  */
 
 import { collectSpecials } from '../grid/GridGenerator';
@@ -34,4 +34,15 @@ export function evaluateScatterBonus(
   config: KaskadMathConfig,
 ): BonusAward | null {
   return resolveBonusAward(config, countScatters(grid));
+}
+
+/** Bonus sırasında retrigger: eşik üstü scatter → ek spin */
+export function evaluateRetrigger(
+  config: KaskadMathConfig,
+  scatterCount: number,
+): number {
+  if (scatterCount >= config.bonus.retrigger.minScatters) {
+    return config.bonus.retrigger.extraSpins;
+  }
+  return 0;
 }

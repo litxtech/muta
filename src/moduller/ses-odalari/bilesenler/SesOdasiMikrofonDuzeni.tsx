@@ -33,11 +33,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
+    alignContent: 'center',
     gap: 16,
     paddingHorizontal: 16,
-    marginTop: 12,
+    flex: 1,
+    minHeight: 0,
   },
   stage: {
-    paddingTop: 28,
+    paddingTop: 12,
   },
 });

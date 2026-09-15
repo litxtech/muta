@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -7,42 +7,57 @@ import {
   Text,
   View,
 } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
-import { GradientButton } from '../../src/components/GradientButton';
+import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { BosDurum } from '../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
   LiderlikSiralamasiniGetir,
   LiderlikSiralamasiniYenile,
   type SiralamaBoard,
+  type SiralamaPeriod,
   type SiralamaSatiri,
 } from '../../src/moduller/liderlik-siralamalari/okuma/LiderlikSiralamasiniGetir';
+import { SiralamaKullaniciSatiri } from '../../src/moduller/liderlik-siralamalari/bilesenler/SiralamaKullaniciSatiri';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
+import {
+  BoslukTokenlari,
+  YaricapTokenlari,
+} from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 const BOARDS: { id: SiralamaBoard; label: string }[] = [
-  { id: 'gifter', label: 'Top Gifter' },
-  { id: 'top_recharge', label: 'Top Recharge' },
-  { id: 'host', label: 'Host' },
+  { id: 'top_recharge', label: 'Yükleme' },
+  { id: 'gifter', label: 'Hediye' },
+  { id: 'host', label: 'Ev sahibi' },
 ];
 
-/** Top Recharge ≠ Top Gifter */
+const PERIODS: { id: SiralamaPeriod; label: string }[] = [
+  { id: 'weekly', label: 'Haftalık' },
+  { id: 'daily', label: 'Günlük' },
+  { id: 'all_time', label: 'Tümü' },
+];
+
+/** Top Recharge ≠ Top Gifter — haftalik yukleme on planda */
 export default function SiralamalarEkrani() {
-  const [board, setBoard] = useState<SiralamaBoard>('gifter');
+  const [board, setBoard] = useState<SiralamaBoard>('top_recharge');
+  const [period, setPeriod] = useState<SiralamaPeriod>('weekly');
   const [rows, setRows] = useState<SiralamaSatiri[]>([]);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      await LiderlikSiralamasiniYenile(board, 'daily');
-      setRows(await LiderlikSiralamasiniGetir({ board, period: 'daily' }));
+      await LiderlikSiralamasiniYenile(board, period);
+      setRows(await LiderlikSiralamasiniGetir({ board, period }));
     } catch {
       setRows([]);
     } finally {
       setLoading(false);
     }
-  }, [board]);
+  }, [board, period]);
 
   useFocusEffect(
     useCallback(() => {
@@ -50,16 +65,25 @@ export default function SiralamalarEkrani() {
     }, [load]),
   );
 
+  const altBaslik = useMemo(() => {
+    if (board === 'top_recharge') {
+      return period === 'weekly'
+        ? 'Bu hafta en çok coin yükleyenler'
+        : period === 'daily'
+          ? 'Bugün en çok yükleyenler'
+          : 'Tüm zamanlar yükleme';
+    }
+    if (board === 'gifter') return 'Hediye gönderenler';
+    return 'Hediye alan ev sahipleri';
+  }, [board, period]);
+
+  const top3 = rows.slice(0, 3);
+  const rest = rows.slice(3);
+
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="liderlik-siralamalari">
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={styles.back}>← Geri</Text>
-          </Pressable>
-          <Text style={styles.title}>Leaderboards</Text>
-          <Text style={styles.sub}>Gifter harcama · Recharge yükleme — ayrı</Text>
-        </View>
+        <EkranBasligi title="Sıralamalar" subtitle={altBaslik} />
 
         <View style={styles.tabs}>
           {BOARDS.map((b) => (
@@ -68,40 +92,82 @@ export default function SiralamalarEkrani() {
               onPress={() => setBoard(b.id)}
               style={[styles.tab, board === b.id && styles.tabActive]}
             >
-              <Text style={[styles.tabText, board === b.id && styles.tabTextActive]}>
+              <Text
+                style={[styles.tabText, board === b.id && styles.tabTextActive]}
+              >
                 {b.label}
               </Text>
             </Pressable>
           ))}
         </View>
 
+        {board !== 'host' ? (
+          <View style={styles.periods}>
+            {PERIODS.map((p) => (
+              <Pressable
+                key={p.id}
+                onPress={() => setPeriod(p.id)}
+                style={[styles.period, period === p.id && styles.periodActive]}
+              >
+                <Text
+                  style={[
+                    styles.periodText,
+                    period === p.id && styles.periodTextActive,
+                  ]}
+                >
+                  {p.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
         <FlatList
-          data={rows}
+          data={rest}
           keyExtractor={(item) => item.id}
           refreshControl={
             <RefreshControl
               refreshing={loading}
               onRefresh={load}
-              tintColor={RenkTokenlari.primary}
+              tintColor={RenkTokenlari.primarySoft}
             />
           }
           contentContainerStyle={styles.list}
-          ListEmptyComponent={
-            <Text style={styles.empty}>
-              Sıralama boş. Migration 007 + hediye/yükleme sonrası yenilenir.
-            </Text>
+          ListHeaderComponent={
+            top3.length > 0 ? (
+              <View style={styles.podium}>
+                <LinearGradient
+                  colors={['rgba(61,207,176,0.16)', 'rgba(18,16,24,0)']}
+                  style={StyleSheet.absoluteFill}
+                />
+                <Text style={styles.podiumTitle}>
+                  {board === 'top_recharge' ? 'Haftanın zirvesi' : 'Zirve'}
+                </Text>
+                {top3.map((item) => (
+                  <SiralamaKullaniciSatiri
+                    key={item.id}
+                    item={item}
+                    birim="coin"
+                  />
+                ))}
+              </View>
+            ) : null
           }
-          ListFooterComponent={
-            <GradientButton title="Yenile" variant="ghost" onPress={load} />
+          ListEmptyComponent={
+            !loading && rows.length === 0 ? (
+              <BosDurum
+                icon="trophy-outline"
+                title="Sıralama boş"
+                body={
+                  board === 'top_recharge'
+                    ? 'Bu dönemde henüz coin yüklemesi yok. Profil → Ayarlar’dan sıralamayı gizleyebilirsin.'
+                    : 'Bu dönem için kayıt yok.'
+                }
+              />
+            ) : null
           }
           renderItem={({ item }) => (
-            <View style={styles.row}>
-              <Text style={styles.rank}>#{item.rank ?? '-'}</Text>
-              <Text style={styles.user} numberOfLines={1}>
-                {item.user_id?.slice(0, 8) ?? '—'}
-              </Text>
-              <Text style={styles.score}>{item.score}</Text>
-            </View>
+            <SiralamaKullaniciSatiri item={item} birim="coin" />
           )}
         />
       </ModulHataSiniri>
@@ -110,44 +176,71 @@ export default function SiralamalarEkrani() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingTop: 8, gap: 4 },
-  back: { ...TipografiTokenlari.caption, color: RenkTokenlari.primarySoft },
-  title: { ...TipografiTokenlari.title, color: RenkTokenlari.text },
-  sub: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted, marginBottom: 10 },
-  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 10 },
+  tabs: {
+    flexDirection: 'row',
+    gap: BoslukTokenlari.sm,
+    paddingHorizontal: BoslukTokenlari.lg,
+    marginBottom: BoslukTokenlari.sm,
+  },
   tab: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.md,
     alignItems: 'center',
     backgroundColor: RenkTokenlari.surface,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
   },
   tabActive: {
-    borderColor: RenkTokenlari.primary,
-    backgroundColor: 'rgba(232, 64, 145, 0.16)',
+    borderColor: RenkTokenlari.mint,
+    backgroundColor: 'rgba(61, 207, 176, 0.14)',
   },
   tabText: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
-  tabTextActive: { color: RenkTokenlari.primarySoft, fontWeight: '700' },
-  list: { paddingHorizontal: 20, paddingBottom: 40, gap: 8 },
-  empty: {
-    ...TipografiTokenlari.body,
-    color: RenkTokenlari.textMuted,
-    textAlign: 'center',
-    marginTop: 32,
-  },
-  row: {
+  tabTextActive: { color: RenkTokenlari.mint, fontWeight: '700' },
+  periods: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: RenkTokenlari.bgCard,
+    gap: BoslukTokenlari.sm,
+    paddingHorizontal: BoslukTokenlari.lg,
+    marginBottom: BoslukTokenlari.md,
+  },
+  period: {
+    paddingHorizontal: BoslukTokenlari.md,
+    paddingVertical: BoslukTokenlari.sm,
+    borderRadius: YaricapTokenlari.pill ?? 999,
+    backgroundColor: RenkTokenlari.surface,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
   },
-  rank: { ...TipografiTokenlari.h2, color: RenkTokenlari.accent, width: 40 },
-  user: { ...TipografiTokenlari.body, color: RenkTokenlari.text, flex: 1 },
-  score: { ...TipografiTokenlari.h2, color: RenkTokenlari.text },
+  periodActive: {
+    borderColor: RenkTokenlari.primarySoft,
+    backgroundColor: 'rgba(232, 64, 145, 0.14)',
+  },
+  periodText: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    fontWeight: '600',
+  },
+  periodTextActive: { color: RenkTokenlari.primarySoft },
+  list: {
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingBottom: BoslukTokenlari.xxxl,
+    gap: BoslukTokenlari.sm,
+  },
+  podium: {
+    gap: BoslukTokenlari.sm,
+    marginBottom: BoslukTokenlari.lg,
+    padding: BoslukTokenlari.lg,
+    borderRadius: YaricapTokenlari.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(61,207,176,0.22)',
+  },
+  podiumTitle: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.mint,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    marginBottom: BoslukTokenlari.sm,
+    textTransform: 'uppercase',
+  },
 });

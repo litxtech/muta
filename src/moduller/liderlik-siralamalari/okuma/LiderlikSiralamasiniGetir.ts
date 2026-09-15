@@ -7,6 +7,10 @@ export type SiralamaSatiri = {
   rank: number | null;
   board_type: string;
   period: string;
+  period_key?: string;
+  display_name?: string | null;
+  username?: string | null;
+  avatar_url?: string | null;
 };
 
 export type SiralamaBoard =
@@ -20,31 +24,29 @@ export type SiralamaBoard =
 
 export type SiralamaPeriod = 'daily' | 'weekly' | 'monthly' | 'all_time';
 
-/** Top Recharge ve Top Gifter AYRI board */
+/** Top Recharge ve Top Gifter AYRI board — profil alanlari dahil */
 export async function LiderlikSiralamasiniGetir(input: {
   board: SiralamaBoard;
   period?: SiralamaPeriod;
   limit?: number;
 }): Promise<SiralamaSatiri[]> {
-  const period = input.period ?? 'daily';
-  const periodKey = new Date().toISOString().slice(0, 10);
-
-  const { data, error } = await supabase
-    .from('leaderboard_snapshots')
-    .select('id, user_id, score, rank, board_type, period')
-    .eq('board_type', input.board)
-    .eq('period', period)
-    .eq('period_key', periodKey)
-    .order('rank', { ascending: true })
-    .limit(input.limit ?? 50);
+  const period = input.period ?? 'weekly';
+  const { data, error } = await supabase.rpc('liderlik_siralamasi_listele', {
+    p_board_type: input.board,
+    p_period: period,
+    p_limit: input.limit ?? 50,
+  });
 
   if (error) throw error;
-  return (data as SiralamaSatiri[]) ?? [];
+  return ((data as SiralamaSatiri[]) ?? []).map((r) => ({
+    ...r,
+    score: Number(r.score) || 0,
+  }));
 }
 
 export async function LiderlikSiralamasiniYenile(
   board: SiralamaBoard,
-  period: SiralamaPeriod = 'daily',
+  period: SiralamaPeriod = 'weekly',
 ): Promise<{ ok: boolean; hata?: string }> {
   const { error } = await supabase.rpc('liderlik_siralamasi_yenile', {
     p_board_type: board,
@@ -52,4 +54,11 @@ export async function LiderlikSiralamasiniYenile(
   });
   if (error) return { ok: false, hata: error.message };
   return { ok: true };
+}
+
+export function CoinSkoruFormatla(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 10_000) return `${Math.round(n / 1000)}B`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}B`;
+  return String(n);
 }

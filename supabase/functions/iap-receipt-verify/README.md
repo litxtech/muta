@@ -1,11 +1,19 @@
-# IAP Receipt Verify (Edge Function)
+# IAP Receipt Verify Edge Function
 
-Production akis:
-1. Mobil StoreKit / Play Billing satin alir
-2. Receipt + productId + idempotencyKey bu Edge Function'a gider
-3. Apple/Google dogrular (service credentials burada)
-4. Basariliysa `coin_satin_al_onayla` RPC (service_role veya user JWT + verified flag)
+Mobilde Apple/Google secret **olmaz**. Dogrulama burada.
 
-Mobil uygulamada Apple/Google secret **olmaz**.
+## Secrets
+- `IAP_SANDBOX_ALLOW` — `true` (varsayilan) gelistirme; prod'da `false` + store credentials
+- (sonra) Apple shared secret / Google service account JSON
 
-FAZ 3: mobil gelistirme yolu `CoinSatinAlOnayla` dogrudan RPC cagirir (manual store).
+## Deploy
+```bash
+npx supabase functions deploy iap-receipt-verify --project-ref vdkqrqtrftzhbtquzked
+```
+
+## Mobil
+```
+EXPO_PUBLIC_IAP_VERIFY_URL=https://vdkqrqtrftzhbtquzked.supabase.co/functions/v1/iap-receipt-verify
+```
+
+Akis: JWT + packageId POST → sandbox kabul → `coin_satin_al_onayla` RPC.

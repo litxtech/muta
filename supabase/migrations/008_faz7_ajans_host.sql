@@ -609,20 +609,31 @@ alter table public.agency_coin_transfers enable row level security;
 alter table public.host_agency_transfers enable row level security;
 alter table public.withdrawal_requests enable row level security;
 
+drop policy if exists "Agency levels readable" on public.agency_levels;
 create policy "Agency levels readable" on public.agency_levels for select to authenticated using (is_active);
+drop policy if exists "Agencies readable" on public.agencies;
 create policy "Agencies readable" on public.agencies for select to authenticated using (true);
+drop policy if exists "Own agency applications" on public.agency_applications;
 create policy "Own agency applications" on public.agency_applications for select to authenticated using (auth.uid() = applicant_id);
+drop policy if exists "Own host applications" on public.host_applications;
 create policy "Own host applications" on public.host_applications for select to authenticated using (auth.uid() = user_id);
+drop policy if exists "Host profiles readable" on public.host_profiles;
 create policy "Host profiles readable" on public.host_profiles for select to authenticated using (true);
+drop policy if exists "Host targets readable" on public.host_targets;
 create policy "Host targets readable" on public.host_targets for select to authenticated using (is_active);
+drop policy if exists "Commission rates readable owners" on public.agency_commission_rates;
 create policy "Commission rates readable owners" on public.agency_commission_rates for select to authenticated
   using (exists (select 1 from public.agencies a where a.id = agency_id and a.owner_id = auth.uid()));
+drop policy if exists "Agency wallet owner read" on public.agency_wallets;
 create policy "Agency wallet owner read" on public.agency_wallets for select to authenticated
   using (exists (select 1 from public.agencies a where a.id = agency_id and a.owner_id = auth.uid()));
+drop policy if exists "Agency earnings owner read" on public.agency_earnings_ledger;
 create policy "Agency earnings owner read" on public.agency_earnings_ledger for select to authenticated
   using (exists (select 1 from public.agencies a where a.id = agency_id and a.owner_id = auth.uid()));
+drop policy if exists "Own withdrawals" on public.withdrawal_requests;
 create policy "Own withdrawals" on public.withdrawal_requests for select to authenticated
   using (auth.uid() = user_id);
+drop policy if exists "Own agency transfers read" on public.agency_coin_transfers;
 create policy "Own agency transfers read" on public.agency_coin_transfers for select to authenticated
   using (
     auth.uid() = to_user_id or auth.uid() = from_user_id or
@@ -640,8 +651,8 @@ grant select on public.agency_wallets to authenticated;
 grant select on public.agency_earnings_ledger to authenticated;
 grant select on public.agency_coin_transfers to authenticated;
 grant select on public.withdrawal_requests to authenticated;
-grant execute on function public.ajans_basvurusu_olustur to authenticated;
-grant execute on function public.host_basvurusu_olustur to authenticated;
-grant execute on function public.host_bagimsiz_aktif_et to authenticated;
-grant execute on function public.ajans_coin_transfer to authenticated;
-grant execute on function public.cekim_talebi_olustur to authenticated;
+grant execute on function public.ajans_basvurusu_olustur(text, text, text, text, text, int, text) to authenticated;
+grant execute on function public.host_basvurusu_olustur(text, text) to authenticated;
+grant execute on function public.host_bagimsiz_aktif_et() to authenticated;
+grant execute on function public.ajans_coin_transfer(uuid, uuid, bigint, text) to authenticated;
+grant execute on function public.cekim_talebi_olustur(bigint, text, jsonb, text) to authenticated;

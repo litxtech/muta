@@ -8,12 +8,16 @@ export type MisafirEngelliIslem =
   | 'coin_satinal'
   | 'takip_et'
   | 'yorum_yap'
+  | 'durum_paylas'
   | 'mikrofon'
   | 'canli_ac'
   | 'oda_olustur'
   | 'ajans_olustur'
   | 'oy_kullan'
-  | 'cekim';
+  | 'cekim'
+  | 'destek'
+  | 'pk_baslat'
+  | 'oyun_baslat';
 
 const ENGELLI: Record<MisafirEngelliIslem, true> = {
   mesaj_gonder: true,
@@ -21,12 +25,16 @@ const ENGELLI: Record<MisafirEngelliIslem, true> = {
   coin_satinal: true,
   takip_et: true,
   yorum_yap: true,
+  durum_paylas: true,
   mikrofon: true,
   canli_ac: true,
   oda_olustur: true,
   ajans_olustur: true,
   oy_kullan: true,
   cekim: true,
+  destek: true,
+  pk_baslat: true,
+  oyun_baslat: true,
 };
 
 export function MisafirIslemIzniVarMi(

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import type { GameSession, RoomGameMeta } from '../ortak/tipler/OyunTipleri';
+import type { GameCode, GameSession, RoomGameMeta } from '../ortak/tipler/OyunTipleri';
 import { OyunOdaKatmani } from './OyunOdaKatmani';
 
 export type OyunOdaLazyKatmaniProps = {
@@ -19,6 +19,7 @@ export type OyunOdaLazyKatmaniProps = {
   inviteSession?: GameSession | null;
   onInviteDismiss?: () => void;
   onOverlayClosed?: () => void;
+  visibleGameCodes?: readonly GameCode[];
 };
 
 export function OyunOdaLazyKatmani({

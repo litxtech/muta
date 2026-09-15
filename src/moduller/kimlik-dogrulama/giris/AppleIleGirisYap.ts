@@ -9,7 +9,8 @@ export type AppleGirisSonuc =
 
 /**
  * Native Sign in with Apple → Supabase signInWithIdToken.
- * Secret key gerekmez (native). Bundle ID'ler Supabase Client IDs listesinde olmali.
+ * Secret key gerekmez (native).
+ * Supabase Apple Client IDs: com.litxtech.muta
  */
 export async function AppleIleGirisYap(): Promise<AppleGirisSonuc> {
   if (Platform.OS !== 'ios') {

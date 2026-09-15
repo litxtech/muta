@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Modal,
   Platform,
-  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { router } from 'expo-router';
 import { TextField } from '../../../components/TextField';
 import { GradientButton } from '../../../components/GradientButton';
+import { KlavyeKapatan } from '../../../components/KlavyeKapatan';
+import { KlavyeGuvenliAlan } from '../../../bilesenler/klavye/KlavyeGuvenliAlan';
+import { TamusoModal } from '../../../bilesenler/yuzey/TamusoModal';
+import { useAuth } from '../../../contexts/AuthContext';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -18,13 +21,14 @@ import { MisafirHesabiTamamla } from '../islemler/MisafirHesabiTamamla';
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onCompleted: () => void;
+  onCompleted: () => void | Promise<void>;
 };
 
 /**
  * Guest state-changing islemde gosterilen modern hesap tamamlama karti.
  */
 export function HesabiTamamlaKarti({ visible, onClose, onCompleted }: Props) {
+  const { misafirBayraginiKaldir, refreshProfile, refreshWallet } = useAuth();
   const [ad, setAd] = useState('');
   const [soyad, setSoyad] = useState('');
   const [email, setEmail] = useState('');
@@ -35,80 +39,128 @@ export function HesabiTamamlaKarti({ visible, onClose, onCompleted }: Props) {
   const kaydet = async () => {
     setHata(null);
     if (!ad.trim() || !soyad.trim() || !email.trim() || password.length < 6) {
-      setHata('Ad, soyad, e-posta ve en az 6 karakter sifre gerekli.');
+      setHata('Ad, soyad, e-posta ve en az 6 karakter şifre gerekli.');
       return;
     }
     setLoading(true);
     const sonuc = await MisafirHesabiTamamla({ ad, soyad, email, password });
-    setLoading(false);
     if (!sonuc.ok) {
-      setHata(sonuc.hata ?? 'Tamamlama basarisiz');
+      setLoading(false);
+      setHata(sonuc.hata ?? 'Tamamlama başarısız');
       return;
     }
-    onCompleted();
+
+    const mail = email.trim().toLowerCase();
+    if (sonuc.needsConfirm) {
+      setLoading(false);
+      onClose();
+      router.push({
+        pathname: '/(auth)/dogrula-kod',
+        params: { email: mail, amac: 'email_change' },
+      });
+      return;
+    }
+
+    // UI anında misafir kilidini kaldır; sonra profil/cüzdanı tazele
+    misafirBayraginiKaldir();
+    await Promise.all([refreshProfile(), refreshWallet()]);
+    setLoading(false);
+    await onCompleted();
     onClose();
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <TamusoModal
+      visible={visible}
+      onClose={onClose}
+      animationType="slide"
+      placement="bottom"
+    >
+      <KlavyeGuvenliAlan
+        style={styles.sheetWrap}
+        offset={Platform.OS === 'ios' ? 12 : 0}
       >
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={styles.card}>
-          <Text style={styles.title}>Hesabini tamamla</Text>
-          <Text style={styles.sub}>
-            Mesaj, hediye ve mikrofon icin e-posta dogrulamali hesap gerekir. Kimligin
-            korunur.
-          </Text>
-          <TextField label="Ad" value={ad} onChangeText={setAd} placeholder="Ad" />
-          <TextField label="Soyad" value={soyad} onChangeText={setSoyad} placeholder="Soyad" />
-          <TextField
-            label="E-posta"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="sen@mail.com"
-          />
-          <TextField
-            label="Sifre"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            placeholder="En az 6 karakter"
-          />
-          {hata ? <Text style={styles.error}>{hata}</Text> : null}
-          <GradientButton title="Hesabi olustur" onPress={kaydet} loading={loading} />
-          <GradientButton title="Simdi degil" variant="ghost" onPress={onClose} />
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={styles.scroll}
+          bounces={false}
+        >
+          <KlavyeKapatan>
+            <View style={styles.card}>
+              <Text style={styles.title}>Hesabını tamamla</Text>
+              <Text style={styles.sub}>
+                Mesaj, hediye ve mikrofon için e-posta doğrulamalı hesap gerekir.
+                Kimliğin korunur.
+              </Text>
+              <TextField label="Ad" value={ad} onChangeText={setAd} placeholder="Ad" />
+              <TextField
+                label="Soyad"
+                value={soyad}
+                onChangeText={setSoyad}
+                placeholder="Soyad"
+              />
+              <TextField
+                label="E-posta"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="sen@mail.com"
+              />
+              <TextField
+                label="Şifre"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                placeholder="En az 6 karakter"
+                blurOnSubmit
+              />
+              {hata ? <Text style={styles.error}>{hata}</Text> : null}
+              <GradientButton title="Hesabı oluştur" onPress={kaydet} loading={loading} />
+              <GradientButton title="Şimdi değil" variant="ghost" onPress={onClose} />
+            </View>
+          </KlavyeKapatan>
+        </ScrollView>
+      </KlavyeGuvenliAlan>
+    </TamusoModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+  /** flexGrow:0 → KlavyeGuvenliAlan varsayılan flex:1 uygulamamalı (Android height:0 bug) */
+  sheetWrap: {
+    flexGrow: 0,
+    flexShrink: 1,
+    maxHeight: '88%',
+  },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'flex-end',
   },
   card: {
-    backgroundColor: RenkTokenlari.bgElevated,
-    borderTopLeftRadius: YaricapTokenlari.xl,
-    borderTopRightRadius: YaricapTokenlari.xl,
+    marginHorizontal: 12,
+    marginBottom: 12,
+    padding: 18,
+    borderRadius: YaricapTokenlari.xl,
+    backgroundColor: RenkTokenlari.bgCard,
     borderWidth: 1,
-    borderColor: RenkTokenlari.borderAccent,
-    padding: 20,
+    borderColor: RenkTokenlari.border,
     gap: 12,
-    paddingBottom: 32,
+    zIndex: 3,
+    elevation: 28,
   },
-  title: { ...TipografiTokenlari.title, color: RenkTokenlari.text },
-  sub: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted, marginBottom: 4 },
-  error: { ...TipografiTokenlari.caption, color: RenkTokenlari.danger },
+  title: {
+    ...TipografiTokenlari.h1,
+    color: RenkTokenlari.text,
+  },
+  sub: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    lineHeight: 18,
+  },
+  error: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.danger,
+  },
 });

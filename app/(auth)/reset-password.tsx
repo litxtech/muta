@@ -38,7 +38,9 @@ export default function ResetPasswordScreen() {
     <Screen>
       <View style={styles.content}>
         <Text style={styles.title}>Yeni şifre</Text>
-        <Text style={styles.sub}>Maildeki link ile buraya geldiysen yeni şifreni belirle.</Text>
+        <Text style={styles.sub}>
+          Kod doğrulandı. Yeni şifreni belirle.
+        </Text>
         <TextField
           label="Yeni şifre"
           secureTextEntry

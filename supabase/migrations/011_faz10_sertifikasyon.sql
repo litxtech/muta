@@ -298,6 +298,6 @@ begin
 end;
 $$;
 
-grant execute on function public.platform_saglik_ozeti to authenticated;
-grant execute on function public.sertifikasyon_kontrol_guncelle to authenticated;
-grant execute on function public.yuk_sinyali_kaydet to authenticated;
+grant execute on function public.platform_saglik_ozeti() to authenticated;
+grant execute on function public.sertifikasyon_kontrol_guncelle(text, text, jsonb) to authenticated;
+grant execute on function public.yuk_sinyali_kaydet(text, jsonb) to authenticated;

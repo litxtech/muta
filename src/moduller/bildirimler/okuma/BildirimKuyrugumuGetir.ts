@@ -1,23 +1,69 @@
 import { supabase } from '../../../lib/supabase';
 
-export type OutboxBildirim = {
+export type UygulamaBildirimi = {
   id: string;
   category: string;
   title: string;
   body: string | null;
-  status: string;
-  created_at: string;
   deep_link: string | null;
+  payload: Record<string, unknown>;
+  read_at: string | null;
+  created_at: string;
+  actor_id?: string | null;
+  actor_name?: string | null;
+  actor_username?: string | null;
+  actor_avatar_url?: string | null;
 };
 
-export async function BildirimKuyrugumuGetir(limit = 30): Promise<OutboxBildirim[]> {
-  const { data, error } = await supabase
-    .from('notification_outbox')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit);
+function satirMap(r: Record<string, unknown>): UygulamaBildirimi {
+  return {
+    id: String(r.id),
+    category: String(r.category ?? 'system'),
+    title: String(r.title ?? ''),
+    body: r.body != null ? String(r.body) : null,
+    deep_link: r.deep_link != null ? String(r.deep_link) : null,
+    payload: (r.payload ?? {}) as Record<string, unknown>,
+    read_at: r.read_at != null ? String(r.read_at) : null,
+    created_at: String(r.created_at),
+    actor_id: r.actor_id != null ? String(r.actor_id) : null,
+    actor_name: r.actor_name != null ? String(r.actor_name) : null,
+    actor_username: r.actor_username != null ? String(r.actor_username) : null,
+    actor_avatar_url:
+      r.actor_avatar_url != null ? String(r.actor_avatar_url) : null,
+  };
+}
+
+export async function BildirimlerimiListele(
+  limit = 50,
+): Promise<UygulamaBildirimi[]> {
+  const { data, error } = await supabase.rpc('bildirimlerimi_listele', {
+    p_limit: limit,
+  });
   if (error) throw error;
-  return (data as OutboxBildirim[]) ?? [];
+  return ((data ?? []) as Record<string, unknown>[]).map(satirMap);
+}
+
+export async function BildirimOkunmamisSayim(): Promise<number> {
+  const { data, error } = await supabase.rpc('bildirim_okunmamis_sayim');
+  if (error) throw error;
+  return Number(data) || 0;
+}
+
+export async function BildirimleriHepsiniOkundu(): Promise<number> {
+  const { data, error } = await supabase.rpc('bildirimleri_hepsini_okundu');
+  if (error) throw error;
+  return Number(data) || 0;
+}
+
+export async function BildirimOkunduIsaretle(
+  id: string,
+): Promise<{ ok: boolean; unread: number }> {
+  const { data, error } = await supabase.rpc('bildirim_okundu_isaretle', {
+    p_id: id,
+  });
+  if (error) throw error;
+  const row = data as { ok?: boolean; unread?: number } | null;
+  return { ok: !!row?.ok, unread: Number(row?.unread) || 0 };
 }
 
 export async function BildirimKuyrugaEkleDev(input: {
@@ -32,4 +78,14 @@ export async function BildirimKuyrugaEkleDev(input: {
   });
   if (error) return { ok: false, hata: error.message };
   return { ok: true };
+}
+
+/** @deprecated */
+export type OutboxBildirim = UygulamaBildirimi & { status?: string };
+
+/** @deprecated */
+export async function BildirimKuyrugumuGetir(
+  limit = 30,
+): Promise<UygulamaBildirimi[]> {
+  return BildirimlerimiListele(limit);
 }

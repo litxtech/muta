@@ -1,86 +1,111 @@
-import React, { useCallback, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import React, { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
-import { GradientButton } from '../../src/components/GradientButton';
+import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
+import { PolitikaOkumaPaneli } from '../../src/moduller/politikalar/bilesenler/PolitikaOkumaPaneli';
 import {
-  GuncelPolitikalariGetir,
-  PolitikaKabulEt,
-  type PolitikaSurumu,
-} from '../../src/moduller/politikalar/islemler/PolitikaIslemleri';
+  POLITIKA_LISTESI,
+  type PolitikaTanimi,
+} from '../../src/moduller/politikalar/icerik/PolitikaMetinleri';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
+import {
+  BoslukTokenlari,
+  YaricapTokenlari,
+} from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export default function PolitikaEkrani() {
-  const [items, setItems] = useState<PolitikaSurumu[]>([]);
-
-  const load = useCallback(async () => {
-    try {
-      setItems(await GuncelPolitikalariGetir());
-    } catch {
-      setItems([]);
-    }
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      void load();
-    }, [load]),
-  );
-
-  const kabul = async (id: string) => {
-    const r = await PolitikaKabulEt(id);
-    if (!r.ok) Alert.alert('Politika', r.hata);
-    else Alert.alert('Kabul edildi');
-  };
+  const [okunan, setOkunan] = useState<PolitikaTanimi | null>(null);
 
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="politikalar">
-        <View style={styles.content}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={styles.back}>← Geri</Text>
-          </Pressable>
-          <Text style={styles.title}>Policies</Text>
-          <Text style={styles.sub}>Consent ≠ announcement</Text>
-          <FlatList
-            data={items}
-            keyExtractor={(item) => item.id}
-            ListEmptyComponent={<Text style={styles.empty}>Politika yok (010).</Text>}
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>
-                  {item.policies?.title ?? item.policy_code} v{item.version}
-                </Text>
-                <Text style={styles.body} numberOfLines={6}>
-                  {item.body_md}
-                </Text>
-                <GradientButton title="Kabul et" onPress={() => kabul(item.id)} />
+        <EkranBasligi
+          title="Politikalar"
+          subtitle="Kullanım · gizlilik · çocuk koruma (af yok)"
+        />
+        <ScrollView contentContainerStyle={styles.list}>
+          {POLITIKA_LISTESI.map((p) => (
+            <Pressable
+              key={p.kod}
+              style={styles.card}
+              onPress={() => setOkunan(p)}
+            >
+              <View style={styles.cardIcon}>
+                <Ionicons
+                  name={
+                    p.kod === 'child_safety'
+                      ? 'shield-checkmark-outline'
+                      : p.kod === 'privacy'
+                        ? 'lock-closed-outline'
+                        : 'document-text-outline'
+                  }
+                  size={20}
+                  color={RenkTokenlari.primarySoft}
+                />
               </View>
-            )}
-          />
-        </View>
+              <View style={styles.cardCopy}>
+                <Text style={styles.cardTitle}>{p.baslik}</Text>
+                <Text style={styles.cardAlt}>{p.kisa}</Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={RenkTokenlari.textDim}
+              />
+            </Pressable>
+          ))}
+          <Pressable
+            style={styles.link}
+            onPress={() => router.push('/destek' as any)}
+          >
+            <Text style={styles.linkYazi}>Sorun mu var? Canlı destek</Text>
+          </Pressable>
+        </ScrollView>
+
+        <PolitikaOkumaPaneli
+          politika={okunan}
+          onKapat={() => setOkunan(null)}
+        />
       </ModulHataSiniri>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, padding: 20, gap: 8 },
-  back: { ...TipografiTokenlari.caption, color: RenkTokenlari.primarySoft },
-  title: { ...TipografiTokenlari.title, color: RenkTokenlari.text },
-  sub: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
-  empty: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
+  list: {
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingBottom: BoslukTokenlari.xxxl,
+    gap: BoslukTokenlari.md,
+  },
   card: {
-    padding: 12,
-    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: BoslukTokenlari.md,
+    padding: BoslukTokenlari.lg,
+    borderRadius: YaricapTokenlari.md,
     backgroundColor: RenkTokenlari.bgCard,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
-    marginBottom: 10,
-    gap: 8,
   },
+  cardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(232,64,145,0.12)',
+  },
+  cardCopy: { flex: 1, minWidth: 0, gap: 2 },
   cardTitle: { ...TipografiTokenlari.h2, color: RenkTokenlari.text },
-  body: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
+  cardAlt: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
+  link: { alignItems: 'center', paddingVertical: BoslukTokenlari.md },
+  linkYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.primarySoft,
+    fontWeight: '700',
+  },
 });

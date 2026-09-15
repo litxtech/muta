@@ -1,5 +1,5 @@
 /**
- * Host oyun başlat sheet — Match-3 + Kozmik Kaskad.
+ * Host oyun başlat sheet — yalnızca admin'de açık oyunlar.
  */
 
 import React, { useState } from 'react';
@@ -23,6 +23,7 @@ import {
 } from '../sabitler/OyunSabitleri';
 import { GAME_DISPLAY_NAME } from '../../eslestirme/sabitler/KristalSabitleri';
 import { GAME_DISPLAY_NAME as KASKAD_NAME } from '../../kaskad/sabitler/KaskadSabitleri';
+import type { GameCode } from '../tipler/OyunTipleri';
 
 type Props = {
   visible: boolean;
@@ -30,6 +31,8 @@ type Props = {
   onBaslat: (opts: { durationSeconds: number; maxPlayers: number }) => void;
   onBaslatKaskad?: () => void;
   canStart?: boolean;
+  /** Admin'de açık oyun kodları — kapalı olanlar hiç render edilmez. */
+  visibleGameCodes?: readonly GameCode[];
 };
 
 export function OyunBaslatModal({
@@ -38,8 +41,15 @@ export function OyunBaslatModal({
   onBaslat,
   onBaslatKaskad,
   canStart = true,
+  visibleGameCodes,
 }: Props) {
   const [duration, setDuration] = useState(DEFAULT_DURATION_SECONDS);
+
+  const showMatch3 =
+    visibleGameCodes == null ? true : visibleGameCodes.includes('match3');
+  const showKaskad =
+    visibleGameCodes == null ? true : visibleGameCodes.includes('kozmik_kaskad');
+  const hicYok = !showMatch3 && !showKaskad;
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -47,57 +57,70 @@ export function OyunBaslatModal({
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <Text style={styles.heading}>Tamuso Oyunları</Text>
 
-          <View style={styles.card}>
-            <Text style={styles.cardEyebrow}>KRİSTAL SAVAŞI</Text>
-            <Text style={styles.cardTitle}>{GAME_DISPLAY_NAME}</Text>
-            <Text style={styles.cardBody}>
-              {duration} saniyede en yüksek skoru yap. Odadaki oyuncularla yarış.
-            </Text>
-            <Text style={styles.cardMeta}>
-              1–{MAX_PLAYERS} oyuncu · solo pratik veya oda yarışı · aynı seed tahta
-            </Text>
-
-            <Text style={styles.durationLabel}>Süre</Text>
-            <View style={styles.durationRow}>
-              {DURATION_OPTIONS_SECONDS.map((sec) => (
-                <Pressable
-                  key={sec}
-                  style={[styles.chip, duration === sec && styles.chipOn]}
-                  onPress={() => setDuration(sec)}
-                >
-                  <Text style={[styles.chipText, duration === sec && styles.chipTextOn]}>
-                    {sec}s
-                  </Text>
-                </Pressable>
-              ))}
+          {hicYok ? (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Şu an açık oyun yok</Text>
+              <Text style={styles.cardBody}>
+                Oyunlar admin panelinden kapatılmış. Daha sonra tekrar dene.
+              </Text>
             </View>
+          ) : null}
 
-            <Pressable
-              style={[styles.cta, !canStart && styles.ctaDisabled]}
-              disabled={!canStart}
-              onPress={() =>
-                onBaslat({ durationSeconds: duration, maxPlayers: MAX_PLAYERS })
-              }
-            >
-              <Text style={styles.ctaText}>OYUN BAŞLAT</Text>
-            </Pressable>
-          </View>
+          {showMatch3 ? (
+            <View style={styles.card}>
+              <Text style={styles.cardEyebrow}>KRİSTAL SAVAŞI</Text>
+              <Text style={styles.cardTitle}>{GAME_DISPLAY_NAME}</Text>
+              <Text style={styles.cardBody}>
+                {duration} saniyede en yüksek skoru yap. Odadaki oyuncularla yarış.
+              </Text>
+              <Text style={styles.cardMeta}>
+                1–{MAX_PLAYERS} oyuncu · solo pratik veya oda yarışı · aynı seed tahta
+              </Text>
 
-          <View style={[styles.card, styles.cardAlt]}>
-            <Text style={styles.cardEyebrow}>KOZMİK KASKAD</Text>
-            <Text style={styles.cardTitle}>{KASKAD_NAME}</Text>
-            <Text style={styles.cardBody}>
-              6×5 cascade · portal scatter · çarpan küreleri · bonus turlar. Ses odası açık kalır.
-            </Text>
-            <Text style={styles.cardMeta}>Solo · server sonucu · premium animasyon</Text>
-            <Pressable
-              style={[styles.cta, styles.ctaAlt, !onBaslatKaskad && styles.ctaDisabled]}
-              disabled={!onBaslatKaskad}
-              onPress={() => onBaslatKaskad?.()}
-            >
-              <Text style={styles.ctaText}>KASKAD AÇ</Text>
-            </Pressable>
-          </View>
+              <Text style={styles.durationLabel}>Süre</Text>
+              <View style={styles.durationRow}>
+                {DURATION_OPTIONS_SECONDS.map((sec) => (
+                  <Pressable
+                    key={sec}
+                    style={[styles.chip, duration === sec && styles.chipOn]}
+                    onPress={() => setDuration(sec)}
+                  >
+                    <Text style={[styles.chipText, duration === sec && styles.chipTextOn]}>
+                      {sec}s
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Pressable
+                style={[styles.cta, !canStart && styles.ctaDisabled]}
+                disabled={!canStart}
+                onPress={() =>
+                  onBaslat({ durationSeconds: duration, maxPlayers: MAX_PLAYERS })
+                }
+              >
+                <Text style={styles.ctaText}>OYUN BAŞLAT</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {showKaskad ? (
+            <View style={[styles.card, styles.cardAlt]}>
+              <Text style={styles.cardEyebrow}>KOZMİK KASKAD</Text>
+              <Text style={styles.cardTitle}>{KASKAD_NAME}</Text>
+              <Text style={styles.cardBody}>
+                6×5 cascade · portal scatter · çarpan küreleri · bonus turlar. Ses odası açık kalır.
+              </Text>
+              <Text style={styles.cardMeta}>Solo · server sonucu · premium animasyon</Text>
+              <Pressable
+                style={[styles.cta, styles.ctaAlt, !onBaslatKaskad && styles.ctaDisabled]}
+                disabled={!onBaslatKaskad}
+                onPress={() => onBaslatKaskad?.()}
+              >
+                <Text style={styles.ctaText}>KASKAD AÇ</Text>
+              </Pressable>
+            </View>
+          ) : null}
 
           <Pressable onPress={onClose} style={styles.close}>
             <Text style={styles.closeText}>Kapat</Text>

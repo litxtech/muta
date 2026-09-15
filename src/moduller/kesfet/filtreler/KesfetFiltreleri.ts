@@ -18,14 +18,14 @@ export type KesfetFiltresi =
   | 'trending';
 
 export const KESFET_FILTRELERI: { id: KesfetFiltresi; label: string }[] = [
-  { id: 'global', label: 'Global' },
-  { id: 'country', label: 'Country' },
-  { id: 'language', label: 'Language' },
-  { id: 'online', label: 'Online' },
-  { id: 'live', label: 'Live' },
-  { id: 'voice_room', label: 'Voice Room' },
-  { id: 'new_creator', label: 'New Creator' },
-  { id: 'trending', label: 'Trending' },
+  { id: 'global', label: 'Tümü' },
+  { id: 'country', label: 'Ülke' },
+  { id: 'language', label: 'Dil' },
+  { id: 'online', label: 'Çevrimiçi' },
+  { id: 'live', label: 'Canlı' },
+  { id: 'voice_room', label: 'Ses Odası' },
+  { id: 'new_creator', label: 'Yeni Yayıncı' },
+  { id: 'trending', label: 'Trend' },
 ];
 
 export async function KesfetKategorileriniGetir(): Promise<KesfetKategorisi[]> {

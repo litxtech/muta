@@ -49,10 +49,15 @@ Resend / SendGrid / SES / Brevo vb. bağla. Detay: `supabase/SETUP.md`.
 Redirect URL örnekleri:
 
 ```
+https://litxtech.com/**
+https://litxtech.com/auth/callback
+https://litxtech.com/reset-password
 muta://reset-password
 muta://auth/callback
 exp://127.0.0.1:8081/--/reset-password
 ```
+
+Site URL: `https://litxtech.com`
 
 ## Monetization modeli
 
@@ -86,13 +91,23 @@ EXPO_PUBLIC_APP_SCHEME=muta
 
 `service_role` key **asla** uygulamaya konmaz.
 
-## Mimari (FAZ 1–6)
+## Mimari (FAZ 1–10)
 
-- FAZ 6: Gift kategori/animasyon queue, VIP·Gifter·Charm·Recharge, rankings
-- SQL: `001` … `007_faz6_hediye_vip_ranking`
-- Doküman: `docs/mimari/`
+| Faz | Icerik | SQL |
+|-----|--------|-----|
+| 1–4 | Mimari, kimlik, finans, sosyal | `001`–`005` |
+| 5 | LiveKit / oda / live / PK | `006` |
+| 6 | Hediye UX / VIP / ranking | `007` |
+| 7 | Ajans / host / cekim | `008` |
+| 8 | Sehir lig / savas / secim | `009` |
+| 9 | Events / gorev / duyuru / politika / moderasyon | `010` |
+| 9.1 | Oda sohbeti | `012` |
+| 10 | Sertifikasyon / mutabakat | `011` |
 
-## Sonraki: FAZ 7
+Dokuman: `docs/mimari/`
 
-Agency / Host / commission / transfers / withdrawals.  
-`npm run typecheck` temiz olmalı.
+## Sonraki (ops)
+
+- LiveKit secrets + Edge Function deploy
+- EAS preview, IAP sandbox
+- Dashboard: migration `001`→`012` + feature flags

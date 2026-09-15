@@ -405,22 +405,31 @@ alter table public.user_gift_collections enable row level security;
 alter table public.global_gift_feed enable row level security;
 alter table public.leaderboard_snapshots enable row level security;
 
+drop policy if exists "Gift categories readable" on public.gift_categories;
 create policy "Gift categories readable" on public.gift_categories
   for select to authenticated using (is_active);
+drop policy if exists "Gift rarities readable" on public.gift_rarities;
 create policy "Gift rarities readable" on public.gift_rarities
   for select to authenticated using (is_active);
+drop policy if exists "VIP levels readable" on public.vip_levels;
 create policy "VIP levels readable" on public.vip_levels
   for select to authenticated using (is_active);
+drop policy if exists "Gifter levels readable" on public.gifter_levels;
 create policy "Gifter levels readable" on public.gifter_levels
   for select to authenticated using (is_active);
+drop policy if exists "Charm levels readable" on public.charm_levels;
 create policy "Charm levels readable" on public.charm_levels
   for select to authenticated using (is_active);
+drop policy if exists "Recharge levels readable" on public.recharge_levels;
 create policy "Recharge levels readable" on public.recharge_levels
   for select to authenticated using (is_active);
+drop policy if exists "Own gift collections" on public.user_gift_collections;
 create policy "Own gift collections" on public.user_gift_collections
   for select to authenticated using (auth.uid() = user_id);
+drop policy if exists "Global gift feed readable" on public.global_gift_feed;
 create policy "Global gift feed readable" on public.global_gift_feed
   for select to authenticated using (true);
+drop policy if exists "Leaderboards readable" on public.leaderboard_snapshots;
 create policy "Leaderboards readable" on public.leaderboard_snapshots
   for select to authenticated using (true);
 
@@ -433,5 +442,5 @@ grant select on public.recharge_levels to authenticated;
 grant select on public.user_gift_collections to authenticated;
 grant select on public.global_gift_feed to authenticated;
 grant select on public.leaderboard_snapshots to authenticated;
-grant execute on function public.prestige_seviyelerini_yenile to authenticated;
-grant execute on function public.liderlik_siralamasi_yenile to authenticated;
+grant execute on function public.prestige_seviyelerini_yenile(uuid) to authenticated;
+grant execute on function public.liderlik_siralamasi_yenile(text, text) to authenticated;

@@ -420,20 +420,25 @@ alter table public.device_push_tokens enable row level security;
 alter table public.explore_categories enable row level security;
 alter table public.notification_outbox enable row level security;
 
+drop policy if exists "Profile stats readable" on public.user_profile_stats;
 create policy "Profile stats readable"
   on public.user_profile_stats for select to authenticated using (true);
 
+drop policy if exists "Own privacy settings" on public.user_privacy_settings;
 create policy "Own privacy settings"
   on public.user_privacy_settings for all to authenticated
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "Follows readable" on public.follows;
 create policy "Follows readable"
   on public.follows for select to authenticated using (true);
 
+drop policy if exists "Thread members read own threads" on public.message_thread_members;
 create policy "Thread members read own threads"
   on public.message_thread_members for select to authenticated
   using (auth.uid() = user_id);
 
+drop policy if exists "Messages readable by members" on public.direct_messages;
 create policy "Messages readable by members"
   on public.direct_messages for select to authenticated
   using (
@@ -443,6 +448,7 @@ create policy "Messages readable by members"
     )
   );
 
+drop policy if exists "Threads readable by members" on public.message_threads;
 create policy "Threads readable by members"
   on public.message_threads for select to authenticated
   using (
@@ -452,14 +458,17 @@ create policy "Threads readable by members"
     )
   );
 
+drop policy if exists "Own push tokens" on public.device_push_tokens;
 create policy "Own push tokens"
   on public.device_push_tokens for all to authenticated
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "Explore categories readable" on public.explore_categories;
 create policy "Explore categories readable"
   on public.explore_categories for select to authenticated
   using (is_active);
 
+drop policy if exists "Own notification outbox read" on public.notification_outbox;
 create policy "Own notification outbox read"
   on public.notification_outbox for select to authenticated
   using (auth.uid() = user_id);
@@ -473,8 +482,8 @@ grant select on public.direct_messages to authenticated;
 grant select, insert, update on public.device_push_tokens to authenticated;
 grant select on public.explore_categories to authenticated;
 grant select on public.notification_outbox to authenticated;
-grant execute on function public.takip_et to authenticated;
-grant execute on function public.takibi_birak to authenticated;
-grant execute on function public.mesaj_gonder to authenticated;
-grant execute on function public.ozel_sohbet_ac_veya_getir to authenticated;
-grant execute on function public.cihaz_push_token_kaydet to authenticated;
+grant execute on function public.takip_et(uuid) to authenticated;
+grant execute on function public.takibi_birak(uuid) to authenticated;
+grant execute on function public.mesaj_gonder(uuid, text, text) to authenticated;
+grant execute on function public.ozel_sohbet_ac_veya_getir(uuid) to authenticated;
+grant execute on function public.cihaz_push_token_kaydet(text, text, text, text, text, text, text) to authenticated;

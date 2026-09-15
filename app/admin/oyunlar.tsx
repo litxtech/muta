@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,8 +18,10 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { AdminYetkisiVarMi } from '../../src/moduller/admin/yetki/AdminYetkisiVarMi';
 import {
   AdminAktifOyunOturumlari,
-  AdminOyunKontrolGetir,
+  AdminOyunKataloguGetir,
   AdminOyunKontrolGuncelle,
+  AdminTumOyunKontrolleriniGetir,
+  type AdminOyunKatalogSatiri,
 } from '../../src/moduller/admin/oyunlar/AdminOyunIslemleri';
 import type { EconomyMode, GameControlConfig } from '../../src/moduller/oyunlar/ortak/tipler/OyunTipleri';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
@@ -34,10 +36,19 @@ const MODLAR: EconomyMode[] = [
   'MAINTENANCE',
 ];
 
+function oyunAdi(
+  code: string,
+  katalog: AdminOyunKatalogSatiri[],
+): string {
+  return katalog.find((k) => k.game_code === code)?.name ?? code;
+}
+
 export default function AdminOyunlarEkrani() {
   const { profile } = useAuth();
   const admin = AdminYetkisiVarMi(profile);
-  const [cfg, setCfg] = useState<GameControlConfig | null>(null);
+  const [configs, setConfigs] = useState<GameControlConfig[]>([]);
+  const [katalog, setKatalog] = useState<AdminOyunKatalogSatiri[]>([]);
+  const [seciliKod, setSeciliKod] = useState<string | null>(null);
   const [aktif, setAktif] = useState<
     Awaited<ReturnType<typeof AdminAktifOyunOturumlari>>
   >([]);
@@ -48,20 +59,35 @@ export default function AdminOyunlarEkrani() {
   const [rewardFactor, setRewardFactor] = useState('1');
   const [reason, setReason] = useState('');
 
+  const cfg = useMemo(
+    () => configs.find((c) => c.game_code === seciliKod) ?? null,
+    [configs, seciliKod],
+  );
+
   const yukle = useCallback(async () => {
     setYukleniyor(true);
     try {
-      const [c, a] = await Promise.all([
-        AdminOyunKontrolGetir('match3'),
+      const [cList, kat, a] = await Promise.all([
+        AdminTumOyunKontrolleriniGetir(),
+        AdminOyunKataloguGetir(),
         AdminAktifOyunOturumlari(),
       ]);
-      setCfg(c);
+      setConfigs(cList);
+      setKatalog(kat);
       setAktif(a);
-      if (c) {
-        setXpMul(String(c.xp_multiplier));
-        setTrophyMul(String(c.trophy_multiplier));
-        setRewardFactor(String(c.reward_factor));
-      }
+      setSeciliKod((prev) => {
+        const next =
+          prev && cList.some((c) => c.game_code === prev)
+            ? prev
+            : (cList[0]?.game_code ?? null);
+        const selected = cList.find((c) => c.game_code === next);
+        if (selected) {
+          setXpMul(String(selected.xp_multiplier));
+          setTrophyMul(String(selected.trophy_multiplier));
+          setRewardFactor(String(selected.reward_factor));
+        }
+        return next;
+      });
     } catch (e) {
       Alert.alert('Oyunlar', e instanceof Error ? e.message : 'Yüklenemedi');
     } finally {
@@ -79,15 +105,25 @@ export default function AdminOyunlarEkrani() {
     }, [admin, yukle]),
   );
 
-  const kaydet = async (patch: Record<string, unknown>, sebep?: string) => {
+  const sec = (code: string) => {
+    setSeciliKod(code);
+    const next = configs.find((c) => c.game_code === code);
+    if (next) {
+      setXpMul(String(next.xp_multiplier));
+      setTrophyMul(String(next.trophy_multiplier));
+      setRewardFactor(String(next.reward_factor));
+    }
+  };
+
+  const kaydet = async (gameCode: string, patch: Record<string, unknown>, sebep?: string) => {
     setKaydediyor(true);
     try {
       const next = await AdminOyunKontrolGuncelle({
-        gameCode: 'match3',
+        gameCode,
         patch,
         reason: sebep ?? (reason || 'admin panel'),
       });
-      setCfg(next);
+      setConfigs((prev) => prev.map((c) => (c.game_code === gameCode ? next : c)));
       Alert.alert('Kaydedildi', 'Oyun kontrol ayarı güncellendi (audit log yazıldı).');
     } catch (e) {
       Alert.alert('Hata', e instanceof Error ? e.message : 'Kayıt başarısız');
@@ -100,30 +136,74 @@ export default function AdminOyunlarEkrani() {
 
   return (
     <Screen>
-      <EkranBasligi title="Oyun Yönetimi" subtitle="Kristal Savaşı · Game Control" />
+      <EkranBasligi
+        title="Oyun Yönetimi"
+        subtitle="Kapalı oyun uygulamada hiç görünmez"
+      />
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl refreshing={yukleniyor} onRefresh={() => void yukle()} />
         }
       >
-        {yukleniyor && !cfg ? (
+        {yukleniyor && configs.length === 0 ? (
           <ActivityIndicator color={RenkTokenlari.accent} />
         ) : null}
 
+        <View style={styles.card}>
+          <Text style={styles.title}>Oyunlar</Text>
+          <Text style={styles.hint}>
+            Kapatılan oyun oda menüsü, başlat sheet ve davetlerde listelenmez; sunucu da oturum
+            açmaz.
+          </Text>
+          {configs.length === 0 ? (
+            <Text style={styles.meta}>Kayıtlı oyun yok.</Text>
+          ) : (
+            configs.map((c) => {
+              const acik = c.is_enabled && c.mode !== 'MAINTENANCE';
+              return (
+                <View key={c.game_code} style={styles.gameRow}>
+                  <Pressable style={styles.gameInfo} onPress={() => sec(c.game_code)}>
+                    <Text
+                      style={[
+                        styles.gameName,
+                        seciliKod === c.game_code && styles.gameNameOn,
+                      ]}
+                    >
+                      {oyunAdi(c.game_code, katalog)}
+                    </Text>
+                    <Text style={styles.meta}>
+                      {c.game_code} · {acik ? 'görünür' : 'gizli'} · {c.mode}
+                    </Text>
+                  </Pressable>
+                  <Switch
+                    value={c.is_enabled}
+                    onValueChange={(v) =>
+                      void kaydet(c.game_code, { is_enabled: v }, `enabled=${v}`)
+                    }
+                    disabled={kaydediyor}
+                  />
+                </View>
+              );
+            })
+          )}
+        </View>
+
         {cfg ? (
           <View style={styles.card}>
-            <Text style={styles.title}>Kristal Savaşı</Text>
+            <Text style={styles.title}>{oyunAdi(cfg.game_code, katalog)}</Text>
             <Text style={styles.meta}>
-              Mod: {cfg.mode} · Süre: {cfg.default_duration_seconds}s · Oyuncu:{' '}
+              Kod: {cfg.game_code} · Süre: {cfg.default_duration_seconds}s · Oyuncu:{' '}
               {cfg.min_players}–{cfg.max_players}
             </Text>
 
             <View style={styles.row}>
-              <Text style={styles.label}>Oyun açık</Text>
+              <Text style={styles.label}>Oyun açık (uygulamada görünür)</Text>
               <Switch
                 value={cfg.is_enabled}
-                onValueChange={(v) => void kaydet({ is_enabled: v }, `enabled=${v}`)}
+                onValueChange={(v) =>
+                  void kaydet(cfg.game_code, { is_enabled: v }, `enabled=${v}`)
+                }
                 disabled={kaydediyor}
               />
             </View>
@@ -133,7 +213,7 @@ export default function AdminOyunlarEkrani() {
               <Switch
                 value={cfg.coin_rewards_enabled}
                 onValueChange={(v) =>
-                  void kaydet({ coin_rewards_enabled: v }, `coin_rewards=${v}`)
+                  void kaydet(cfg.game_code, { coin_rewards_enabled: v }, `coin_rewards=${v}`)
                 }
                 disabled={kaydediyor}
               />
@@ -149,7 +229,7 @@ export default function AdminOyunlarEkrani() {
                 <Pressable
                   key={m}
                   style={[styles.chip, cfg.mode === m && styles.chipOn]}
-                  onPress={() => void kaydet({ mode: m }, `mode=${m}`)}
+                  onPress={() => void kaydet(cfg.game_code, { mode: m }, `mode=${m}`)}
                 >
                   <Text style={[styles.chipText, cfg.mode === m && styles.chipTextOn]}>
                     {m}
@@ -157,6 +237,9 @@ export default function AdminOyunlarEkrani() {
                 </Pressable>
               ))}
             </View>
+            <Text style={styles.hint}>
+              MAINTENANCE modu oyunu uygulamadan gizler (is_enabled açık olsa bile).
+            </Text>
 
             <Text style={styles.section}>Çarpanlar</Text>
             <Text style={styles.label}>XP çarpanı</Text>
@@ -195,7 +278,7 @@ export default function AdminOyunlarEkrani() {
               style={styles.btn}
               disabled={kaydediyor}
               onPress={() =>
-                void kaydet({
+                void kaydet(cfg.game_code, {
                   xp_multiplier: Number(xpMul) || 1,
                   trophy_multiplier: Number(trophyMul) || 1,
                   reward_factor: Number(rewardFactor) || 1,
@@ -211,6 +294,7 @@ export default function AdminOyunlarEkrani() {
               style={[styles.btn, styles.btnSecondary]}
               onPress={() =>
                 void kaydet(
+                  cfg.game_code,
                   {
                     xp_multiplier: 3,
                     trophy_multiplier: 2,
@@ -225,7 +309,11 @@ export default function AdminOyunlarEkrani() {
             <Pressable
               style={[styles.btn, styles.btnSecondary]}
               onPress={() =>
-                void kaydet({ mode: 'NO_REWARD', reward_factor: 0 }, 'ödülsüz eğlence')
+                void kaydet(
+                  cfg.game_code,
+                  { mode: 'NO_REWARD', reward_factor: 0 },
+                  'ödülsüz eğlence',
+                )
               }
             >
               <Text style={styles.btnText}>Ödülsüz eğlence modu</Text>
@@ -285,6 +373,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
   },
+  gameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: RenkTokenlari.border,
+  },
+  gameInfo: { flex: 1, gap: 2 },
+  gameName: {
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+    fontSize: TipografiTokenlari.body.fontSize,
+  },
+  gameNameOn: { color: RenkTokenlari.accent },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -293,6 +397,8 @@ const styles = StyleSheet.create({
   label: {
     color: RenkTokenlari.text,
     fontSize: TipografiTokenlari.caption.fontSize,
+    flex: 1,
+    paddingRight: 8,
   },
   section: {
     marginTop: 8,

@@ -48,10 +48,10 @@ export function resolveWinTier(
   if (betAmount <= 0 || totalWin <= 0) return 'NONE';
   const ratio = totalWin / betAmount;
   const t = config.winTiers;
-  if (ratio >= t.supernova) return 'SUPERNOVA';
-  if (ratio >= t.galactic) return 'GALACTIC';
+  if (ratio >= t.divine) return 'DIVINE';
   if (ratio >= t.cosmic) return 'COSMIC';
-  if (ratio >= t.energy) return 'ENERGY';
+  if (ratio >= t.thunder) return 'THUNDER';
+  if (ratio >= t.storm) return 'STORM';
   return 'NONE';
 }
 

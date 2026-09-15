@@ -1,39 +1,54 @@
 import React, { useState } from 'react';
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
+  Platform,
 } from 'react-native';
 import { Link, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../src/components/Screen';
 import { TextField } from '../../src/components/TextField';
 import { GradientButton } from '../../src/components/GradientButton';
+import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
+import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { colors, typography } from '../../src/theme/colors';
+import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
+import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
+import {
+  BoslukTokenlari,
+  YaricapTokenlari,
+} from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { env } from '../../src/lib/env';
 import { UygulamaKimligi } from '../../src/yapilandirma/UygulamaKimligi';
 
+/** Spotify marka yeşili — resmi giriş CTA */
+const SPOTIFY_GREEN = '#1DB954';
+
 export default function LoginScreen() {
-  const { signIn, signInWithApple, continueAsGuest } = useAuth();
-  const [email, setEmail] = useState('');
+  const { signIn, signInWithApple, signInWithSpotify, continueAsGuest } =
+    useAuth();
+  const [kimlik, setKimlik] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [spotifyLoading, setSpotifyLoading] = useState(false);
 
   const onSubmit = async () => {
-    if (!email || !password) {
-      Alert.alert('Eksik bilgi', 'E-posta ve şifre gerekli.');
+    if (!kimlik.trim() || !password) {
+      Alert.alert(
+        'Eksik bilgi',
+        'E-posta / kullanıcı adı ve şifre gerekli.',
+      );
       return;
     }
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(kimlik.trim(), password);
     setLoading(false);
     if (error) {
       Alert.alert('Giriş başarısız', error);
@@ -54,6 +69,18 @@ export default function LoginScreen() {
     router.replace('/(tabs)');
   };
 
+  const onSpotify = async () => {
+    setSpotifyLoading(true);
+    const { error, cancelled } = await signInWithSpotify();
+    setSpotifyLoading(false);
+    if (cancelled) return;
+    if (error) {
+      Alert.alert('Spotify girişi', error);
+      return;
+    }
+    router.replace('/(tabs)');
+  };
+
   const onGuest = async () => {
     setGuestLoading(true);
     const { error } = await continueAsGuest();
@@ -67,12 +94,13 @@ export default function LoginScreen() {
 
   return (
     <Screen>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KlavyeGuvenliAlan style={styles.flex}>
+        <KlavyeKapatan style={styles.dismiss}>
         <View style={styles.hero}>
-          <LinearGradient colors={[...colors.gradientPrimary]} style={styles.logoBlob}>
+          <LinearGradient
+            colors={[...RenkTokenlari.gradientPrimary]}
+            style={styles.logoBlob}
+          >
             <Text style={styles.logoMark}>M</Text>
           </LinearGradient>
           <Text style={styles.brand}>{UygulamaKimligi.APP_NAME}</Text>
@@ -84,19 +112,23 @@ export default function LoginScreen() {
 
         <View style={styles.form}>
           <TextField
-            label="E-posta"
+            label="Mail veya kullanıcı adı"
             autoCapitalize="none"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="sen@mail.com"
+            autoCorrect={false}
+            keyboardType="default"
+            textContentType="username"
+            value={kimlik}
+            onChangeText={setKimlik}
+            returnKeyType="next"
           />
           <TextField
             label="Şifre"
             secureTextEntry
             value={password}
             onChangeText={setPassword}
-            placeholder="••••••••"
+            returnKeyType="done"
+            blurOnSubmit
+            onSubmitEditing={() => void onSubmit()}
           />
           <Link href="/(auth)/forgot-password" asChild>
             <Pressable>
@@ -104,6 +136,18 @@ export default function LoginScreen() {
             </Pressable>
           </Link>
           <GradientButton title="Giriş Yap" onPress={onSubmit} loading={loading} />
+          <Pressable
+            onPress={() => void onSpotify()}
+            disabled={spotifyLoading}
+            style={[styles.spotifyBtn, spotifyLoading && styles.spotifyDisabled]}
+            accessibilityRole="button"
+            accessibilityLabel="Spotify ile giriş yap"
+          >
+            <Ionicons name="musical-notes" size={20} color="#121212" />
+            <Text style={styles.spotifyText}>
+              {spotifyLoading ? 'Spotify bağlanıyor…' : 'Spotify ile devam et'}
+            </Text>
+          </Pressable>
           {Platform.OS === 'ios' ? (
             <View style={styles.appleWrap}>
               <AppleAuthentication.AppleAuthenticationButton
@@ -131,51 +175,88 @@ export default function LoginScreen() {
             </Pressable>
           </Link>
         </View>
-      </KeyboardAvoidingView>
+        </KlavyeKapatan>
+      </KlavyeGuvenliAlan>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, paddingHorizontal: 24, justifyContent: 'space-between' },
-  hero: { alignItems: 'center', paddingTop: 48, gap: 10 },
+  flex: {
+    flex: 1,
+    paddingHorizontal: BoslukTokenlari.xl,
+    justifyContent: 'space-between',
+  },
+  dismiss: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  hero: {
+    alignItems: 'center',
+    paddingTop: BoslukTokenlari.xxxl,
+    gap: BoslukTokenlari.md,
+  },
   logoBlob: {
     width: 88,
     height: 88,
-    borderRadius: 28,
+    borderRadius: YaricapTokenlari.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: BoslukTokenlari.sm,
   },
   logoMark: { fontSize: 40, fontWeight: '900', color: '#12040C' },
-  brand: { ...typography.hero, color: colors.text },
-  tagline: { ...typography.body, color: colors.textMuted },
+  brand: { ...TipografiTokenlari.hero, color: RenkTokenlari.text },
+  tagline: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
   envBadge: {
-    ...typography.micro,
-    color: colors.accent,
-    marginTop: 4,
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.accent,
+    marginTop: BoslukTokenlari.xs,
     borderWidth: 1,
-    borderColor: colors.accent,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
+    borderColor: RenkTokenlari.accent,
+    paddingHorizontal: BoslukTokenlari.md,
+    paddingVertical: BoslukTokenlari.xs,
+    borderRadius: YaricapTokenlari.pill,
     overflow: 'hidden',
   },
-  form: { gap: 14, paddingBottom: 28 },
+  form: { gap: BoslukTokenlari.lg, paddingBottom: BoslukTokenlari.xl },
   forgot: {
-    ...typography.caption,
-    color: colors.primarySoft,
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.primarySoft,
     textAlign: 'right',
-    marginBottom: 4,
+    marginBottom: BoslukTokenlari.xs,
   },
-  appleWrap: { gap: 6 },
+  spotifyBtn: {
+    minHeight: 48,
+    borderRadius: YaricapTokenlari.md,
+    backgroundColor: SPOTIFY_GREEN,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: BoslukTokenlari.sm,
+    paddingHorizontal: BoslukTokenlari.lg,
+  },
+  spotifyDisabled: { opacity: 0.7 },
+  spotifyText: {
+    ...TipografiTokenlari.body,
+    color: '#121212',
+    fontWeight: '700',
+  },
+  appleWrap: { gap: BoslukTokenlari.sm },
   appleBtn: { width: '100%', height: 48 },
-  appleHint: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
+  appleHint: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    textAlign: 'center',
+  },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: BoslukTokenlari.sm,
   },
-  switchText: { ...typography.body, color: colors.textMuted },
-  switchLink: { ...typography.body, color: colors.primarySoft, fontWeight: '700' },
+  switchText: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
+  switchLink: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.primarySoft,
+    fontWeight: '700',
+  },
 });

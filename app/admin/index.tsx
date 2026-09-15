@@ -153,6 +153,14 @@ const MODULLER: Modul[] = [
     bolum: 'Ürün',
   },
   {
+    icon: 'images-outline',
+    label: 'Bannerlar',
+    alt: 'Kampanya · yerleştirme · CTR',
+    href: '/admin/bannerlar',
+    tint: RenkTokenlari.magenta,
+    bolum: 'Büyüme',
+  },
+  {
     icon: 'link-outline',
     label: 'Paylaşım',
     alt: 'İndirme linkleri',

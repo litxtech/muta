@@ -8,3 +8,13 @@ enabled = true
 
 [functions.livekit-token]
 verify_jwt = true
+
+[functions.iap-receipt-verify]
+verify_jwt = true
+
+[functions.notification-push]
+verify_jwt = false
+
+[functions.admin-gunluk-ozet]
+verify_jwt = false
+

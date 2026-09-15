@@ -9,6 +9,9 @@ import {
 } from '../sabitler/KaskadSabitleri';
 import type { KaskadSymbolType } from '../tipler/KaskadTipleri';
 
+/** Boş hücre placeholder'ı — grid compaction sırasında kullanılır */
+export const EMPTY_INSTANCE_ID = '__empty__' as const;
+
 export function isPaySymbol(type: KaskadSymbolType): boolean {
   return (ALL_PAY_SYMBOLS as readonly string[]).includes(type);
 }
@@ -18,7 +21,7 @@ export function isScatter(type: KaskadSymbolType): boolean {
 }
 
 export function isMultiplier(type: KaskadSymbolType): boolean {
-  return type === 'multiplierOrb';
+  return type === 'stormMultiplier';
 }
 
 export function isHighValue(type: KaskadSymbolType): boolean {

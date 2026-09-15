@@ -1,7 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, radii, typography } from '../theme/colors';
+import { RenkTokenlari } from '../tasarim-sistemi/RenkTokenlari';
+import { TipografiTokenlari } from '../tasarim-sistemi/TipografiTokenlari';
+import { YaricapTokenlari } from '../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 type Props = {
   coins: number;
@@ -11,11 +13,11 @@ type Props = {
 export function WalletChip({ coins, diamonds }: Props) {
   return (
     <View style={styles.row}>
-      <LinearGradient colors={['#3A2040', '#241028']} style={styles.chip}>
+      <LinearGradient colors={[...RenkTokenlari.gradientGold]} style={styles.chip}>
         <Text style={styles.emoji}>🪙</Text>
         <Text style={styles.value}>{format(coins)}</Text>
       </LinearGradient>
-      <LinearGradient colors={['#1F2A4A', '#182038']} style={styles.chip}>
+      <LinearGradient colors={[...RenkTokenlari.gradientDiamond]} style={styles.chip}>
         <Text style={styles.emoji}>💎</Text>
         <Text style={styles.value}>{format(diamonds)}</Text>
       </LinearGradient>
@@ -40,16 +42,16 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: radii.pill,
+    borderRadius: YaricapTokenlari.pill,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: RenkTokenlari.border,
   },
   emoji: {
     fontSize: 12,
   },
   value: {
-    ...typography.caption,
-    color: colors.text,
+    ...TipografiTokenlari.caption,
+    color: '#12040C',
     fontWeight: '700',
   },
 });

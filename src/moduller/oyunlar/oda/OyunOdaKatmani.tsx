@@ -17,6 +17,7 @@ import { OyunLobisi } from '../ortak/bilesenler/OyunLobisi';
 import { GeriSayim } from '../ortak/bilesenler/GeriSayim';
 import { OyunSonucuModal } from '../ortak/bilesenler/OyunSonucuModal';
 import { useOyunOturumu } from '../ortak/hooks/useOyunOturumu';
+import { useGorunurOyunKodlari } from '../ortak/hooks/useGorunurOyunKodlari';
 import {
   aktifOyunOturumuGetir,
   createGameSession,
@@ -28,6 +29,7 @@ import {
 import { OyunSessionOyunculariniGetir } from '../ortak/servisler/OyunIstatistikServisi';
 import { LOBBY_COUNTDOWN_SECONDS, MIN_PLAYERS } from '../ortak/sabitler/OyunSabitleri';
 import type {
+  GameCode,
   GameSession,
   GameSessionPlayer,
   LeaderboardEntry,
@@ -46,6 +48,8 @@ export type OyunOdaKatmaniProps = {
   inviteSession?: GameSession | null;
   onInviteDismiss?: () => void;
   onOverlayClosed?: () => void;
+  /** Dışarıdan verilirse yeniden fetch edilmez (oda zaten yüklemiş olabilir). */
+  visibleGameCodes?: readonly GameCode[];
 };
 
 type Phase = 'idle' | 'lobby' | 'countdown' | 'playing' | 'result' | 'kaskad';
@@ -78,6 +82,7 @@ export function OyunOdaKatmani({
   inviteSession,
   onInviteDismiss,
   onOverlayClosed,
+  visibleGameCodes: visibleGameCodesProp,
 }: OyunOdaKatmaniProps) {
   useEffect(() => {
     registerMatch3();
@@ -90,6 +95,19 @@ export function OyunOdaKatmani({
   const [rankings, setRankings] = useState<LeaderboardEntry[]>([]);
   const [showInvite, setShowInvite] = useState(false);
   const startDenendi = useRef(false);
+
+  const gorunurHook = useGorunurOyunKodlari({
+    enabled: visibleGameCodesProp == null,
+  });
+  const visibleGameCodes = visibleGameCodesProp ?? gorunurHook.codes;
+  const visibilityReady = visibleGameCodesProp != null || !gorunurHook.loading;
+  const yenileGorunur = gorunurHook.yenile;
+
+  useEffect(() => {
+    if (startModalVisible && visibleGameCodesProp == null) {
+      void yenileGorunur();
+    }
+  }, [startModalVisible, visibleGameCodesProp, yenileGorunur]);
 
   const oturum = useOyunOturumu(session?.id);
 
@@ -108,11 +126,17 @@ export function OyunOdaKatmani({
   );
 
   useEffect(() => {
-    if (inviteSession && !session) {
-      setShowInvite(true);
-      void playMatch3Sfx('leader_change');
+    if (!inviteSession || session) return;
+    if (!visibilityReady) return;
+    const kod = inviteSession.game_code as GameCode;
+    if (!visibleGameCodes.includes(kod)) {
+      setShowInvite(false);
+      onInviteDismiss?.();
+      return;
     }
-  }, [inviteSession, session]);
+    setShowInvite(true);
+    void playMatch3Sfx('leader_change');
+  }, [inviteSession, session, visibleGameCodes, visibilityReady, onInviteDismiss]);
 
   useEffect(() => {
     if (oturum.session) setSessionLocal(oturum.session);
@@ -162,6 +186,11 @@ export function OyunOdaKatmani({
 
   const handleCreate = useCallback(
     async (opts: { durationSeconds: number; maxPlayers: number }) => {
+      if (visibilityReady && !visibleGameCodes.includes('match3')) {
+        Alert.alert('Oyun', 'Bu oyun şu an kapalı.');
+        onStartModalClose();
+        return;
+      }
       const res = await createGameSession({
         roomId: roomMeta.roomId,
         gameCode: 'match3',
@@ -204,7 +233,14 @@ export function OyunOdaKatmani({
       }
       void playMatch3Sfx('game_start');
     },
-    [onStartModalClose, oturum, roomMeta.roomId, yenileOyuncular],
+    [
+      onStartModalClose,
+      oturum,
+      roomMeta.roomId,
+      yenileOyuncular,
+      visibilityReady,
+      visibleGameCodes,
+    ],
   );
 
   const handleJoin = useCallback(async () => {
@@ -310,11 +346,16 @@ export function OyunOdaKatmani({
         visible={startModalVisible && phase === 'idle'}
         onClose={onStartModalClose}
         onBaslat={handleCreate}
-        onBaslatKaskad={() => {
-          onStartModalClose();
-          setPhase('kaskad');
-        }}
+        onBaslatKaskad={
+          !visibilityReady || visibleGameCodes.includes('kozmik_kaskad')
+            ? () => {
+                onStartModalClose();
+                setPhase('kaskad');
+              }
+            : undefined
+        }
         canStart={isHost}
+        visibleGameCodes={visibilityReady ? visibleGameCodes : undefined}
       />
 
       {phase === 'kaskad' ? (

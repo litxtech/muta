@@ -1,0 +1,204 @@
+import { supabase } from '../../../lib/supabase';
+import type {
+  AdminBayrak,
+  AdminCanliOda,
+  AdminCekim,
+  AdminHarcayan,
+  AdminHediye,
+  AdminKill,
+  AdminPaket,
+  AdminPlatformOzeti,
+  AdminRapor,
+  AdminRaporDetay,
+} from '../tipler/PlatformTipleri';
+
+function rpcHata(error: { message?: string } | null): never {
+  throw new Error(error?.message ?? 'Admin işlem başarısız');
+}
+
+export async function AdminPlatformOzetiGetir(): Promise<AdminPlatformOzeti> {
+  const { data, error } = await supabase.rpc('admin_platform_ozeti');
+  if (error) rpcHata(error);
+  return data as AdminPlatformOzeti;
+}
+
+export async function AdminEnCokHarcayanlar(
+  limit = 30,
+): Promise<AdminHarcayan[]> {
+  const { data, error } = await supabase.rpc('admin_en_cok_harcayanlar', {
+    p_limit: limit,
+  });
+  if (error) rpcHata(error);
+  return (data ?? []) as AdminHarcayan[];
+}
+
+export async function AdminCekimListesi(limit = 40): Promise<AdminCekim[]> {
+  const { data, error } = await supabase.rpc('admin_cekim_listesi', {
+    p_limit: limit,
+  });
+  if (error) rpcHata(error);
+  return (data ?? []) as AdminCekim[];
+}
+
+export async function AdminCekimDurumGuncelle(
+  id: string,
+  status: string,
+  note?: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_cekim_durum_guncelle', {
+    p_id: id,
+    p_status: status,
+    p_note: note ?? null,
+  });
+  if (error) rpcHata(error);
+}
+
+export async function AdminCuzdanDuzelt(girdi: {
+  userId: string;
+  currency: 'coins' | 'diamonds';
+  delta: number;
+  reason?: string;
+}): Promise<{ balance_after: number; currency: string }> {
+  const { data, error } = await supabase.rpc('admin_cuzdan_duzelt', {
+    p_user_id: girdi.userId,
+    p_currency: girdi.currency,
+    p_delta: girdi.delta,
+    p_reason: girdi.reason ?? 'admin_adjust',
+  });
+  if (error) rpcHata(error);
+  return data as { balance_after: number; currency: string };
+}
+
+export async function AdminRaporListesi(limit = 40): Promise<AdminRapor[]> {
+  const zengin = await supabase.rpc('admin_rapor_kuyrugu', { p_limit: limit });
+  if (!zengin.error && Array.isArray(zengin.data)) {
+    return zengin.data as AdminRapor[];
+  }
+
+  const { data, error } = await supabase.rpc('admin_rapor_listesi', {
+    p_limit: limit,
+  });
+  if (error) rpcHata(error);
+  return (data ?? []) as AdminRapor[];
+}
+
+export async function AdminRaporDetayGetir(id: string): Promise<AdminRaporDetay> {
+  const { data, error } = await supabase.rpc('admin_rapor_detay', { p_id: id });
+  if (error) rpcHata(error);
+  return data as AdminRaporDetay;
+}
+
+export async function AdminRaporDurumGuncelle(
+  id: string,
+  status: string,
+  adminNote?: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_rapor_durum_guncelle', {
+    p_id: id,
+    p_status: status,
+    p_admin_note: adminNote ?? null,
+  });
+  if (error) rpcHata(error);
+}
+
+export async function AdminRaporIcerikKaldir(reportId: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_rapor_icerik_kaldir', {
+    p_report_id: reportId,
+  });
+  if (error) rpcHata(error);
+}
+
+export async function AdminCanliOdalar(limit = 40): Promise<AdminCanliOda[]> {
+  const { data, error } = await supabase.rpc('admin_canli_odalar', {
+    p_limit: limit,
+  });
+  if (error) rpcHata(error);
+  return (data ?? []) as AdminCanliOda[];
+}
+
+export async function AdminOdaCanliKapat(roomId: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_oda_canli_kapat', {
+    p_room_id: roomId,
+  });
+  if (error) rpcHata(error);
+}
+
+export async function AdminBayraklariGetir(): Promise<{
+  flags: AdminBayrak[];
+  kills: AdminKill[];
+}> {
+  const { data, error } = await supabase.rpc('admin_bayraklari_getir');
+  if (error) rpcHata(error);
+  const d = data as { flags: AdminBayrak[]; kills: AdminKill[] };
+  return { flags: d?.flags ?? [], kills: d?.kills ?? [] };
+}
+
+export async function AdminOzellikBayragiAyarla(
+  key: string,
+  enabled: boolean,
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_ozellik_bayragi_ayarla', {
+    p_key: key,
+    p_enabled: enabled,
+  });
+  if (error) rpcHata(error);
+}
+
+export async function AdminKillSwitchAyarla(
+  key: string,
+  active: boolean,
+  reason?: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_kill_switch_ayarla', {
+    p_key: key,
+    p_active: active,
+    p_reason: reason ?? null,
+  });
+  if (error) rpcHata(error);
+}
+
+export async function AdminEkonomiKatalogu(): Promise<{
+  paketler: AdminPaket[];
+  hediyeler: AdminHediye[];
+}> {
+  const { data, error } = await supabase.rpc('admin_ekonomi_katalogu');
+  if (error) rpcHata(error);
+  const d = data as { paketler: AdminPaket[]; hediyeler: AdminHediye[] };
+  return { paketler: d?.paketler ?? [], hediyeler: d?.hediyeler ?? [] };
+}
+
+export async function AdminPaketAktiflik(
+  id: string,
+  active: boolean,
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_paket_aktiflik', {
+    p_id: id,
+    p_active: active,
+  });
+  if (error) rpcHata(error);
+}
+
+export async function AdminHediyeAktiflik(
+  id: string,
+  active: boolean,
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_hediye_aktiflik', {
+    p_id: id,
+    p_active: active,
+  });
+  if (error) rpcHata(error);
+}
+
+export async function AdminDuyuruOlustur(
+  title: string,
+  body: string,
+  priority = 'normal',
+): Promise<string> {
+  const { data, error } = await supabase.rpc('admin_duyuru_olustur', {
+    p_title: title,
+    p_body: body,
+    p_priority: priority,
+  });
+  if (error) rpcHata(error);
+  return data as string;
+}

@@ -101,6 +101,7 @@ export default function RootLayout() {
           />
           <Stack.Screen name="bildirimler/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="durum/olustur" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="durum/duzenle" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen
             name="durum/[id]"
             options={{ animation: 'fade', presentation: 'fullScreenModal' }}
@@ -146,6 +147,19 @@ export default function RootLayout() {
           <Stack.Screen name="admin/ekonomi" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="admin/oyunlar" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="admin/oyun-test" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen
+            name="admin/bannerlar/index"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="admin/bannerlar/yeni"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="admin/bannerlar/[id]"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen name="webview" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen
             name="admin/ozellikler"
             options={{ animation: 'slide_from_right' }}

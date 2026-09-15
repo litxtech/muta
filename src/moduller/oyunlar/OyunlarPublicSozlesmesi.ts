@@ -78,11 +78,15 @@ export {
 
 export {
   fetchGameControl,
+  listVisibleGameCodes,
+  isGameVisible,
   OyunKontrolServisi,
 } from './ortak/servisler/OyunKontrolServisi';
 
 export { useOyunOturumu } from './ortak/hooks/useOyunOturumu';
 export { useCanliSkor } from './ortak/hooks/useCanliSkor';
+export { useGorunurOyunKodlari } from './ortak/hooks/useGorunurOyunKodlari';
+export { useOdaOyunDaveti } from './ortak/hooks/useOdaOyunDaveti';
 
 export { OyunDavetiModal } from './ortak/bilesenler/OyunDavetiModal';
 export { OyunBaslatModal } from './ortak/bilesenler/OyunBaslatModal';

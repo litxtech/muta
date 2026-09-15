@@ -1,7 +1,9 @@
+import { Platform } from 'react-native';
 import {
   Room,
   RoomEvent,
   Track,
+  createLocalAudioTrack,
   type LocalVideoTrack,
   type Participant,
   type RemoteVideoTrack,
@@ -19,6 +21,12 @@ type LiveKitNative = {
     stopAudioSession: () => Promise<void>;
     selectAudioOutput: (output: string) => Promise<void>;
     getAudioOutputs: () => Promise<string[]>;
+    setDefaultRemoteAudioTrackVolume: (volume: number) => Promise<void>;
+    setAppleAudioConfiguration: (config: {
+      audioCategory?: string;
+      audioCategoryOptions?: string[];
+      audioMode?: string;
+    }) => Promise<void>;
   };
   registerGlobals: () => void;
 };
@@ -216,6 +224,7 @@ class LiveKitBaglantiYoneticisiImpl {
             await this.kameraGucluAc();
           }
         }
+        await this.hoparlorGucluAc();
       } catch (e) {
         console.warn('[LiveKit] yeniden yayın', e);
         return {
@@ -266,15 +275,7 @@ class LiveKitBaglantiYoneticisiImpl {
         };
       }
 
-      await native.AudioSession.configureAudio({
-        android: {
-          preferredOutputList: ['speaker', 'bluetooth', 'headset', 'earpiece'],
-          audioTypeOptions: native.AndroidAudioTypePresets.communication,
-        },
-        ios: { defaultOutput: 'speaker' },
-      });
-      await native.AudioSession.startAudioSession();
-      this.audioSessionAcik = true;
+      await this.sesOturumuHazirla(native);
 
       if (nesil !== this.baglantiNesil) {
         await this.baglantiyiKesIc();
@@ -284,12 +285,24 @@ class LiveKitBaglantiYoneticisiImpl {
       const room = new Room({
         adaptiveStream: true,
         dynacast: true,
+        audioCaptureDefaults: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          voiceIsolation: true,
+        },
       });
       this.room = room;
 
       const yenile = () => this.yayinlaVideo();
 
-      room.on(RoomEvent.TrackSubscribed, yenile);
+      room.on(RoomEvent.TrackSubscribed, (track) => {
+        if (track.kind === Track.Kind.Audio) {
+          // Uzak ses geldiğinde hoparlörü doğrula
+          void this.hoparlorGucluAc();
+        }
+        yenile();
+      });
       room.on(RoomEvent.TrackUnsubscribed, yenile);
       room.on(RoomEvent.TrackPublished, yenile);
       room.on(RoomEvent.TrackMuted, yenile);
@@ -316,13 +329,17 @@ class LiveKitBaglantiYoneticisiImpl {
         }
       });
 
-      await room.connect(input.url, input.token);
+      await room.connect(input.url, input.token, {
+        autoSubscribe: true,
+      });
 
       if (nesil !== this.baglantiNesil) {
         await room.disconnect(true).catch(() => undefined);
         if (this.room === room) this.room = null;
         return { ok: false, hata: 'Bağlantı iptal edildi' };
       }
+
+      await this.hoparlorGucluAc();
 
       if (input.asPublisher !== false) {
         const micOk = await this.mikrofonGucluAc();
@@ -348,9 +365,10 @@ class LiveKitBaglantiYoneticisiImpl {
       setTimeout(() => {
         if (nesil === this.baglantiNesil) {
           void this.mikrofonGucluAc();
+          void this.hoparlorGucluAc();
           this.yayinlaVideo();
         }
-      }, 400);
+      }, 350);
       return { ok: true };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -380,29 +398,103 @@ class LiveKitBaglantiYoneticisiImpl {
     }
   }
 
-  /** Mikrofonu aç + yayın doğrula (retry) */
+  /** Android: iletişim oturumu. iOS: registerGlobals auto-manager + speaker. */
+  private async sesOturumuHazirla(native: LiveKitNative): Promise<void> {
+    await native.AudioSession.configureAudio({
+      android: {
+        preferredOutputList: ['speaker', 'bluetooth', 'headset', 'earpiece'],
+        audioTypeOptions: native.AndroidAudioTypePresets.communication,
+      },
+      ios: { defaultOutput: 'speaker' },
+    });
+
+    await native.AudioSession.startAudioSession();
+    this.audioSessionAcik = true;
+
+    await native.AudioSession.setDefaultRemoteAudioTrackVolume(1).catch(
+      () => undefined,
+    );
+
+    if (Platform.OS === 'ios') {
+      // setupIOSAudioManagement ile çakışmasın diye yumuşak ayar;
+      // playAndRecord + defaultToSpeaker uzak sesi hoparlöre verir.
+      await native.AudioSession.setAppleAudioConfiguration({
+        audioCategory: 'playAndRecord',
+        audioCategoryOptions: [
+          'defaultToSpeaker',
+          'allowBluetooth',
+          'allowBluetoothA2DP',
+          'allowAirPlay',
+        ],
+        audioMode: 'videoChat',
+      }).catch(() => undefined);
+    }
+  }
+
+  private async hoparlorGucluAc(): Promise<void> {
+    try {
+      const AudioSession = livekitNativeAl()?.AudioSession;
+      if (!AudioSession) return;
+      if (!this.audioSessionAcik) {
+        await AudioSession.startAudioSession().catch(() => undefined);
+        this.audioSessionAcik = true;
+      }
+      if (Platform.OS === 'ios') {
+        await AudioSession.selectAudioOutput('force_speaker').catch(async () => {
+          await AudioSession.selectAudioOutput('speaker').catch(() => undefined);
+        });
+      } else {
+        await AudioSession.selectAudioOutput('speaker').catch(async () => {
+          await AudioSession.selectAudioOutput('force_speaker').catch(
+            () => undefined,
+          );
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /** Mikrofonu aç + yayın doğrula (retry + manuel publish yedegi) */
   private async mikrofonGucluAc(): Promise<boolean> {
     const lp = this.room?.localParticipant;
     if (!lp) return false;
-    for (let i = 0; i < 2; i++) {
+
+    for (let i = 0; i < 3; i++) {
       try {
         await lp.setMicrophoneEnabled(true);
-        await new Promise((r) => setTimeout(r, 120));
+        await new Promise((r) => setTimeout(r, 140));
         const pub = lp.getTrackPublication(Track.Source.Microphone);
+        if (pub?.isMuted) {
+          await pub.unmute().catch(() => undefined);
+        }
         if (pub?.track && !pub.isMuted) return true;
-        // Publication gecikmeli gelebilir
         if (pub && !pub.isMuted) return true;
       } catch (e) {
         console.warn('[LiveKit] mikrofon', e);
       }
-      await new Promise((r) => setTimeout(r, 280));
+
+      // setMicrophoneEnabled yetmezse track elle yayınla
+      try {
+        const mevcut = lp.getTrackPublication(Track.Source.Microphone);
+        if (mevcut?.track) {
+          await lp.unpublishTrack(mevcut.track).catch(() => undefined);
+        }
+        const track = await createLocalAudioTrack({
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        });
+        await lp.publishTrack(track, { source: Track.Source.Microphone });
+        await new Promise((r) => setTimeout(r, 100));
+        const pub = lp.getTrackPublication(Track.Source.Microphone);
+        if (pub?.track && !pub.isMuted) return true;
+      } catch (e) {
+        console.warn('[LiveKit] mikrofon publish', e);
+      }
+      await new Promise((r) => setTimeout(r, 220));
     }
-    try {
-      await this.room!.localParticipant.setMicrophoneEnabled(true);
-      return true;
-    } catch {
-      return false;
-    }
+    return false;
   }
 
   private async kameraGucluAc(): Promise<void> {
@@ -423,8 +515,17 @@ class LiveKitBaglantiYoneticisiImpl {
     if (!lp) return;
     void (async () => {
       try {
+        const pub = lp.getTrackPublication(Track.Source.Microphone);
         if (mute) {
-          await lp.setMicrophoneEnabled(false);
+          // Track'i kapatmak yerine mute — ses oturumu bozulmasın
+          if (pub) {
+            await pub.mute();
+          } else {
+            await lp.setMicrophoneEnabled(false);
+          }
+        } else if (pub?.track) {
+          await pub.unmute();
+          if (pub.isMuted) await this.mikrofonGucluAc();
         } else {
           await this.mikrofonGucluAc();
         }
@@ -448,22 +549,20 @@ class LiveKitBaglantiYoneticisiImpl {
 
   async setSpeakerphone(on: boolean) {
     try {
-      if (!this.audioSessionAcik) return;
+      if (on) {
+        await this.hoparlorGucluAc();
+        return;
+      }
       const AudioSession = livekitNativeAl()?.AudioSession;
       if (!AudioSession) return;
-      if (on) {
-        await AudioSession.selectAudioOutput('speaker').catch(async () => {
-          await AudioSession.selectAudioOutput('force_speaker');
-        });
-      } else {
-        const outputs = await AudioSession.getAudioOutputs();
-        const hedef = outputs.includes('earpiece')
-          ? 'earpiece'
-          : outputs.includes('default')
-            ? 'default'
-            : outputs[0];
-        if (hedef) await AudioSession.selectAudioOutput(hedef);
-      }
+      if (!this.audioSessionAcik) return;
+      const outputs = await AudioSession.getAudioOutputs();
+      const hedef = outputs.includes('earpiece')
+        ? 'earpiece'
+        : outputs.includes('default')
+          ? 'default'
+          : outputs[0];
+      if (hedef) await AudioSession.selectAudioOutput(hedef);
     } catch {
       /* ignore */
     }
@@ -485,10 +584,14 @@ class LiveKitBaglantiYoneticisiImpl {
       /* ignore — AbortReason polyfill TypeError'ı da yutar */
     }
     if (this.audioSessionAcik) {
-      try {
-        await livekitNativeAl()?.AudioSession.stopAudioSession();
-      } catch {
-        /* ignore */
+      // iOS: registerGlobals/setupIOSAudioManagement oturumu yönetir —
+      // agresif stop sonraki odada uzak sesi kırabilir. Android'de kapat.
+      if (Platform.OS === 'android') {
+        try {
+          await livekitNativeAl()?.AudioSession.stopAudioSession();
+        } catch {
+          /* ignore */
+        }
       }
       this.audioSessionAcik = false;
     }

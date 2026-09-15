@@ -3,6 +3,9 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native
 import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { GradientButton } from '../../src/components/GradientButton';
+import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { BosDurum } from '../../src/components/BosDurum';
+import { ListeGrubu, ListeSatiri } from '../../src/components/ListeSatiri';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
@@ -23,6 +26,11 @@ import { RozetlerimiGetir } from '../../src/moduller/gorevler/okuma/RozetlerimiG
 import { OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
+import {
+  BoslukTokenlari,
+  YaricapTokenlari,
+} from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { TamusoBanner } from '../../src/banner';
 
 export default function OperasyonHubEkrani() {
   const { isGuest, refreshProfile, refreshWallet } = useAuth();
@@ -63,7 +71,7 @@ export default function OperasyonHubEkrani() {
   const ilerlet = (code: string) => {
     islemiDene('oy_kullan', async () => {
       if (!missionsOn) {
-        Alert.alert('Kapalı', 'missions_enabled açın.');
+        Alert.alert('Kapalı', 'Görevler özelliği şu an kapalı.');
         return;
       }
       const r = await GorevIlerlet(code);
@@ -87,73 +95,103 @@ export default function OperasyonHubEkrani() {
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="etkinlikler">
-        <View style={styles.content}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={styles.back}>← Geri</Text>
-          </Pressable>
-          <Text style={styles.title}>Platform</Text>
-          <Text style={styles.sub}>
-            Events · Missions · Badges ({badgeCount}) · events{' '}
-            {eventsOn ? 'on' : 'off'}
-          </Text>
+        <EkranBasligi
+          title="Platform"
+          subtitle={`Etkinlik · görev · ${badgeCount} rozet${eventsOn ? '' : ' · etkinlik kapalı'}`}
+        />
+        <TamusoBanner placement="GAME_CENTER_TOP" screen="GAME_CENTER" />
+        <FlatList
+          data={missions}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            <View style={styles.headerBlock}>
+              <TamusoBanner placement="GAME_CENTER_MIDDLE" screen="GAME_CENTER" />
+              <ListeGrubu title="Kısayollar">
+                <ListeSatiri
+                  icon="megaphone-outline"
+                  label="Duyurular"
+                  onPress={() => router.push('/duyuru' as any)}
+                />
+                <ListeSatiri
+                  icon="document-text-outline"
+                  label="Politikalar"
+                  onPress={() => router.push('/politika' as any)}
+                />
+                <ListeSatiri
+                  icon="shield-checkmark-outline"
+                  label="Güvenlik"
+                  onPress={() => router.push('/guvenlik' as any)}
+                />
+                <ListeSatiri
+                  icon="notifications-outline"
+                  label="Bildirimler"
+                  onPress={() => router.push('/bildirimler' as any)}
+                />
+                <ListeSatiri
+                  icon="ribbon-outline"
+                  label="Sertifikasyon"
+                  onPress={() => router.push('/sertifikasyon' as any)}
+                  last
+                />
+              </ListeGrubu>
 
-          <View style={styles.navRow}>
-            <Pressable style={styles.nav} onPress={() => router.push('/duyuru' as any)}>
-              <Text style={styles.navText}>Duyuru</Text>
-            </Pressable>
-            <Pressable style={styles.nav} onPress={() => router.push('/politika' as any)}>
-              <Text style={styles.navText}>Politika</Text>
-            </Pressable>
-            <Pressable style={styles.nav} onPress={() => router.push('/guvenlik' as any)}>
-              <Text style={styles.navText}>Güvenlik</Text>
-            </Pressable>
-            <Pressable style={styles.nav} onPress={() => router.push('/bildirimler' as any)}>
-              <Text style={styles.navText}>Push</Text>
-            </Pressable>
-            <Pressable style={styles.nav} onPress={() => router.push('/sertifikasyon' as any)}>
-              <Text style={styles.navText}>Sert.</Text>
-            </Pressable>
-          </View>
-
-          <Text style={styles.section}>Etkinlikler</Text>
-          {events.length === 0 ? (
-            <Text style={styles.empty}>Etkinlik yok (010 + events_enabled).</Text>
-          ) : (
-            events.map((ev) => (
-              <Text key={ev.id} style={styles.line}>
-                {ev.status} · {ev.title}
-              </Text>
-            ))
-          )}
-
-          <Text style={styles.section}>Görevler</Text>
-          <FlatList
-            data={missions}
-            keyExtractor={(item) => item.id}
-            ListEmptyComponent={<Text style={styles.empty}>Görev yok.</Text>}
-            renderItem={({ item }) => {
-              const p = progress[item.id];
-              const done = !!p?.completed_at;
-              const claimed = !!p?.claimed_at;
-              return (
-                <View style={styles.card}>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text style={styles.cardMeta}>
-                    {p?.progress ?? 0}/{item.goal_target} · +{item.reward_coins} coin
-                    {claimed ? ' · claimed' : done ? ' · ready' : ''}
-                  </Text>
-                  {!done ? (
-                    <GradientButton title="İlerlet (+1)" onPress={() => ilerlet(item.code)} />
-                  ) : !claimed ? (
-                    <GradientButton title="Ödülü al" onPress={() => odul(item.code)} />
-                  ) : (
-                    <Text style={styles.cardMeta}>Tamamlandı</Text>
-                  )}
+              <Text style={styles.section}>Etkinlikler</Text>
+              {events.length === 0 ? (
+                <BosDurum
+                  icon="calendar-outline"
+                  title="Etkinlik yok"
+                  body="Aktif platform etkinliği bulunmuyor."
+                />
+              ) : (
+                <View style={styles.eventsCard}>
+                  {events.map((ev, i) => (
+                    <View
+                      key={ev.id}
+                      style={[
+                        styles.eventRow,
+                        i === events.length - 1 && styles.eventRowLast,
+                      ]}
+                    >
+                      <Text style={styles.eventStatus}>{ev.status}</Text>
+                      <Text style={styles.eventTitle}>{ev.title}</Text>
+                    </View>
+                  ))}
                 </View>
-              );
-            }}
-          />
-        </View>
+              )}
+
+              <Text style={styles.section}>Görevler</Text>
+            </View>
+          }
+          ListEmptyComponent={
+            <BosDurum
+              icon="flag-outline"
+              title="Görev yok"
+              body="Yeni görevler eklendiğinde burada görünür."
+            />
+          }
+          renderItem={({ item }) => {
+            const p = progress[item.id];
+            const done = !!p?.completed_at;
+            const claimed = !!p?.claimed_at;
+            return (
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>{item.title}</Text>
+                <Text style={styles.cardMeta}>
+                  {p?.progress ?? 0}/{item.goal_target} · +{item.reward_coins} coin
+                  {claimed ? ' · alındı' : done ? ' · hazır' : ''}
+                </Text>
+                {!done ? (
+                  <GradientButton title="İlerlet (+1)" onPress={() => ilerlet(item.code)} />
+                ) : !claimed ? (
+                  <GradientButton title="Ödülü al" onPress={() => odul(item.code)} />
+                ) : (
+                  <Text style={styles.cardMeta}>Tamamlandı</Text>
+                )}
+              </View>
+            );
+          }}
+        />
         <HesabiTamamlaKarti
           visible={upgradeAcik}
           onClose={upgradeKapat}
@@ -168,31 +206,41 @@ export default function OperasyonHubEkrani() {
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, padding: 20, gap: 8 },
-  back: { ...TipografiTokenlari.caption, color: RenkTokenlari.primarySoft },
-  title: { ...TipografiTokenlari.title, color: RenkTokenlari.text },
-  sub: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
-  navRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  nav: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: RenkTokenlari.bgCard,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
+  list: {
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingBottom: BoslukTokenlari.xxxl,
+    gap: BoslukTokenlari.sm,
   },
-  navText: { ...TipografiTokenlari.caption, color: RenkTokenlari.text },
-  section: { ...TipografiTokenlari.h2, color: RenkTokenlari.text, marginTop: 6 },
-  empty: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
-  line: { ...TipografiTokenlari.body, color: RenkTokenlari.text, marginBottom: 4 },
-  card: {
-    padding: 12,
-    borderRadius: 14,
+  headerBlock: { gap: BoslukTokenlari.sm },
+  section: {
+    ...TipografiTokenlari.h2,
+    color: RenkTokenlari.text,
+    marginTop: BoslukTokenlari.sm,
+  },
+  eventsCard: {
+    borderRadius: YaricapTokenlari.md,
     backgroundColor: RenkTokenlari.bgCard,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
-    marginBottom: 8,
-    gap: 6,
+    overflow: 'hidden',
+  },
+  eventRow: {
+    paddingVertical: BoslukTokenlari.md,
+    paddingHorizontal: BoslukTokenlari.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: RenkTokenlari.border,
+    gap: 2,
+  },
+  eventRowLast: { borderBottomWidth: 0 },
+  eventStatus: { ...TipografiTokenlari.micro, color: RenkTokenlari.accent },
+  eventTitle: { ...TipografiTokenlari.body, color: RenkTokenlari.text },
+  card: {
+    padding: BoslukTokenlari.lg,
+    borderRadius: YaricapTokenlari.md,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    gap: BoslukTokenlari.sm,
   },
   cardTitle: { ...TipografiTokenlari.h2, color: RenkTokenlari.text },
   cardMeta: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },

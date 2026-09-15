@@ -1,5 +1,6 @@
 /**
  * Cascade motoru — sil, düşür, doldur.
+ * Her kolon ayrı compact edilir; yeni semboller yukarıdan spawn olur.
  */
 
 import type { SeededRng } from '../rng/SeededRng';
@@ -7,7 +8,10 @@ import {
   cloneGrid,
   generateCell,
   nextInstanceId,
+  type GenerateCellOptions,
 } from '../grid/GridGenerator';
+import { LOW_SYMBOLS } from '../sabitler/KaskadSabitleri';
+import { EMPTY_INSTANCE_ID } from '../symbols/SymbolRules';
 import type {
   GridCell,
   GridMatrix,
@@ -25,8 +29,8 @@ export function removeCellsByInstanceIds(
       if (instanceIds.has(cell.instanceId)) {
         next[r]![c] = {
           ...cell,
-          symbolType: 'crystalBlue',
-          instanceId: '__empty__',
+          symbolType: LOW_SYMBOLS[0] ?? 'blueCrystal',
+          instanceId: EMPTY_INSTANCE_ID,
           multiplierValue: null,
         };
       }
@@ -43,6 +47,7 @@ export function applyGravityAndFill(
   grid: GridMatrix,
   config: KaskadMathConfig,
   rng: SeededRng,
+  opts?: GenerateCellOptions,
 ): { grid: GridMatrix; newSymbols: GridCell[] } {
   const cols = config.columns;
   const rows = config.rows;
@@ -55,7 +60,7 @@ export function applyGravityAndFill(
     const stack: GridCell[] = [];
     for (let r = rows - 1; r >= 0; r -= 1) {
       const cell = grid[r]![c]!;
-      if (cell.instanceId !== '__empty__') {
+      if (cell.instanceId !== EMPTY_INSTANCE_ID) {
         stack.push(cell);
       }
     }
@@ -72,7 +77,7 @@ export function applyGravityAndFill(
     }
 
     while (writeRow >= 0) {
-      const spawned = generateCell(config, rng, writeRow, c);
+      const spawned = generateCell(config, rng, writeRow, c, opts);
       spawned.instanceId = nextInstanceId('n');
       result[writeRow]![c] = spawned;
       newSymbols.push(spawned);

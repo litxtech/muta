@@ -47,3 +47,9 @@ yarn-error.*
 .env.expo.local
 
 .env.supabase.local
+
+# Firebase
+/google-services.json
+/GoogleService-Info.plist
+/firebase-service-account.json
+

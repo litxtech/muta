@@ -17,4 +17,11 @@ Production planinin FAZ 1 ciktisi.
 | [13-faz7-tamamlandi.md](13-faz7-tamamlandi.md) | FAZ 7 ajans/host/cekim |
 | [14-faz8-tamamlandi.md](14-faz8-tamamlandi.md) | FAZ 8 sehir platformu |
 
+| [16-faz10-tamamlandi.md](16-faz10-tamamlandi.md) | FAZ 10 sertifikasyon |
+| [17-production-ops.md](17-production-ops.md) | Production / secrets / deploy checklist |
+| [18-livekit-kurulum.md](18-livekit-kurulum.md) | LiveKit RTC (Agora kaldırıldı) |
+| [21-ozellik-gap-checklist.md](21-ozellik-gap-checklist.md) | Orijinal plan ↔ özellik durumu |
+| [18-agora-kurulum.md](18-agora-kurulum.md) | Agora RTC paket + Edge token |
+| [19-ios-build-hazirlik.md](19-ios-build-hazirlik.md) | iOS dev build eksik/duzeltme |
+
 Kod iskeleti: `src/moduller/`, `src/tasarim-sistemi/`, `src/yapilandirma/`

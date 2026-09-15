@@ -35,6 +35,7 @@ export async function SahipOlunanAjanslariGetir(): Promise<Ajans[]> {
     .from('agencies')
     .select('*')
     .eq('owner_id', uid)
+    .neq('status', 'closed')
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data as Ajans[]) ?? [];

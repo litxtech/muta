@@ -3,7 +3,7 @@
  */
 
 import type { SeededRng } from '../rng/SeededRng';
-import { ALL_PAY_SYMBOLS } from '../sabitler/KaskadSabitleri';
+import { ALL_PAY_SYMBOLS, LOW_SYMBOLS } from '../sabitler/KaskadSabitleri';
 import { isMultiplier, isScatter } from '../symbols/SymbolRules';
 import type {
   GridCell,
@@ -24,13 +24,14 @@ export function nextInstanceId(prefix = 'c'): string {
 }
 
 export function createEmptyGrid(cols: number, rows: number): GridMatrix {
+  const placeholder: KaskadSymbolType = LOW_SYMBOLS[0] ?? 'blueCrystal';
   const grid: GridMatrix = [];
   for (let r = 0; r < rows; r += 1) {
     const row: GridCell[] = [];
     for (let c = 0; c < cols; c += 1) {
       row.push({
         id: `r${r}c${c}`,
-        symbolType: 'crystalBlue',
+        symbolType: placeholder,
         row: r,
         column: c,
         instanceId: nextInstanceId(),
@@ -62,22 +63,32 @@ function pickMultiplierValue(config: KaskadMathConfig, rng: SeededRng): number {
   return rng.pickWeighted(items);
 }
 
+export type GenerateCellOptions = {
+  allowSpecial?: boolean;
+  /** Bonus modunda multiplier spawn şansı farklı profile kullanır */
+  bonusMode?: boolean;
+};
+
 export function generateCell(
   config: KaskadMathConfig,
   rng: SeededRng,
   row: number,
   column: number,
-  opts?: { allowSpecial?: boolean },
+  opts?: GenerateCellOptions,
 ): GridCell {
   const allowSpecial = opts?.allowSpecial !== false;
+  const multiplierChance = opts?.bonusMode
+    ? config.bonus.multiplierSpawnChance
+    : config.multiplierSpawnChance;
+
   let symbolType: KaskadSymbolType = pickPaySymbol(config, rng);
   let multiplierValue: number | null = null;
 
   if (allowSpecial) {
     if (rng.chance(config.scatterSpawnChance)) {
       symbolType = 'portalScatter';
-    } else if (rng.chance(config.multiplierSpawnChance)) {
-      symbolType = 'multiplierOrb';
+    } else if (rng.chance(multiplierChance)) {
+      symbolType = 'stormMultiplier';
       multiplierValue = pickMultiplierValue(config, rng);
     }
   }
@@ -92,12 +103,16 @@ export function generateCell(
   };
 }
 
-export function generateGrid(config: KaskadMathConfig, rng: SeededRng): GridMatrix {
+export function generateGrid(
+  config: KaskadMathConfig,
+  rng: SeededRng,
+  opts?: GenerateCellOptions,
+): GridMatrix {
   const grid: GridMatrix = [];
   for (let r = 0; r < config.rows; r += 1) {
     const row: GridCell[] = [];
     for (let c = 0; c < config.columns; c += 1) {
-      row.push(generateCell(config, rng, r, c));
+      row.push(generateCell(config, rng, r, c, opts));
     }
     grid.push(row);
   }
@@ -107,9 +122,10 @@ export function generateGrid(config: KaskadMathConfig, rng: SeededRng): GridMatr
 export function generateInitialGrid(
   config: KaskadMathConfig,
   rng: SeededRng,
+  opts?: GenerateCellOptions,
 ): GridMatrix {
   // Cascade slot: ilk düşüşte match olabilir — bu oyunun kazanç kaynağıdır.
-  return generateGrid(config, rng);
+  return generateGrid(config, rng, opts);
 }
 
 export function countSymbol(grid: GridMatrix, type: KaskadSymbolType): number {

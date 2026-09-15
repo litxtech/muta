@@ -1,27 +1,25 @@
 /**
- * Kozmik Kaskad — paylaşılan tip sözleşmesi.
- * SERVER sonuç üretir; CLIENT yalnızca oynatır.
+ * TAMUSO: REALM OF STORMS — paylaşılan tip sözleşmesi.
+ * SERVER sonuç üretir; CLIENT yalnızca oynatır (presentation).
  */
 
+/** Düşük değerli kristaller + yüksek değerli fırtına kalıntıları + özel semboller */
 export type KaskadSymbolType =
-  | 'crystalBlue'
-  | 'crystalViolet'
-  | 'crystalMint'
-  | 'crystalAmber'
-  | 'starCore'
-  | 'cosmicEye'
-  | 'galaxyOrb'
+  | 'blueCrystal'
+  | 'greenCrystal'
+  | 'purpleCrystal'
+  | 'redCrystal'
+  | 'goldCrystal'
+  | 'stormRing'
+  | 'celestialCup'
+  | 'timeCore'
   | 'energyCrown'
   | 'portalScatter'
-  | 'multiplierOrb';
+  | 'stormMultiplier';
 
-export type WinTier =
-  | 'NONE'
-  | 'ENERGY'
-  | 'COSMIC'
-  | 'GALACTIC'
-  | 'SUPERNOVA';
+export type WinTier = 'NONE' | 'STORM' | 'THUNDER' | 'COSMIC' | 'DIVINE';
 
+/** Round playback state machine durumları */
 export type KaskadPhase =
   | 'IDLE'
   | 'LOADING'
@@ -29,16 +27,31 @@ export type KaskadPhase =
   | 'SPIN_START'
   | 'SYMBOLS_DROP'
   | 'MATCH_CHECK'
-  | 'WIN_ANIMATION'
+  | 'WIN_HIGHLIGHT'
   | 'DESTROY'
   | 'CASCADE'
-  | 'MULTIPLIER'
+  | 'MULTIPLIER_REVEAL'
+  | 'MULTIPLIER_COLLECT'
   | 'SCATTER_CHECK'
+  | 'ANTICIPATION'
   | 'BONUS_INTRO'
   | 'BONUS_MODE'
+  | 'RETRIGGER'
   | 'BIG_WIN'
   | 'FINALIZE'
   | 'ERROR';
+
+/** Fırtına Muhafızı karakter durumları */
+export type CharacterState =
+  | 'IDLE'
+  | 'WATCHING'
+  | 'CAST_SMALL'
+  | 'CAST_MEDIUM'
+  | 'CAST_LARGE'
+  | 'BONUS_TRIGGER'
+  | 'BIG_WIN'
+  | 'SUPER_WIN'
+  | 'RETURN_IDLE';
 
 export type PerformanceProfile = 'HIGH' | 'MEDIUM' | 'LOW';
 
@@ -49,8 +62,9 @@ export type GridCell = {
   symbolType: KaskadSymbolType;
   row: number;
   column: number;
+  /** Stabil animasyon kimliği — index bazlı key kullanılmaz */
   instanceId: string;
-  /** Multiplier orb değeri; diğer sembollerde null */
+  /** stormMultiplier değeri; diğer sembollerde null */
   multiplierValue: number | null;
 };
 
@@ -96,8 +110,17 @@ export type SpinResult = {
   winTier: WinTier;
   bonusTriggered: boolean;
   bonus: BonusAward | null;
+  /** Bonus sırasında yeniden tetikleme (+spin) */
+  retriggered: boolean;
+  retriggerSpins: number;
+  /** Bonus boyunca taşınan kalıcı çarpan (bonus dışında 0) */
+  persistentMultiplierBefore: number;
+  persistentMultiplierAfter: number;
+  /** Final griddeki scatter sayısı (anticipation presentation için) */
+  scatterCount: number;
   balanceAfter: number;
   remainingBonusSpins: number;
+  isBonusSpin: boolean;
 };
 
 export type SymbolPayBand = {
@@ -120,10 +143,24 @@ export type ScatterBonusTable = {
 };
 
 export type WinTierThresholds = {
-  energy: number;
+  storm: number;
+  thunder: number;
   cosmic: number;
-  galactic: number;
-  supernova: number;
+  divine: number;
+};
+
+export type RetriggerConfig = {
+  /** Bonus sırasında retrigger için gereken minimum scatter */
+  minScatters: number;
+  extraSpins: number;
+};
+
+export type BonusMathConfig = {
+  /** Bonus boyunca çarpanlar kalıcı toplanır mı */
+  persistentMultiplier: boolean;
+  /** Bonus modunda multiplier spawn şansı (base'den farklı olabilir) */
+  multiplierSpawnChance: number;
+  retrigger: RetriggerConfig;
 };
 
 export type KaskadMathConfig = {
@@ -139,12 +176,17 @@ export type KaskadMathConfig = {
   multiplierSpawnChance: number;
   scatterSpawnChance: number;
   scatterBonus: ScatterBonusTable;
+  bonus: BonusMathConfig;
   maxCascades: number;
+  /** Round başına maksimum event guard'ı */
+  maxEvents: number;
   maxPayoutMult: number;
   winTiers: WinTierThresholds;
   betPresets: number[];
   minBet: number;
   maxBet: number;
+  autoplayEnabled: boolean;
+  turboEnabled: boolean;
 };
 
 export type AutoplayStopReason =

@@ -6,29 +6,35 @@ export type HediyeAnimasyonIslemi = {
   giftId: string;
   emoji: string;
   name: string;
+  senderName?: string | null;
   animationUrl?: string | null;
   animationType?: string | null;
   durationMs: number;
   fullScreen: boolean;
   soundUrl?: string | null;
+  coinCost?: number;
+  quantity?: number;
 };
 
-type Dinleyici = (aktif: HediyeAnimasyonIslemi | null, kuyrukBoyu: number) => void;
+type Dinleyici = (
+  aktif: HediyeAnimasyonIslemi | null,
+  kuyrukBoyu: number,
+  sonBes: HediyeAnimasyonIslemi[],
+) => void;
 
 /**
  * Gift animasyon kuyrugu — LiveKit / mic / chat UI thread'ini bloklamaz.
- * 2000 gift app acilisinda indirilmez; sadece oynatilacak asset lazy.
- * FAZ 10: low-end / kill_heavy_animations ile kuyruk limiti.
  */
 class HediyeAnimasyonuKuyruguImpl {
   private kuyruk: HediyeAnimasyonIslemi[] = [];
   private aktif: HediyeAnimasyonIslemi | null = null;
+  private sonBes: HediyeAnimasyonIslemi[] = [];
   private calisiyor = false;
   private dinleyiciler = new Set<Dinleyici>();
 
   dinle(fn: Dinleyici) {
     this.dinleyiciler.add(fn);
-    fn(this.aktif, this.kuyruk.length);
+    fn(this.aktif, this.kuyruk.length, this.sonBes);
     return () => {
       this.dinleyiciler.delete(fn);
     };
@@ -43,7 +49,9 @@ class HediyeAnimasyonuKuyruguImpl {
   }
 
   private yayinla() {
-    this.dinleyiciler.forEach((fn) => fn(this.aktif, this.kuyruk.length));
+    this.dinleyiciler.forEach((fn) =>
+      fn(this.aktif, this.kuyruk.length, this.sonBes),
+    );
   }
 
   ekle(islem: Omit<HediyeAnimasyonIslemi, 'id'> & { id?: string }) {
@@ -55,12 +63,14 @@ class HediyeAnimasyonuKuyruguImpl {
       return;
     }
     const fullScreen = sinir.fullScreenIzinli ? !!islem.fullScreen : false;
-    this.kuyruk.push({
+    const item: HediyeAnimasyonIslemi = {
       ...islem,
       id: islem.id ?? `anim_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      durationMs: Math.min(islem.durationMs || 2000, sinir.maxDurationMs),
+      durationMs: Math.min(islem.durationMs || 2200, sinir.maxDurationMs),
       fullScreen,
-    });
+    };
+    this.kuyruk.push(item);
+    this.sonBes = [item, ...this.sonBes].slice(0, 5);
     this.yayinla();
     void this.calistir();
   }
@@ -72,7 +82,7 @@ class HediyeAnimasyonuKuyruguImpl {
       this.aktif = this.kuyruk.shift() ?? null;
       this.yayinla();
       const sinir = DusukCihazAnimasyonSiniri();
-      const ms = Math.min(this.aktif?.durationMs ?? 2000, sinir.maxDurationMs);
+      const ms = Math.min(this.aktif?.durationMs ?? 2200, sinir.maxDurationMs);
       await new Promise((r) => setTimeout(r, ms));
       this.aktif = null;
       this.yayinla();

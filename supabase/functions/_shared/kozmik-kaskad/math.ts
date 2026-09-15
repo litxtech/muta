@@ -1,19 +1,21 @@
 /**
- * Kozmik Kaskad — Deno paylaşımlı matematik motoru (otorite).
- * Client ile aynı kurallar; production sonuç yalnızca burada üretilir.
+ * Realm of Storms — Deno paylaşımlı matematik motoru (OTORİTE).
+ * Client'taki SpinSimulator ile birebir aynı kurallar; production sonuç
+ * YALNIZCA burada üretilir. Client sadece playback yapar.
  */
 
 export type SymbolType =
-  | 'crystalBlue'
-  | 'crystalViolet'
-  | 'crystalMint'
-  | 'crystalAmber'
-  | 'starCore'
-  | 'cosmicEye'
-  | 'galaxyOrb'
+  | 'blueCrystal'
+  | 'greenCrystal'
+  | 'purpleCrystal'
+  | 'redCrystal'
+  | 'goldCrystal'
+  | 'stormRing'
+  | 'celestialCup'
+  | 'timeCore'
   | 'energyCrown'
   | 'portalScatter'
-  | 'multiplierOrb';
+  | 'stormMultiplier';
 
 export type GridCell = {
   id: string;
@@ -25,6 +27,8 @@ export type GridCell = {
 };
 
 export type GridMatrix = GridCell[][];
+
+export type WinTier = 'NONE' | 'STORM' | 'THUNDER' | 'COSMIC' | 'DIVINE';
 
 export type MathConfig = {
   mathVersion: string;
@@ -39,71 +43,107 @@ export type MathConfig = {
   multiplierSpawnChance: number;
   scatterSpawnChance: number;
   scatterBonus: { 4: number; 5: number; 6: number };
+  bonus: {
+    persistentMultiplier: boolean;
+    multiplierSpawnChance: number;
+    retrigger: { minScatters: number; extraSpins: number };
+  };
   maxCascades: number;
+  maxEvents: number;
   maxPayoutMult: number;
-  winTiers: { energy: number; cosmic: number; galactic: number; supernova: number };
+  winTiers: { storm: number; thunder: number; cosmic: number; divine: number };
   betPresets: number[];
   minBet: number;
   maxBet: number;
+  autoplayEnabled: boolean;
+  turboEnabled: boolean;
 };
 
+/**
+ * STORM_V1 — scripts/kaskad-simulator.ts ile kalibre edilen varsayılan profil.
+ * Production'da kaskad_math_versions'taki aktif kayıt geçerlidir.
+ */
 export const DEFAULT_CONFIG: MathConfig = {
-  mathVersion: 'math-v1',
-  paytableVersion: 'pay-v1',
-  configVersion: 'cfg-v1',
+  mathVersion: 'storm-v1',
+  paytableVersion: 'storm-pay-v1',
+  configVersion: 'storm-cfg-v1',
   columns: 6,
   rows: 5,
   minMatchCount: 8,
   paytable: {
-    crystalBlue: { 8: 1.0, 10: 2.0, 12: 4.5 },
-    crystalViolet: { 8: 1.0, 10: 2.0, 12: 4.5 },
-    crystalMint: { 8: 1.2, 10: 2.5, 12: 5.5 },
-    crystalAmber: { 8: 1.2, 10: 2.5, 12: 5.5 },
-    starCore: { 8: 3.0, 10: 6.0, 12: 12 },
-    cosmicEye: { 8: 4.0, 10: 8.0, 12: 16 },
-    galaxyOrb: { 8: 5.0, 10: 10, 12: 22 },
-    energyCrown: { 8: 7.0, 10: 14, 12: 30 },
+    blueCrystal: { 8: 0.25, 10: 0.75, 12: 2.0 },
+    greenCrystal: { 8: 0.25, 10: 0.75, 12: 2.0 },
+    purpleCrystal: { 8: 0.4, 10: 0.9, 12: 2.4 },
+    redCrystal: { 8: 0.4, 10: 0.9, 12: 2.4 },
+    goldCrystal: { 8: 0.5, 10: 1.2, 12: 3.0 },
+    stormRing: { 8: 1.0, 10: 2.5, 12: 6.0 },
+    celestialCup: { 8: 1.5, 10: 4.0, 12: 10 },
+    timeCore: { 8: 2.5, 10: 6.0, 12: 15 },
+    energyCrown: { 8: 4.0, 10: 10, 12: 25 },
   },
   symbolWeights: {
-    crystalBlue: 18,
-    crystalViolet: 18,
-    crystalMint: 17,
-    crystalAmber: 17,
-    starCore: 10,
-    cosmicEye: 8,
-    galaxyOrb: 7,
-    energyCrown: 5,
+    blueCrystal: 20,
+    greenCrystal: 20,
+    purpleCrystal: 17,
+    redCrystal: 17,
+    goldCrystal: 14,
+    stormRing: 8,
+    celestialCup: 6.5,
+    timeCore: 5,
+    energyCrown: 3.5,
   },
   multiplierWeights: [
-    { value: 2, weight: 45 },
-    { value: 3, weight: 28 },
-    { value: 5, weight: 14 },
-    { value: 10, weight: 7 },
-    { value: 25, weight: 3.5 },
-    { value: 50, weight: 1.5 },
-    { value: 100, weight: 1 },
+    { value: 2, weight: 40 },
+    { value: 3, weight: 24 },
+    { value: 4, weight: 12 },
+    { value: 5, weight: 10 },
+    { value: 6, weight: 5 },
+    { value: 8, weight: 4 },
+    { value: 10, weight: 2.4 },
+    { value: 15, weight: 1.2 },
+    { value: 25, weight: 0.7 },
+    { value: 50, weight: 0.4 },
+    { value: 100, weight: 0.2 },
+    { value: 250, weight: 0.06 },
+    { value: 500, weight: 0.02 },
   ],
-  multiplierSpawnChance: 0.045,
-  scatterSpawnChance: 0.04,
-  scatterBonus: { 4: 10, 5: 12, 6: 15 },
+  multiplierSpawnChance: 0.03,
+  scatterSpawnChance: 0.012,
+  scatterBonus: { 4: 15, 5: 20, 6: 25 },
+  bonus: {
+    persistentMultiplier: true,
+    multiplierSpawnChance: 0.055,
+    retrigger: { minScatters: 3, extraSpins: 5 },
+  },
   maxCascades: 32,
+  maxEvents: 256,
   maxPayoutMult: 5000,
-  winTiers: { energy: 10, cosmic: 25, galactic: 50, supernova: 100 },
+  winTiers: { storm: 10, thunder: 25, cosmic: 50, divine: 100 },
   betPresets: [10, 20, 50, 100, 250, 500],
   minBet: 10,
   maxBet: 5000,
+  autoplayEnabled: true,
+  turboEnabled: true,
 };
 
-const PAY_SYMBOLS: SymbolType[] = [
-  'crystalBlue',
-  'crystalViolet',
-  'crystalMint',
-  'crystalAmber',
-  'starCore',
-  'cosmicEye',
-  'galaxyOrb',
+const LOW_SYMBOLS: SymbolType[] = [
+  'blueCrystal',
+  'greenCrystal',
+  'purpleCrystal',
+  'redCrystal',
+  'goldCrystal',
+];
+
+const HIGH_SYMBOLS: SymbolType[] = [
+  'stormRing',
+  'celestialCup',
+  'timeCore',
   'energyCrown',
 ];
+
+const PAY_SYMBOLS: SymbolType[] = [...LOW_SYMBOLS, ...HIGH_SYMBOLS];
+
+const EMPTY_INSTANCE_ID = '__empty__';
 
 let instanceCounter = 0;
 function nextId(prefix = 'c'): string {
@@ -131,6 +171,7 @@ type Rng = {
   chance: (p: number) => boolean;
 };
 
+/** Mulberry32 — crypto seed'den beslenir; aynı seed → aynı tur */
 function createRng(seed: string): Rng {
   const seedFn = xmur3(seed);
   let state = seedFn();
@@ -161,15 +202,24 @@ function cloneGrid(grid: GridMatrix): GridMatrix {
   return grid.map((row) => row.map((c) => ({ ...c })));
 }
 
-function generateCell(config: MathConfig, rng: Rng, row: number, col: number): GridCell {
+function generateCell(
+  config: MathConfig,
+  rng: Rng,
+  row: number,
+  col: number,
+  bonusMode: boolean,
+): GridCell {
   let symbolType: SymbolType = rng.pickWeighted(
     PAY_SYMBOLS.map((s) => ({ item: s, weight: config.symbolWeights[s] ?? 1 })),
   );
   let multiplierValue: number | null = null;
+  const multiplierChance = bonusMode
+    ? config.bonus.multiplierSpawnChance
+    : config.multiplierSpawnChance;
   if (rng.chance(config.scatterSpawnChance)) {
     symbolType = 'portalScatter';
-  } else if (rng.chance(config.multiplierSpawnChance)) {
-    symbolType = 'multiplierOrb';
+  } else if (rng.chance(multiplierChance)) {
+    symbolType = 'stormMultiplier';
     multiplierValue = rng.pickWeighted(
       config.multiplierWeights.map((w) => ({ item: w.value, weight: w.weight })),
     );
@@ -184,12 +234,12 @@ function generateCell(config: MathConfig, rng: Rng, row: number, col: number): G
   };
 }
 
-function generateGrid(config: MathConfig, rng: Rng): GridMatrix {
+function generateGrid(config: MathConfig, rng: Rng, bonusMode: boolean): GridMatrix {
   const grid: GridMatrix = [];
   for (let r = 0; r < config.rows; r += 1) {
     const row: GridCell[] = [];
     for (let c = 0; c < config.columns; c += 1) {
-      row.push(generateCell(config, rng, r, c));
+      row.push(generateCell(config, rng, r, c, bonusMode));
     }
     grid.push(row);
   }
@@ -203,7 +253,19 @@ function payBand(count: number): 8 | 10 | 12 | null {
   return null;
 }
 
-function detectMatches(grid: GridMatrix, config: MathConfig, bet: number) {
+export type MatchedCluster = {
+  symbolType: SymbolType;
+  cellIds: string[];
+  count: number;
+  payMult: number;
+  winAmount: number;
+};
+
+function detectMatches(
+  grid: GridMatrix,
+  config: MathConfig,
+  bet: number,
+): MatchedCluster[] {
   const counts = new Map<SymbolType, string[]>();
   for (const row of grid) {
     for (const cell of row) {
@@ -213,13 +275,7 @@ function detectMatches(grid: GridMatrix, config: MathConfig, bet: number) {
       counts.set(cell.symbolType, list);
     }
   }
-  const matches: Array<{
-    symbolType: SymbolType;
-    cellIds: string[];
-    count: number;
-    payMult: number;
-    winAmount: number;
-  }> = [];
+  const matches: MatchedCluster[] = [];
   for (const [symbolType, cellIds] of counts) {
     const count = cellIds.length;
     if (count < config.minMatchCount) continue;
@@ -237,7 +293,13 @@ function detectMatches(grid: GridMatrix, config: MathConfig, bet: number) {
   return matches;
 }
 
-function removeAndFill(grid: GridMatrix, removeIds: Set<string>, config: MathConfig, rng: Rng) {
+function removeAndFill(
+  grid: GridMatrix,
+  removeIds: Set<string>,
+  config: MathConfig,
+  rng: Rng,
+  bonusMode: boolean,
+): { grid: GridMatrix; newSymbols: GridCell[] } {
   const cols = config.columns;
   const rows = config.rows;
   const emptied = cloneGrid(grid);
@@ -246,7 +308,7 @@ function removeAndFill(grid: GridMatrix, removeIds: Set<string>, config: MathCon
       if (removeIds.has(emptied[r]![c]!.instanceId)) {
         emptied[r]![c] = {
           ...emptied[r]![c]!,
-          instanceId: '__empty__',
+          instanceId: EMPTY_INSTANCE_ID,
           multiplierValue: null,
         };
       }
@@ -260,7 +322,7 @@ function removeAndFill(grid: GridMatrix, removeIds: Set<string>, config: MathCon
     const stack: GridCell[] = [];
     for (let r = rows - 1; r >= 0; r -= 1) {
       const cell = emptied[r]![c]!;
-      if (cell.instanceId !== '__empty__') stack.push(cell);
+      if (cell.instanceId !== EMPTY_INSTANCE_ID) stack.push(cell);
     }
     let write = rows - 1;
     for (const cell of stack) {
@@ -268,7 +330,7 @@ function removeAndFill(grid: GridMatrix, removeIds: Set<string>, config: MathCon
       write -= 1;
     }
     while (write >= 0) {
-      const spawned = generateCell(config, rng, write, c);
+      const spawned = generateCell(config, rng, write, c, bonusMode);
       spawned.instanceId = nextId('n');
       result[write]![c] = spawned;
       newSymbols.push(spawned);
@@ -278,18 +340,28 @@ function removeAndFill(grid: GridMatrix, removeIds: Set<string>, config: MathCon
   return { grid: result, newSymbols };
 }
 
-function winTier(config: MathConfig, totalWin: number, bet: number) {
+function resolveWinTier(config: MathConfig, totalWin: number, bet: number): WinTier {
   if (bet <= 0 || totalWin <= 0) return 'NONE';
   const ratio = totalWin / bet;
   const t = config.winTiers;
-  if (ratio >= t.supernova) return 'SUPERNOVA';
-  if (ratio >= t.galactic) return 'GALACTIC';
+  if (ratio >= t.divine) return 'DIVINE';
   if (ratio >= t.cosmic) return 'COSMIC';
-  if (ratio >= t.energy) return 'ENERGY';
+  if (ratio >= t.thunder) return 'THUNDER';
+  if (ratio >= t.storm) return 'STORM';
   return 'NONE';
 }
 
-export function simulateSpin(input: {
+function countScatters(grid: GridMatrix): number {
+  let n = 0;
+  for (const row of grid) {
+    for (const cell of row) {
+      if (cell.symbolType === 'portalScatter') n += 1;
+    }
+  }
+  return n;
+}
+
+export type SimulateSpinInput = {
   config: MathConfig;
   seed: string;
   betAmount: number;
@@ -298,7 +370,10 @@ export function simulateSpin(input: {
   balanceBefore: number;
   remainingBonusSpins?: number;
   isBonusSpin?: boolean;
-}) {
+  persistentMultiplier?: number;
+};
+
+export function simulateSpin(input: SimulateSpinInput) {
   const {
     config,
     seed,
@@ -308,44 +383,70 @@ export function simulateSpin(input: {
     balanceBefore,
     remainingBonusSpins = 0,
     isBonusSpin = false,
+    persistentMultiplier = 0,
   } = input;
 
   instanceCounter = 0;
   const rng = createRng(seed);
+  const bonusMode = isBonusSpin;
 
-  let initialGrid = generateGrid(config, rng);
-  // Cascade: ilk grid match içerebilir — yeniden deneme yok.
+  const initialGrid = generateGrid(config, rng, bonusMode);
 
   const cascades: Array<Record<string, unknown>> = [];
   let grid = cloneGrid(initialGrid);
   let totalWin = 0;
+  let baseWin = 0;
   const allMults: number[] = [];
+  let persistentNow =
+    isBonusSpin && config.bonus.persistentMultiplier ? persistentMultiplier : 0;
+  let eventCount = 0;
 
   for (let cascadeIndex = 0; cascadeIndex < config.maxCascades; cascadeIndex += 1) {
+    // Infinite loop / event guard
+    eventCount += 1;
+    if (eventCount > config.maxEvents) break;
+
     const matched = detectMatches(grid, config, betAmount);
     if (matched.length === 0) break;
+
     const removedSet = new Set(matched.flatMap((m) => m.cellIds));
     const stepBase = matched.reduce((s, m) => s + m.winAmount, 0);
+    baseWin += stepBase;
 
     const multsHere: number[] = [];
     const multIds = new Set<string>();
     for (const row of grid) {
       for (const cell of row) {
-        if (cell.symbolType === 'multiplierOrb' && (cell.multiplierValue ?? 0) > 0) {
+        if (
+          cell.symbolType === 'stormMultiplier' &&
+          (cell.multiplierValue ?? 0) > 0
+        ) {
           multsHere.push(cell.multiplierValue!);
           multIds.add(cell.instanceId);
           allMults.push(cell.multiplierValue!);
         }
       }
     }
+    multsHere.sort((a, b) => a - b);
 
-    const stepMult = multsHere.length === 0 ? 1 : multsHere.reduce((a, b) => a + b, 0);
-    const stepWin = Math.floor(stepBase * Math.max(1, stepMult) * 100) / 100;
+    const orbSum = multsHere.reduce((a, b) => a + b, 0);
+    const stepMult = Math.max(1, orbSum + persistentNow);
+    const stepWin = Math.floor(stepBase * stepMult * 100) / 100;
     totalWin += stepWin;
+
+    if (isBonusSpin && config.bonus.persistentMultiplier) {
+      persistentNow += orbSum;
+    }
 
     const gridBefore = cloneGrid(grid);
     const removeAll = new Set([...removedSet, ...multIds]);
-    const { grid: filled, newSymbols } = removeAndFill(grid, removeAll, config, rng);
+    const { grid: filled, newSymbols } = removeAndFill(
+      grid,
+      removeAll,
+      config,
+      rng,
+      bonusMode,
+    );
 
     cascades.push({
       cascadeIndex,
@@ -361,22 +462,36 @@ export function simulateSpin(input: {
   }
 
   const totalMultiplier = allMults.length === 0 ? 1 : allMults.reduce((a, b) => a + b, 0);
+
+  // Max settlement guard
   const maxWin = betAmount * config.maxPayoutMult;
   if (totalWin > maxWin) totalWin = maxWin;
 
-  let scatterCount = 0;
-  for (const row of grid) {
-    for (const cell of row) {
-      if (cell.symbolType === 'portalScatter') scatterCount += 1;
-    }
-  }
+  const scatterCount = countScatters(grid);
+
   let bonus: { scatterCount: number; freeSpins: number } | null = null;
-  if (scatterCount >= 6) bonus = { scatterCount, freeSpins: config.scatterBonus[6] };
-  else if (scatterCount >= 5) bonus = { scatterCount, freeSpins: config.scatterBonus[5] };
-  else if (scatterCount >= 4) bonus = { scatterCount, freeSpins: config.scatterBonus[4] };
+  let bonusTriggered = false;
+  let retriggered = false;
+  let retriggerSpins = 0;
+
+  if (isBonusSpin) {
+    if (scatterCount >= config.bonus.retrigger.minScatters) {
+      retriggerSpins = config.bonus.retrigger.extraSpins;
+      retriggered = true;
+    }
+  } else {
+    if (scatterCount >= 6) bonus = { scatterCount, freeSpins: config.scatterBonus[6] };
+    else if (scatterCount >= 5) bonus = { scatterCount, freeSpins: config.scatterBonus[5] };
+    else if (scatterCount >= 4) bonus = { scatterCount, freeSpins: config.scatterBonus[4] };
+    bonusTriggered = bonus != null;
+  }
 
   const debit = isBonusSpin ? 0 : betAmount;
   const balanceAfter = Math.max(0, balanceBefore - debit + totalWin);
+
+  const remainingAfter = isBonusSpin
+    ? Math.max(0, remainingBonusSpins - 1) + retriggerSpins
+    : remainingBonusSpins + (bonus?.freeSpins ?? 0);
 
   return {
     roundId,
@@ -389,14 +504,18 @@ export function simulateSpin(input: {
     initialGrid,
     cascades,
     totalMultiplier,
-    baseWin: totalWin,
+    baseWin,
     totalWin,
-    winTier: winTier(config, totalWin, betAmount),
-    bonusTriggered: bonus != null,
+    winTier: resolveWinTier(config, totalWin, betAmount),
+    bonusTriggered,
     bonus,
+    retriggered,
+    retriggerSpins,
+    persistentMultiplierBefore: isBonusSpin ? persistentMultiplier : 0,
+    persistentMultiplierAfter: persistentNow,
+    scatterCount,
     balanceAfter,
-    remainingBonusSpins: isBonusSpin
-      ? Math.max(0, remainingBonusSpins - 1) + (bonus?.freeSpins ?? 0)
-      : remainingBonusSpins + (bonus?.freeSpins ?? 0),
+    remainingBonusSpins: remainingAfter,
+    isBonusSpin,
   };
 }

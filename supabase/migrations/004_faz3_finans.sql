@@ -96,6 +96,9 @@ as $$
 $$;
 
 -- Atomic gift with kill switch + guest block + idempotency
+-- Signature change (adds p_idempotency_key); OR REPLACE cannot replace different arg lists.
+drop function if exists public.send_gift(uuid, uuid, uuid, int);
+
 create or replace function public.send_gift(
   p_room_id uuid,
   p_receiver_id uuid,
@@ -427,14 +430,17 @@ alter table public.host_earnings enable row level security;
 alter table public.host_earnings_ledger enable row level security;
 alter table public.reconciliation_runs enable row level security;
 
+drop policy if exists "Own idempotency read" on public.finance_idempotency_keys;
 create policy "Own idempotency read"
   on public.finance_idempotency_keys for select to authenticated
   using (auth.uid() = user_id);
 
+drop policy if exists "Own host earnings read" on public.host_earnings;
 create policy "Own host earnings read"
   on public.host_earnings for select to authenticated
   using (auth.uid() = user_id);
 
+drop policy if exists "Own host earnings ledger read" on public.host_earnings_ledger;
 create policy "Own host earnings ledger read"
   on public.host_earnings_ledger for select to authenticated
   using (auth.uid() = user_id);
@@ -442,7 +448,7 @@ create policy "Own host earnings ledger read"
 grant select on public.finance_idempotency_keys to authenticated;
 grant select on public.host_earnings to authenticated;
 grant select on public.host_earnings_ledger to authenticated;
-grant execute on function public.send_gift to authenticated;
-grant execute on function public.coin_satin_al_onayla to authenticated;
-grant execute on function public.kill_switch_aktif_mi to authenticated;
-grant execute on function public.ozellik_bayragi_aktif_mi to authenticated;
+grant execute on function public.send_gift(uuid, uuid, uuid, int, text) to authenticated;
+grant execute on function public.coin_satin_al_onayla(uuid, text, text, text, text, numeric, jsonb) to authenticated;
+grant execute on function public.kill_switch_aktif_mi(text) to authenticated;
+grant execute on function public.ozellik_bayragi_aktif_mi(text) to authenticated;

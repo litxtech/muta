@@ -1,7 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, FlatList } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { StyleSheet, Text, View, FlatList } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
+import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { BosDurum } from '../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
   AktifLigSezonunuGetir,
@@ -10,6 +12,10 @@ import {
 } from '../../src/moduller/sehir-ligi/okuma/SehirLigiSiralamasiniGetir';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
+import {
+  BoslukTokenlari,
+  YaricapTokenlari,
+} from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export default function SehirLigEkrani() {
   const [seasonTitle, setSeasonTitle] = useState('—');
@@ -22,7 +28,7 @@ export default function SehirLigEkrani() {
       setRows(await SehirLigiSiralamasiniGetir(season?.id));
     } catch {
       setRows([]);
-      setSeasonTitle('Migration 009 gerekli');
+      setSeasonTitle('Sezon bilgisi alınamadı');
     }
   }, []);
 
@@ -35,53 +41,57 @@ export default function SehirLigEkrani() {
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="sehir-ligi">
-        <View style={styles.content}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={styles.back}>← Geri</Text>
-          </Pressable>
-          <Text style={styles.title}>City League</Text>
-          <Text style={styles.sub}>{seasonTitle}</Text>
-          <FlatList
-            data={rows}
-            keyExtractor={(item) => `${item.season_id}-${item.city_id}`}
-            ListEmptyComponent={<Text style={styles.empty}>Sıralama boş.</Text>}
-            renderItem={({ item, index }) => (
-              <View style={styles.row}>
-                <Text style={styles.rank}>#{item.rank ?? index + 1}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>
-                    {item.city?.name ?? item.city_id.slice(0, 8)}
-                  </Text>
-                  <Text style={styles.meta}>
-                    {item.city?.country_code} · gifts {item.gifts_score} · wins{' '}
-                    {item.battle_wins}
-                  </Text>
-                </View>
-                <Text style={styles.points}>{item.points}</Text>
+        <EkranBasligi title="Şehir Ligi" subtitle={seasonTitle} />
+        <FlatList
+          data={rows}
+          keyExtractor={(item) => `${item.season_id}-${item.city_id}`}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <BosDurum
+              icon="trophy-outline"
+              title="Sıralama boş"
+              body="Sezon başladığında şehirler burada listelenir."
+            />
+          }
+          renderItem={({ item, index }) => (
+            <View style={styles.row}>
+              <Text style={styles.rank}>#{item.rank ?? index + 1}</Text>
+              <View style={styles.mid}>
+                <Text style={styles.name}>
+                  {item.city?.name ?? item.city_id.slice(0, 8)}
+                </Text>
+                <Text style={styles.meta}>
+                  {item.city?.country_code} · hediye {item.gifts_score} · galibiyet{' '}
+                  {item.battle_wins}
+                </Text>
               </View>
-            )}
-          />
-        </View>
+              <Text style={styles.points}>{item.points}</Text>
+            </View>
+          )}
+        />
       </ModulHataSiniri>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, padding: 20, gap: 8 },
-  back: { ...TipografiTokenlari.caption, color: RenkTokenlari.primarySoft },
-  title: { ...TipografiTokenlari.title, color: RenkTokenlari.text },
-  sub: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted, marginBottom: 8 },
-  empty: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
+  list: {
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingBottom: BoslukTokenlari.xxxl,
+    gap: BoslukTokenlari.sm,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: RenkTokenlari.border,
+    gap: BoslukTokenlari.md,
+    padding: BoslukTokenlari.lg,
+    borderRadius: YaricapTokenlari.md,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
   },
   rank: { ...TipografiTokenlari.h2, color: RenkTokenlari.accent, width: 40 },
+  mid: { flex: 1, gap: 2 },
   name: { ...TipografiTokenlari.h2, color: RenkTokenlari.text },
   meta: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
   points: { ...TipografiTokenlari.h2, color: RenkTokenlari.mint },

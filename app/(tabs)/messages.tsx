@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -9,7 +10,7 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
-import { GradientButton } from '../../src/components/GradientButton';
+import { YUZEN_TAB_ICERIK_BOSLUGU } from '../../src/components/YuzenTabBar';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
@@ -18,16 +19,23 @@ import {
   MesajKonulariniGetir,
   type MesajKonusu,
 } from '../../src/moduller/mesajlasma/okuma/MesajKonulariniGetir';
+import { MesajThreadArsivle, MesajSohbetSil } from '../../src/moduller/mesajlasma/islemler/MesajGonder';
+import { MesajMarkaBasligi } from '../../src/moduller/mesajlasma/bilesenler/MesajMarkaBasligi';
+import { MesajKonuKarti } from '../../src/moduller/mesajlasma/bilesenler/MesajKonuKarti';
+import { MesajBosDurum } from '../../src/moduller/mesajlasma/bilesenler/MesajBosDurum';
+import { useMesajInboxKanali } from '../../src/moduller/mesajlasma/gercek-zamanli/useMesajKanali';
 import { OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
-import { YaricapTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { TamusoBanner } from '../../src/banner';
 
 export default function MessagesScreen() {
   const acik = OzellikBayragiAktifMi('messages_enabled');
   const { isGuest, refreshProfile, refreshWallet } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
   const [konular, setKonular] = useState<MesajKonusu[]>([]);
+  const [arsivModu, setArsivModu] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
@@ -37,13 +45,13 @@ export default function MessagesScreen() {
     }
     setLoading(true);
     try {
-      setKonular(await MesajKonulariniGetir());
+      setKonular(await MesajKonulariniGetir(arsivModu));
     } catch {
       setKonular([]);
     } finally {
       setLoading(false);
     }
-  }, [acik, isGuest]);
+  }, [acik, isGuest, arsivModu]);
 
   useFocusEffect(
     useCallback(() => {
@@ -51,33 +59,107 @@ export default function MessagesScreen() {
     }, [load]),
   );
 
+  useMesajInboxKanali(() => {
+    void load();
+  });
+
+  const yeniSohbet = () => {
+    islemiDene('mesaj_gonder', () => {
+      router.push('/mesaj/yeni' as any);
+    });
+  };
+
+  const konuMenu = (konu: MesajKonusu) => {
+    Alert.alert(konu.peer_display_name || 'Sohbet', undefined, [
+      arsivModu
+        ? {
+            text: 'Arşivden çıkar',
+            onPress: () => {
+              void (async () => {
+                await MesajThreadArsivle(konu.id, false);
+                await load();
+              })();
+            },
+          }
+        : {
+            text: 'Arşivle',
+            onPress: () => {
+              void (async () => {
+                await MesajThreadArsivle(konu.id, true);
+                await load();
+              })();
+            },
+          },
+      {
+        text: 'Sohbeti sil',
+        style: 'destructive',
+        onPress: () => {
+          Alert.alert(
+            'Sohbeti sil',
+            'Bu sohbet senden tamamen silinir. Karşı taraf etkilenmez. Yeni mesaj gelirse tekrar görünür.',
+            [
+              { text: 'Vazgeç', style: 'cancel' },
+              {
+                text: 'Sil',
+                style: 'destructive',
+                onPress: () => {
+                  void (async () => {
+                    const r = await MesajSohbetSil(konu.id);
+                    if (!r.ok) Alert.alert('Silinemedi', r.hata);
+                    else await load();
+                  })();
+                },
+              },
+            ],
+          );
+        },
+      },
+      { text: 'Vazgeç', style: 'cancel' },
+    ]);
+  };
+
+  const altYazi = !acik
+    ? 'Mesajlaşma şu an kapalı'
+    : isGuest
+      ? 'Mesaj göndermek için hesabını tamamla'
+      : arsivModu
+        ? 'Arşivlenmiş sohbetler'
+        : 'Anlık mesajlaşma · foto & video';
+
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="mesajlasma">
-        <View style={styles.header}>
-          <Text style={styles.title}>Messages</Text>
-          <Text style={styles.sub}>
-            {acik
-              ? isGuest
-                ? 'Misafir mesaj gönderemez — hesabını tamamla.'
-                : 'Direkt mesajlar · pagination hazır'
-              : 'messages_enabled kapalı'}
-          </Text>
-        </View>
-
-        <GradientButton
-          title="Yeni sohbet"
-          style={{ marginHorizontal: 20, marginBottom: 12 }}
-          onPress={() =>
-            islemiDene('mesaj_gonder', () => {
-              router.push('/mesaj/yeni' as any);
-            })
-          }
+        <MesajMarkaBasligi
+          altYazi={altYazi}
+          sohbetSayisi={konular.length}
+          onYeniSohbet={yeniSohbet}
         />
+
+        <TamusoBanner placement="MESSAGES_TOP" screen="MESSAGES" />
+
+        <View style={styles.tabs}>
+          <Pressable
+            style={[styles.tab, !arsivModu && styles.tabAktif]}
+            onPress={() => setArsivModu(false)}
+          >
+            <Text style={[styles.tabText, !arsivModu && styles.tabTextAktif]}>
+              Sohbetler
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.tab, arsivModu && styles.tabAktif]}
+            onPress={() => setArsivModu(true)}
+          >
+            <Text style={[styles.tabText, arsivModu && styles.tabTextAktif]}>
+              Arşiv
+            </Text>
+          </Pressable>
+        </View>
 
         <FlatList
           data={konular}
           keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={loading}
@@ -85,26 +167,24 @@ export default function MessagesScreen() {
               tintColor={RenkTokenlari.primary}
             />
           }
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[
+            styles.list,
+            konular.length === 0 && styles.listEmpty,
+          ]}
+          ItemSeparatorComponent={() => <View style={styles.sep} />}
           ListEmptyComponent={
-            <Text style={styles.empty}>
-              Henüz sohbet yok. Migration 005 sonrası başlatabilirsin.
-            </Text>
+            <MesajBosDurum
+              misafir={isGuest}
+              kapali={!acik}
+              onAksiyon={yeniSohbet}
+            />
           }
           renderItem={({ item }) => (
-            <Pressable
-              style={styles.card}
+            <MesajKonuKarti
+              konu={item}
               onPress={() => router.push(`/mesaj/${item.id}` as any)}
-            >
-              <Text style={styles.preview} numberOfLines={1}>
-                {item.last_message_preview ?? 'Sohbet'}
-              </Text>
-              <Text style={styles.meta}>
-                {item.last_message_at
-                  ? new Date(item.last_message_at).toLocaleString()
-                  : '—'}
-              </Text>
-            </Pressable>
+              onLongPress={() => konuMenu(item)}
+            />
           )}
         />
 
@@ -122,24 +202,38 @@ export default function MessagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingTop: 8, gap: 4, marginBottom: 8 },
-  title: { ...TipografiTokenlari.title, color: RenkTokenlari.text },
-  sub: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
-  list: { paddingHorizontal: 20, paddingBottom: 40, gap: 10 },
-  empty: {
-    ...TipografiTokenlari.body,
-    color: RenkTokenlari.textMuted,
-    textAlign: 'center',
-    marginTop: 32,
+  tabs: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: BoslukTokenlari.lg,
+    marginBottom: BoslukTokenlari.sm,
   },
-  card: {
-    padding: 14,
-    borderRadius: YaricapTokenlari.lg,
-    backgroundColor: RenkTokenlari.bgCard,
+  tab: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: RenkTokenlari.surface,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
-    gap: 6,
   },
-  preview: { ...TipografiTokenlari.h2, color: RenkTokenlari.text },
-  meta: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
+  tabAktif: {
+    borderColor: RenkTokenlari.mint,
+    backgroundColor: 'rgba(61,207,176,0.14)',
+  },
+  tabText: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    fontWeight: '600',
+  },
+  tabTextAktif: { color: RenkTokenlari.mint },
+  list: {
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingBottom: YUZEN_TAB_ICERIK_BOSLUGU,
+  },
+  listEmpty: { flexGrow: 1 },
+  sep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: RenkTokenlari.border,
+    marginLeft: 68,
+  },
 });

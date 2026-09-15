@@ -1,9 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
+import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { BosDurum } from '../../src/components/BosDurum';
 import { TextField } from '../../src/components/TextField';
 import { GradientButton } from '../../src/components/GradientButton';
+import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
@@ -19,6 +22,28 @@ import {
 } from '../../src/moduller/hostlar/okuma/HostProfiliniGetir';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
+import {
+  BoslukTokenlari,
+  YaricapTokenlari,
+} from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+
+const HOST_DURUM: Record<string, string> = {
+  pending: 'İncelemede',
+  active: 'Aktif',
+  suspended: 'Askıda',
+  rejected: 'Reddedildi',
+};
+
+const BASVURU_YOL: Record<string, string> = {
+  independent: 'Bağımsız',
+  join_agency: 'Ajansa katılım',
+};
+
+const BASVURU_DURUM: Record<string, string> = {
+  pending: 'Beklemede',
+  approved: 'Onaylandı',
+  rejected: 'Reddedildi',
+};
 
 export default function HostEkrani() {
   const { isGuest, refreshProfile, refreshWallet, profile } = useAuth();
@@ -64,7 +89,7 @@ export default function HostEkrani() {
         return;
       }
       await refreshProfile();
-      Alert.alert('Host aktif', 'Bağımsız host olarak işaretlendin.');
+      Alert.alert('Ev sahibi aktif', 'Bağımsız ev sahibi olarak işaretlendin.');
       await load();
     });
   };
@@ -72,7 +97,7 @@ export default function HostEkrani() {
   const ajansaKatil = () => {
     islemiDene('canli_ac', async () => {
       if (!invite.trim()) {
-        Alert.alert('Invite code gerekli');
+        Alert.alert('Davet kodu gerekli');
         return;
       }
       setLoading(true);
@@ -90,60 +115,94 @@ export default function HostEkrani() {
     });
   };
 
+  const hostMu = Boolean(profile?.is_host);
+  const durumMetni = host
+    ? HOST_DURUM[host.status] ?? host.status
+    : hostMu
+      ? 'Aktif'
+      : 'Henüz ev sahibi değilsin';
+
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="hostlar">
-        <View style={styles.content}>
-          <Pressable onPress={() => router.back()}>
-            <Text style={styles.back}>← Geri</Text>
-          </Pressable>
-          <Text style={styles.title}>Become a Host</Text>
-          <Text style={styles.sub}>
-            Independent veya Join Agency · User → Agency Review → Platform Review → Host
-          </Text>
-
+        <EkranBasligi
+          title="Ev sahibi ol"
+          subtitle="Bağımsız veya ajans yoluyla başvur"
+        />
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <KlavyeKapatan style={styles.formWrap}>
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Durum</Text>
-            <Text style={styles.cardMeta}>
-              is_host: {profile?.is_host ? 'evet' : 'hayır'}
-              {'\n'}
-              host profile: {host ? `${host.status}` : 'yok'}
-              {host?.agency_id ? `\najans: ${host.agency_id.slice(0, 8)}` : ''}
+            <Text style={styles.cardTitle}>Durumun</Text>
+            <Text style={styles.statusLine}>
+              {hostMu ? 'Ev sahibi hesabı aktif' : 'Ev sahibi hesabı yok'}
             </Text>
-            {host ? (
+            <Text style={styles.cardMeta}>Profil: {durumMetni}</Text>
+            {host?.agency_id ? (
               <Text style={styles.cardMeta}>
-                live: {Math.floor(host.total_live_seconds / 3600)}s · diamonds{' '}
-                {host.gift_income_diamonds} · pk wins {host.pk_wins}
+                Ajans: {host.agency_id.slice(0, 8)}…
               </Text>
+            ) : null}
+            {host ? (
+              <View style={styles.stats}>
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>
+                    {Math.floor(host.total_live_seconds / 3600)}
+                  </Text>
+                  <Text style={styles.statLabel}>Saat canlı</Text>
+                </View>
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>{host.gift_income_diamonds}</Text>
+                  <Text style={styles.statLabel}>Elmas</Text>
+                </View>
+                <View style={styles.stat}>
+                  <Text style={styles.statValue}>{host.pk_wins}</Text>
+                  <Text style={styles.statLabel}>PK galibiyeti</Text>
+                </View>
+              </View>
             ) : null}
           </View>
 
           <GradientButton
-            title="Bağımsız host ol (dev onay)"
+            title="Bağımsız host ol"
             onPress={bagimsiz}
             loading={loading}
           />
 
           <TextField
-            label="Ajans invite code"
+            label="Ajans davet kodu"
             value={invite}
             onChangeText={setInvite}
             autoCapitalize="characters"
             placeholder="ABCD1234"
           />
-          <GradientButton title="Ajansa katıl (başvuru)" variant="ghost" onPress={ajansaKatil} />
+          <GradientButton title="Ajansa katıl" variant="ghost" onPress={ajansaKatil} />
 
           <Text style={styles.section}>Başvurular</Text>
           {apps.length === 0 ? (
-            <Text style={styles.empty}>Başvuru yok.</Text>
+            <BosDurum
+              icon="document-text-outline"
+              title="Başvuru yok"
+              body="Yeni bir başvuru oluşturduğunda burada görünür."
+            />
           ) : (
             apps.map((a) => (
-              <Text key={a.id} style={styles.line}>
-                {a.path} · {a.status}
-              </Text>
+              <View key={a.id} style={styles.appCard}>
+                <Text style={styles.appTitle}>
+                  {BASVURU_YOL[a.path] ?? a.path}
+                </Text>
+                <Text style={styles.appMeta}>
+                  {BASVURU_DURUM[a.status] ?? a.status}
+                </Text>
+              </View>
             ))
           )}
-        </View>
+          </KlavyeKapatan>
+        </ScrollView>
         <HesabiTamamlaKarti
           visible={upgradeAcik}
           onClose={upgradeKapat}
@@ -158,21 +217,58 @@ export default function HostEkrani() {
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, padding: 20, gap: 12 },
-  back: { ...TipografiTokenlari.caption, color: RenkTokenlari.primarySoft },
-  title: { ...TipografiTokenlari.title, color: RenkTokenlari.text },
-  sub: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: BoslukTokenlari.xl,
+    paddingBottom: BoslukTokenlari.xxl,
+  },
+  formWrap: {
+    flexGrow: 1,
+    gap: BoslukTokenlari.md,
+  },
   card: {
-    padding: 14,
-    borderRadius: 16,
+    padding: BoslukTokenlari.lg,
+    borderRadius: YaricapTokenlari.lg,
     backgroundColor: RenkTokenlari.bgCard,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
-    gap: 6,
+    gap: BoslukTokenlari.sm,
   },
   cardTitle: { ...TipografiTokenlari.h2, color: RenkTokenlari.text },
+  statusLine: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.primarySoft,
+    fontWeight: '700',
+  },
   cardMeta: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
-  section: { ...TipografiTokenlari.h2, color: RenkTokenlari.text },
-  empty: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
-  line: { ...TipografiTokenlari.body, color: RenkTokenlari.text },
+  stats: {
+    flexDirection: 'row',
+    gap: BoslukTokenlari.sm,
+    marginTop: BoslukTokenlari.sm,
+  },
+  stat: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.sm,
+    backgroundColor: RenkTokenlari.surface,
+    gap: 2,
+  },
+  statValue: { ...TipografiTokenlari.h2, color: RenkTokenlari.text },
+  statLabel: { ...TipografiTokenlari.micro, color: RenkTokenlari.textDim },
+  section: {
+    ...TipografiTokenlari.h2,
+    color: RenkTokenlari.text,
+    marginTop: BoslukTokenlari.sm,
+  },
+  appCard: {
+    padding: BoslukTokenlari.lg,
+    borderRadius: YaricapTokenlari.md,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    gap: BoslukTokenlari.xs,
+  },
+  appTitle: { ...TipografiTokenlari.body, color: RenkTokenlari.text, fontWeight: '600' },
+  appMeta: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
 });

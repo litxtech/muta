@@ -24,6 +24,11 @@ export const OzellikBayragiAnahtarlari = [
   'low_end_mode_enabled',
   'graceful_degradation_enabled',
   'stress_tools_enabled',
+  'iap_enabled',
+  'stripe_enabled',
+  'games_enabled',
+  'match3_enabled',
+  'kozmik_kaskad_enabled',
 ] as const;
 
 export type OzellikBayragiAnahtari = (typeof OzellikBayragiAnahtarlari)[number];
@@ -39,6 +44,8 @@ export const KillSwitchAnahtarlari = [
   'kill_moderation',
   'kill_heavy_animations',
   'kill_livekit_reconnect',
+  'kill_games',
+  'kill_game_coin',
 ] as const;
 
 export type KillSwitchAnahtari = (typeof KillSwitchAnahtarlari)[number];

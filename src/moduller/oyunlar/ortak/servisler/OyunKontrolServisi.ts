@@ -1,5 +1,6 @@
 /**
  * Oyun kontrol servisi — aktif config + override okuma.
+ * Görünürlük: admin `is_enabled` (MAINTENANCE gizli).
  */
 
 import { supabase } from '../../../../lib/supabase';
@@ -15,6 +16,36 @@ export type GameControlBundle = {
   config: GameControlConfig | null;
   override: GameControlOverride | null;
 };
+
+/** Uygulamada listelenmeye uygun oyun kodları (kapalı / bakım hariç). */
+export async function listVisibleGameCodes(): Promise<RpcResult<GameCode[]>> {
+  try {
+    const { data, error } = await supabase
+      .from('game_control_configs')
+      .select('game_code, is_enabled, mode')
+      .eq('is_enabled', true)
+      .neq('mode', 'MAINTENANCE')
+      .order('game_code', { ascending: true });
+
+    if (error) {
+      GameLogger.error('listVisibleGameCodes', { hata: error.message });
+      return { ok: false, hata: error.message };
+    }
+
+    const codes = ((data ?? []) as Array<{ game_code: GameCode }>).map((r) => r.game_code);
+    return { ok: true, data: codes };
+  } catch (e) {
+    const hata = e instanceof Error ? e.message : 'listVisibleGameCodes başarısız';
+    GameLogger.error('listVisibleGameCodes', { hata });
+    return { ok: false, hata };
+  }
+}
+
+export async function isGameVisible(gameCode: GameCode): Promise<boolean> {
+  const res = await listVisibleGameCodes();
+  if (!res.ok) return false;
+  return res.data.includes(gameCode);
+}
 
 export async function fetchGameControl(
   gameCode: GameCode,
@@ -66,4 +97,6 @@ export async function fetchGameControl(
 
 export const OyunKontrolServisi = {
   fetchGameControl,
+  listVisibleGameCodes,
+  isGameVisible,
 } as const;

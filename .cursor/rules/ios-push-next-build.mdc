@@ -1,0 +1,21 @@
+---
+description: Sonraki iOS build'de Push Notifications (APNs) mutlaka acilsin
+alwaysApply: true
+---
+
+# iOS Push — sonraki build zorunlulugu
+
+Ilk cihaz development build'inde kullanici **Setup Push Notifications → No** secti.
+Bir sonraki `eas build --platform ios` (development veya production) sirasinda agent sunlari yapmali:
+
+1. Build interactive calissin (`--non-interactive` kullanma) veya once credentials duzelt.
+2. EAS sordugunda:
+   - **Setup Push Notifications?** → **Yes**
+   - **Apple Push Notifications service key?** → **Yes** (Apple hesabi ile olustur/yukle)
+3. Provisioning profil Push capability icermiyorsa credentials'i yenile:
+   - `npx eas-cli credentials -p ios`
+   - Distribution certificate / Ad Hoc profile icin Push'u etkinlestir; gerekirse profili yeniden olustur.
+4. `app.config.ts` icinde `ios.entitlements['aps-environment']` ve `UIBackgroundModes: remote-notification` zaten var — kaldirma.
+5. Build bitince Install linki ile kur; fiziksel cihazda Expo Push token uretildigini dogrula.
+
+Push acilmadan iOS bildirimleri calismaz.

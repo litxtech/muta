@@ -1,0 +1,184 @@
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Screen } from '../../src/components/Screen';
+import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { GradientButton } from '../../src/components/GradientButton';
+import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
+import {
+  DurumDetayGetir,
+  DurumGuncelle,
+  type DurumOggesi,
+} from '../../src/moduller/durum/islemler/DurumIslemleri';
+import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
+import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
+import {
+  BoslukTokenlari,
+  YaricapTokenlari,
+} from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+
+export default function DurumDuzenleEkrani() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [oge, setOge] = useState<DurumOggesi | null>(null);
+  const [caption, setCaption] = useState('');
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  const yukle = useCallback(async () => {
+    if (!id) return;
+    setYukleniyor(true);
+    try {
+      const d = await DurumDetayGetir(id);
+      if (!d.is_mine) {
+        Alert.alert('Düzenle', 'Bu gönderiyi düzenleyemezsin.');
+        router.back();
+        return;
+      }
+      setOge(d);
+      setCaption(d.caption ?? '');
+    } catch {
+      setOge(null);
+    } finally {
+      setYukleniyor(false);
+    }
+  }, [id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void yukle();
+    }, [yukle]),
+  );
+
+  const kaydet = () => {
+    if (!oge || busy) return;
+    void (async () => {
+      setBusy(true);
+      const r = await DurumGuncelle(oge.id, caption.trim());
+      setBusy(false);
+      if (!r.ok) {
+        Alert.alert('Düzenle', r.hata ?? 'Kaydedilemedi');
+        return;
+      }
+      if (router.canGoBack()) router.back();
+      else router.replace(`/durum/${oge.id}` as any);
+    })();
+  };
+
+  return (
+    <Screen edges={['top']}>
+      <ModulHataSiniri modulAdi="durum">
+        <EkranBasligi
+          title="Gönderiyi düzenle"
+          subtitle="Açıklama metnini güncelle"
+          fallbackHref={'/(tabs)/durum' as any}
+        />
+
+        {yukleniyor && !oge ? (
+          <ActivityIndicator
+            color={RenkTokenlari.primarySoft}
+            style={{ marginTop: 40 }}
+          />
+        ) : !oge ? (
+          <Text style={styles.bos}>Gönderi bulunamadı</Text>
+        ) : (
+          <View style={styles.content}>
+            <View style={styles.onizleme}>
+              <Image source={{ uri: oge.media_url }} style={styles.img} />
+              {oge.media_type === 'video' ? (
+                <View style={styles.videoBadge}>
+                  <Ionicons name="videocam" size={16} color="#fff" />
+                  <Text style={styles.videoBadgeYazi}>Video</Text>
+                </View>
+              ) : null}
+            </View>
+
+            <TextInput
+              style={styles.caption}
+              value={caption}
+              onChangeText={setCaption}
+              placeholder="Açıklama yaz… (isteğe bağlı)"
+              placeholderTextColor={RenkTokenlari.textDim}
+              multiline
+              maxLength={500}
+            />
+            <Text style={styles.sayac}>{caption.length}/500</Text>
+
+            {busy ? (
+              <ActivityIndicator color={RenkTokenlari.primarySoft} />
+            ) : (
+              <GradientButton title="Kaydet" onPress={kaydet} />
+            )}
+          </View>
+        )}
+      </ModulHataSiniri>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: {
+    flex: 1,
+    paddingHorizontal: BoslukTokenlari.lg,
+    gap: BoslukTokenlari.md,
+  },
+  bos: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.textMuted,
+    textAlign: 'center',
+    marginTop: 40,
+  },
+  onizleme: {
+    borderRadius: YaricapTokenlari.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+  },
+  img: {
+    width: '100%',
+    aspectRatio: 4 / 5,
+    backgroundColor: RenkTokenlari.bgElevated,
+  },
+  videoBadge: {
+    position: 'absolute',
+    left: 12,
+    top: 12,
+    flexDirection: 'row',
+    gap: 4,
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  videoBadgeYazi: {
+    ...TipografiTokenlari.micro,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  caption: {
+    minHeight: 88,
+    borderRadius: YaricapTokenlari.md,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    backgroundColor: RenkTokenlari.bgCard,
+    padding: BoslukTokenlari.md,
+    color: RenkTokenlari.text,
+    ...TipografiTokenlari.body,
+    textAlignVertical: 'top',
+  },
+  sayac: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    textAlign: 'right',
+    marginTop: -8,
+  },
+});

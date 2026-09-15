@@ -522,35 +522,49 @@ alter table public.room_bans enable row level security;
 alter table public.user_reports enable row level security;
 alter table public.analytics_events enable row level security;
 
+drop policy if exists "Events readable" on public.platform_events;
 create policy "Events readable" on public.platform_events
   for select to authenticated using (status in ('scheduled','live','ended'));
+drop policy if exists "Missions readable" on public.missions;
 create policy "Missions readable" on public.missions
   for select to authenticated using (is_active);
+drop policy if exists "Own mission progress" on public.user_mission_progress;
 create policy "Own mission progress" on public.user_mission_progress
   for select to authenticated using (auth.uid() = user_id);
+drop policy if exists "Badges readable" on public.badges;
 create policy "Badges readable" on public.badges
   for select to authenticated using (is_active);
+drop policy if exists "User badges readable" on public.user_badges;
 create policy "User badges readable" on public.user_badges
   for select to authenticated using (true);
+drop policy if exists "Announcements readable" on public.announcements;
 create policy "Announcements readable" on public.announcements
   for select to authenticated using (is_active);
+drop policy if exists "Own announcement receipts" on public.announcement_receipts;
 create policy "Own announcement receipts" on public.announcement_receipts
   for select to authenticated using (auth.uid() = user_id);
+drop policy if exists "Policies readable" on public.policies;
 create policy "Policies readable" on public.policies
   for select to authenticated using (is_active);
+drop policy if exists "Policy versions readable" on public.policy_versions;
 create policy "Policy versions readable" on public.policy_versions
   for select to authenticated using (true);
+drop policy if exists "Own policy acceptances" on public.policy_acceptances;
 create policy "Own policy acceptances" on public.policy_acceptances
   for select to authenticated using (auth.uid() = user_id);
+drop policy if exists "Own moderation actions as actor" on public.room_moderation_actions;
 create policy "Own moderation actions as actor" on public.room_moderation_actions
   for select to authenticated using (auth.uid() = actor_id or auth.uid() = target_user_id);
+drop policy if exists "Room bans readable host" on public.room_bans;
 create policy "Room bans readable host" on public.room_bans
   for select to authenticated using (
     exists (select 1 from public.rooms r where r.id = room_id and r.host_id = auth.uid())
     or auth.uid() = user_id
   );
+drop policy if exists "Own reports" on public.user_reports;
 create policy "Own reports" on public.user_reports
   for select to authenticated using (auth.uid() = reporter_id);
+drop policy if exists "Own analytics" on public.analytics_events;
 create policy "Own analytics" on public.analytics_events
   for select to authenticated using (auth.uid() = user_id);
 
@@ -569,11 +583,11 @@ grant select on public.room_bans to authenticated;
 grant select on public.user_reports to authenticated;
 grant select on public.analytics_events to authenticated;
 
-grant execute on function public.gorev_ilerlet to authenticated;
-grant execute on function public.gorev_odul_al to authenticated;
-grant execute on function public.duyuru_okundu_isaretle to authenticated;
-grant execute on function public.politika_kabul_et to authenticated;
-grant execute on function public.oda_moderasyon_uygula to authenticated;
-grant execute on function public.kullanici_bildir to authenticated;
-grant execute on function public.analytics_olay_ekle to authenticated;
-grant execute on function public.bildirim_kuyruga_ekle_dev to authenticated;
+grant execute on function public.gorev_ilerlet(text, int) to authenticated;
+grant execute on function public.gorev_odul_al(text) to authenticated;
+grant execute on function public.duyuru_okundu_isaretle(uuid) to authenticated;
+grant execute on function public.politika_kabul_et(uuid) to authenticated;
+grant execute on function public.oda_moderasyon_uygula(uuid, uuid, text, text) to authenticated;
+grant execute on function public.kullanici_bildir(text, uuid, uuid, text) to authenticated;
+grant execute on function public.analytics_olay_ekle(text, jsonb) to authenticated;
+grant execute on function public.bildirim_kuyruga_ekle_dev(text, text, text) to authenticated;

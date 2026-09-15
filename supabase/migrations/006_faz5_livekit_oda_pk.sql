@@ -321,22 +321,31 @@ alter table public.pk_matches enable row level security;
 alter table public.pk_score_events enable row level security;
 alter table public.livekit_token_requests enable row level security;
 
+drop policy if exists "Capacity tiers readable" on public.room_capacity_tiers;
 create policy "Capacity tiers readable" on public.room_capacity_tiers
   for select to authenticated using (is_active);
+drop policy if exists "Layouts readable" on public.room_layouts;
 create policy "Layouts readable" on public.room_layouts
   for select to authenticated using (is_active);
+drop policy if exists "Themes readable" on public.room_themes;
 create policy "Themes readable" on public.room_themes
   for select to authenticated using (is_active);
+drop policy if exists "Lobby presence readable" on public.room_lobby_presence;
 create policy "Lobby presence readable" on public.room_lobby_presence
   for select to authenticated using (true);
+drop policy if exists "Mic requests readable members" on public.room_mic_requests;
 create policy "Mic requests readable members" on public.room_mic_requests
   for select to authenticated using (true);
+drop policy if exists "Live sessions readable" on public.live_sessions;
 create policy "Live sessions readable" on public.live_sessions
   for select to authenticated using (true);
+drop policy if exists "PK matches readable" on public.pk_matches;
 create policy "PK matches readable" on public.pk_matches
   for select to authenticated using (true);
+drop policy if exists "PK score events readable" on public.pk_score_events;
 create policy "PK score events readable" on public.pk_score_events
   for select to authenticated using (true);
+drop policy if exists "Own livekit token requests" on public.livekit_token_requests;
 create policy "Own livekit token requests" on public.livekit_token_requests
   for select to authenticated using (auth.uid() = user_id);
 
@@ -349,10 +358,10 @@ grant select on public.live_sessions to authenticated;
 grant select on public.pk_matches to authenticated;
 grant select on public.pk_score_events to authenticated;
 grant select on public.livekit_token_requests to authenticated;
-grant execute on function public.livekit_token_istegi_kaydet to authenticated;
-grant execute on function public.lobiye_katil to authenticated;
-grant execute on function public.lobiden_ayril to authenticated;
-grant execute on function public.mikrofon_istegi_gonder to authenticated;
-grant execute on function public.canli_yayin_baslat to authenticated;
+grant execute on function public.livekit_token_istegi_kaydet(text, text) to authenticated;
+grant execute on function public.lobiye_katil(uuid) to authenticated;
+grant execute on function public.lobiden_ayril(uuid) to authenticated;
+grant execute on function public.mikrofon_istegi_gonder(uuid) to authenticated;
+grant execute on function public.canli_yayin_baslat(text, text) to authenticated;
 -- pk_skor_ekle: ileride service_role; FAZ5 test icin authenticated
-grant execute on function public.pk_skor_ekle to authenticated;
+grant execute on function public.pk_skor_ekle(uuid, text, bigint, text, uuid) to authenticated;

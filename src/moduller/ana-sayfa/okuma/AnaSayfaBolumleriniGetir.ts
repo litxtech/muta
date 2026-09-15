@@ -14,32 +14,61 @@ export type AnaSayfaBolumKodu =
 export type AnaSayfaBolum = {
   kod: AnaSayfaBolumKodu;
   baslik: string;
+  alt: string;
   aktif: boolean;
 };
 
 /** Home dating kartlarindan olusmaz — bolum listesi */
 export function AnaSayfaBolumleriniGetir(): AnaSayfaBolum[] {
   return [
-    { kod: 'live_now', baslik: 'Live Now', aktif: OzellikBayragiAktifMi('live_enabled') },
-    { kod: 'voice_rooms', baslik: 'Voice Rooms', aktif: OzellikBayragiAktifMi('voice_rooms_enabled') },
-    { kod: 'trending', baslik: 'Trending', aktif: true },
+    {
+      kod: 'live_now',
+      baslik: 'Canlı Şimdi',
+      alt: 'Şu an yayında',
+      aktif: OzellikBayragiAktifMi('live_enabled'),
+    },
+    {
+      kod: 'voice_rooms',
+      baslik: 'Ses Odaları',
+      alt: 'Mikrofonlu sohbet',
+      aktif: OzellikBayragiAktifMi('voice_rooms_enabled'),
+    },
+    { kod: 'trending', baslik: 'Trend', alt: 'Yükselen odalar', aktif: true },
     {
       kod: 'official_city_rooms',
-      baslik: 'Official City Rooms',
+      baslik: 'Resmi Şehir',
+      alt: 'Şehir odaları & destek',
       aktif: OzellikBayragiAktifMi('city_league_enabled'),
     },
     {
       kod: 'city_league',
-      baslik: 'City League',
+      baslik: 'Şehir Ligi',
+      alt: 'Sezon sıralaması',
       aktif: OzellikBayragiAktifMi('city_league_enabled'),
     },
-    { kod: 'events', baslik: 'Events', aktif: OzellikBayragiAktifMi('events_enabled') },
-    { kod: 'pk_now', baslik: 'PK Now', aktif: OzellikBayragiAktifMi('pk_enabled') },
+    {
+      kod: 'events',
+      baslik: 'Etkinlikler',
+      alt: 'Platform etkinlikleri',
+      aktif: OzellikBayragiAktifMi('events_enabled'),
+    },
+    {
+      kod: 'pk_now',
+      baslik: 'PK arenası',
+      alt: 'Canlı düellolar',
+      aktif: OzellikBayragiAktifMi('pk_enabled'),
+    },
     {
       kod: 'popular_agencies',
-      baslik: 'Popular Agencies',
+      baslik: 'Ajanslar',
+      alt: 'Popüler ajanslar',
       aktif: OzellikBayragiAktifMi('agency_enabled'),
     },
-    { kod: 'creators_for_you', baslik: 'Creators For You', aktif: true },
+    {
+      kod: 'creators_for_you',
+      baslik: 'Senin İçin',
+      alt: 'Önerilen yaratıcılar',
+      aktif: true,
+    },
   ];
 }

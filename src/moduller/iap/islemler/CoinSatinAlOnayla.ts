@@ -2,14 +2,15 @@ import { supabase } from '../../../lib/supabase';
 import { FinansIdempotencyAnahtariOlustur } from '../../cuzdan/islemler/FinansIdempotencyAnahtariOlustur';
 import { KillSwitchAktifMiSunucu } from '../../ozellik-bayraklari/okuma/KillSwitchAktifMiSunucu';
 import type { IapMagaza } from '../dogrulama/IapReceiptDogrulamaIstegiHazirla';
+import { IapReceiptEdgeIleDogrula } from '../dogrulama/IapReceiptEdgeIleDogrula';
 
 export type CoinSatinAlSonuc =
   | { ok: true; coinsAdded: number }
-  | { ok: false; hata: string; kod?: 'kill_switch' | 'rpc' };
+  | { ok: false; hata: string; kod?: 'kill_switch' | 'rpc' | 'edge' };
 
 /**
- * Gelistirme / sandbox: paket ID ile coin yukleme (idempotent).
- * Production: once Edge Function receipt verify, sonra bu RPC.
+ * Edge URL varsa (`EXPO_PUBLIC_IAP_VERIFY_URL`) verify function.
+ * Yoksa gelistirme RPC (manual).
  */
 export async function CoinSatinAlOnayla(input: {
   packageId: string;
@@ -17,6 +18,7 @@ export async function CoinSatinAlOnayla(input: {
   store?: IapMagaza | 'manual';
   amountUsd?: number;
   idempotencyKey?: string;
+  receiptData?: string;
 }): Promise<CoinSatinAlSonuc> {
   if (await KillSwitchAktifMiSunucu('kill_coin_purchase')) {
     return {
@@ -28,13 +30,32 @@ export async function CoinSatinAlOnayla(input: {
 
   const key =
     input.idempotencyKey ?? FinansIdempotencyAnahtariOlustur('coin_purchase');
+  const store = input.store ?? 'manual';
+
+  if (process.env.EXPO_PUBLIC_IAP_VERIFY_URL) {
+    const edge = await IapReceiptEdgeIleDogrula({
+      store: store === 'manual' ? 'apple' : store,
+      productId: input.packageId,
+      packageId: input.packageId,
+      transactionId: input.providerTxId ?? `${store}_${key}`,
+      receiptData: input.receiptData ?? `${store}_dev`,
+      idempotencyKey: key,
+      amountUsd: input.amountUsd,
+      sandbox: true,
+      edgeStore: store,
+    });
+    if (edge) {
+      if (!edge.ok) return { ok: false, hata: edge.hata, kod: 'edge' };
+      return { ok: true, coinsAdded: edge.coinsAdded };
+    }
+  }
 
   const { data, error } = await supabase.rpc('coin_satin_al_onayla', {
     p_package_id: input.packageId,
     p_idempotency_key: key,
-    p_provider: input.store ?? 'manual',
+    p_provider: store,
     p_provider_tx_id: input.providerTxId ?? `manual_${key}`,
-    p_store: input.store ?? 'manual',
+    p_store: store,
     p_amount_usd: input.amountUsd ?? null,
     p_receipt: { source: 'client_dev', note: 'Replace with Edge Function verify' },
   });

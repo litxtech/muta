@@ -8,10 +8,17 @@ export async function OdaGirisYetkisiniKontrolEt(odaId: string): Promise<{
 }> {
   const { data, error } = await supabase
     .from('rooms')
-    .select('*')
+    .select('*, host:profiles!rooms_host_id_fkey(id, display_name, username, avatar_url, level)')
     .eq('id', odaId)
     .maybeSingle();
-  if (error) return { ok: false, hata: error.message };
+  if (error) {
+    // FK adı farklı ortamlarda olabilir — düz select'e düş
+    const yedek = await supabase.from('rooms').select('*').eq('id', odaId).maybeSingle();
+    if (yedek.error) return { ok: false, hata: yedek.error.message };
+    if (!yedek.data) return { ok: false, hata: 'Oda bulunamadi' };
+    if (!yedek.data.is_live) return { ok: false, hata: 'Oda kapali' };
+    return { ok: true, oda: yedek.data as Room };
+  }
   if (!data) return { ok: false, hata: 'Oda bulunamadi' };
   if (!data.is_live) return { ok: false, hata: 'Oda kapali' };
   return { ok: true, oda: data as Room };

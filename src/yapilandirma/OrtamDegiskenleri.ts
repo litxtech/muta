@@ -20,8 +20,16 @@ export const OrtamDegiskenleri = {
     process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
     (extra.supabaseAnonKey as string | undefined) ??
     '',
-  uygulamaAdi: process.env.EXPO_PUBLIC_APP_NAME ?? 'Muta',
+  uygulamaAdi: process.env.EXPO_PUBLIC_APP_NAME ?? 'Tamuso',
   uygulamaSemasi: process.env.EXPO_PUBLIC_APP_SCHEME ?? 'muta',
+  livekitUrl:
+    process.env.EXPO_PUBLIC_LIVEKIT_URL ??
+    (extra.livekitUrl as string | undefined) ??
+    '',
+  livekitTokenUrl:
+    process.env.EXPO_PUBLIC_LIVEKIT_TOKEN_URL ??
+    (extra.livekitTokenUrl as string | undefined) ??
+    '',
 };
 
 export const uretimOrtamiMi = OrtamDegiskenleri.ortam === 'production';

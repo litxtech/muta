@@ -19,5 +19,26 @@ export async function LobiKatilimcilariniGetir(odaId: string) {
     .eq('room_id', odaId)
     .order('joined_at', { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((row) => {
+    const raw = row.profile as
+      | {
+          id: string;
+          display_name?: string | null;
+          username?: string | null;
+          avatar_url?: string | null;
+        }
+      | {
+          id: string;
+          display_name?: string | null;
+          username?: string | null;
+          avatar_url?: string | null;
+        }[]
+      | null;
+    const profile = Array.isArray(raw) ? (raw[0] ?? null) : raw;
+    return {
+      user_id: row.user_id as string,
+      joined_at: row.joined_at as string,
+      profile,
+    };
+  });
 }

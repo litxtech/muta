@@ -1,19 +1,21 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { RenkTokenlari } from '../../tasarim-sistemi/RenkTokenlari';
-import { TipografiTokenlari } from '../../tasarim-sistemi/TipografiTokenlari';
+import type { Href } from 'expo-router';
+import { HataKurtarmaEkrani } from './HataKurtarmaEkrani';
 
 type Props = {
   modulAdi: string;
   children: ReactNode;
   yedek?: ReactNode;
+  /** Varsayilan: ekran — kullanici geri donebilir */
+  varyant?: 'kart' | 'ekran';
+  fallbackHref?: Href;
 };
 
 type State = { hata: Error | null };
 
 /**
- * Modul bazli fault isolation.
- * Hediye hatasi sesi, chat hatasi odayi dusurmez.
+ * Modul bazli fault isolation + kurtarma (geri don / tekrar dene).
+ * Hediye hatasi sesi, chat hatasi odayi dusurmez; sayfada kilitlenmez.
  */
 export class ModulHataSiniri extends Component<Props, State> {
   state: State = { hata: null };
@@ -23,7 +25,11 @@ export class ModulHataSiniri extends Component<Props, State> {
   }
 
   componentDidCatch(hata: Error, bilgi: ErrorInfo) {
-    console.warn(`[HataSiniri:${this.props.modulAdi}]`, hata.message, bilgi.componentStack);
+    console.warn(
+      `[HataSiniri:${this.props.modulAdi}]`,
+      hata.message,
+      bilgi.componentStack,
+    );
   }
 
   private sifirla = () => this.setState({ hata: null });
@@ -31,38 +37,18 @@ export class ModulHataSiniri extends Component<Props, State> {
   render() {
     if (this.state.hata) {
       if (this.props.yedek) return this.props.yedek;
+      const varyant = this.props.varyant ?? 'ekran';
       return (
-        <View style={styles.kutu}>
-          <Text style={styles.baslik}>{this.props.modulAdi} gecici olarak kullanilamiyor</Text>
-          <Text style={styles.metin}>Diger bolumler calismaya devam eder.</Text>
-          <Pressable onPress={this.sifirla} style={styles.buton}>
-            <Text style={styles.butonMetin}>Tekrar dene</Text>
-          </Pressable>
-        </View>
+        <HataKurtarmaEkrani
+          varyant={varyant}
+          baslik={`${this.props.modulAdi} geçici olarak kullanılamıyor`}
+          aciklama="Bu özellik şu an yanıt vermiyor. Geri dönüp uygulamayı kullanmaya devam edebilirsin."
+          detay={__DEV__ ? this.state.hata.message : null}
+          onTekrarDene={this.sifirla}
+          fallbackHref={this.props.fallbackHref ?? '/(tabs)'}
+        />
       );
     }
     return this.props.children;
   }
 }
-
-const styles = StyleSheet.create({
-  kutu: {
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: RenkTokenlari.surface,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-    gap: 8,
-  },
-  baslik: { ...TipografiTokenlari.h2, color: RenkTokenlari.text },
-  metin: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
-  buton: {
-    alignSelf: 'flex-start',
-    marginTop: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: RenkTokenlari.primary,
-  },
-  butonMetin: { ...TipografiTokenlari.caption, color: '#12040C', fontWeight: '700' },
-});

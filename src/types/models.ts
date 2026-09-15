@@ -9,16 +9,25 @@ export type Profile = {
   display_name: string | null;
   bio: string;
   avatar_url: string | null;
+  cover_url?: string | null;
+  phone_e164?: string | null;
   gender: Gender | null;
   birth_date: string | null;
   country: string | null;
+  country_code?: string | null;
+  region_id?: string | null;
   language: string;
   is_host: boolean;
   is_guest?: boolean;
+  is_admin?: boolean;
   is_verified: boolean;
   level: number;
   xp: number;
   created_at: string;
+  banned_at?: string | null;
+  ban_reason?: string | null;
+  deleted_at?: string | null;
+  deletion_requested_at?: string | null;
 };
 
 export type Wallet = {
@@ -69,6 +78,7 @@ export type Gift = {
   global_announcement?: boolean | null;
   combo_enabled?: boolean | null;
   combo_timeout_ms?: number | null;
+  sort_order?: number | null;
 };
 
 export type CoinPackage = {
@@ -78,7 +88,12 @@ export type CoinPackage = {
   coins: number;
   bonus_coins: number;
   price_usd: number;
+  /** Türkiye fiyatı (TL) — yoksa UI price_usd gösterir */
+  price_try?: number | null;
   badge: string | null;
+  apple_product_id?: string | null;
+  google_product_id?: string | null;
+  stripe_price_id?: string | null;
 };
 
 export type RoomSeat = {

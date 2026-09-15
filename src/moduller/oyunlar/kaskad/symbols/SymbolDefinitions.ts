@@ -3,89 +3,49 @@
  */
 
 import {
+  HIGH_SYMBOLS,
+  LOW_SYMBOLS,
+  SPECIAL_SYMBOLS,
   SYMBOL_COLORS,
   SYMBOL_LABELS,
   SYMBOL_SHAPES,
 } from '../sabitler/KaskadSabitleri';
 import type { KaskadSymbolType } from '../tipler/KaskadTipleri';
 
+export type SymbolTier = 'low' | 'high' | 'special';
+
 export type SymbolDefinition = {
   type: KaskadSymbolType;
   label: string;
   shape: string;
   color: string;
-  tier: 'low' | 'high' | 'special';
+  tier: SymbolTier;
 };
 
-export const SYMBOL_DEFINITIONS: Record<KaskadSymbolType, SymbolDefinition> = {
-  crystalBlue: {
-    type: 'crystalBlue',
-    label: SYMBOL_LABELS.crystalBlue,
-    shape: SYMBOL_SHAPES.crystalBlue,
-    color: SYMBOL_COLORS.crystalBlue,
-    tier: 'low',
-  },
-  crystalViolet: {
-    type: 'crystalViolet',
-    label: SYMBOL_LABELS.crystalViolet,
-    shape: SYMBOL_SHAPES.crystalViolet,
-    color: SYMBOL_COLORS.crystalViolet,
-    tier: 'low',
-  },
-  crystalMint: {
-    type: 'crystalMint',
-    label: SYMBOL_LABELS.crystalMint,
-    shape: SYMBOL_SHAPES.crystalMint,
-    color: SYMBOL_COLORS.crystalMint,
-    tier: 'low',
-  },
-  crystalAmber: {
-    type: 'crystalAmber',
-    label: SYMBOL_LABELS.crystalAmber,
-    shape: SYMBOL_SHAPES.crystalAmber,
-    color: SYMBOL_COLORS.crystalAmber,
-    tier: 'low',
-  },
-  starCore: {
-    type: 'starCore',
-    label: SYMBOL_LABELS.starCore,
-    shape: SYMBOL_SHAPES.starCore,
-    color: SYMBOL_COLORS.starCore,
-    tier: 'high',
-  },
-  cosmicEye: {
-    type: 'cosmicEye',
-    label: SYMBOL_LABELS.cosmicEye,
-    shape: SYMBOL_SHAPES.cosmicEye,
-    color: SYMBOL_COLORS.cosmicEye,
-    tier: 'high',
-  },
-  galaxyOrb: {
-    type: 'galaxyOrb',
-    label: SYMBOL_LABELS.galaxyOrb,
-    shape: SYMBOL_SHAPES.galaxyOrb,
-    color: SYMBOL_COLORS.galaxyOrb,
-    tier: 'high',
-  },
-  energyCrown: {
-    type: 'energyCrown',
-    label: SYMBOL_LABELS.energyCrown,
-    shape: SYMBOL_SHAPES.energyCrown,
-    color: SYMBOL_COLORS.energyCrown,
-    tier: 'high',
-  },
-  portalScatter: {
-    type: 'portalScatter',
-    label: SYMBOL_LABELS.portalScatter,
-    shape: SYMBOL_SHAPES.portalScatter,
-    color: SYMBOL_COLORS.portalScatter,
-    tier: 'special',
-  },
-  multiplierOrb: {
-    type: 'multiplierOrb',
-    label: SYMBOL_LABELS.multiplierOrb,
-    shape: SYMBOL_SHAPES.multiplierOrb,
-    color: SYMBOL_COLORS.multiplierOrb,
-    tier: 'special',
-  },
-};
+function tierOf(type: KaskadSymbolType): SymbolTier {
+  if ((LOW_SYMBOLS as readonly string[]).includes(type)) return 'low';
+  if ((HIGH_SYMBOLS as readonly string[]).includes(type)) return 'high';
+  return 'special';
+}
+
+function define(type: KaskadSymbolType): SymbolDefinition {
+  return {
+    type,
+    label: SYMBOL_LABELS[type],
+    shape: SYMBOL_SHAPES[type],
+    color: SYMBOL_COLORS[type],
+    tier: tierOf(type),
+  };
+}
+
+const ALL_TYPES: readonly KaskadSymbolType[] = [
+  ...LOW_SYMBOLS,
+  ...HIGH_SYMBOLS,
+  ...SPECIAL_SYMBOLS,
+];
+
+export const SYMBOL_DEFINITIONS: Record<KaskadSymbolType, SymbolDefinition> =
+  Object.fromEntries(ALL_TYPES.map((t) => [t, define(t)])) as Record<
+    KaskadSymbolType,
+    SymbolDefinition
+  >;
