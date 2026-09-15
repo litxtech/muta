@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -8,36 +8,18 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import RNWebView from 'react-native-webview';
-import type { WebViewNavigation } from 'react-native-webview';
+import * as WebBrowser from 'expo-web-browser';
 import { TamusoWebViewHeader } from './TamusoWebViewHeader';
 import { isSafeHttpsUrl, shouldAllowWebViewNavigation } from './WebViewSecurity';
+import { loadNativeWebView } from './loadNativeWebView';
 import { RenkTokenlari } from '../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../tasarim-sistemi/TipografiTokenlari';
 import { Screen } from '../../components/Screen';
 
-/** React 19 + RN WebView tip uyumsuzluğu — runtime OK */
-const WebView = RNWebView as unknown as React.ComponentType<{
-  ref?: React.Ref<WebViewHandle>;
-  source: { uri: string };
-  style?: object;
-  onLoadStart?: () => void;
-  onLoadEnd?: () => void;
-  onLoadProgress?: (e: { nativeEvent: { progress: number } }) => void;
-  onNavigationStateChange?: (nav: WebViewNavigation) => void;
-  onShouldStartLoadWithRequest?: (req: { url: string }) => boolean;
-  onError?: (e: { nativeEvent: { description?: string } }) => void;
-  onHttpError?: () => void;
-  setSupportMultipleWindows?: boolean;
-  allowsBackForwardNavigationGestures?: boolean;
-  startInLoadingState?: boolean;
-  renderLoading?: () => React.ReactElement;
-}>;
-
-type WebViewHandle = {
-  goBack: () => void;
-  goForward: () => void;
-  reload: () => void;
+type NavState = {
+  canGoBack: boolean;
+  canGoForward: boolean;
+  title?: string;
 };
 
 export function TamusoWebViewScreen() {
@@ -48,7 +30,10 @@ export function TamusoWebViewScreen() {
     [params.url],
   );
 
-  const webRef = useRef<WebViewHandle | null>(null);
+  const WebView = useMemo(() => loadNativeWebView(), []);
+  const webRef = useRef<{ goBack: () => void; goForward: () => void; reload: () => void } | null>(
+    null,
+  );
   const [title, setTitle] = useState(String(params.title ?? 'Tamuso'));
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -57,12 +42,29 @@ export function TamusoWebViewScreen() {
   const [error, setError] = useState<string | null>(
     initialCheck.ok ? null : initialCheck.reason ?? 'Geçersiz URL',
   );
+  const [browserFallback, setBrowserFallback] = useState(false);
 
-  const onNav = useCallback((nav: WebViewNavigation) => {
+  const onNav = useCallback((nav: NavState) => {
     setCanGoBack(nav.canGoBack);
     setCanGoForward(nav.canGoForward);
     if (nav.title) setTitle(nav.title);
   }, []);
+
+  useEffect(() => {
+    if (!WebView && initialCheck.ok && initialCheck.url) {
+      setBrowserFallback(true);
+      void (async () => {
+        try {
+          await WebBrowser.openBrowserAsync(initialCheck.url!);
+        } catch {
+          setError('Tarayıcı açılamadı');
+          setBrowserFallback(false);
+          return;
+        }
+        if (router.canGoBack()) router.back();
+      })();
+    }
+  }, [WebView, initialCheck.ok, initialCheck.url]);
 
   if (!initialCheck.ok || !initialCheck.url) {
     return (
@@ -77,6 +79,47 @@ export function TamusoWebViewScreen() {
           >
             <Text style={styles.errorBtnText}>Kapat</Text>
           </Pressable>
+        </View>
+      </Screen>
+    );
+  }
+
+  if (!WebView) {
+    return (
+      <Screen>
+        <View style={[styles.errorWrap, { paddingTop: insets.top + 24 }]}>
+          {browserFallback && !error ? (
+            <>
+              <ActivityIndicator color={RenkTokenlari.primary} />
+              <Text style={styles.errorBody}>Tarayıcıda açılıyor…</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.errorTitle}>WebView yok</Text>
+              <Text style={styles.errorBody}>
+                {error ??
+                  'Bu development build’de WebView yok. Yeni native build alın veya tarayıcıyı kullanın.'}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                style={styles.errorBtn}
+                onPress={() => {
+                  void WebBrowser.openBrowserAsync(initialCheck.url!).finally(() => {
+                    if (router.canGoBack()) router.back();
+                  });
+                }}
+              >
+                <Text style={styles.errorBtnText}>Tarayıcıda aç</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                style={styles.errorBtnSecondary}
+                onPress={() => router.back()}
+              >
+                <Text style={styles.errorBtnSecondaryText}>Kapat</Text>
+              </Pressable>
+            </>
+          )}
         </View>
       </Screen>
     );
@@ -121,12 +164,17 @@ export function TamusoWebViewScreen() {
           style={styles.web}
           onLoadStart={() => setLoading(true)}
           onLoadEnd={() => setLoading(false)}
-          onLoadProgress={(e) => setProgress(e.nativeEvent.progress)}
-          onNavigationStateChange={onNav}
-          onShouldStartLoadWithRequest={(req) =>
-            shouldAllowWebViewNavigation(req.url)
+          onLoadProgress={({ nativeEvent }: { nativeEvent: { progress: number } }) =>
+            setProgress(nativeEvent.progress)
           }
-          onError={(e) => {
+          onNavigationStateChange={onNav}
+          onShouldStartLoadWithRequest={(req: { url: string }) => {
+            if (!shouldAllowWebViewNavigation(req.url)) {
+              return false;
+            }
+            return true;
+          }}
+          onError={(e: { nativeEvent: { description?: string } }) => {
             setLoading(false);
             setError(e.nativeEvent.description || 'Bağlantı hatası');
           }}
@@ -194,6 +242,15 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.caption,
     color: '#fff',
     fontWeight: '700',
+  },
+  errorBtnSecondary: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  errorBtnSecondaryText: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    fontWeight: '600',
   },
 });
 

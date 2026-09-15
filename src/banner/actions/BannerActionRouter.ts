@@ -6,13 +6,10 @@ import { handleWebAction } from './BannerWebHandler';
 import { handleWhatsApp } from './BannerWhatsAppHandler';
 import { handleInstagram } from './BannerInstagramHandler';
 import { handleExternalApp } from './BannerExternalAppHandler';
-import { BannerTrackingService } from '../services/BannerTrackingService';
+import type { ActionContext } from './BannerActionContext';
 
-export type ActionContext = {
-  bannerId: string;
-  placement?: string;
-  screen?: string;
-};
+export type { ActionContext } from './BannerActionContext';
+export { openInAppWebView } from './BannerActionContext';
 
 /** Route isimleri DB'ye gömülü değil — mapping burada */
 const INTERNAL_SCREEN_MAP: Record<string, string> = {
@@ -94,24 +91,4 @@ export async function routeBannerAction(
     }
     return { ok: false, error: msg };
   }
-}
-
-export async function openInAppWebView(
-  url: string,
-  title?: string,
-  ctx?: ActionContext,
-): Promise<void> {
-  if (ctx) {
-    void BannerTrackingService.trackEvent({
-      bannerId: ctx.bannerId,
-      eventType: 'webview_open',
-      placement: ctx.placement,
-      screen: ctx.screen,
-      meta: { url },
-    });
-  }
-  router.push({
-    pathname: '/webview',
-    params: { url, title: title ?? 'Tamuso' },
-  } as never);
 }

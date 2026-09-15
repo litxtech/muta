@@ -1,0 +1,122 @@
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { AnaSayfaCanliNokta } from '../../ana-sayfa/bilesenler/AnaSayfaCanliNokta';
+import { guvenliGeriDon } from '../../../components/EkranBasligi';
+import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
+import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import {
+  BoslukTokenlari,
+  YaricapTokenlari,
+} from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+
+type Props = {
+  canliSayisi: number;
+  onGeri?: () => void;
+};
+
+/** Keşfet — premium marka başlığı + canlı sayaç */
+export function KesfetMarkaBasligi({ canliSayisi, onGeri }: Props) {
+  return (
+    <View style={styles.wrap}>
+      <View style={styles.ust}>
+        <Pressable
+          style={styles.geri}
+          onPress={onGeri ?? (() => guvenliGeriDon('/(tabs)'))}
+          hitSlop={8}
+          accessibilityLabel="Geri"
+        >
+          <Ionicons name="chevron-back" size={22} color={RenkTokenlari.text} />
+        </Pressable>
+
+        <View style={styles.markaBlok}>
+          <Text style={styles.fisilti}>KEŞFET</Text>
+          <Text style={styles.baslik}>Sahneyi bul</Text>
+          <Text style={styles.slogan}>Mod · trend · canlı odalar</Text>
+        </View>
+
+        <View style={styles.canliRozet}>
+          <AnaSayfaCanliNokta boyut={6} />
+          <View>
+            <Text style={styles.canliSayi}>{canliSayisi}</Text>
+            <Text style={styles.canliEtiket}>canlı</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: {
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingTop: BoslukTokenlari.xs,
+    paddingBottom: BoslukTokenlari.md,
+  },
+  ust: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: BoslukTokenlari.sm,
+  },
+  geri: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: RenkTokenlari.bgElevated,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    marginTop: 2,
+  },
+  markaBlok: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+    paddingTop: 2,
+  },
+  fisilti: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.primarySoft,
+    letterSpacing: 1.6,
+    fontSize: 10,
+  },
+  baslik: {
+    ...TipografiTokenlari.title,
+    color: RenkTokenlari.text,
+    letterSpacing: -0.6,
+    fontSize: 28,
+    lineHeight: 32,
+  },
+  slogan: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    letterSpacing: 0.4,
+    marginTop: 2,
+  },
+  canliRozet: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(232, 64, 145, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(232, 64, 145, 0.35)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: YaricapTokenlari.md,
+    minWidth: 78,
+    marginTop: 2,
+  },
+  canliSayi: {
+    ...TipografiTokenlari.h2,
+    color: RenkTokenlari.text,
+    lineHeight: 22,
+  },
+  canliEtiket: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.primarySoft,
+    fontSize: 9,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+});

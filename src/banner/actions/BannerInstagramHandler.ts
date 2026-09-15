@@ -1,7 +1,9 @@
 import { Linking, Alert } from 'react-native';
 import type { BannerAction } from '../core/BannerTypes';
-import type { ActionContext } from './BannerActionRouter';
-import { openInAppWebView } from './BannerActionRouter';
+import {
+  openInAppWebView,
+  type ActionContext,
+} from './BannerActionContext';
 import { isSafeHttpsUrl } from '../webview/WebViewSecurity';
 
 function resolveInstagram(action: BannerAction): {

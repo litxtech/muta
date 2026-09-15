@@ -1,8 +1,10 @@
-import type { BannerAction } from '../core/BannerTypes';
-import type { ActionContext } from './BannerActionRouter';
-import { openInAppWebView } from './BannerActionRouter';
-import { isSafeHttpsUrl } from '../webview/WebViewSecurity';
 import { Linking, Alert } from 'react-native';
+import type { BannerAction } from '../core/BannerTypes';
+import {
+  openInAppWebView,
+  type ActionContext,
+} from './BannerActionContext';
+import { isSafeHttpsUrl } from '../webview/WebViewSecurity';
 
 export async function handleWebAction(
   action: BannerAction,

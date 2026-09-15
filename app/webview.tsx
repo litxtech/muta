@@ -1,3 +1,3 @@
-import { TamusoWebViewScreen } from '../src/banner/webview/TamusoWebViewScreen';
+import TamusoWebViewScreen from '../src/banner/webview/TamusoWebViewScreen';
 
 export default TamusoWebViewScreen;
