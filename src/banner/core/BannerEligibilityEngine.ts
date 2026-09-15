@@ -4,6 +4,7 @@ import type {
   BannerUserContext,
   BannerUserState,
 } from './BannerTypes';
+import { UlkeKodunaNormalizeEt, UlkeMetniniKatla } from '../../ortak/ulke/UlkeKodunaNormalizeEt';
 
 function parseTimeToMinutes(t: string | null | undefined): number | null {
   if (!t) return null;
@@ -41,9 +42,17 @@ function matchesLocation(
   return targets.some((t) => {
     if (t.target_mode === 'ALL') return true;
     if (t.target_mode === 'COUNTRY') {
-      const code = (t.country_code ?? t.country ?? '').toLowerCase();
-      const user =
-        (ctx.countryCode ?? ctx.country ?? '').toLowerCase();
+      const targetCode =
+        UlkeKodunaNormalizeEt(t.country_code) ??
+        UlkeKodunaNormalizeEt(t.country);
+      const userCode =
+        UlkeKodunaNormalizeEt(ctx.countryCode) ??
+        UlkeKodunaNormalizeEt(ctx.country);
+      if (!targetCode && !t.country && !t.country_code) return true;
+      if (targetCode && userCode) return targetCode === userCode;
+      // Kod çözülemezse katlanmış görünen ad ile gevşek eşle (eski veri)
+      const code = UlkeMetniniKatla(t.country_code ?? t.country ?? '');
+      const user = UlkeMetniniKatla(ctx.countryCode ?? ctx.country ?? '');
       if (!code) return true;
       return !!user && (user === code || user.includes(code) || code.includes(user));
     }

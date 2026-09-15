@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { OzellikBayragiAktifMiSunucu } from '../../ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
+import { UlkeKodunaNormalizeEt } from '../../../ortak/ulke/UlkeKodunaNormalizeEt';
 
 export async function AjansBasvurusuOlustur(input: {
   agencyName: string;
@@ -13,9 +14,13 @@ export async function AjansBasvurusuOlustur(input: {
   if (!(await OzellikBayragiAktifMiSunucu('agency_enabled'))) {
     return { ok: false, hata: 'Ajans özelliği kapalı (agency_enabled).' };
   }
+  const countryRaw = input.country?.trim() ?? '';
+  // Ajans tablosu serbest metin tutabilir; bilinen adları ISO koda çevir (Türkiye → TR)
+  const country =
+    UlkeKodunaNormalizeEt(countryRaw) ?? (countryRaw || null);
   const { error } = await supabase.rpc('ajans_basvurusu_olustur', {
     p_agency_name: input.agencyName,
-    p_country: input.country ?? null,
+    p_country: country,
     p_email: input.email ?? null,
     p_phone: input.phone ?? null,
     p_experience: input.experience ?? null,

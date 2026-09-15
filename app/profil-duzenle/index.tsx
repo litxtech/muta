@@ -41,6 +41,7 @@ import {
   type ProfilUlke,
 } from '../../src/moduller/kullanici-profili/okuma/ProfilKonumKatalogu';
 import type { Gender } from '../../src/types/models';
+import { UlkeKodunaNormalizeEt } from '../../src/ortak/ulke/UlkeKodunaNormalizeEt';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -151,7 +152,12 @@ export default function ProfilDuzenleEkrani() {
         setDogumAy('');
         setDogumGun('');
       }
-      setCountryCode(profile.country_code ?? profile.country ?? 'TR');
+      // country_code ISO olmalı; profiles.country görünen ad (Türkiye) olabilir — asla kod yerine kullanma
+      setCountryCode(
+        UlkeKodunaNormalizeEt(profile.country_code) ??
+          UlkeKodunaNormalizeEt(profile.country) ??
+          'TR',
+      );
       setRegionId(profile.region_id ?? '');
       setEmail(user?.email ?? '');
       lastProfileId.current = profile.id;
@@ -307,7 +313,7 @@ export default function ProfilDuzenleEkrani() {
         phone_e164: telefon.trim() || null,
         gender: gender || null,
         birth_date,
-        country_code: countryCode || 'TR',
+        country_code: UlkeKodunaNormalizeEt(countryCode) || 'TR',
         region_id: regionId,
       });
       if (!sonuc.ok) {
@@ -756,7 +762,11 @@ const styles = StyleSheet.create({
   },
   cover: { width: '100%', height: '100%' },
   coverOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.28)',
     alignItems: 'center',
     justifyContent: 'center',

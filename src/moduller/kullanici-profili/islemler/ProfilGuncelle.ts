@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import { UlkeKodunaNormalizeEt } from '../../../ortak/ulke/UlkeKodunaNormalizeEt';
 
 export type ProfilGuncelleGirdi = {
   display_name?: string;
@@ -126,7 +127,17 @@ export async function ProfilGuncelle(
 
   let countryCode: string | null | undefined = undefined;
   if (girdi.country_code !== undefined) {
-    countryCode = girdi.country_code ? girdi.country_code.toUpperCase() : null;
+    if (girdi.country_code === null || !String(girdi.country_code).trim()) {
+      countryCode = null;
+    } else {
+      countryCode = UlkeKodunaNormalizeEt(girdi.country_code);
+      if (!countryCode) {
+        return {
+          ok: false,
+          hata: 'Geçersiz ülke. ISO kodu kullan (örn. TR); Türkiye/Turkey kabul edilir.',
+        };
+      }
+    }
   }
 
   let regionId: string | null | undefined = undefined;

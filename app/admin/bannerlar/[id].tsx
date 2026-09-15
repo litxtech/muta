@@ -46,6 +46,7 @@ import type { BannerSizeType } from '../../../src/banner/core/BannerConstants';
 import { TamusoBanner } from '../../../src/banner/components/TamusoBanner';
 import { RenkTokenlari } from '../../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../src/tasarim-sistemi/TipografiTokenlari';
+import { UlkeKodunaNormalizeEt } from '../../../src/ortak/ulke/UlkeKodunaNormalizeEt';
 import {
   BoslukTokenlari,
   YaricapTokenlari,
@@ -585,14 +586,16 @@ export default function AdminBannerDuzenleEkrani() {
 
             <Label>Hedef ülke / şehir</Label>
             <Input
-              value={form.targets?.[0]?.country ?? ''}
-              onChangeText={(country) =>
+              value={form.targets?.[0]?.country_code ?? form.targets?.[0]?.country ?? ''}
+              onChangeText={(raw) => {
+                const code = UlkeKodunaNormalizeEt(raw);
                 updateTarget({
-                  country,
-                  target_mode: country ? 'COUNTRY' : 'ALL',
-                })
-              }
-              placeholder="Türkiye"
+                  country: raw,
+                  country_code: code,
+                  target_mode: raw.trim() ? 'COUNTRY' : 'ALL',
+                });
+              }}
+              placeholder="TR (veya Türkiye)"
             />
             <Input
               value={form.targets?.[0]?.city ?? ''}
