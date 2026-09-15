@@ -1,6 +1,8 @@
 import { router } from 'expo-router';
 import type { BannerActionType } from '../core/BannerTypes';
 import { OrtamDegiskenleri } from '../../yapilandirma/OrtamDegiskenleri';
+import { isGameVisible } from '../../moduller/oyunlar/ortak/servisler/OyunKontrolServisi';
+import type { GameCode } from '../../moduller/oyunlar/ortak/tipler/OyunTipleri';
 
 /**
  * Deep link standardı:
@@ -77,8 +79,12 @@ function navigateByKind(kind: string, id: string): { ok: boolean; error?: string
       return { ok: true };
     case 'game':
     case 'oyun':
-      // Oyun merkezi / oda içi — platform hub'a yönlendir, id query
-      router.push({ pathname: '/platform', params: { gameId: id } } as never);
+      // Kapalı oyun deep link'i uygulamada hiçbir yere götürmez
+      void (async () => {
+        const acik = await isGameVisible(id as GameCode);
+        if (!acik) return;
+        router.push({ pathname: '/platform', params: { gameId: id } } as never);
+      })();
       return { ok: true };
     case 'post':
     case 'durum':

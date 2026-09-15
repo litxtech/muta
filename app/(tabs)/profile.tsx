@@ -33,7 +33,8 @@ import {
   OyunOyuncuIstatistikGetir,
   type OyunOyuncuIstatistik,
 } from '../../src/moduller/oyunlar/ortak/servisler/OyunIstatistikServisi';
-import { OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
+import { useGorunurOyunKodlari } from '../../src/moduller/oyunlar/ortak/hooks/useGorunurOyunKodlari';
+import { KillSwitchAktifMi, OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import { PrestigeRozetSatiri } from '../../src/moduller/vip/bilesenler/PrestigeRozetSatiri';
 import { useAjansYonetim } from '../../src/moduller/ajanslar/kancalar/useAjansYonetim';
 import { DurumProfilIzgarasi } from '../../src/moduller/durum/bilesenler/DurumProfilIzgarasi';
@@ -69,6 +70,12 @@ export default function ProfileScreen() {
   const [medyaMenuTur, setMedyaMenuTur] = useState<ProfilMedyaTuru | null>(null);
   const [durumlar, setDurumlar] = useState<DurumOggesi[]>([]);
   const [durumYukleniyor, setDurumYukleniyor] = useState(false);
+  const oyunPlatformAcik =
+    OzellikBayragiAktifMi('games_enabled') && !KillSwitchAktifMi('kill_games');
+  const { anyVisible: oyunGorunur } = useGorunurOyunKodlari({
+    enabled: oyunPlatformAcik,
+  });
+  const oyunProfiliAcik = oyunPlatformAcik && oyunGorunur;
 
   useFocusEffect(
     useCallback(() => {
@@ -77,17 +84,19 @@ export default function ProfileScreen() {
       ProfilIstatistikleriniGetir(user.id)
         .then(setStats)
         .catch(() => setStats(null));
-      if (OzellikBayragiAktifMi('games_enabled')) {
+      if (oyunProfiliAcik) {
         OyunOyuncuIstatistikGetir(user.id)
           .then(setOyunStats)
           .catch(() => setOyunStats(null));
+      } else {
+        setOyunStats(null);
       }
       setDurumYukleniyor(true);
       DurumKullanicisiniGetir(user.id, 48)
         .then(setDurumlar)
         .catch(() => setDurumlar([]))
         .finally(() => setDurumYukleniyor(false));
-    }, [user?.id, refreshProfile]),
+    }, [user?.id, refreshProfile, oyunProfiliAcik]),
   );
 
   const medyaUrl = (tur: ProfilMedyaTuru) =>
@@ -407,7 +416,7 @@ export default function ProfileScreen() {
             />
           </View>
 
-          {oyunStats && OzellikBayragiAktifMi('games_enabled') ? (
+          {oyunStats && oyunProfiliAcik ? (
             <View style={styles.oyunKart}>
               <Text style={styles.oyunBaslik}>Oyun profili</Text>
               <Text style={styles.oyunLig}>{oyunStats.leagueLabel}</Text>

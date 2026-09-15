@@ -34,6 +34,12 @@ yarn-error.*
 .env
 .env.test
 .env*.local
+.env.agora.local
+.env.push.local
+
+# local tooling / CLI state
+.claude/
+supabase/.temp/
 
 # typescript
 *.tsbuildinfo

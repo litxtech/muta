@@ -127,6 +127,12 @@ export default function RoomScreen() {
     return inviteSession;
   }, [inviteSession, gorunurOyunKodlari]);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (oyunPlatformAcik && !isDemo) void gorunurOyunlariYenile();
+    }, [oyunPlatformAcik, isDemo, gorunurOyunlariYenile]),
+  );
+
   useOdaHediyeCanlisi({
     roomId: room?.id,
     selfUserId: user?.id,
