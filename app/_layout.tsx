@@ -145,6 +145,7 @@ export default function RootLayout() {
           <Stack.Screen name="admin/odalar" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="admin/ekonomi" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="admin/oyunlar" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="admin/oyun-test" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
             name="admin/ozellikler"
             options={{ animation: 'slide_from_right' }}
