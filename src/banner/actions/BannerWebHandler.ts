@@ -11,11 +11,20 @@ export async function handleWebAction(
   ctx: ActionContext,
 ): Promise<{ ok: boolean; error?: string }> {
   const url = (action.url ?? action.target ?? '').trim();
-  if (!url) return { ok: false, error: 'URL yok' };
+  if (!url || url === 'https://' || url === 'http://') {
+    Alert.alert(
+      'Eksik bağlantı',
+      'Bu banner için web adresi tanımlanmamış. Admin panelinden tam HTTPS URL gir.',
+    );
+    return { ok: false, error: 'URL yok' };
+  }
 
   const check = isSafeHttpsUrl(url);
   if (!check.ok) {
-    Alert.alert('Güvenlik', check.reason ?? 'Geçersiz URL');
+    Alert.alert(
+      'Geçersiz bağlantı',
+      check.reason ?? 'Geçerli bir https:// adresi gerekli.',
+    );
     return { ok: false, error: check.reason };
   }
 

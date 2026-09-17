@@ -127,7 +127,7 @@ export default function MessagesScreen() {
         : 'Anlık mesajlaşma · foto & video';
 
   return (
-    <Screen edges={['top']}>
+    <Screen edges={['top']} tabSayfaKaydir>
       <ModulHataSiniri modulAdi="mesajlasma">
         <MesajMarkaBasligi
           altYazi={altYazi}

@@ -1,20 +1,41 @@
-import React, { useMemo } from 'react';
+/**
+ * Yüzen tab çubuğu — Ana · Durum | + | Mesaj · Profil
+ *
+ * KALICI iOS DÜZELTME:
+ * Custom tabBar + position:absolute → çıkış/geri dönüşte parent width=0,
+ * butonlar sola üst üste biner. Bu yüzden tab bar navigator AKIŞINDA
+ * (in-flow); yatay ölçüler her zaman piksel.
+ */
+
+import React, { memo, useCallback, useContext, useMemo, useRef } from 'react';
 import {
+  Dimensions,
   Image,
   Platform,
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from 'expo-router/build/react-navigation/bottom-tabs';
+import { BottomTabBarHeightCallbackContext } from 'expo-router/build/react-navigation/bottom-tabs';
 import { useAuth } from '../contexts/AuthContext';
 import { CamArkaplan } from '../bilesenler/yuzey/CamArkaplan';
 import { RenkTokenlari } from '../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../tasarim-sistemi/TipografiTokenlari';
-import { BoslukTokenlari, YaricapTokenlari } from '../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import {
+  BoslukTokenlari,
+  YaricapTokenlari,
+} from '../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useTemayaAboneOl } from '../tasarim-sistemi/tema/useTemayaAboneOl';
+import {
+  YUZEN_TAB_SHELL_H,
+  yuzenTabBarToplamYukseklik,
+} from './YuzenTabBosluk';
 
 export { YUZEN_TAB_ICERIK_BOSLUGU } from './YuzenTabBosluk';
 
@@ -28,32 +49,72 @@ type TabMeta = {
 
 const HIDDEN_TABS = new Set(['cihazlar', 'wallet', 'rooms']);
 
-/** Sıra: Ana · Durum | + | Mesaj · Profil */
 const TAB_META: Record<string, TabMeta> = {
   index: { label: 'Ana', active: 'home', idle: 'home-outline' },
   durum: { label: 'Durum', active: 'images', idle: 'images-outline' },
-  rooms: { label: 'Odalar', active: 'headset', idle: 'headset-outline' },
   create: { label: 'Oluştur', active: 'add', idle: 'add' },
-  messages: { label: 'Mesaj', active: 'chatbubbles', idle: 'chatbubbles-outline' },
+  messages: {
+    label: 'Mesaj',
+    active: 'chatbubbles',
+    idle: 'chatbubbles-outline',
+  },
   profile: { label: 'Profil', active: 'person', idle: 'person-outline' },
 };
 
 const LEFT_ORDER = ['index', 'durum'] as const;
 const RIGHT_ORDER = ['messages', 'profile'] as const;
 
-/**
- * Modern yüzen tab — artı her zaman ortada; cihazlar/wallet tabda yok.
- */
-export function YuzenTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
+const CENTER_W = 58;
+const CREATE_SIZE = 48;
+const ICON_SIZE = 22;
+const H_PAD = BoslukTokenlari.lg;
+const SIDE_SLOTS = 2;
+const FLOAT_TOP = 6;
+
+function baslangicGenislik(): number {
+  const w = Dimensions.get('window').width;
+  return w > 0 ? w : 390;
+}
+
+function YuzenTabBarInner({
+  state,
+  descriptors,
+  navigation,
+  insets,
+}: BottomTabBarProps) {
+  useTemayaAboneOl();
+  const onHeightChange = useContext(BottomTabBarHeightCallbackContext);
+  const { width: windowWidth } = useWindowDimensions();
   const { profile } = useAuth();
-  const bottomGap = Math.max(insets.bottom, BoslukTokenlari.sm) + BoslukTokenlari.sm;
+
+  // Çıkış / resume’da width anlık 0 olursa son geçerli değeri koru
+  const sonGenislik = useRef(baslangicGenislik());
+  if (windowWidth > 0) {
+    sonGenislik.current = windowWidth;
+  }
+  const screenW = sonGenislik.current;
+
+  const bottomGap =
+    Math.max(insets.bottom, BoslukTokenlari.sm) + BoslukTokenlari.xs;
+  const shellW = Math.max(screenW - H_PAD * 2, CENTER_W + 80);
+  const sideW = Math.max((shellW - CENTER_W) / 2, 40);
+  const itemW = Math.max(sideW / SIDE_SLOTS, 40);
   const avatarUrl = profile?.avatar_url ?? null;
+
+  const onLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      const h = e.nativeEvent.layout.height;
+      if (h > 0) onHeightChange?.(h);
+    },
+    [onHeightChange],
+  );
 
   const byName = useMemo(() => {
     const map = new Map<string, (typeof state.routes)[number]>();
     for (const route of state.routes) {
       if (HIDDEN_TABS.has(route.name)) continue;
-      const href = (descriptors[route.key]?.options as { href?: string | null })?.href;
+      const href = (descriptors[route.key]?.options as { href?: string | null })
+        ?.href;
       if (href === null) continue;
       map.set(route.name, route);
     }
@@ -75,14 +136,27 @@ export function YuzenTabBar({ state, descriptors, navigation, insets }: BottomTa
   const renderSide = (names: readonly string[]) =>
     names.map((name) => {
       const route = byName.get(name);
-      if (!route) return <View key={name} style={styles.item} />;
+      if (!route) {
+        return (
+          <View key={name} style={[styles.item, { width: itemW }]} />
+        );
+      }
       const focused = state.routes[state.index]?.key === route.key;
       const isProfile = name === 'profile';
       const meta = TAB_META[name];
-      const color = focused ? RenkTokenlari.primarySoft : RenkTokenlari.textDim;
+      if (!meta) {
+        return (
+          <View key={route.key} style={[styles.item, { width: itemW }]} />
+        );
+      }
+      const color = focused
+        ? RenkTokenlari.primarySoft
+        : RenkTokenlari.textDim;
       const options = descriptors[route.key]?.options;
       const a11y =
-        options?.tabBarAccessibilityLabel ?? options?.title ?? meta?.label ?? name;
+        options?.tabBarAccessibilityLabel ??
+        options?.title ??
+        meta.label;
 
       return (
         <Pressable
@@ -91,9 +165,10 @@ export function YuzenTabBar({ state, descriptors, navigation, insets }: BottomTa
           accessibilityState={focused ? { selected: true } : {}}
           accessibilityLabel={a11y}
           onPress={() => go(route)}
-          style={styles.item}
+          style={[styles.item, { width: itemW }]}
+          hitSlop={6}
         >
-          <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+          <View style={styles.iconWrap} pointerEvents="none">
             {isProfile && avatarUrl ? (
               <Image
                 source={{ uri: avatarUrl }}
@@ -102,12 +177,16 @@ export function YuzenTabBar({ state, descriptors, navigation, insets }: BottomTa
             ) : (
               <Ionicons
                 name={focused ? meta.active : meta.idle}
-                size={22}
+                size={ICON_SIZE}
                 color={color}
               />
             )}
           </View>
-          <Text style={[styles.label, focused && styles.labelActive]} numberOfLines={1}>
+          <Text
+            style={[styles.label, focused && styles.labelActive]}
+            numberOfLines={1}
+            pointerEvents="none"
+          >
             {meta.label}
           </Text>
         </Pressable>
@@ -119,109 +198,161 @@ export function YuzenTabBar({ state, descriptors, navigation, insets }: BottomTa
     ? state.routes[state.index]?.key === createRoute.key
     : false;
 
-  return (
-    <View pointerEvents="box-none" style={[styles.wrap, { paddingBottom: bottomGap }]}>
-      <View style={styles.shell}>
-        <CamArkaplan
-          intensity={Platform.OS === 'ios' ? 60 : 42}
-          tint="dark"
-          style={StyleSheet.absoluteFill}
-          fallbackColor="rgba(18, 16, 24, 0.96)"
-        />
-        <View style={styles.glassOverlay} />
-        <View style={styles.row}>
-          <View style={styles.side}>{renderSide(LEFT_ORDER)}</View>
+  // Yükseklik bildirimi — navigator rezervasyonu
+  const toplamH = yuzenTabBarToplamYukseklik(insets.bottom);
 
-          <View style={styles.center}>
+  return (
+    <View
+      onLayout={onLayout}
+      collapsable={false}
+      style={[
+        styles.wrap,
+        {
+          width: screenW,
+          minHeight: toplamH,
+          paddingBottom: bottomGap,
+          paddingHorizontal: H_PAD,
+        },
+      ]}
+    >
+      <View
+        collapsable={false}
+        style={[styles.shell, { width: shellW, height: YUZEN_TAB_SHELL_H }]}
+      >
+        <View
+          pointerEvents="none"
+          collapsable={false}
+          style={[
+            styles.blurClip,
+            {
+              width: shellW,
+              height: YUZEN_TAB_SHELL_H,
+              borderRadius: YaricapTokenlari.xl,
+            },
+          ]}
+        >
+          <CamArkaplan
+            intensity={Platform.OS === 'ios' ? 56 : 40}
+            style={StyleSheet.absoluteFill}
+            fallbackColor={RenkTokenlari.tabBarFallback}
+            pointerEvents="none"
+          />
+          <View
+            style={[
+              styles.glassOverlay,
+              { backgroundColor: RenkTokenlari.tabBarOverlay },
+            ]}
+            pointerEvents="none"
+          />
+        </View>
+
+        <View
+          collapsable={false}
+          style={[
+            styles.hit,
+            { width: shellW, height: YUZEN_TAB_SHELL_H },
+          ]}
+        >
+          <View style={[styles.side, { width: sideW }]}>
+            {renderSide(LEFT_ORDER)}
+          </View>
+
+          <View style={[styles.center, { width: CENTER_W }]}>
             {createRoute ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={createFocused ? { selected: true } : {}}
-                accessibilityLabel="Ses odası aç"
+                accessibilityLabel="Oluştur"
                 onPress={() => go(createRoute)}
                 style={styles.createHit}
+                hitSlop={10}
               >
                 <LinearGradient
                   colors={[...RenkTokenlari.gradientPrimary]}
                   style={styles.createBtn}
+                  pointerEvents="none"
                 >
-                  <Ionicons name="add" size={28} color="#12040C" />
+                  <Ionicons
+                    name="add"
+                    size={26}
+                    color={RenkTokenlari.textOnPrimary}
+                  />
                 </LinearGradient>
               </Pressable>
             ) : null}
           </View>
 
-          <View style={styles.side}>{renderSide(RIGHT_ORDER)}</View>
+          <View style={[styles.side, { width: sideW }]}>
+            {renderSide(RIGHT_ORDER)}
+          </View>
         </View>
       </View>
     </View>
   );
 }
 
+export const YuzenTabBar = memo(YuzenTabBarInner);
+
 const styles = StyleSheet.create({
   wrap: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: BoslukTokenlari.lg,
-    zIndex: 40,
-    elevation: 40,
+    // IN-FLOW — absolute yok. Parent kolon tam genişlik verir; çıkışta bozulmaz.
+    alignSelf: 'stretch',
+    paddingTop: FLOAT_TOP,
+    backgroundColor: 'transparent',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   shell: {
-    height: 72,
     borderRadius: YaricapTokenlari.xl,
-    overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: RenkTokenlari.border,
     backgroundColor: RenkTokenlari.bgGlass,
   },
+  blurClip: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    overflow: 'hidden',
+  },
   glassOverlay: {
     position: 'absolute',
-    left: 0,
-    right: 0,
     top: 0,
+    right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(18, 16, 24, 0.4)',
+    left: 0,
   },
-  row: {
-    flex: 1,
+  hit: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   side: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    height: '100%',
+    height: YUZEN_TAB_SHELL_H,
   },
   center: {
-    width: 64,
     alignItems: 'center',
     justifyContent: 'center',
+    height: YUZEN_TAB_SHELL_H,
   },
   item: {
-    flex: 1,
-    height: '100%',
+    height: YUZEN_TAB_SHELL_H,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
-    paddingTop: 4,
+    gap: 1,
+    paddingTop: 2,
   },
   iconWrap: {
-    width: 36,
-    height: 36,
+    width: 32,
+    height: 32,
     borderRadius: YaricapTokenlari.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconWrapActive: {
-    backgroundColor: 'transparent',
-  },
   avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
@@ -231,6 +362,7 @@ const styles = StyleSheet.create({
   label: {
     ...TipografiTokenlari.micro,
     fontSize: 10,
+    lineHeight: 12,
     color: RenkTokenlari.textDim,
     fontWeight: '600',
   },
@@ -243,8 +375,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   createBtn: {
-    width: 52,
-    height: 52,
+    width: CREATE_SIZE,
+    height: CREATE_SIZE,
     borderRadius: YaricapTokenlari.pill,
     alignItems: 'center',
     justifyContent: 'center',

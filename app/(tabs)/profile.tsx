@@ -36,7 +36,11 @@ import {
 import { useGorunurOyunKodlari } from '../../src/moduller/oyunlar/ortak/hooks/useGorunurOyunKodlari';
 import { KillSwitchAktifMi, OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import { PrestigeRozetSatiri } from '../../src/moduller/vip/bilesenler/PrestigeRozetSatiri';
+import { HesapDegeriRozeti } from '../../src/moduller/kullanici-profili/bilesenler/HesapDegeriRozeti';
 import { useAjansYonetim } from '../../src/moduller/ajanslar/kancalar/useAjansYonetim';
+import { useAjansUyeligi } from '../../src/moduller/ajanslar/kancalar/useAjansUyeligi';
+import { AjansProfilRozeti } from '../../src/moduller/ajanslar/bilesenler/AjansProfilRozeti';
+import { ProfilAvatarCerceve } from '../../src/moduller/kullanici-profili/bilesenler/ProfilAvatarCerceve';
 import { DurumProfilIzgarasi } from '../../src/moduller/durum/bilesenler/DurumProfilIzgarasi';
 import {
   DurumKullanicisiniGetir,
@@ -50,6 +54,7 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { TamusoBanner } from '../../src/banner';
+import { TakipSayaciniFormatla } from '../../src/moduller/takip/TakipSayacFormat';
 
 const COVER_H = 152;
 const AVATAR = 92;
@@ -59,6 +64,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { profile, wallet, user, isGuest, refreshProfile, refreshWallet } = useAuth();
   const { yetkili: ajansYetkili, yonetimHref } = useAjansYonetim();
+  const { uyelik: ajansUyelik, yukleniyor: ajansYukleniyor } = useAjansUyeligi(!isGuest);
   const [upgradeAcik, setUpgradeAcik] = useState(false);
   const coverH = COVER_H + insets.top;
   const [stats, setStats] = useState<KullaniciProfilIstatistikleri | null>(null);
@@ -69,7 +75,7 @@ export default function ProfileScreen() {
   );
   const [medyaMenuTur, setMedyaMenuTur] = useState<ProfilMedyaTuru | null>(null);
   const [durumlar, setDurumlar] = useState<DurumOggesi[]>([]);
-  const [durumYukleniyor, setDurumYukleniyor] = useState(false);
+  const [durumYukleniyor, setDurumYukleniyor] = useState(true);
   const oyunPlatformAcik =
     OzellikBayragiAktifMi('games_enabled') && !KillSwitchAktifMi('kill_games');
   const { anyVisible: oyunGorunur } = useGorunurOyunKodlari({
@@ -124,9 +130,10 @@ export default function ProfileScreen() {
       setUpgradeAcik(true);
       return;
     }
+    const sonucPromise = ProfilMedyasiYukle(tur);
     setMedyaMenuTur(null);
     setMedyaBusy(tur);
-    const sonuc = await ProfilMedyasiYukle(tur);
+    const sonuc = await sonucPromise;
     setMedyaBusy(null);
     if (!sonuc.ok) {
       if (sonuc.iptal) return;
@@ -190,7 +197,7 @@ export default function ProfileScreen() {
       : 'Tamuso’da ses, hediye ve canlı yayın.');
 
   return (
-    <Screen edges={[]}>
+    <Screen edges={[]} tabSayfaKaydir>
       <ModulHataSiniri modulAdi="kullanici-profili">
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -212,7 +219,7 @@ export default function ProfileScreen() {
                 />
               ) : (
                 <LinearGradient
-                  colors={['#3B1F4A', '#1A1228', '#121018']}
+                  colors={[...RenkTokenlari.gradientPlaceholder]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={[styles.cover, { height: coverH }]}
@@ -251,27 +258,29 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {/* Avatar — tıkla büyüt; kamera rozeti menü */}
+          {/* Avatar — ortalı, altın taçlı çerçeve */}
           <View style={styles.avatarBand}>
             <View style={styles.avatarHit}>
-              <Pressable
-                onPress={() => medyaTikla('avatar')}
-                onLongPress={() => medyaAc('avatar')}
-                style={styles.avatarWrap}
-                disabled={medyaBusy !== null}
-                accessibilityLabel="Profil fotoğrafı"
-              >
-                {profile?.avatar_url ? (
-                  <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
-                ) : (
-                  <LinearGradient
-                    colors={[...RenkTokenlari.gradientPrimary]}
-                    style={styles.avatar}
-                  >
-                    <Ionicons name="person" size={40} color="#12040C" />
-                  </LinearGradient>
-                )}
-              </Pressable>
+              <ProfilAvatarCerceve size={AVATAR}>
+                <Pressable
+                  onPress={() => medyaTikla('avatar')}
+                  onLongPress={() => medyaAc('avatar')}
+                  style={styles.avatarWrap}
+                  disabled={medyaBusy !== null}
+                  accessibilityLabel="Profil fotoğrafı"
+                >
+                  {profile?.avatar_url ? (
+                    <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+                  ) : (
+                    <LinearGradient
+                      colors={[...RenkTokenlari.gradientPrimary]}
+                      style={styles.avatar}
+                    >
+                      <Ionicons name="person" size={40} color="#12040C" />
+                    </LinearGradient>
+                  )}
+                </Pressable>
+              </ProfilAvatarCerceve>
               <Pressable
                 style={styles.avatarCam}
                 onPress={() => medyaAc('avatar')}
@@ -280,9 +289,9 @@ export default function ProfileScreen() {
                 accessibilityLabel="Profil fotoğrafı düzenle"
               >
                 {medyaBusy === 'avatar' ? (
-                  <ActivityIndicator color="#12040C" size="small" />
+                  <ActivityIndicator color="#3A2A08" size="small" />
                 ) : (
-                  <Ionicons name="camera" size={12} color="#12040C" />
+                  <Ionicons name="camera" size={12} color="#3A2A08" />
                 )}
               </Pressable>
             </View>
@@ -290,7 +299,7 @@ export default function ProfileScreen() {
 
           <TamusoBanner placement="PROFILE_TOP" screen="PROFILE" compact />
 
-          {/* Kimlik */}
+          {/* Kimlik — ortalı */}
           <View style={styles.identity}>
             <View style={styles.nameRow}>
               <Text style={styles.name} numberOfLines={1}>
@@ -310,49 +319,100 @@ export default function ProfileScreen() {
               </View>
             ) : null}
             <Text style={styles.bio}>{bio}</Text>
-            <PrestigeRozetSatiri
-              vipLevel={stats?.vip_level ?? 0}
-              gifterLevel={stats?.gifter_rank}
-              charmLevel={stats?.charm_level ?? 1}
-              rechargeLevel={stats?.recharge_rank}
-            />
+            {stats ? (
+              <HesapDegeriRozeti
+                value={stats.account_value ?? 0}
+                label={stats.account_value_label}
+              />
+            ) : null}
+            {stats ? (
+              <PrestigeRozetSatiri
+                vipLevel={stats.vip_level ?? 0}
+                gifterLevel={stats.gifter_rank}
+                charmLevel={stats.charm_level ?? 0}
+                rechargeLevel={stats.recharge_rank}
+              />
+            ) : null}
           </View>
 
-          {/* Tek birincil aksiyon */}
-          <View style={styles.primaryAction}>
+          {/* Premium aksiyonlar — ortalı; ajans burada */}
+          <View style={styles.aksiyonlar}>
             <Pressable
               onPress={profilDuzenle}
               style={({ pressed }) => [styles.editHit, pressed && styles.pressed]}
             >
               <LinearGradient
-                colors={[...RenkTokenlari.gradientPrimary]}
+                colors={['#F5E6A8', '#D4AF37', '#C49A2A']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.editBtn}
               >
-                <Ionicons name="create-outline" size={18} color="#12040C" />
+                <Ionicons name="create-outline" size={18} color="#3A2A08" />
                 <Text style={styles.editYazi}>Profili düzenle</Text>
               </LinearGradient>
             </Pressable>
+
+            {!isGuest && !ajansYukleniyor && ajansUyelik.role === 'pending' ? (
+              <AjansProfilRozeti
+                varyant="beklemede"
+                ajans={ajansUyelik.agency}
+                tamGenislik
+                onPress={() => router.push('/ajans/uye' as any)}
+              />
+            ) : !isGuest && !ajansYukleniyor && ajansUyelik.agency ? (
+              <AjansProfilRozeti
+                varyant="uye"
+                ajans={ajansUyelik.agency}
+                tamGenislik
+                onPress={() =>
+                  router.push(`/ajans/profil/${ajansUyelik.agency!.id}` as any)
+                }
+              />
+            ) : !isGuest && !ajansYukleniyor ? (
+              <AjansProfilRozeti
+                varyant="basvur"
+                tamGenislik
+                onPress={() => router.push('/ajans' as any)}
+              />
+            ) : null}
           </View>
 
           <TamusoBanner placement="PROFILE_MIDDLE" screen="PROFILE" compact />
 
           {/* Takip */}
+          {(stats?.pending_follow_requests_count ?? 0) > 0 ? (
+            <Pressable
+              onPress={() => router.push('/takip/istekler' as any)}
+              style={({ pressed }) => [styles.followRow, { marginBottom: 8 }, pressed && styles.pressed]}
+            >
+              <Text style={styles.followN}>{stats?.pending_follow_requests_count}</Text>
+              <Text style={styles.followL}>Takip isteği</Text>
+            </Pressable>
+          ) : null}
           <View style={styles.followRow}>
-            <View style={styles.followItem}>
-              <Text style={styles.followN}>{stats?.following_count ?? 0}</Text>
+            <Pressable
+              style={styles.followItem}
+              onPress={() => user?.id && router.push(`/takip/takip-edilenler?userId=${user.id}` as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Takip edilenler"
+            >
+              <Text style={styles.followN}>{TakipSayaciniFormatla(stats?.following_count ?? 0)}</Text>
               <Text style={styles.followL}>Takip</Text>
-            </View>
+            </Pressable>
             <View style={styles.followDivider} />
-            <View style={styles.followItem}>
-              <Text style={styles.followN}>{stats?.followers_count ?? 0}</Text>
+            <Pressable
+              style={styles.followItem}
+              onPress={() => user?.id && router.push(`/takip/takipciler?userId=${user.id}` as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Takipçiler"
+            >
+              <Text style={styles.followN}>{TakipSayaciniFormatla(stats?.followers_count ?? 0)}</Text>
               <Text style={styles.followL}>Takipçi</Text>
-            </View>
+            </Pressable>
             <View style={styles.followDivider} />
             <View style={styles.followItem}>
-              <Text style={styles.followN}>{stats?.charm_level ?? 1}</Text>
-              <Text style={styles.followL}>Çekicilik</Text>
+              <Text style={styles.followN}>{TakipSayaciniFormatla(stats?.posts_count ?? 0)}</Text>
+              <Text style={styles.followL}>Gönderi</Text>
             </View>
           </View>
 
@@ -452,7 +512,7 @@ export default function ProfileScreen() {
                 </Text>
               ) : (
                 <Text style={styles.oyunAlt}>
-                  Ses odasında Kristal Savaşı oyna — XP ve kupa kazan.
+                  Ses odasında oyun oyna — XP ve kupa kazan.
                 </Text>
               )}
             </View>
@@ -521,6 +581,21 @@ export default function ProfileScreen() {
                 alt="Ev sahibi başvurusu"
                 onPress={() => router.push('/host' as any)}
               />
+              {ajansUyelik.role !== 'none' ? (
+                <>
+                  <View style={styles.menuCizgi} />
+                  <MenuSatiri
+                    icon="people-outline"
+                    label="Ajansım"
+                    alt={
+                      ajansUyelik.role === 'pending'
+                        ? 'Başvuru bekleniyor'
+                        : 'Yayın · oda · panel'
+                    }
+                    onPress={() => router.push('/ajans/uye' as any)}
+                  />
+                </>
+              ) : null}
               {ajansYetkili ? (
                 <>
                   <View style={styles.menuCizgi} />
@@ -655,11 +730,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(18,4,12,0.6)',
+    backgroundColor: RenkTokenlari.chipFill,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: RenkTokenlari.border,
     zIndex: 2,
   },
   coverHint: {
@@ -670,28 +745,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(18,4,12,0.55)',
+    backgroundColor: RenkTokenlari.chipFill,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: YaricapTokenlari.pill,
   },
   coverHintText: { ...TipografiTokenlari.micro, color: '#fff' },
   avatarBand: {
-    paddingHorizontal: BoslukTokenlari.xl,
-    marginTop: -(AVATAR / 2),
+    alignItems: 'center',
+    marginTop: -(AVATAR / 2 + 8),
     marginBottom: BoslukTokenlari.sm,
+    zIndex: 2,
   },
   avatarHit: {
-    width: AVATAR,
-    height: AVATAR,
     position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarWrap: {
     width: AVATAR,
     height: AVATAR,
     borderRadius: AVATAR / 2,
-    borderWidth: 3,
-    borderColor: RenkTokenlari.bg,
     overflow: 'hidden',
     backgroundColor: RenkTokenlari.surface,
   },
@@ -703,38 +777,52 @@ const styles = StyleSheet.create({
   },
   avatarCam: {
     position: 'absolute',
-    right: -2,
-    bottom: -2,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: RenkTokenlari.primarySoft,
+    right: 6,
+    bottom: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#D4AF37',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: RenkTokenlari.bg,
-    zIndex: 2,
+    borderColor: '#F5E6A8',
+    zIndex: 4,
   },
   identity: {
     paddingHorizontal: BoslukTokenlari.xl,
     gap: 4,
+    alignItems: 'center',
   },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    maxWidth: '100%',
+  },
   name: {
     ...TipografiTokenlari.title,
     color: RenkTokenlari.text,
     fontSize: 26,
+    lineHeight: 32,
     letterSpacing: -0.4,
     flexShrink: 1,
+    textAlign: 'center',
   },
-  username: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
+  username: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.textMuted,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
   publicId: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.accent,
     fontWeight: '700',
+    textAlign: 'center',
   },
   guestBadge: {
-    alignSelf: 'flex-start',
     marginTop: 4,
     borderWidth: 1,
     borderColor: RenkTokenlari.accent,
@@ -748,14 +836,20 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.text,
     marginTop: BoslukTokenlari.sm,
     lineHeight: 21,
+    textAlign: 'center',
   },
-  primaryAction: {
+  aksiyonlar: {
     paddingHorizontal: BoslukTokenlari.xl,
     paddingTop: BoslukTokenlari.lg,
+    gap: BoslukTokenlari.sm,
+    alignItems: 'stretch',
   },
   editHit: {
     borderRadius: YaricapTokenlari.pill,
     overflow: 'hidden',
+    alignSelf: 'stretch',
+    borderWidth: 1,
+    borderColor: 'rgba(245,230,168,0.55)',
   },
   editBtn: {
     flexDirection: 'row',
@@ -768,7 +862,7 @@ const styles = StyleSheet.create({
   editYazi: {
     ...TipografiTokenlari.body,
     fontWeight: '800',
-    color: '#12040C',
+    color: '#3A2A08',
   },
   pressed: { opacity: 0.9 },
   followRow: {
@@ -777,9 +871,9 @@ const styles = StyleSheet.create({
     marginHorizontal: BoslukTokenlari.xl,
     marginTop: BoslukTokenlari.lg,
     paddingVertical: BoslukTokenlari.md,
-    borderRadius: YaricapTokenlari.md,
+    borderRadius: YaricapTokenlari.lg,
     borderWidth: 1,
-    borderColor: RenkTokenlari.border,
+    borderColor: 'rgba(212,175,55,0.28)',
     backgroundColor: RenkTokenlari.bgCard,
   },
   followItem: {
@@ -807,7 +901,7 @@ const styles = StyleSheet.create({
     borderRadius: YaricapTokenlari.lg,
     backgroundColor: RenkTokenlari.bgCard,
     borderWidth: 1,
-    borderColor: RenkTokenlari.border,
+    borderColor: 'rgba(212,175,55,0.28)',
     gap: BoslukTokenlari.md,
   },
   walletUst: {
@@ -955,7 +1049,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: BoslukTokenlari.md,
   },
   menuSatirPressed: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: RenkTokenlari.pressFill,
   },
   menuCizgi: {
     height: StyleSheet.hairlineWidth,

@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 function hataMetni(raw?: string): string {
   const m = (raw ?? '').toLowerCase();
   if (m.includes('not authorized')) return 'Bu isteği yanıtlama yetkin yok.';
-  if (m.includes('no free mic seat')) return 'Boş mikrofon koltuğu yok.';
+  if (m.includes('no free mic seat')) return 'Boş koltuk yok.';
   if (m.includes('already resolved')) return 'Bu istek zaten yanıtlandı.';
   if (m.includes('not found')) return 'İstek bulunamadı.';
   if (m.includes('not authenticated')) return 'Oturum gerekli.';

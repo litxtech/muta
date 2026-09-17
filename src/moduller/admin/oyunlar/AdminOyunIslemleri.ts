@@ -8,7 +8,7 @@ export type AdminOyunKatalogSatiri = {
 };
 
 export async function AdminOyunKontrolGetir(
-  gameCode = 'match3',
+  gameCode = 'kozmik_kaskad',
 ): Promise<GameControlConfig | null> {
   const { data, error } = await supabase
     .from('game_control_configs')

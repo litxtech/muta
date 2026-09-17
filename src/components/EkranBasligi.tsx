@@ -92,18 +92,20 @@ const styles = StyleSheet.create({
   center: {
     flex: 1,
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
     paddingHorizontal: BoslukTokenlari.sm,
   },
   title: {
     ...TipografiTokenlari.h1,
     color: RenkTokenlari.text,
     textAlign: 'center',
+    lineHeight: 28,
   },
   sub: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textMuted,
     textAlign: 'center',
+    lineHeight: 18,
   },
   right: {
     minWidth: 40,

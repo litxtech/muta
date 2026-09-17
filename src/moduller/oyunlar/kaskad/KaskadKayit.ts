@@ -1,5 +1,5 @@
 /**
- * Kozmik Kaskad kaydı — GameRegistry plugin.
+ * Realm of Storms kaydı — GameRegistry plugin.
  */
 
 import { registerGame } from '../cekirdek/OyunKayitSistemi';
@@ -16,7 +16,7 @@ export function registerKozmikKaskad(): void {
   registerGame({
     code: GAME_CODE,
     name: GAME_DISPLAY_NAME,
-    description: '6×5 kozmik cascade — scatter, çarpan, bonus',
+    description: '6×5 fırtına cascade — pay anywhere, çarpan, portal bonus',
     minPlayers: 1,
     maxPlayers: 1,
     defaultDurationSeconds: 0,

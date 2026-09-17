@@ -1,17 +1,8 @@
-import React, { useEffect, type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  Easing,
-  FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AnaSayfaCanliNokta } from './AnaSayfaCanliNokta';
-import { AnaSayfaSesCubuklari } from './AnaSayfaSesCubuklari';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -21,79 +12,59 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 type Props = {
-  canliSayisi: number;
+  sesSayisi: number;
+  yayinSayisi: number;
   solAksiyon?: ReactNode;
   sagAksiyon?: ReactNode;
 };
 
-/** Premium feed üst bar — marka + canlı nabız */
+/** Feed üst bar — marka + canlı nabız sayacı (cam çip) */
 export function AnaSayfaFeedBasligi({
-  canliSayisi,
+  sesSayisi,
+  yayinSayisi,
   solAksiyon,
   sagAksiyon,
 }: Props) {
-  const parilti = useSharedValue(0.35);
-
-  useEffect(() => {
-    parilti.value = withRepeat(
-      withSequence(
-        withTiming(0.7, {
-          duration: 1800,
-          easing: Easing.inOut(Easing.sin),
-        }),
-        withTiming(0.3, {
-          duration: 1800,
-          easing: Easing.inOut(Easing.sin),
-        }),
-      ),
-      -1,
-      false,
-    );
-  }, [parilti]);
-
-  const rozetParilti = useAnimatedStyle(() => ({
-    opacity: parilti.value,
-  }));
+  const toplam = sesSayisi + yayinSayisi;
+  const parcalar = [
+    yayinSayisi > 0 ? `${yayinSayisi} yayın` : null,
+    sesSayisi > 0 ? `${sesSayisi} ses odası` : null,
+  ].filter(Boolean);
+  const alt = parcalar.length > 0 ? parcalar.join(' · ') : 'Sahne sessiz — ilk odayı sen aç';
 
   return (
     <Animated.View
-      entering={FadeInDown.duration(AnimasyonTokenlari.yavas + 40).springify().damping(18)}
+      entering={FadeInDown.duration(AnimasyonTokenlari.yavas)
+        .springify()
+        .damping(18)}
       style={styles.wrap}
     >
       <View style={styles.sol}>
         {solAksiyon}
         <View style={styles.baslikBlok}>
-          <Text style={styles.marka}>TAMUSO</Text>
-          <View style={styles.canliSatir}>
-            <AnaSayfaCanliNokta boyut={7} />
-            <Text style={styles.baslik}>Canlı sahne</Text>
-            <AnaSayfaSesCubuklari yukseklik={11} />
+          <View style={styles.markaSatir}>
+            <Text style={styles.marka}>Tamuso</Text>
+            <LinearGradient
+              colors={[...RenkTokenlari.gradientPrimary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.markaNokta}
+            />
           </View>
-          <Text style={styles.alt}>
-            {canliSayisi > 0
-              ? `${canliSayisi} ses odası · şimdi yayında`
-              : 'Sahneyi aç · odaları gez'}
-          </Text>
+          <View style={styles.canliSatir}>
+            <View style={styles.canliCip}>
+              <AnaSayfaCanliNokta boyut={6} />
+              <Text style={styles.canliYazi}>
+                {toplam > 0 ? `${toplam} CANLI` : 'CANLI'}
+              </Text>
+            </View>
+            <Text style={styles.alt} numberOfLines={1}>
+              {alt}
+            </Text>
+          </View>
         </View>
       </View>
-      {sagAksiyon ? (
-        <View style={styles.sag}>
-          {canliSayisi > 0 ? (
-            <View style={styles.sayac}>
-              <LinearGradient
-                colors={['rgba(232,64,145,0.28)', 'rgba(196,59,255,0.14)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.sayacIc}
-              >
-                <Animated.View style={[styles.sayacHalka, rozetParilti]} />
-                <Text style={styles.sayacYazi}>{canliSayisi}</Text>
-              </LinearGradient>
-            </View>
-          ) : null}
-          {sagAksiyon}
-        </View>
-      ) : null}
+      {sagAksiyon ? <View style={styles.sag}>{sagAksiyon}</View> : null}
     </Animated.View>
   );
 }
@@ -105,8 +76,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: BoslukTokenlari.lg,
     paddingTop: BoslukTokenlari.sm,
-    paddingBottom: BoslukTokenlari.md,
+    paddingBottom: BoslukTokenlari.sm,
     gap: BoslukTokenlari.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: RenkTokenlari.divider,
   },
   sol: {
     flexDirection: 'row',
@@ -115,62 +88,62 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  baslikBlok: { flex: 1, minWidth: 0, gap: 2 },
+  baslikBlok: { flex: 1, minWidth: 0, gap: 6 },
+  markaSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   marka: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.primarySoft,
-    letterSpacing: 2.4,
-    fontSize: 10,
-    fontWeight: '800',
+    ...TipografiTokenlari.h1,
+    color: RenkTokenlari.text,
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+  },
+  markaNokta: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
   },
   canliSatir: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    minWidth: 0,
   },
-  baslik: {
-    ...TipografiTokenlari.h1,
-    color: RenkTokenlari.text,
-    fontSize: 22,
-    letterSpacing: -0.4,
+  canliCip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingRight: 9,
+    paddingLeft: 4,
+    paddingVertical: 4,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: 'rgba(232, 64, 145, 0.14)',
+    borderWidth: 1,
+    borderColor: RenkTokenlari.borderAccent,
+  },
+  canliYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.primarySoft,
+    fontSize: 9.5,
+    lineHeight: 12,
+    letterSpacing: 1.2,
+    fontWeight: '800',
   },
   alt: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
+    flex: 1,
+    minWidth: 0,
+    lineHeight: 14,
   },
   sag: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 8,
-  },
-  sayac: {
-    borderRadius: YaricapTokenlari.pill,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(232,64,145,0.45)',
-  },
-  sayacIc: {
-    minWidth: 34,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  sayacHalka: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: YaricapTokenlari.pill,
-    borderWidth: 1.5,
-    borderColor: RenkTokenlari.primarySoft,
-  },
-  sayacYazi: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.text,
-    fontWeight: '800',
-    zIndex: 1,
   },
 });

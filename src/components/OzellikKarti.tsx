@@ -6,6 +6,7 @@ import { RenkTokenlari } from '../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
+  GolgeTokenlari,
   YaricapTokenlari,
 } from '../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
@@ -33,7 +34,7 @@ export function OzellikKarti({
       style={({ pressed }) => [styles.press, pressed && styles.pressed]}
     >
       <LinearGradient
-        colors={['rgba(48,36,62,0.98)', 'rgba(24,18,34,0.99)']}
+        colors={[...RenkTokenlari.gradientCard]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.card, compact && styles.cardCompact]}
@@ -58,7 +59,7 @@ export function OzellikKarti({
 }
 
 const styles = StyleSheet.create({
-  press: { flex: 1 },
+  press: { flex: 1, ...GolgeTokenlari.card },
   pressed: { opacity: 0.88, transform: [{ scale: 0.99 }] },
   card: {
     flexDirection: 'row',

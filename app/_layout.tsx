@@ -1,31 +1,44 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import 'react-native-gesture-handler';
-import '../src/moduller/livekit/polyfill/AbortReasonPolyfill';
+import '../src/tasarim-sistemi/tema/StilYama';
+import { InteractionManager, LogBox } from 'react-native';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '../src/contexts/AuthContext';
 import { BildirimSaglayici } from '../src/moduller/bildirimler/baglam/BildirimSaglayici';
 import { GorusmeGelenSaglayici } from '../src/moduller/gorusme/bilesenler/GorusmeGelenSaglayici';
+import { KullanimSuresiSaglayici } from '../src/moduller/kullanim-suresi/baglam/KullanimSuresiSaglayici';
+import { AktifSesOdasiMiniBar } from '../src/moduller/ses-odalari/bilesenler/AktifSesOdasiMiniBar';
+import { SesOdasiArkaPlanKurulum } from '../src/moduller/ses-odalari/arka-plan/SesOdasiArkaPlanServisi';
+import { OyunKazancBalonuSaglayici } from '../src/moduller/oyunlar/kazanc-balonu/OyunKazancBalonuSaglayici';
 import { UygulamaHataSiniri } from '../src/ortak/hata-sinirlari/UygulamaHataSiniri';
 import { ModulHataSiniri } from '../src/ortak/hata-sinirlari/ModulHataSiniri';
-import { colors } from '../src/theme/colors';
+import { ImagePickerOnIsit } from '../src/ortak/medya/ImagePickerHazirMi';
+import { TemaSaglayici, useTema } from '../src/tasarim-sistemi/tema/TemaSaglayici';
+import '../src/moduller/livekit/polyfill/AbortReasonPolyfill';
 
-/** LiveKit globals — require + typeof; named import döngüsünde undefined kalmasın */
+// LiveKit bilincli disconnect sonrasi WS 1001; LogBox kirmizi hata gostermesin
+LogBox.ignoreLogs([
+  'error reading from signal stream',
+  'WS closed unexpectedly',
+]);
+
+/** LiveKit globals — expo-audio ile AVAudioSession cakismasin */
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { LiveKitNativeVarMi } = require('../src/moduller/livekit/bilesenler/LiveKitVideoViewAl') as {
-    LiveKitNativeVarMi?: () => boolean;
+  const { LiveKitGlobalsKaydet } = require('../src/moduller/livekit/polyfill/LiveKitGlobalsKaydet') as {
+    LiveKitGlobalsKaydet?: () => boolean;
   };
-  if (typeof LiveKitNativeVarMi === 'function' && LiveKitNativeVarMi()) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { registerGlobals } = require('@livekit/react-native') as {
-      registerGlobals: () => void;
-    };
-    registerGlobals();
-  }
+  LiveKitGlobalsKaydet?.();
 } catch {
   /* native eksik / bozuk — baglanti mock'a dusar */
+}
+
+/** Android FGS + iOS arka plan ses oturumu */
+try {
+  SesOdasiArkaPlanKurulum();
+} catch {
+  /* native yok / Expo Go */
 }
 
 /** Deep link / yenilemede tab gecmisi index'e dusmesin */
@@ -33,11 +46,32 @@ export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
 
+
+function ImagePickerArkaPlanIsit() {
+  useEffect(() => {
+    const gorev = InteractionManager.runAfterInteractions(() => {
+      ImagePickerOnIsit({ izinIste: false });
+    });
+    return () => gorev.cancel();
+  }, []);
+  return null;
+}
+
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
+    <TemaSaglayici>
+      <KokIcerik />
+    </TemaSaglayici>
+  );
+}
+
+function KokIcerik() {
+  const { palet } = useTema();
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: palet.bg }}>
       <UygulamaHataSiniri>
         <AuthProvider>
+          <KullanimSuresiSaglayici>
           <BildirimSaglayici>
           <ModulHataSiniri
             modulAdi="uygulama"
@@ -45,20 +79,30 @@ export default function RootLayout() {
             fallbackHref="/(tabs)"
           >
             <GorusmeGelenSaglayici>
-              <StatusBar style="light" />
+              <ImagePickerArkaPlanIsit />
               <Stack
                 screenOptions={{
                   headerShown: false,
-                  contentStyle: { backgroundColor: colors.bg },
+                  contentStyle: { backgroundColor: palet.bg },
                   animation: 'fade',
                 }}
               >
-          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="(tabs)"
+            options={{
+              // Ana kabuk kaydırılarak pop edilmesin — hamburger kenarı ile çakışır
+              gestureEnabled: false,
+              fullScreenGestureEnabled: false,
+            }}
+          />
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="kesfet" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="mesaj/[id]" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="kullanici/[id]" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="kullanici/[id]" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="takip/takipciler" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="takip/takip-edilenler" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="takip/istekler" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="destek/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="lobi/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="canli/index" options={{ animation: 'slide_from_right' }} />
@@ -70,6 +114,8 @@ export default function RootLayout() {
           <Stack.Screen name="siralamalar/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/yonetim/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/uye/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/profil/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
             name="admin/ajanslar/index"
@@ -81,6 +127,7 @@ export default function RootLayout() {
           />
           <Stack.Screen name="host/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="sehir/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="sehir/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="sehir/lig" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="sehir/savas" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="sehir/secim/index" options={{ animation: 'slide_from_right' }} />
@@ -159,6 +206,10 @@ export default function RootLayout() {
             name="admin/bannerlar/[id]"
             options={{ animation: 'slide_from_right' }}
           />
+          <Stack.Screen
+            name="admin/giris-lobisi"
+            options={{ animation: 'slide_from_right' }}
+          />
           <Stack.Screen name="webview" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen
             name="admin/ozellikler"
@@ -171,7 +222,13 @@ export default function RootLayout() {
           <Stack.Screen name="profil-duzenle/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
             name="room/[id]"
-            options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }}
+            options={{
+              animation: 'fade',
+              presentation: 'fullScreenModal',
+              contentStyle: { backgroundColor: palet.bg },
+              gestureEnabled: true,
+              freezeOnBlur: true,
+            }}
           />
           <Stack.Screen
             name="gorusme/[id]"
@@ -182,9 +239,12 @@ export default function RootLayout() {
             options={{ animation: 'slide_from_right' }}
           />
               </Stack>
+              <AktifSesOdasiMiniBar />
+              <OyunKazancBalonuSaglayici />
             </GorusmeGelenSaglayici>
           </ModulHataSiniri>
           </BildirimSaglayici>
+          </KullanimSuresiSaglayici>
         </AuthProvider>
       </UygulamaHataSiniri>
     </GestureHandlerRootView>

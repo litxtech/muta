@@ -16,7 +16,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
-import { MisafirHesabiTamamla } from '../islemler/MisafirHesabiTamamla';
+import { MisafirHesabiTamamla, EmailiTemizle } from '../islemler/MisafirHesabiTamamla';
 
 type Props = {
   visible: boolean;
@@ -38,8 +38,12 @@ export function HesabiTamamlaKarti({ visible, onClose, onCompleted }: Props) {
 
   const kaydet = async () => {
     setHata(null);
-    if (!ad.trim() || !soyad.trim() || !email.trim() || password.length < 6) {
-      setHata('Ad, soyad, e-posta ve en az 6 karakter şifre gerekli.');
+    if (!ad.trim() || !soyad.trim()) {
+      setHata('Ad ve soyad gerekli.');
+      return;
+    }
+    if (password.length < 6) {
+      setHata('Şifre en az 6 karakter olmalı.');
       return;
     }
     setLoading(true);
@@ -50,7 +54,7 @@ export function HesabiTamamlaKarti({ visible, onClose, onCompleted }: Props) {
       return;
     }
 
-    const mail = email.trim().toLowerCase();
+    const mail = EmailiTemizle(email);
     if (sonuc.needsConfirm) {
       setLoading(false);
       onClose();
@@ -103,10 +107,13 @@ export function HesabiTamamlaKarti({ visible, onClose, onCompleted }: Props) {
               <TextField
                 label="E-posta"
                 autoCapitalize="none"
+                autoCorrect={false}
                 keyboardType="email-address"
+                textContentType="emailAddress"
+                autoComplete="email"
                 value={email}
                 onChangeText={setEmail}
-                placeholder="sen@mail.com"
+                placeholder="isim@gmail.com"
               />
               <TextField
                 label="Şifre"

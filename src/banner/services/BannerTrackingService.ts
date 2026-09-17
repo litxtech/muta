@@ -13,12 +13,29 @@ function impressionKey(
 }
 
 export const BannerTrackingService = {
+  isSyntheticBannerId(bannerId: string): boolean {
+    return (
+      bannerId.startsWith('auto-room-') ||
+      bannerId.startsWith('promo-') ||
+      bannerId.startsWith('auto-event-')
+    );
+  },
+
   async trackImpression(input: {
     bannerId: string;
     sessionId: string;
     screen?: string;
     placement?: string;
   }): Promise<void> {
+    if (BannerTrackingService.isSyntheticBannerId(input.bannerId)) {
+      void AnalyticsOlayEkle('banner_impression', {
+        banner_id: input.bannerId,
+        placement: input.placement,
+        screen: input.screen,
+        synthetic: true,
+      });
+      return;
+    }
     const key = impressionKey(
       input.bannerId,
       input.sessionId,
@@ -51,6 +68,15 @@ export const BannerTrackingService = {
     placement?: string;
     screen?: string;
   }): Promise<void> {
+    if (BannerTrackingService.isSyntheticBannerId(input.bannerId)) {
+      void AnalyticsOlayEkle('banner_click', {
+        banner_id: input.bannerId,
+        action_type: input.actionType,
+        placement: input.placement,
+        synthetic: true,
+      });
+      return;
+    }
     try {
       await supabase.rpc('banner_click_kaydet', {
         p_banner_id: input.bannerId,
@@ -76,6 +102,7 @@ export const BannerTrackingService = {
     screen?: string;
     meta?: Record<string, unknown>;
   }): Promise<void> {
+    if (BannerTrackingService.isSyntheticBannerId(input.bannerId)) return;
     try {
       await supabase.rpc('banner_event_kaydet', {
         p_banner_id: input.bannerId,

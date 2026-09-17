@@ -8,11 +8,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuth } from '../../../contexts/AuthContext';
 import { supabase } from '../../../lib/supabase';
-import { leaveRoom } from '../../../services/api';
-import { MedyaOdasiKes } from '../../livekit/MedyaBaglantisi';
-import { KonusmaciSesSeviyesi } from '../../livekit/ses/KonusmaciSesSeviyesi';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -20,15 +16,12 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { yuzenTabBarToplamYukseklik } from '../../../components/YuzenTabBosluk';
-import {
-  AktifSesOdasiBitir,
-  AktifSesOdasiOneCikar,
-} from '../oturum/AktifSesOdasiOturumu';
+import { AktifSesOdasiOneCikar } from '../oturum/AktifSesOdasiOturumu';
 import { useAktifSesOdasi } from '../oturum/useAktifSesOdasi';
+import { SesOdasiArkaPlanTamamenCik } from '../arka-plan/SesOdasiArkaPlanServisi';
 
 export function AktifSesOdasiMiniBar() {
   const durum = useAktifSesOdasi();
-  const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const tabAlt = yuzenTabBarToplamYukseklik(insets.bottom);
@@ -64,10 +57,10 @@ export function AktifSesOdasiMiniBar() {
         (payload) => {
           const next = payload.new as { is_live?: boolean } | null;
           if (next && next.is_live === false) {
-            KonusmaciSesSeviyesi.mockDurdur();
-            void MedyaOdasiKes();
-            AktifSesOdasiBitir();
-            Alert.alert('Oda kapatıldı', 'Yönetim bu ses odasını kapattı.');
+            void (async () => {
+              await SesOdasiArkaPlanTamamenCik();
+              Alert.alert('Oda kapatıldı', 'Yönetim bu ses odasını kapattı.');
+            })();
           }
         },
       )
@@ -91,19 +84,11 @@ export function AktifSesOdasiMiniBar() {
         text: 'Çık',
         style: 'destructive',
         onPress: () => {
-          void (async () => {
-            const roomId = durum.roomId;
-            KonusmaciSesSeviyesi.mockDurdur();
-            await MedyaOdasiKes();
-            if (user?.id) {
-              await leaveRoom(roomId, user.id).catch(() => undefined);
-            }
-            AktifSesOdasiBitir();
-          })();
+          void SesOdasiArkaPlanTamamenCik();
         },
       },
     ]);
-  }, [durum, user?.id]);
+  }, [durum]);
 
   if (!gorunur || !durum) return null;
 
@@ -112,8 +97,7 @@ export function AktifSesOdasiMiniBar() {
       style={[
         styles.wrap,
         {
-          bottom:
-            tabAlt + Math.max(8, insets.bottom * 0.15),
+          bottom: tabAlt + Math.max(8, insets.bottom * 0.15),
         },
       ]}
       pointerEvents="box-none"

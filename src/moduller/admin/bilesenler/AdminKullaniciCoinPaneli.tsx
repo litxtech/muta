@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -19,8 +22,15 @@ import {
   AdminKullaniciCoinIsle,
   type AdminCoinIslem,
 } from '../kullanici/islemler/AdminKullaniciCoinIsle';
+import {
+  AdminKullaniciOneri,
+  OneriAdi,
+  type AdminKullaniciOneriSatiri,
+} from '../kullanici/okuma/AdminKullaniciOneri';
 
 const HIZLI = [1_000, 5_000, 10_000, 50_000, 100_000] as const;
+
+type SeciliKullanici = AdminKullaniciOneriSatiri;
 
 type Props = {
   /** Sabit kullanıcı (dosya ekranı); boşsa arama alanı gösterilir */
@@ -30,23 +40,111 @@ type Props = {
   onBasarili?: (balanceAfter: number) => void;
 };
 
+function Avatar({
+  url,
+  ad,
+  size = 36,
+}: {
+  url?: string | null;
+  ad: string;
+  size?: number;
+}) {
+  const harf = (ad.trim() || '?').charAt(0).toLocaleUpperCase('tr-TR');
+  if (url) {
+    return (
+      <Image
+        source={{ uri: url }}
+        style={{ width: size, height: size, borderRadius: size / 2 }}
+      />
+    );
+  }
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: RenkTokenlari.bgElevated,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: RenkTokenlari.border,
+      }}
+    >
+      <Text
+        style={{
+          color: RenkTokenlari.textMuted,
+          fontWeight: '800',
+          fontSize: size * 0.38,
+        }}
+      >
+        {harf}
+      </Text>
+    </View>
+  );
+}
+
 export function AdminKullaniciCoinPaneli({
   userRef: sabitRef,
   baslik = 'Coin işlemleri',
-  alt = 'Yükle · eksilt · ceza (ledger + audit)',
+  alt = 'İsim yaz · seç · yükle / eksilt / ceza',
   onBasarili,
 }: Props) {
-  const [ref, setRef] = useState(sabitRef ?? '');
+  const [arama, setArama] = useState('');
+  const [oneriler, setOneriler] = useState<AdminKullaniciOneriSatiri[]>([]);
+  const [araniyor, setAraniyor] = useState(false);
+  const [secili, setSecili] = useState<SeciliKullanici | null>(null);
   const [miktar, setMiktar] = useState('1000');
   const [not, setNot] = useState('');
   const [busy, setBusy] = useState(false);
+  const aramaSeq = useRef(0);
 
-  const hedef = (sabitRef ?? ref).trim();
+  useEffect(() => {
+    if (sabitRef) return;
+    if (secili) {
+      setOneriler([]);
+      setAraniyor(false);
+      return;
+    }
+    const q = arama.trim();
+    if (q.length < 1) {
+      setOneriler([]);
+      setAraniyor(false);
+      return;
+    }
+
+    const seq = ++aramaSeq.current;
+    setAraniyor(true);
+    const t = setTimeout(() => {
+      void (async () => {
+        try {
+          const rows = await AdminKullaniciOneri(q, 8);
+          if (seq !== aramaSeq.current) return;
+          setOneriler(rows);
+        } catch {
+          if (seq !== aramaSeq.current) return;
+          setOneriler([]);
+        } finally {
+          if (seq === aramaSeq.current) setAraniyor(false);
+        }
+      })();
+    }, 160);
+
+    return () => clearTimeout(t);
+  }, [arama, secili, sabitRef]);
+
+  const hedef = sabitRef?.trim() || secili?.id || '';
+
+  const temizleSecim = () => {
+    setSecili(null);
+    setArama('');
+    setOneriler([]);
+  };
 
   const uygula = (islem: AdminCoinIslem) => {
     const n = Math.floor(Number(miktar));
     if (!hedef) {
-      Alert.alert('Coin', 'Kullanıcı ID / public ID / kullanıcı adı gerekli.');
+      Alert.alert('Coin', 'Önce kullanıcı seç.');
       return;
     }
     if (!Number.isFinite(n) || n <= 0) {
@@ -58,10 +156,11 @@ export function AdminKullaniciCoinPaneli({
       return;
     }
 
-    const isaret = islem === 'topup' ? '+' : '−';
+    const isaret = islem === 'topup' ? '+' : '\u2212';
+    const kim = sabitRef ? sabitRef : OneriAdi(secili!);
     Alert.alert(
       AdminCoinIslemEtiketi(islem),
-      `${isaret}${n.toLocaleString('tr-TR')} coin\n${hedef}${
+      `${isaret}${n.toLocaleString('tr-TR')} coin\n${kim}${
         not.trim() ? `\nNot: ${not.trim()}` : ''
       }`,
       [
@@ -102,15 +201,98 @@ export function AdminKullaniciCoinPaneli({
       <Text style={AdminStil.kartAlt}>{alt}</Text>
 
       {sabitRef ? null : (
-        <TextInput
-          style={AdminStil.input}
-          placeholder="UUID · public ID · @kullanıcı"
-          placeholderTextColor={RenkTokenlari.textDim}
-          value={ref}
-          onChangeText={setRef}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+        <View style={styles.aramaBolum}>
+          {secili ? (
+            <View style={styles.oneriListe}>
+              <View style={styles.kisiSatir}>
+                <Avatar url={secili.avatar_url} ad={OneriAdi(secili)} size={40} />
+                <Text style={styles.kisiAd} numberOfLines={1}>
+                  {OneriAdi(secili)}
+                </Text>
+                <Pressable onPress={temizleSecim} hitSlop={10} disabled={busy}>
+                  <Ionicons
+                    name="close"
+                    size={18}
+                    color={RenkTokenlari.textDim}
+                  />
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <>
+              <View style={styles.aramaKutu}>
+                <Ionicons
+                  name="search"
+                  size={16}
+                  color={RenkTokenlari.textDim}
+                />
+                <TextInput
+                  style={styles.aramaInput}
+                  placeholder="İsim yaz…"
+                  placeholderTextColor={RenkTokenlari.textDim}
+                  value={arama}
+                  onChangeText={setArama}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="off"
+                  editable={!busy}
+                />
+                {araniyor ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={RenkTokenlari.primarySoft}
+                  />
+                ) : arama ? (
+                  <Pressable
+                    onPress={() => {
+                      setArama('');
+                      setOneriler([]);
+                    }}
+                    hitSlop={8}
+                  >
+                    <Ionicons
+                      name="close-circle"
+                      size={16}
+                      color={RenkTokenlari.textDim}
+                    />
+                  </Pressable>
+                ) : null}
+              </View>
+
+              {oneriler.length > 0 ? (
+                <View style={styles.oneriListe}>
+                  {oneriler.map((k, i) => {
+                    const ad = OneriAdi(k);
+                    return (
+                      <Pressable
+                        key={k.id}
+                        style={({ pressed }) => [
+                          styles.kisiSatir,
+                          i > 0 && styles.kisiCizgi,
+                          pressed && { opacity: 0.85 },
+                        ]}
+                        onPress={() => {
+                          setSecili(k);
+                          setArama('');
+                          setOneriler([]);
+                        }}
+                      >
+                        <Avatar url={k.avatar_url} ad={ad} size={36} />
+                        <Text style={styles.kisiAd} numberOfLines={1}>
+                          {ad}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
+
+              {!araniyor && arama.trim().length >= 1 && oneriler.length === 0 ? (
+                <Text style={styles.bosOneri}>Eşleşen kullanıcı yok</Text>
+              ) : null}
+            </>
+          )}
+        </View>
       )}
 
       <View style={AdminStil.aksiyonSatir}>
@@ -185,6 +367,55 @@ const styles = StyleSheet.create({
     borderColor: RenkTokenlari.border,
     backgroundColor: RenkTokenlari.bgCard,
     gap: BoslukTokenlari.sm,
+  },
+  aramaBolum: {
+    gap: 6,
+  },
+  aramaKutu: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    borderRadius: YaricapTokenlari.md,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    backgroundColor: RenkTokenlari.bgElevated,
+  },
+  aramaInput: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.text,
+    flex: 1,
+    paddingVertical: 12,
+  },
+  oneriListe: {
+    borderRadius: YaricapTokenlari.md,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    backgroundColor: RenkTokenlari.bgElevated,
+    overflow: 'hidden',
+  },
+  kisiSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  kisiAd: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.text,
+    flex: 1,
+    fontWeight: '600',
+  },
+  kisiCizgi: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: RenkTokenlari.border,
+  },
+  bosOneri: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textDim,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
   },
   btnSatir: {
     flexDirection: 'row',

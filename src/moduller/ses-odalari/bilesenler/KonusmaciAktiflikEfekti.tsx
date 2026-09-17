@@ -5,8 +5,8 @@ import Animated, {
   cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
@@ -19,11 +19,17 @@ type Props = {
   children: React.ReactNode;
 };
 
-const FADE = { duration: 160, easing: Easing.out(Easing.quad) };
-const ESIK = 0.1;
+const FADE = { duration: 200, easing: Easing.out(Easing.quad) };
+/** Genişleyen dalga — yavaş, net görünür */
+const DALGA = { duration: 1300, easing: Easing.out(Easing.cubic) };
+const ACIK = 0.08;
+const KAPALI = 0.04;
+/** Halkanın avatardan taşması (clip olmasın diye wrap büyütülür) */
+const TASMA = 26;
 
 /**
- * Konuşurken halka + hafif nabız; sustuğunda tamamen durur.
+ * Konuşurken avatar etrafında net dalga halkaları.
+ * Sustuğunda tamamen kaybolur — kimin konuştuğu belli olsun.
  */
 export function KonusmaciAktiflikEfekti({
   userId,
@@ -32,65 +38,116 @@ export function KonusmaciAktiflikEfekti({
   children,
 }: Props) {
   const level = useSharedValue(0);
-  const pulse = useSharedValue(1);
+  const aktif = useSharedValue(0);
+  const dalga1 = useSharedValue(0);
+  const dalga2 = useSharedValue(0);
+  const nabiz = useSharedValue(1);
 
   useEffect(() => {
+    let calisiyor = false;
+
+    const durdur = () => {
+      if (!calisiyor) {
+        aktif.value = 0;
+        return;
+      }
+      calisiyor = false;
+      aktif.value = withTiming(0, FADE);
+      cancelAnimation(dalga1);
+      cancelAnimation(dalga2);
+      cancelAnimation(nabiz);
+      dalga1.value = 0;
+      dalga2.value = 0;
+      nabiz.value = withTiming(1, FADE);
+    };
+
     if (!userId) {
-      level.value = withTiming(0, FADE);
-      cancelAnimation(pulse);
-      pulse.value = withTiming(1, FADE);
+      level.value = 0;
+      durdur();
       return;
     }
-    level.value = KonusmaciSesSeviyesi.seviyeGetir(userId);
-    return KonusmaciSesSeviyesi.dinleKullanici(userId, (lvl) => {
-      const onceki = level.value;
-      level.value = withTiming(lvl, FADE);
-      if (lvl > ESIK && onceki <= ESIK) {
-        pulse.value = withRepeat(
-          withSequence(
-            withTiming(1.08, { duration: 280, easing: Easing.out(Easing.quad) }),
-            withTiming(1, { duration: 280, easing: Easing.in(Easing.quad) }),
-          ),
-          -1,
-          false,
-        );
-      } else if (lvl <= ESIK && onceki > ESIK) {
-        cancelAnimation(pulse);
-        pulse.value = withTiming(1, FADE);
-      }
-    });
-  }, [userId, level, pulse]);
 
-  const halka = useAnimatedStyle(() => {
-    const aktif = level.value > ESIK;
+    const baslat = () => {
+      if (calisiyor) return;
+      calisiyor = true;
+      aktif.value = withTiming(1, FADE);
+      dalga1.value = 0;
+      dalga2.value = 0;
+      dalga1.value = withRepeat(withTiming(1, DALGA), -1, false);
+      dalga2.value = withDelay(650, withRepeat(withTiming(1, DALGA), -1, false));
+      nabiz.value = withRepeat(
+        withTiming(1.06, {
+          duration: 700,
+          easing: Easing.inOut(Easing.sin),
+        }),
+        -1,
+        true,
+      );
+    };
+
+    const baslangic = KonusmaciSesSeviyesi.seviyeGetir(userId);
+    level.value = baslangic;
+    if (baslangic > ACIK) baslat();
+    else {
+      aktif.value = 0;
+      dalga1.value = 0;
+      dalga2.value = 0;
+      nabiz.value = 1;
+    }
+
+    return KonusmaciSesSeviyesi.dinleKullanici(userId, (lvl) => {
+      level.value = withTiming(lvl, { duration: 180 });
+      if (lvl > ACIK) baslat();
+      else if (lvl <= KAPALI) durdur();
+    });
+  }, [userId, level, aktif, dalga1, dalga2, nabiz]);
+
+  const renk = hostMu ? RenkTokenlari.accent : RenkTokenlari.mint;
+  const halkaBoy = size + 10;
+  const wrapBoy = size + TASMA * 2;
+
+  const cember = useAnimatedStyle(() => {
+    const a = aktif.value;
+    const l = level.value;
     return {
-      opacity: aktif ? 0.4 + level.value * 0.55 : 0,
-      transform: [
-        {
-          scale: aktif ? pulse.value * (1 + level.value * 0.04) : 1,
-        },
-      ],
+      opacity: a * (0.75 + l * 0.25),
+      transform: [{ scale: a > 0 ? nabiz.value : 1 }],
+      borderWidth: 3,
     };
   });
 
   const glow = useAnimatedStyle(() => {
-    const aktif = level.value > ESIK;
+    const a = aktif.value;
     return {
-      opacity: aktif ? 0.12 + level.value * 0.28 : 0,
-      transform: [{ scale: aktif ? pulse.value : 1 }],
+      opacity: a * (0.28 + level.value * 0.35),
+      transform: [{ scale: a > 0 ? nabiz.value * 1.02 : 1 }],
     };
   });
 
-  const halkaBoy = size + 12;
-  const glowBoy = size + 22;
+  const dalgaStili1 = useAnimatedStyle(() => {
+    const t = dalga1.value;
+    return {
+      opacity: aktif.value * (1 - t) * 0.85,
+      transform: [{ scale: 1 + t * 0.55 }],
+    };
+  });
+
+  const dalgaStili2 = useAnimatedStyle(() => {
+    const t = dalga2.value;
+    return {
+      opacity: aktif.value * (1 - t) * 0.65,
+      transform: [{ scale: 1 + t * 0.55 }],
+    };
+  });
 
   return (
     <View
       style={{
-        width: size,
-        height: size,
+        width: wrapBoy,
+        height: wrapBoy,
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'visible',
       }}
     >
       {userId ? (
@@ -98,14 +155,38 @@ export function KonusmaciAktiflikEfekti({
           <Animated.View
             pointerEvents="none"
             style={[
+              styles.dalga,
+              {
+                width: halkaBoy,
+                height: halkaBoy,
+                borderRadius: halkaBoy / 2,
+                borderColor: renk,
+              },
+              dalgaStili1,
+            ]}
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.dalga,
+              {
+                width: halkaBoy,
+                height: halkaBoy,
+                borderRadius: halkaBoy / 2,
+                borderColor: renk,
+              },
+              dalgaStili2,
+            ]}
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={[
               styles.glow,
               {
-                width: glowBoy,
-                height: glowBoy,
-                borderRadius: glowBoy / 2,
-                backgroundColor: hostMu
-                  ? RenkTokenlari.accent
-                  : RenkTokenlari.mint,
+                width: size + 18,
+                height: size + 18,
+                borderRadius: (size + 18) / 2,
+                backgroundColor: renk,
               },
               glow,
             ]}
@@ -113,31 +194,37 @@ export function KonusmaciAktiflikEfekti({
           <Animated.View
             pointerEvents="none"
             style={[
-              styles.halo,
+              styles.cember,
               {
                 width: halkaBoy,
                 height: halkaBoy,
                 borderRadius: halkaBoy / 2,
-                borderColor: hostMu
-                  ? RenkTokenlari.accent
-                  : RenkTokenlari.mint,
+                borderColor: renk,
               },
-              halka,
+              cember,
             ]}
           />
         </>
       ) : null}
-      {children}
+      <View style={styles.icerik}>{children}</View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  halo: {
+  dalga: {
     position: 'absolute',
     borderWidth: 2.5,
   },
+  cember: {
+    position: 'absolute',
+  },
   glow: {
     position: 'absolute',
+  },
+  icerik: {
+    zIndex: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

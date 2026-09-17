@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   arena: {
     padding: BoslukTokenlari.xl,
     borderRadius: YaricapTokenlari.xl,
-    backgroundColor: 'rgba(33, 28, 46, 0.75)',
+    backgroundColor: RenkTokenlari.bgCard,
     borderWidth: 1,
     borderColor: 'rgba(232, 64, 145, 0.35)',
     alignItems: 'center',

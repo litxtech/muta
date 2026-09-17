@@ -1,17 +1,20 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
-  FlatList,
   Pressable,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { BosDurum } from '../../src/components/BosDurum';
+import { TextField } from '../../src/components/TextField';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useMisafirIslemKapisi } from '../../src/moduller/misafir-hesabi/islemler/useMisafirIslemKapisi';
@@ -24,29 +27,72 @@ import {
   BILDIRME_SEBEPLERI,
   KullaniciBildir,
 } from '../../src/moduller/moderasyon/islemler/ModerasyonIslemleri';
+import { AdminStil } from '../../src/moduller/admin/bilesenler/AdminStil';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
-import { TextField } from '../../src/components/TextField';
 
-/**
- * Güvenlik + çocuk koruma merkezi
- */
+function olayAdi(type: string): string {
+  const map: Record<string, string> = {
+    report_submitted: 'Rapor gönderildi',
+    child_safety_report: 'Çocuk koruma raporu',
+    user_blocked: 'Kullanıcı engellendi',
+    user_unblocked: 'Engel kaldırıldı',
+    account_restricted: 'Hesap kısıtlandı',
+    login_anomaly: 'Şüpheli giriş',
+    kill_switch: 'Acil durdurma',
+    moderation_action: 'Moderasyon işlemi',
+  };
+  return map[type] ?? type.replace(/_/g, ' ');
+}
+
+function severityEtiketi(sev: string): { label: string; color: string } {
+  switch ((sev || '').toLowerCase()) {
+    case 'critical':
+    case 'high':
+      return { label: 'Yüksek', color: RenkTokenlari.danger };
+    case 'medium':
+      return { label: 'Orta', color: RenkTokenlari.accent };
+    case 'low':
+      return { label: 'Düşük', color: RenkTokenlari.mint };
+    default:
+      return { label: sev || '—', color: RenkTokenlari.textMuted };
+  }
+}
+
+function tarihKisa(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString('tr-TR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
 export default function GuvenlikMerkeziEkrani() {
-  const { isGuest, refreshProfile } = useAuth();
+  const { isGuest, refreshProfile, profile } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
   const [events, setEvents] = useState<GuvenlikOlayi[]>([]);
   const [cocukDetay, setCocukDetay] = useState('');
   const [cocukBusy, setCocukBusy] = useState(false);
+  const [yukleniyor, setYukleniyor] = useState(false);
+  const adminMi = profile?.is_admin === true;
 
   const load = useCallback(async () => {
+    setYukleniyor(true);
     try {
       setEvents(await GuvenlikOlaylarimiGetir());
     } catch {
       setEvents([]);
+    } finally {
+      setYukleniyor(false);
     }
   }, []);
 
@@ -55,6 +101,11 @@ export default function GuvenlikMerkeziEkrani() {
       void load();
     }, [load]),
   );
+
+  const riskOzet = useMemo(() => {
+    const yuksek = events.filter((e) => e.risk_score >= 70 || e.severity === 'critical').length;
+    return { toplam: events.length, yuksek };
+  }, [events]);
 
   const hizliCocukRaporu = () => {
     islemiDene('oy_kullan', () => {
@@ -70,24 +121,20 @@ export default function GuvenlikMerkeziEkrani() {
               void (async () => {
                 setCocukBusy(true);
                 const etiket =
-                  BILDIRME_SEBEPLERI.find((s) => s.id === 'child_safety')
-                    ?.label ?? 'Çocuk istismarı / reşit olmayan içerik';
+                  BILDIRME_SEBEPLERI.find((s) => s.id === 'child_safety')?.label ??
+                  'Çocuk istismarı / reşit olmayan içerik';
                 const r = await KullaniciBildir({
                   reason: etiket,
                   reasonCode: 'child_safety',
                   contentType: 'other',
                   details:
-                    cocukDetay.trim() ||
-                    'Güvenlik merkezinden çocuk koruma bildirimi',
+                    cocukDetay.trim() || 'Güvenlik merkezinden çocuk koruma bildirimi',
                   context: { source: 'safety_center' },
                 });
                 setCocukBusy(false);
                 if (!r.ok) Alert.alert('Bildirim', r.hata);
                 else {
-                  Alert.alert(
-                    'Öncelikli rapor alındı',
-                    'Çocuk koruma ekibine iletildi.',
-                  );
+                  Alert.alert('Öncelikli rapor alındı', 'Çocuk koruma ekibine iletildi.');
                   setCocukDetay('');
                   await load();
                 }
@@ -101,8 +148,7 @@ export default function GuvenlikMerkeziEkrani() {
 
   const genelRapor = (sebepId: string) => {
     islemiDene('oy_kullan', async () => {
-      const etiket =
-        BILDIRME_SEBEPLERI.find((s) => s.id === sebepId)?.label ?? sebepId;
+      const etiket = BILDIRME_SEBEPLERI.find((s) => s.id === sebepId)?.label ?? sebepId;
       const r = await KullaniciBildir({
         reason: etiket,
         reasonCode: sebepId,
@@ -112,9 +158,9 @@ export default function GuvenlikMerkeziEkrani() {
       if (!r.ok) Alert.alert('Bildirim', r.hata);
       else {
         Alert.alert(
-          sebepId === 'child_safety' ? 'Öncelikli rapor alındı' : 'Alındı',
+          sebepId === 'child_safety' ? 'Öncelikli rapor alındı' : 'Rapor alındı',
           sebepId === 'child_safety'
-            ? 'Çocuk koruma ekibine iletildi. İnceleme en yüksek öncelikle yapılır.'
+            ? 'Çocuk koruma ekibine iletildi.'
             : 'Rapor güvenlik kuyruğuna düştü.',
         );
         await load();
@@ -126,116 +172,146 @@ export default function GuvenlikMerkeziEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="guvenlik">
         <EkranBasligi
-          title="Güvenlik ve koruma"
-          subtitle="18+ · engelle · bildir · çocuk koruma"
+          title="Güvenlik"
+          subtitle="Koruma · bildir · engelle · olaylar"
+          fallbackHref={adminMi ? '/admin' : undefined}
         />
-        <View style={styles.content}>
-          <View style={styles.banner}>
-            <Ionicons
-              name="shield-checkmark"
-              size={22}
-              color={RenkTokenlari.mint}
-            />
-            <View style={styles.bannerCopy}>
-              <Text style={styles.bannerTitle}>Çocuk koruma (sıfır tolerans)</Text>
-              <Text style={styles.bannerBody}>
-                Platform 18+’tır. Reşit olmayan içerik veya katılım bildirildiğinde
-                hesap kapatılır; gerekirse mercilere iletilir.
+        <ScrollView
+          contentContainerStyle={AdminStil.content}
+          refreshControl={
+            <RefreshControl refreshing={yukleniyor} onRefresh={() => void load()} />
+          }
+        >
+          <LinearGradient
+            colors={[...RenkTokenlari.gradientCard]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={AdminStil.hero}
+          >
+            <Text style={AdminStil.heroEyebrow}>18+ · sıfır tolerans</Text>
+            <Text style={AdminStil.heroTitle}>Koruma merkezi</Text>
+            <Text style={AdminStil.heroAlt}>
+              Reşit olmayan içerik veya katılım bildirildiğinde hesap kapatılır; gerekirse
+              mercilere iletilir.
+            </Text>
+          </LinearGradient>
+
+          <View style={AdminStil.kpiGrid}>
+            <View style={AdminStil.kpi}>
+              <Text style={AdminStil.kpiN}>{riskOzet.toplam}</Text>
+              <Text style={AdminStil.kpiL}>Kayıtlı olay</Text>
+            </View>
+            <View style={AdminStil.kpi}>
+              <Text style={[AdminStil.kpiN, { color: RenkTokenlari.danger }]}>
+                {riskOzet.yuksek}
               </Text>
+              <Text style={AdminStil.kpiL}>Yüksek risk</Text>
             </View>
           </View>
 
-          <Pressable
-            style={[styles.dangerBtn, cocukBusy && { opacity: 0.5 }]}
-            onPress={hizliCocukRaporu}
-            disabled={cocukBusy}
-          >
-            <Ionicons name="warning" size={18} color="#fff" />
-            <Text style={styles.dangerBtnText}>Çocuk istismarı bildir</Text>
-          </Pressable>
+          <Text style={AdminStil.sectionLabel}>Acil çocuk koruma</Text>
+          <View style={AdminStil.kart}>
+            <Text style={AdminStil.kartAlt}>
+              En yüksek öncelik. Kısa detay yazmak incelemeyi hızlandırır.
+            </Text>
+            <TextField
+              label="Ne gördün? (isteğe bağlı)"
+              placeholder="Örn: odada / mesajda / yayınında…"
+              value={cocukDetay}
+              onChangeText={setCocukDetay}
+            />
+            <Pressable
+              style={[styles.dangerBtn, cocukBusy && { opacity: 0.5 }]}
+              onPress={hizliCocukRaporu}
+              disabled={cocukBusy}
+            >
+              <Ionicons name="warning" size={18} color="#fff" />
+              <Text style={styles.dangerBtnText}>
+                {cocukBusy ? 'Gönderiliyor…' : 'Çocuk istismarı bildir'}
+              </Text>
+            </Pressable>
+          </View>
 
-          <TextField
-            label="Çocuk koruma detayı (isteğe bağlı)"
-            placeholder="Ne gördün / nerede oldu?"
-            value={cocukDetay}
-            onChangeText={setCocukDetay}
-          />
-
-          <View style={styles.quickRow}>
+          <Text style={AdminStil.sectionLabel}>Hızlı bildir</Text>
+          <View style={styles.quickGrid}>
             {(
               [
-                { id: 'harassment', label: 'Taciz' },
-                { id: 'sexual', label: 'Cinsel' },
-                { id: 'violence', label: 'Şiddet' },
+                { id: 'harassment', label: 'Taciz', icon: 'hand-left-outline' as const },
+                { id: 'sexual', label: 'Cinsel', icon: 'eye-off-outline' as const },
+                { id: 'violence', label: 'Şiddet', icon: 'flash-outline' as const },
+                { id: 'spam', label: 'Spam', icon: 'mail-unread-outline' as const },
               ] as const
             ).map((s) => (
-              <Pressable
-                key={s.id}
-                style={styles.quickChip}
-                onPress={() => genelRapor(s.id)}
-              >
-                <Text style={styles.quickChipText}>{s.label}</Text>
+              <Pressable key={s.id} style={styles.quickCard} onPress={() => genelRapor(s.id)}>
+                <Ionicons name={s.icon} size={18} color={RenkTokenlari.primarySoft} />
+                <Text style={styles.quickLabel}>{s.label}</Text>
               </Pressable>
             ))}
           </View>
 
-          <Pressable
-            style={styles.linkRow}
-            onPress={() => router.push('/politika/child_safety' as any)}
-          >
-            <Text style={styles.linkText}>Çocuk koruma politikası</Text>
-            <Ionicons name="chevron-forward" size={16} color={RenkTokenlari.textDim} />
-          </Pressable>
-
-          <Pressable
-            style={styles.linkRow}
-            onPress={() => router.push('/engellenen-kullanicilar' as any)}
-          >
-            <Text style={styles.linkText}>Engellenen kullanıcılar</Text>
-            <Text style={styles.linkHint}>Engeli kaldır</Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.linkRow}
-            onPress={() => router.push('/destek' as any)}
-          >
-            <Text style={styles.linkText}>Canlı destek</Text>
-            <Ionicons name="chevron-forward" size={16} color={RenkTokenlari.textDim} />
-          </Pressable>
-
-          <Pressable
-            style={styles.linkRow}
-            onPress={() => router.push('/hesap-sil' as any)}
-          >
-            <Text style={styles.linkText}>Hesabı sil</Text>
-            <Ionicons name="chevron-forward" size={16} color={RenkTokenlari.textDim} />
-          </Pressable>
-
-          <Text style={styles.section}>Olaylar</Text>
-          <FlatList
-            data={events}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
-            ListEmptyComponent={
-              <BosDurum
-                icon="shield-checkmark-outline"
-                title="Olay yok"
-                body="Güvenlik olayları burada listelenir."
+          <Text style={AdminStil.sectionLabel}>Araçlar</Text>
+          <View style={AdminStil.kart}>
+            <LinkSatir
+              icon="document-text-outline"
+              label="Çocuk koruma politikası"
+              onPress={() => router.push('/politika/child_safety' as any)}
+            />
+            <LinkSatir
+              icon="ban-outline"
+              label="Engellenen kullanıcılar"
+              hint="Engeli kaldır"
+              onPress={() => router.push('/engellenen-kullanicilar' as any)}
+            />
+            <LinkSatir
+              icon="headset-outline"
+              label="Canlı destek"
+              onPress={() => router.push('/destek' as any)}
+            />
+            {adminMi ? (
+              <LinkSatir
+                icon="shield-half-outline"
+                label="Admin moderasyon kuyruğu"
+                onPress={() => router.push('/admin/moderasyon' as any)}
               />
-            }
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <View style={styles.cardTop}>
-                  <Text style={styles.cardTitle}>{item.event_type}</Text>
-                  <View style={styles.riskBadge}>
-                    <Text style={styles.riskText}>Risk {item.risk_score}</Text>
+            ) : null}
+            <LinkSatir
+              icon="trash-outline"
+              label="Hesabı sil"
+              son
+              onPress={() => router.push('/hesap-sil' as any)}
+            />
+          </View>
+
+          <Text style={AdminStil.sectionLabel}>Son güvenlik olayları</Text>
+          {events.length === 0 ? (
+            <BosDurum
+              icon="shield-checkmark-outline"
+              title="Olay yok"
+              body="Bildirim ve güvenlik kayıtların burada listelenir."
+            />
+          ) : (
+            events.map((item) => {
+              const sev = severityEtiketi(item.severity);
+              return (
+                <View key={item.id} style={styles.olayKart}>
+                  <View style={styles.olayUst}>
+                    <Text style={styles.olayBaslik}>{olayAdi(item.event_type)}</Text>
+                    <View style={styles.riskBadge}>
+                      <Text style={styles.riskText}>Risk {item.risk_score}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.olayMetaSatir}>
+                    <Text style={[styles.olayMeta, { color: sev.color }]}>{sev.label}</Text>
+                    <Text style={styles.olayMeta}>·</Text>
+                    <Text style={styles.olayMeta}>{item.status || '—'}</Text>
+                    <Text style={styles.olayMeta}>·</Text>
+                    <Text style={styles.olayMeta}>{tarihKisa(item.created_at)}</Text>
                   </View>
                 </View>
-                <Text style={styles.cardMeta}>{item.severity}</Text>
-              </View>
-            )}
-          />
-        </View>
+              );
+            })
+          )}
+        </ScrollView>
 
         <HesabiTamamlaKarti
           visible={upgradeAcik}
@@ -247,40 +323,42 @@ export default function GuvenlikMerkeziEkrani() {
   );
 }
 
+function LinkSatir({
+  icon,
+  label,
+  hint,
+  onPress,
+  son,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  hint?: string;
+  onPress: () => void;
+  son?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[styles.linkSatir, !son && styles.linkBorder]}
+    >
+      <View style={styles.linkIcon}>
+        <Ionicons name={icon} size={16} color={RenkTokenlari.text} />
+      </View>
+      <Text style={styles.linkLabel}>{label}</Text>
+      {hint ? <Text style={styles.linkHint}>{hint}</Text> : null}
+      <Ionicons name="chevron-forward" size={16} color={RenkTokenlari.textDim} />
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-    paddingHorizontal: BoslukTokenlari.xl,
-    paddingBottom: BoslukTokenlari.xl,
-    gap: BoslukTokenlari.md,
-  },
-  banner: {
-    flexDirection: 'row',
-    gap: BoslukTokenlari.md,
-    padding: BoslukTokenlari.lg,
-    borderRadius: YaricapTokenlari.md,
-    backgroundColor: 'rgba(64, 200, 160, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(64, 200, 160, 0.28)',
-  },
-  bannerCopy: { flex: 1, gap: 4 },
-  bannerTitle: {
-    ...TipografiTokenlari.body,
-    color: RenkTokenlari.text,
-    fontWeight: '800',
-  },
-  bannerBody: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
-    lineHeight: 18,
-  },
   dangerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     minHeight: 48,
-    borderRadius: YaricapTokenlari.pill,
+    borderRadius: YaricapTokenlari.md,
     backgroundColor: RenkTokenlari.danger,
   },
   dangerBtnText: {
@@ -288,73 +366,85 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '800',
   },
-  quickRow: { flexDirection: 'row', gap: 8 },
-  quickChip: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: YaricapTokenlari.md,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-    backgroundColor: RenkTokenlari.surface,
-    alignItems: 'center',
-  },
-  quickChipText: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
-    fontWeight: '700',
-  },
-  linkRow: {
+  quickGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: BoslukTokenlari.sm,
+  },
+  quickCard: {
+    width: '48%',
+    flexGrow: 1,
+    minWidth: '46%',
     paddingVertical: BoslukTokenlari.md,
     paddingHorizontal: BoslukTokenlari.md,
     borderRadius: YaricapTokenlari.md,
     backgroundColor: RenkTokenlari.bgCard,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
+    alignItems: 'center',
+    gap: 8,
   },
-  linkText: {
-    ...TipografiTokenlari.body,
-    color: RenkTokenlari.text,
-    fontWeight: '600',
-  },
-  linkHint: {
+  quickLabel: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.mint,
-  },
-  section: {
-    ...TipografiTokenlari.h2,
     color: RenkTokenlari.text,
-    marginTop: BoslukTokenlari.sm,
+    fontWeight: '700',
   },
-  list: { flexGrow: 1, gap: BoslukTokenlari.sm, paddingBottom: BoslukTokenlari.lg },
-  card: {
-    padding: BoslukTokenlari.lg,
-    borderRadius: YaricapTokenlari.md,
-    backgroundColor: RenkTokenlari.bgCard,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-    gap: BoslukTokenlari.xs,
-  },
-  cardTop: {
+  linkSatir: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: BoslukTokenlari.sm,
+    gap: 10,
+    paddingVertical: 12,
   },
-  cardTitle: {
+  linkBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: RenkTokenlari.border,
+  },
+  linkIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: RenkTokenlari.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  linkLabel: {
     ...TipografiTokenlari.body,
     color: RenkTokenlari.text,
     fontWeight: '600',
     flex: 1,
   },
-  riskBadge: {
-    paddingHorizontal: BoslukTokenlari.sm,
-    paddingVertical: 2,
-    borderRadius: YaricapTokenlari.pill,
-    backgroundColor: 'rgba(232, 64, 145, 0.16)',
+  linkHint: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.mint,
+    fontWeight: '700',
   },
-  riskText: { ...TipografiTokenlari.micro, color: RenkTokenlari.primarySoft },
-  cardMeta: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
+  olayKart: {
+    padding: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.md,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    gap: 6,
+  },
+  olayUst: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  olayBaslik: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+    flex: 1,
+  },
+  riskBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(232,64,145,0.16)',
+  },
+  riskText: { ...TipografiTokenlari.micro, color: RenkTokenlari.primarySoft, fontWeight: '700' },
+  olayMetaSatir: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  olayMeta: { ...TipografiTokenlari.micro, color: RenkTokenlari.textDim },
 });

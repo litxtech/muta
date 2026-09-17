@@ -1,16 +1,17 @@
 /**
  * Lobi arka plan — gerçek insan videoları, sessiz döngü.
- * Birkaç klip arasında dönüşür.
+ * Sadece lobi girişinde; ses odasında kullanılmaz.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Dimensions, Platform, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { LOBI_AMBIENT_VIDEOLARI } from '../sabitler/LobiAmbientVideolari';
 
 const KLIP_SURESI_MS = 28_000;
+const { width: W, height: H } = Dimensions.get('window');
 
 type Props = {
   aktif?: boolean;
@@ -18,36 +19,38 @@ type Props = {
 
 export function LobiArkaPlanVideo({ aktif = true }: Props) {
   const [index, setIndex] = useState(0);
+  const kaynak =
+    LOBI_AMBIENT_VIDEOLARI[index % LOBI_AMBIENT_VIDEOLARI.length]?.kaynak ??
+    LOBI_AMBIENT_VIDEOLARI[0].kaynak;
 
-  const kaynak = useMemo(
-    () => LOBI_AMBIENT_VIDEOLARI[index % LOBI_AMBIENT_VIDEOLARI.length],
-    [index],
-  );
-
-  const player = useVideoPlayer(kaynak.kaynak, (p) => {
+  // expo-video: require() doğrudan VideoSource olarak kullanılır
+  const player = useVideoPlayer(kaynak, (p) => {
     p.loop = true;
     p.muted = true;
     p.play();
   });
 
   useEffect(() => {
-    if (!aktif) {
+    let iptal = false;
+    void (async () => {
       try {
-        player.pause();
-      } catch {
-        /* ignore */
+        if (!aktif) {
+          player.pause();
+          return;
+        }
+        await player.replaceAsync(kaynak);
+        if (iptal) return;
+        player.muted = true;
+        player.loop = true;
+        player.play();
+      } catch (e) {
+        console.warn('[LobiArkaPlanVideo] play', e);
       }
-      return;
-    }
-    try {
-      player.replace(kaynak.kaynak);
-      player.muted = true;
-      player.loop = true;
-      player.play();
-    } catch {
-      /* yedek gradient görünür */
-    }
-  }, [aktif, kaynak.kaynak, player]);
+    })();
+    return () => {
+      iptal = true;
+    };
+  }, [aktif, kaynak, player]);
 
   useEffect(() => {
     if (!aktif || LOBI_AMBIENT_VIDEOLARI.length < 2) return;
@@ -58,31 +61,65 @@ export function LobiArkaPlanVideo({ aktif = true }: Props) {
   }, [aktif]);
 
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+    <View style={styles.wrap} pointerEvents="none">
+      <LinearGradient
+        colors={[RenkTokenlari.deepPlum, RenkTokenlari.bg, '#0A0610']}
+        style={styles.yedek}
+      />
       <VideoView
         player={player}
-        style={StyleSheet.absoluteFill}
+        style={styles.video}
         contentFit="cover"
         nativeControls={false}
-        pointerEvents="none"
+        playsInline
+        {...(Platform.OS === 'android' ? { surfaceType: 'textureView' as const } : null)}
       />
+      {/* Hafif karartma — video görünsün, metin okunabilsin */}
       <LinearGradient
         colors={[
-          'rgba(18,16,24,0.35)',
-          'rgba(18,16,24,0.55)',
-          RenkTokenlari.bg,
+          'rgba(10,6,16,0.28)',
+          'rgba(10,6,16,0.18)',
+          'rgba(10,6,16,0.55)',
         ]}
         locations={[0, 0.45, 1]}
-        style={StyleSheet.absoluteFill}
+        style={styles.overlay}
       />
-      <View style={styles.vignette} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  vignette: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(18,16,24,0.25)',
+  wrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: W,
+    height: H,
+    zIndex: 0,
+    overflow: 'hidden',
+    backgroundColor: '#0A0610',
+  },
+  yedek: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  video: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: W,
+    height: H,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });

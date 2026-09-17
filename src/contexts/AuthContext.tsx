@@ -17,6 +17,13 @@ import { AppleIleGirisYap } from '../moduller/kimlik-dogrulama/giris/AppleIleGir
 import { MisafirOlarakDevamEt } from '../moduller/misafir-hesabi/islemler/MisafirOlarakDevamEt';
 import { CihazOturumuKaydet } from '../moduller/kimlik-dogrulama/oturum/CihazOturumuKaydet';
 import { ManuelCikisYap } from '../moduller/kimlik-dogrulama/oturum/ManuelCikisYap';
+import {
+  AktifOturumuGecmiseKaydet,
+  OturumGecmisindenGirisYap,
+  type OturumGecmisindenGirisSonuc,
+} from '../moduller/kimlik-dogrulama/oturum-gecmisi/OturumGecmisiIslemleri';
+import { OturumGecmisindenKaldir } from '../moduller/kimlik-dogrulama/oturum-gecmisi/OturumGecmisiDepolama';
+import type { OturumGecmisiKaydi } from '../moduller/kimlik-dogrulama/oturum-gecmisi/tipler';
 import { OturumKorumaDurumunuGetir } from '../moduller/kimlik-dogrulama/oturum/OturumKorumaDurumunuGetir';
 import { HesapSil } from '../moduller/kimlik-dogrulama/hesap/HesapSil';
 import { GuvenlikOlayiKaydet } from '../moduller/guvenlik/olaylar/GuvenlikOlayiKaydet';
@@ -26,6 +33,7 @@ import {
   type EmailOtpAmaci,
 } from '../moduller/kimlik-dogrulama/dogrulama/EmailOtpDogrula';
 import { EmailOtpYenidenGonder } from '../moduller/kimlik-dogrulama/dogrulama/EmailOtpYenidenGonder';
+import { GirisLobisiOnbellekIsit } from '../moduller/giris-lobisi/islemler/GirisLobisiPublicGet';
 
 type AuthContextValue = {
   session: Session | null;
@@ -47,16 +55,21 @@ type AuthContextValue = {
   signInWithSpotify: () => Promise<{ error?: string; cancelled?: boolean }>;
   signUp: (input: {
     email?: string;
-    phone: string;
+    phone?: string;
     password: string;
     username: string;
     displayName: string;
     gender?: string;
     birthDate?: string;
+    customFields?: Record<string, string>;
   }) => Promise<{ error?: string; needsConfirm?: boolean }>;
   continueAsGuest: () => Promise<{ error?: string }>;
   /** Sadece manuel cikis — otomatik sonlandirma yok */
   signOut: () => Promise<void>;
+  /** Lobideki kayitli hesaba tek dokunusla gir */
+  signInFromHistory: (
+    kayit: OturumGecmisiKaydi,
+  ) => Promise<OturumGecmisindenGirisSonuc>;
   deleteAccount: (reason?: string) => Promise<{ error?: string }>;
   /** Şifre sıfırlama: e-postaya 6 haneli kod gönderir (link değil) */
   resetPassword: (email: string) => Promise<{ error?: string }>;
@@ -252,6 +265,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [session?.user?.id]);
 
   useEffect(() => {
+    void GirisLobisiOnbellekIsit();
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
@@ -303,6 +320,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void refreshProfile();
     void refreshWallet();
     void CihazOturumuKaydet();
+    // Cikis sonrasi lobi medyasi aninda gelsin
+    void GirisLobisiOnbellekIsit();
   }, [session?.user?.id, refreshProfile, refreshWallet]);
 
   const signIn = useCallback(async (kimlik: string, password: string) => {
@@ -377,11 +396,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(
     async (input: {
       email?: string;
-      phone: string;
+      phone?: string;
       password: string;
       username: string;
       displayName: string;
       gender?: string;
+      birthDate?: string;
+      customFields?: Record<string, string>;
     }) => EmailIleKayitOl(input),
     [],
   );
@@ -394,14 +415,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    await AktifOturumuGecmiseKaydet({
+      session: data.session ?? session,
+      profile,
+    });
+    // Lobi medyasini cikis oncesi taze tut
+    void GirisLobisiOnbellekIsit();
     await ManuelCikisYap('manual');
-  }, []);
+  }, [session, profile]);
+
+  const signInFromHistory = useCallback(
+    async (kayit: OturumGecmisiKaydi) => {
+      const sonuc = await OturumGecmisindenGirisYap(kayit);
+      if (!sonuc.ok) {
+        if (sonuc.needsPassword) {
+          GuvenlikOlayiKaydet('login_failed', { source: 'oturum_gecmisi' });
+        }
+        return sonuc;
+      }
+      const durum = await OturumKorumaDurumunuGetir();
+      if (!durum.ok && (durum.kod === 'banned' || durum.kod === 'deleted')) {
+        await OturumGecmisindenKaldir(kayit.userId);
+        await ManuelCikisYap(
+          durum.kod === 'banned' ? 'ban' : 'account_deleted',
+        );
+        return {
+          ok: false as const,
+          hata: durum.mesaj ?? 'Hesap kullanılamıyor',
+        };
+      }
+      return { ok: true as const };
+    },
+    [],
+  );
 
   const deleteAccount = useCallback(async (reason?: string) => {
+    const uid = session?.user?.id;
     const r = await HesapSil({ reason });
     if (!r.ok) return { error: r.hata };
+    if (uid) await OturumGecmisindenKaldir(uid);
     return {};
-  }, []);
+  }, [session?.user?.id]);
 
   const resetPassword = useCallback(async (email: string) => {
     // 6 haneli OTP — şablon {{ .Token }}; redirect/link kullanılmaz
@@ -447,6 +502,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUp,
       continueAsGuest,
       signOut,
+      signInFromHistory,
       deleteAccount,
       resetPassword,
       updatePassword,
@@ -470,6 +526,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUp,
       continueAsGuest,
       signOut,
+      signInFromHistory,
       deleteAccount,
       resetPassword,
       updatePassword,

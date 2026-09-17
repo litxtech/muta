@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
     const at = new AccessToken(apiKey, apiSecret, {
       identity: user.id,
       name: user.email ?? user.id.slice(0, 8),
-      ttl: '1h',
+      ttl: '6h',
     });
     at.addGrant({
       room: roomName,

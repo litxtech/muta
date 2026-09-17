@@ -24,7 +24,7 @@ export function OdalarMarkaBasligi({ canliSayisi }: Props) {
         </View>
         <View style={styles.canliRozet}>
           <AnaSayfaCanliNokta boyut={6} />
-          <View>
+          <View style={styles.canliMetin}>
             <Text style={styles.canliSayi}>{canliSayisi}</Text>
             <Text style={styles.canliEtiket}>canlı</Text>
           </View>
@@ -37,13 +37,13 @@ export function OdalarMarkaBasligi({ canliSayisi }: Props) {
 const styles = StyleSheet.create({
   wrap: {
     paddingHorizontal: BoslukTokenlari.xl,
-    paddingTop: BoslukTokenlari.sm,
-    paddingBottom: BoslukTokenlari.md,
+    paddingTop: 0,
+    paddingBottom: BoslukTokenlari.sm,
   },
   ust: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: BoslukTokenlari.md,
   },
   markaBlok: {
@@ -54,44 +54,51 @@ const styles = StyleSheet.create({
   fisilti: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.primarySoft,
-    letterSpacing: 1.6,
-    fontSize: 10,
+    letterSpacing: 1.4,
+    fontSize: 9,
+    lineHeight: 12,
   },
   baslik: {
     ...TipografiTokenlari.title,
     color: RenkTokenlari.text,
-    letterSpacing: -0.6,
-    fontSize: 28,
-    lineHeight: 32,
+    letterSpacing: -0.5,
+    fontSize: 22,
+    lineHeight: 28,
   },
   slogan: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textMuted,
-    letterSpacing: 0.6,
-    marginTop: 2,
+    letterSpacing: 0.4,
+    fontSize: 12,
+    lineHeight: 16,
   },
   canliRozet: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: 'rgba(232, 64, 145, 0.12)',
     borderWidth: 1,
     borderColor: 'rgba(232, 64, 145, 0.35)',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: YaricapTokenlari.md,
-    minWidth: 78,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: YaricapTokenlari.pill,
+    minWidth: 64,
+  },
+  canliMetin: {
+    gap: 2,
   },
   canliSayi: {
     ...TipografiTokenlari.h2,
     color: RenkTokenlari.text,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 20,
   },
   canliEtiket: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.primarySoft,
-    fontSize: 9,
-    letterSpacing: 0.6,
+    fontSize: 8,
+    lineHeight: 10,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
 });

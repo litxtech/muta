@@ -23,6 +23,7 @@ import { DurumYorumPaneli } from '../../src/moduller/durum/bilesenler/DurumYorum
 import { KullaniciGuvenlikMenusu } from '../../src/moduller/moderasyon/bilesenler/KullaniciGuvenlikMenusu';
 import {
   DurumAkisiniGetir,
+  DurumTakipAkisiniGetir,
   DurumBegeniToggle,
   DurumSil,
   type DurumOggesi,
@@ -41,16 +42,21 @@ export default function DurumAkisEkrani() {
   const [yukleniyor, setYukleniyor] = useState(true);
   const [yorumStatusId, setYorumStatusId] = useState<string | null>(null);
   const [bildirOge, setBildirOge] = useState<DurumOggesi | null>(null);
+  const [sekme, setSekme] = useState<'sana' | 'takip'>('sana');
 
   const yukle = useCallback(async () => {
     try {
-      setItems(await DurumAkisiniGetir(50));
+      setItems(
+        sekme === 'takip'
+          ? await DurumTakipAkisiniGetir(50)
+          : await DurumAkisiniGetir(50),
+      );
     } catch {
       setItems([]);
     } finally {
       setYukleniyor(false);
     }
-  }, []);
+  }, [sekme]);
 
   useFocusEffect(
     useCallback(() => {
@@ -121,18 +127,26 @@ export default function DurumAkisEkrani() {
 
   const menuAc = (oge: DurumOggesi) => {
     if (oge.is_mine) {
-      Alert.alert('Gönderi', undefined, [
-        {
+      const buttons: {
+        text: string;
+        style?: 'cancel' | 'destructive' | 'default';
+        onPress?: () => void;
+      }[] = [];
+      if (oge.post_kind !== 'game_win') {
+        buttons.push({
           text: 'Düzenle',
           onPress: () => router.push(`/durum/duzenle?id=${oge.id}` as any),
-        },
+        });
+      }
+      buttons.push(
         {
-          text: 'Sil',
+          text: 'Kaldır',
           style: 'destructive',
           onPress: () => sil(oge),
         },
         { text: 'Vazgeç', style: 'cancel' },
-      ]);
+      );
+      Alert.alert('Gönderi', undefined, buttons);
       return;
     }
     Alert.alert('Gönderi', undefined, [
@@ -146,7 +160,7 @@ export default function DurumAkisEkrani() {
   };
 
   return (
-    <Screen edges={['top']}>
+    <Screen edges={['top']} tabSayfaKaydir>
       <ModulHataSiniri modulAdi="durum">
         <View style={styles.header}>
           <Text style={styles.title}>Durum</Text>
@@ -158,6 +172,24 @@ export default function DurumAkisEkrani() {
             accessibilityLabel="Durum paylaş"
           >
             <Ionicons name="create-outline" size={20} color={RenkTokenlari.text} />
+          </Pressable>
+        </View>
+        <View style={styles.sekmeRow}>
+          <Pressable
+            onPress={() => setSekme('sana')}
+            style={[styles.sekme, sekme === 'sana' && styles.sekmeOn]}
+            accessibilityRole="button"
+            accessibilityLabel="Sana özel"
+          >
+            <Text style={[styles.sekmeYazi, sekme === 'sana' && styles.sekmeYaziOn]}>Sana Özel</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setSekme('takip')}
+            style={[styles.sekme, sekme === 'takip' && styles.sekmeOn]}
+            accessibilityRole="button"
+            accessibilityLabel="Takip"
+          >
+            <Text style={[styles.sekmeYazi, sekme === 'takip' && styles.sekmeYaziOn]}>Takip</Text>
           </Pressable>
         </View>
 
@@ -184,8 +216,12 @@ export default function DurumAkisEkrani() {
             ListEmptyComponent={
               <BosDurum
                 icon="images-outline"
-                title="Henüz durum yok"
-                body="İlk fotoğraf veya videonu paylaş — akış burada canlanır."
+                title={sekme === 'takip' ? 'Takip ettiğin paylaşımlar yok' : 'Henüz durum yok'}
+                body={
+                  sekme === 'takip'
+                    ? 'Takip ettiğin hesapların gönderileri burada görünür.'
+                    : 'İlk fotoğraf veya videonu paylaş — akış burada canlanır.'
+                }
               />
             }
             renderItem={({ item }) => (
@@ -273,6 +309,27 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
   },
+  sekmeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingBottom: BoslukTokenlari.sm,
+  },
+  sekme: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: RenkTokenlari.bgCard,
+  },
+  sekmeOn: {
+    backgroundColor: RenkTokenlari.primary,
+  },
+  sekmeYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    fontWeight: '800',
+  },
+  sekmeYaziOn: { color: '#fff' },
   paylasBtn: {
     width: 36,
     height: 36,

@@ -2,12 +2,10 @@ import React from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInRight } from 'react-native-reanimated';
 import { AnaSayfaCanliNokta } from '../../ana-sayfa/bilesenler/AnaSayfaCanliNokta';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
-  AnimasyonTokenlari,
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -38,69 +36,62 @@ export function KesfetTrendSeridi({ odalar, onSec, onHost }: Props) {
         {odalar.map((oda, index) => {
           const kapak = oda.cover_url ?? oda.host?.avatar_url ?? null;
           return (
-            <Animated.View
+            <Pressable
               key={oda.id}
-              entering={FadeInRight.delay(50 + index * 55)
-                .duration(AnimasyonTokenlari.normal)
-                .springify()
-                .damping(16)}
+              onPress={() => onSec(oda)}
+              style={styles.kart}
+              accessibilityRole="button"
+              accessibilityLabel={`Trend oda: ${oda.title}`}
             >
-              <Pressable
-                onPress={() => onSec(oda)}
-                style={({ pressed }) => [styles.kart, pressed && styles.basili]}
-                accessibilityRole="button"
-                accessibilityLabel={`Trend oda: ${oda.title}`}
-              >
-                {kapak ? (
-                  <Image source={{ uri: kapak }} style={styles.kapak} />
-                ) : (
-                  <LinearGradient
-                    colors={['#3A1A38', '#1A1226', '#121018']}
-                    style={styles.kapak}
-                  />
-                )}
+              {kapak ? (
+                <Image source={{ uri: kapak }} style={styles.kapak} />
+              ) : (
                 <LinearGradient
-                  colors={['rgba(14,8,20,0.05)', 'rgba(14,8,20,0.92)']}
-                  style={StyleSheet.absoluteFill}
+                  colors={[...RenkTokenlari.gradientPlaceholder]}
+                  style={styles.kapak}
                 />
+              )}
+              <LinearGradient
+                colors={[...RenkTokenlari.overlayGradient]}
+                style={StyleSheet.absoluteFill}
+              />
 
-                <View style={styles.ust}>
-                  <View style={styles.sira}>
-                    <Text style={styles.siraYazi}>#{index + 1}</Text>
-                  </View>
-                  <View style={styles.canli}>
-                    <AnaSayfaCanliNokta boyut={4} />
-                    <Text style={styles.canliYazi}>CANLI</Text>
-                  </View>
+              <View style={styles.ust}>
+                <View style={styles.sira}>
+                  <Text style={styles.siraYazi}>#{index + 1}</Text>
                 </View>
+                <View style={styles.canli}>
+                  <AnaSayfaCanliNokta boyut={4} />
+                  <Text style={styles.canliYazi}>CANLI</Text>
+                </View>
+              </View>
 
-                <View style={styles.alt}>
-                  <Text style={styles.baslik} numberOfLines={2}>
-                    {oda.title}
+              <View style={styles.alt}>
+                <Text style={styles.baslik} numberOfLines={2}>
+                  {oda.title}
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    if (oda.host_id && onHost) onHost(oda.host_id);
+                    else onSec(oda);
+                  }}
+                  hitSlop={4}
+                  style={styles.hostSatir}
+                >
+                  <Text style={styles.host} numberOfLines={1}>
+                    {oda.host?.display_name ?? 'Ev sahibi'}
                   </Text>
-                  <Pressable
-                    onPress={() => {
-                      if (oda.host_id && onHost) onHost(oda.host_id);
-                      else onSec(oda);
-                    }}
-                    hitSlop={4}
-                    style={styles.hostSatir}
-                  >
-                    <Text style={styles.host} numberOfLines={1}>
-                      {oda.host?.display_name ?? 'Ev sahibi'}
-                    </Text>
-                    <View style={styles.dinleyici}>
-                      <Ionicons
-                        name="headset"
-                        size={11}
-                        color={RenkTokenlari.primarySoft}
-                      />
-                      <Text style={styles.dinleyiciYazi}>{oda.listener_count}</Text>
-                    </View>
-                  </Pressable>
-                </View>
-              </Pressable>
-            </Animated.View>
+                  <View style={styles.dinleyici}>
+                    <Ionicons
+                      name="headset"
+                      size={11}
+                      color={RenkTokenlari.primarySoft}
+                    />
+                    <Text style={styles.dinleyiciYazi}>{oda.listener_count}</Text>
+                  </View>
+                </Pressable>
+              </View>
+            </Pressable>
           );
         })}
       </ScrollView>
@@ -114,11 +105,11 @@ const styles = StyleSheet.create({
     marginBottom: BoslukTokenlari.md,
   },
   baslikPad: {
-    paddingHorizontal: 0,
+    paddingHorizontal: BoslukTokenlari.lg,
   },
   serit: {
     gap: BoslukTokenlari.sm + 2,
-    paddingRight: BoslukTokenlari.xs,
+    paddingHorizontal: BoslukTokenlari.lg,
   },
   kart: {
     width: 168,
@@ -129,9 +120,8 @@ const styles = StyleSheet.create({
     borderColor: RenkTokenlari.borderAccent,
     justifyContent: 'space-between',
   },
-  basili: { opacity: 0.92, transform: [{ scale: 0.98 }] },
   kapak: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   ust: {
     flexDirection: 'row',
@@ -156,7 +146,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(8, 4, 14, 0.55)',
+    backgroundColor: RenkTokenlari.chipFill,
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: YaricapTokenlari.pill,
@@ -172,7 +162,7 @@ const styles = StyleSheet.create({
   },
   baslik: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.text,
+    color: RenkTokenlari.textOnOverlay,
     fontWeight: '700',
     lineHeight: 16,
   },

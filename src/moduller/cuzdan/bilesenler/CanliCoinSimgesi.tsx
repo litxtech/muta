@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useAnimatedStyle,
@@ -95,7 +95,8 @@ export function CanliCoinSimgesi({
   );
 }
 
-/** Hediye için giriş animasyonu + seçilince hafif nabız */
+/** Hediye için giriş animasyonu + seçilince hafif nabız.
+ * Android: grid'de 50 spring UI dondurur → statik emoji; nabız yalnız seçilide tek vuruş. */
 export function CanliHediyeSimgesi({
   emoji,
   size = 40,
@@ -107,39 +108,56 @@ export function CanliHediyeSimgesi({
   delayMs?: number;
   secili?: boolean;
 }) {
-  const giris = useSharedValue(0);
+  const android = Platform.OS === 'android';
+  const giris = useSharedValue(android ? 1 : 0);
   const nabiz = useSharedValue(1);
 
   useEffect(() => {
+    if (android) {
+      giris.value = 1;
+      return;
+    }
     giris.value = 0;
     giris.value = withDelay(
-      delayMs,
-      withSpring(1, { damping: 12, stiffness: 160, mass: 0.7 }),
+      Math.min(delayMs, 120),
+      withSpring(1, { damping: 14, stiffness: 180, mass: 0.6 }),
     );
-  }, [delayMs, giris, emoji]);
+  }, [android, delayMs, giris, emoji]);
 
   useEffect(() => {
-    if (secili) {
-      nabiz.value = withRepeat(
-        withSequence(
-          withTiming(1.14, { duration: 520 }),
-          withTiming(1, { duration: 520 }),
-        ),
-        -1,
-        false,
-      );
-    } else {
-      nabiz.value = withTiming(1, { duration: 180 });
+    if (!secili) {
+      nabiz.value = withTiming(1, { duration: 120 });
+      return;
     }
-  }, [nabiz, secili]);
+    if (android) {
+      // Sonsuz loop yok — tek vuruş
+      nabiz.value = withSequence(
+        withTiming(1.12, { duration: 140 }),
+        withTiming(1, { duration: 160 }),
+      );
+      return;
+    }
+    nabiz.value = withRepeat(
+      withSequence(
+        withTiming(1.14, { duration: 520 }),
+        withTiming(1, { duration: 520 }),
+      ),
+      -1,
+      false,
+    );
+  }, [android, nabiz, secili]);
 
   const stil = useAnimatedStyle(() => ({
     opacity: giris.value,
     transform: [
       { scale: (0.35 + giris.value * 0.65) * nabiz.value },
-      { translateY: (1 - giris.value) * 10 },
+      { translateY: android ? 0 : (1 - giris.value) * 10 },
     ],
   }));
+
+  if (android && !secili) {
+    return <Text style={{ fontSize: size }}>{emoji}</Text>;
+  }
 
   return (
     <Animated.View style={stil}>

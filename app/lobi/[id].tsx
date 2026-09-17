@@ -17,6 +17,7 @@ import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri'
 import {
   OdaGirisYetkisiniKontrolEt,
   OdaKapasitesiniKontrolEt,
+  OdaUyeligiVarMi,
 } from '../../src/moduller/oda-lobisi/islemler/OdaGirisKontrolleri';
 import {
   LobiKatilimcilariniGetir,
@@ -27,7 +28,6 @@ import {
   OdaToplulukOnayiVarMi,
   OdaToplulukOnayiniKaydet,
 } from '../../src/moduller/oda-lobisi/depolama/OdaToplulukOnayi';
-import { LobiCanliVideoSahne } from '../../src/moduller/oda-lobisi/bilesenler/LobiCanliVideoSahne';
 import { PolitikaOkumaPaneli } from '../../src/moduller/politikalar/bilesenler/PolitikaOkumaPaneli';
 import {
   POLITIKA_LISTESI,
@@ -35,7 +35,6 @@ import {
   type PolitikaTanimi,
 } from '../../src/moduller/politikalar/icerik/PolitikaMetinleri';
 import { ProfilAvatarKucuk } from '../../src/moduller/canli-sohbet/bilesenler/ProfilAvatarKucuk';
-import { AnaSayfaCanliNokta } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaCanliNokta';
 import { CamArkaplan } from '../../src/bilesenler/yuzey/CamArkaplan';
 import { joinRoom } from '../../src/services/api';
 import type { Room } from '../../src/types/models';
@@ -45,6 +44,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { OdaCikisKilidiAktifMi } from '../../src/moduller/ses-odalari/navigasyon/OdaCikisKilidi';
 
 type LobiKisi = {
   user_id: string;
@@ -58,7 +58,8 @@ type LobiKisi = {
 };
 
 /**
- * Oda lobisi — canlı video tiyatrosu (tam ekran insanlar + cam alt panel).
+ * Oda lobisi — ses odasına girmeden önce politika / onay bekletme.
+ * Ambient video giriş (auth) lobisinde; burada değil.
  */
 export default function OdaLobisiEkrani() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -71,6 +72,43 @@ export default function OdaLobisiEkrani() {
   const [hatirlatmaOk, setHatirlatmaOk] = useState(false);
   const [okunan, setOkunan] = useState<PolitikaTanimi | null>(null);
   const ayrildi = useRef(false);
+  const giriyorRef = useRef(false);
+  /** Modal altinda lobi kalirsa focus'ta tekrar odaya sokulmasin */
+  const otomatikGirisYapildi = useRef(false);
+
+  const odayaDogruGec = useCallback(async (hedef: Room) => {
+    if (!id || !user || giriyorRef.current) return false;
+    giriyorRef.current = true;
+    setGiriyor(true);
+    try {
+      const hostMu = user.id === hedef.host_id;
+      if (!hostMu) {
+        const uyeMi = await OdaUyeligiVarMi(hedef.id, user.id);
+        if (!uyeMi) {
+          const kapasite = await OdaKapasitesiniKontrolEt({
+            listener_count: hedef.listener_count,
+            audience_capacity: hedef.audience_capacity,
+          });
+          if (!kapasite.ok) {
+            Alert.alert('Dolu', kapasite.hata);
+            return false;
+          }
+        }
+      }
+      await OdaToplulukOnayiniKaydet();
+      ayrildi.current = true;
+      await LobidenAyril(id);
+      await joinRoom(hedef.id, user.id, hostMu ? 'host' : 'listener');
+      router.replace(`/room/${hedef.id}` as any);
+      return true;
+    } catch (e) {
+      Alert.alert('Giriş', e instanceof Error ? e.message : 'Hata');
+      return false;
+    } finally {
+      giriyorRef.current = false;
+      setGiriyor(false);
+    }
+  }, [id, user]);
 
   const yukle = useCallback(async () => {
     if (!id) return;
@@ -88,23 +126,39 @@ export default function OdaLobisiEkrani() {
         return;
       }
       setOda(yetki.oda);
+      const onayli = await OdaToplulukOnayiVarMi();
+      setHatirlatmaOk(onayli);
+
+      // İlk açılışta onaylıysa doğrudan gir; odadan dönüşte tekrar sokma
+      if (onayli && !otomatikGirisYapildi.current) {
+        otomatikGirisYapildi.current = true;
+        const gecti = await odayaDogruGec(yetki.oda);
+        if (gecti) return;
+        // Dolu / hata: lobiyi göster (onay zaten işaretli)
+      }
+
       await LobiyeKatil(id);
       const liste = await LobiKatilimcilariniGetir(id);
       setKisiler(liste);
-      setHatirlatmaOk(await OdaToplulukOnayiVarMi());
     } catch (e) {
       Alert.alert('Lobi', e instanceof Error ? e.message : 'Yüklenemedi');
     } finally {
       setYukleniyor(false);
     }
-  }, [id, user]);
+  }, [id, user, odayaDogruGec]);
 
   useFocusEffect(
     useCallback(() => {
+      // Odadan cikis: dismissAll lobiyi anlik focus eder
+      if (OdaCikisKilidiAktifMi()) {
+        return;
+      }
       ayrildi.current = false;
       void yukle();
       return () => {
-        if (id && !ayrildi.current) void LobidenAyril(id);
+        if (id && !ayrildi.current && !OdaCikisKilidiAktifMi()) {
+          void LobidenAyril(id);
+        }
       };
     }, [yukle, id]),
   );
@@ -128,198 +182,200 @@ export default function OdaLobisiEkrani() {
       );
       return;
     }
-    setGiriyor(true);
-    try {
-      const hostMu = user.id === oda.host_id;
-      if (!hostMu) {
-        const kapasite = await OdaKapasitesiniKontrolEt({
-          listener_count: oda.listener_count,
-          audience_capacity: oda.audience_capacity,
-        });
-        if (!kapasite.ok) {
-          Alert.alert('Dolu', kapasite.hata);
-          return;
-        }
-      }
-      await OdaToplulukOnayiniKaydet();
-      ayrildi.current = true;
-      await LobidenAyril(id);
-      await joinRoom(oda.id, user.id, hostMu ? 'host' : 'listener');
-      router.replace(`/room/${oda.id}` as any);
-    } catch (e) {
-      Alert.alert('Giriş', e instanceof Error ? e.message : 'Hata');
-    } finally {
-      setGiriyor(false);
-    }
+    await odayaDogruGec(oda);
   };
 
-  const izleyici = Math.max(kisiler.length, oda?.listener_count ?? 0);
+  const onayToggle = () => {
+    setHatirlatmaOk((v) => {
+      const next = !v;
+      if (next) void OdaToplulukOnayiniKaydet();
+      return next;
+    });
+  };
+
+  // Onaylı kullanıcıda / yüklemede onay paneli flaş etmesin
+  const onayEkraniGoster = !yukleniyor && !giriyor;
 
   return (
     <View style={styles.screen}>
       <ModulHataSiniri modulAdi="oda-lobisi">
-        <LobiCanliVideoSahne aktif={!okunan} />
+        <LinearGradient
+          colors={[...RenkTokenlari.gradientNight]}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
 
-        {/* Üst — canlı tiyatro bar */}
-        <View style={[styles.ust, { paddingTop: insets.top + 6 }]}>
-          <Pressable
-            onPress={() => guvenliGeriDon('/(tabs)/rooms')}
-            style={styles.yuvarlak}
-            hitSlop={10}
-          >
-            <Ionicons name="chevron-back" size={22} color="#fff" />
-          </Pressable>
-
-          <View style={styles.hostKart}>
-            <ProfilAvatarKucuk
-              size={36}
-              displayName={oda?.host?.display_name}
-              username={oda?.host?.username}
-              avatarUrl={oda?.host?.avatar_url ?? oda?.cover_url}
-            />
-            <View style={styles.hostCopy}>
-              <Text style={styles.odaAd} numberOfLines={1}>
-                {oda?.title ?? 'Lobi'}
-              </Text>
-              <Text style={styles.hostAd} numberOfLines={1}>
-                {oda?.host?.display_name ??
-                  (oda?.host?.username ? `@${oda.host.username}` : 'Ev sahibi')}
-              </Text>
-            </View>
+        {!onayEkraniGoster ? (
+          <View style={[styles.bekler, { paddingTop: insets.top }]}>
+            <ActivityIndicator color={RenkTokenlari.primary} size="large" />
+            <Text style={styles.beklerYazi}>Ses odasına giriliyor…</Text>
           </View>
-
-          <View style={styles.canliRozet}>
-            <AnaSayfaCanliNokta boyut={6} />
-            <Text style={styles.canliYazi}>CANLI</Text>
-          </View>
-
-          <View style={styles.izleyiciRozet}>
-            <Ionicons name="eye" size={14} color="#fff" />
-            <Text style={styles.izleyiciYazi}>{izleyici}</Text>
-          </View>
-
-          <Pressable
-            onPress={() => setOkunan(POLITIKA_METINLERI.child_safety)}
-            style={[styles.yuvarlak, styles.kalkan]}
-            hitSlop={8}
-          >
-            <Ionicons name="shield-checkmark" size={18} color="#fff" />
-          </Pressable>
-        </View>
-
-        {/* Ortada bekleyen avatar şeridi */}
-        <View style={styles.ortaSerit} pointerEvents="box-none">
-          {yukleniyor ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <View style={styles.avatarSerit}>
-              {kisiler.slice(0, 6).map((k) => (
-                <View key={k.user_id} style={styles.avatarHalka}>
-                  <ProfilAvatarKucuk
-                    size={44}
-                    displayName={k.profile?.display_name}
-                    username={k.profile?.username}
-                    avatarUrl={k.profile?.avatar_url}
-                  />
-                </View>
-              ))}
-              {kisiler.length === 0 ? (
-                <Text style={styles.ortaYazi}>Lobide insanlar birikiyor…</Text>
-              ) : (
-                <Text style={styles.ortaYazi}>{kisiler.length} kişi lobide</Text>
-              )}
-            </View>
-          )}
-        </View>
-
-        {/* Alt cam panel — politikalar + onay + CTA */}
-        <View style={[styles.alt, { paddingBottom: insets.bottom + 14 }]}>
-          <CamArkaplan
-            intensity={28}
-            tint="dark"
-            style={StyleSheet.absoluteFill}
-            fallbackColor="rgba(12,8,18,0.82)"
-            pointerEvents="none"
-          />
-          <Text style={styles.altBaslik}>Odaya girmeden önce</Text>
-          <Text style={styles.altAlt}>
-            Gerçek ortam · 18+ · çocuk korumada af yok, hesap kapatılır
-          </Text>
-
-          <View style={styles.politikaRow}>
-            {POLITIKA_LISTESI.map((p) => (
+        ) : (
+          <>
+            <View style={[styles.ust, { paddingTop: insets.top + 6 }]}>
               <Pressable
-                key={p.kod}
-                style={[
-                  styles.chip,
-                  p.kod === 'child_safety' && styles.chipDanger,
-                ]}
-                onPress={() => setOkunan(p)}
+                onPress={() => guvenliGeriDon('/(tabs)')}
+                style={styles.yuvarlak}
+                hitSlop={10}
               >
-                <Text
-                  style={[
-                    styles.chipYazi,
-                    p.kod === 'child_safety' && styles.chipYaziDanger,
-                  ]}
-                >
-                  {p.kod === 'tos'
-                    ? 'Kullanım'
-                    : p.kod === 'privacy'
-                      ? 'Gizlilik'
-                      : 'Çocuk koruma'}
+                <Ionicons name="chevron-back" size={22} color={RenkTokenlari.text} />
+              </Pressable>
+
+              <View style={styles.hostKart}>
+                <ProfilAvatarKucuk
+                  size={36}
+                  displayName={oda?.host?.display_name}
+                  username={oda?.host?.username}
+                  avatarUrl={oda?.host?.avatar_url ?? oda?.cover_url}
+                />
+                <View style={styles.hostCopy}>
+                  <Text style={styles.odaAd} numberOfLines={1}>
+                    {oda?.title ?? 'Lobi'}
+                  </Text>
+                  <Text style={styles.hostAd} numberOfLines={1}>
+                    {oda?.host?.display_name ??
+                      (oda?.host?.username
+                        ? `@${oda.host.username}`
+                        : 'Ev sahibi')}
+                  </Text>
+                </View>
+              </View>
+
+              <Pressable
+                onPress={() => setOkunan(POLITIKA_METINLERI.child_safety)}
+                style={[styles.yuvarlak, styles.kalkan]}
+                hitSlop={8}
+              >
+                <Ionicons name="shield-checkmark" size={18} color={RenkTokenlari.text} />
+              </Pressable>
+            </View>
+
+            <View style={styles.orta} pointerEvents="box-none">
+              <View style={styles.ortaKart}>
+                <Text style={styles.ortaBaslik}>Oda lobisi</Text>
+                <Text style={styles.ortaAlt}>
+                  Politikaları kabul et, sonra ses odasına gir
+                </Text>
+                <View style={styles.avatarSerit}>
+                  {kisiler.slice(0, 6).map((k) => (
+                    <View key={k.user_id} style={styles.avatarHalka}>
+                      <ProfilAvatarKucuk
+                        size={40}
+                        displayName={k.profile?.display_name}
+                        username={k.profile?.username}
+                        avatarUrl={k.profile?.avatar_url}
+                      />
+                    </View>
+                  ))}
+                </View>
+                <Text style={styles.ortaYazi}>
+                  {kisiler.length === 0
+                    ? 'Lobide henüz kimse yok'
+                    : `${kisiler.length} kişi lobide bekliyor`}
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.alt, { paddingBottom: insets.bottom + 14 }]}>
+              <CamArkaplan
+                intensity={28}
+                style={StyleSheet.absoluteFill}
+                fallbackColor={RenkTokenlari.tabBarFallback}
+                pointerEvents="none"
+              />
+              <Text style={styles.altBaslik}>Odaya girmeden önce</Text>
+              <Text style={styles.altAlt}>
+                18+ · çocuk korumada af yok, hesap kapatılır
+              </Text>
+
+              <View style={styles.politikaRow}>
+                {POLITIKA_LISTESI.map((p) => (
+                  <Pressable
+                    key={p.kod}
+                    style={[
+                      styles.chip,
+                      p.kod === 'child_safety' && styles.chipDanger,
+                    ]}
+                    onPress={() => setOkunan(p)}
+                  >
+                    <Text
+                      style={[
+                        styles.chipYazi,
+                        p.kod === 'child_safety' && styles.chipYaziDanger,
+                      ]}
+                    >
+                      {p.kod === 'tos'
+                        ? 'Kullanım'
+                        : p.kod === 'privacy'
+                          ? 'Gizlilik'
+                          : 'Çocuk koruma'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Pressable style={styles.onaySatir} onPress={onayToggle}>
+                <Ionicons
+                  name={hatirlatmaOk ? 'checkbox' : 'square-outline'}
+                  size={22}
+                  color={
+                    hatirlatmaOk
+                      ? RenkTokenlari.mint
+                      : 'rgba(255,255,255,0.55)'
+                  }
+                />
+                <Text style={styles.onayYazi}>
+                  Politikaları kabul ediyorum · çocuk korumada af yoktur
                 </Text>
               </Pressable>
-            ))}
-          </View>
 
-          <Pressable
-            style={styles.onaySatir}
-            onPress={() => setHatirlatmaOk((v) => !v)}
-          >
-            <Ionicons
-              name={hatirlatmaOk ? 'checkbox' : 'square-outline'}
-              size={22}
-              color={hatirlatmaOk ? RenkTokenlari.mint : 'rgba(255,255,255,0.55)'}
+              <LinearGradient
+                colors={[...RenkTokenlari.gradientPrimary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.ctaGrad}
+              >
+                <Pressable
+                  style={styles.cta}
+                  onPress={() => void odayaGir()}
+                  disabled={giriyor || yukleniyor || !oda}
+                >
+                  {giriyor ? (
+                    <ActivityIndicator color={RenkTokenlari.textOnPrimary} />
+                  ) : (
+                    <>
+                      <Ionicons name="mic" size={20} color={RenkTokenlari.textOnPrimary} />
+                      <Text style={styles.ctaYazi}>Ses odasına gir</Text>
+                    </>
+                  )}
+                </Pressable>
+              </LinearGradient>
+            </View>
+
+            <PolitikaOkumaPaneli
+              politika={okunan}
+              onKapat={() => setOkunan(null)}
             />
-            <Text style={styles.onayYazi}>
-              Politikaları kabul ediyorum · çocuk korumada af yoktur
-            </Text>
-          </Pressable>
-
-          <LinearGradient
-            colors={[...RenkTokenlari.gradientPrimary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.ctaGrad}
-          >
-            <Pressable
-              style={styles.cta}
-              onPress={() => void odayaGir()}
-              disabled={giriyor || yukleniyor || !oda}
-            >
-              {giriyor ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Ionicons name="videocam" size={20} color="#fff" />
-                  <Text style={styles.ctaYazi}>Canlı odaya gir</Text>
-                </>
-              )}
-            </Pressable>
-          </LinearGradient>
-        </View>
-
-        <PolitikaOkumaPaneli
-          politika={okunan}
-          onKapat={() => setOkunan(null)}
-        />
+          </>
+        )}
       </ModulHataSiniri>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#0A0610' },
+  screen: { flex: 1, backgroundColor: RenkTokenlari.bg },
+  bekler: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+  },
+  beklerYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    fontWeight: '600',
+  },
   ust: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -333,7 +389,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: RenkTokenlari.chipFill,
   },
   kalkan: { backgroundColor: 'rgba(232,75,106,0.45)' },
   hostKart: {
@@ -345,78 +401,64 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 6,
     borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: RenkTokenlari.border,
   },
   hostCopy: { flex: 1, minWidth: 0 },
   odaAd: {
     ...TipografiTokenlari.caption,
-    color: '#fff',
+    color: RenkTokenlari.text,
     fontWeight: '800',
   },
   hostAd: {
     ...TipografiTokenlari.micro,
-    color: 'rgba(255,255,255,0.7)',
+    color: RenkTokenlari.textMuted,
   },
-  canliRozet: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: YaricapTokenlari.pill,
-    backgroundColor: RenkTokenlari.live,
-  },
-  canliYazi: {
-    ...TipografiTokenlari.micro,
-    color: '#fff',
-    fontWeight: '900',
-    letterSpacing: 0.6,
-  },
-  izleyiciRozet: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
-    borderRadius: YaricapTokenlari.pill,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-  },
-  izleyiciYazi: {
-    ...TipografiTokenlari.micro,
-    color: '#fff',
-    fontWeight: '700',
-  },
-  ortaSerit: {
-    position: 'absolute',
-    left: 16,
-    right: 140,
-    top: '42%',
+  orta: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: BoslukTokenlari.xl,
     zIndex: 3,
+  },
+  ortaKart: {
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: RenkTokenlari.border,
+  },
+  ortaBaslik: {
+    ...TipografiTokenlari.h2,
+    color: RenkTokenlari.text,
+  },
+  ortaAlt: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    textAlign: 'center',
   },
   avatarSerit: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
+    marginTop: 4,
   },
   avatarHalka: {
-    borderRadius: 24,
+    borderRadius: 22,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.55)',
+    borderColor: RenkTokenlari.borderAccent,
   },
   ortaYazi: {
     ...TipografiTokenlari.caption,
-    color: 'rgba(255,255,255,0.85)',
+    color: RenkTokenlari.textMuted,
     fontWeight: '600',
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
   },
   alt: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     zIndex: 5,
     paddingHorizontal: BoslukTokenlari.lg,
     paddingTop: BoslukTokenlari.lg,
@@ -427,11 +469,11 @@ const styles = StyleSheet.create({
   },
   altBaslik: {
     ...TipografiTokenlari.h2,
-    color: '#fff',
+    color: RenkTokenlari.text,
   },
   altAlt: {
     ...TipografiTokenlari.micro,
-    color: 'rgba(255,255,255,0.65)',
+    color: RenkTokenlari.textMuted,
     marginTop: -4,
   },
   politikaRow: {
@@ -443,9 +485,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: YaricapTokenlari.pill,
-    backgroundColor: 'rgba(232,64,145,0.2)',
+    backgroundColor: RenkTokenlari.pressFill,
     borderWidth: 1,
-    borderColor: 'rgba(232,64,145,0.45)',
+    borderColor: RenkTokenlari.borderAccent,
   },
   chipDanger: {
     backgroundColor: 'rgba(232,75,106,0.22)',
@@ -456,7 +498,7 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.primarySoft,
     fontWeight: '800',
   },
-  chipYaziDanger: { color: '#FF8FA3' },
+  chipYaziDanger: { color: RenkTokenlari.danger },
   onaySatir: {
     flexDirection: 'row',
     gap: 10,
@@ -464,7 +506,7 @@ const styles = StyleSheet.create({
   },
   onayYazi: {
     ...TipografiTokenlari.caption,
-    color: 'rgba(255,255,255,0.78)',
+    color: RenkTokenlari.textMuted,
     flex: 1,
     lineHeight: 18,
   },
@@ -482,7 +524,7 @@ const styles = StyleSheet.create({
   },
   ctaYazi: {
     ...TipografiTokenlari.body,
-    color: '#fff',
+    color: RenkTokenlari.textOnPrimary,
     fontWeight: '800',
   },
 });

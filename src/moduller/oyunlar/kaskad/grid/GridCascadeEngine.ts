@@ -11,7 +11,10 @@ import {
   type GenerateCellOptions,
 } from '../grid/GridGenerator';
 import { LOW_SYMBOLS } from '../sabitler/KaskadSabitleri';
-import { EMPTY_INSTANCE_ID } from '../symbols/SymbolRules';
+import {
+  emptyInstanceId,
+  isEmptyInstanceId,
+} from '../symbols/SymbolRules';
 import type {
   GridCell,
   GridMatrix,
@@ -30,7 +33,7 @@ export function removeCellsByInstanceIds(
         next[r]![c] = {
           ...cell,
           symbolType: LOW_SYMBOLS[0] ?? 'blueCrystal',
-          instanceId: EMPTY_INSTANCE_ID,
+          instanceId: emptyInstanceId(r, c),
           multiplierValue: null,
         };
       }
@@ -60,7 +63,7 @@ export function applyGravityAndFill(
     const stack: GridCell[] = [];
     for (let r = rows - 1; r >= 0; r -= 1) {
       const cell = grid[r]![c]!;
-      if (cell.instanceId !== EMPTY_INSTANCE_ID) {
+      if (!isEmptyInstanceId(cell.instanceId)) {
         stack.push(cell);
       }
     }

@@ -34,6 +34,8 @@ type Props = {
   currentUserId?: string | null;
   hostId?: string | null;
   yenileSinyali?: number;
+  /** true: üst başlık gizlenir (çekilebilir kart kendi başlığını gösterir) */
+  baslikGizle?: boolean;
   onClose?: () => void;
 };
 
@@ -42,6 +44,7 @@ export function CanliYorumAkisi({
   currentUserId,
   hostId,
   yenileSinyali = 0,
+  baslikGizle = false,
   onClose,
 }: Props) {
   const [messages, setMessages] = useState<CanliSohbetMesajGorunum[]>([]);
@@ -178,19 +181,21 @@ export function CanliYorumAkisi({
 
   return (
     <View style={styles.root} pointerEvents="box-none">
-      <View style={styles.header} pointerEvents="box-none">
-        <Text style={styles.title}>Yorumlar</Text>
-        {onClose ? (
-          <Pressable
-            onPress={onClose}
-            hitSlop={12}
-            style={styles.close}
-            accessibilityLabel="Yorumları gizle"
-          >
-            <Ionicons name="chevron-down" size={16} color={RenkTokenlari.textMuted} />
-          </Pressable>
-        ) : null}
-      </View>
+      {!baslikGizle ? (
+        <View style={styles.header} pointerEvents="box-none">
+          <Text style={styles.title}>Yorumlar</Text>
+          {onClose ? (
+            <Pressable
+              onPress={onClose}
+              hitSlop={12}
+              style={styles.close}
+              accessibilityLabel="Yorumları gizle"
+            >
+              <Ionicons name="chevron-down" size={16} color={RenkTokenlari.textMuted} />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={styles.listWrap}>
         <CanliSohbetListeFade />

@@ -1,6 +1,7 @@
 /**
  * Platform politikaları kayıtta onaylanır.
  * Oda girişi için yalnızca tek seferlik hafif topluluk hatırlatması tutulur.
+ * Bir kez onaylandıysa sonraki girişlerde lobi onay ekranı atlanır.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

@@ -17,6 +17,7 @@ export async function createRoom(input: {
   hostId: string;
   title: string;
   topic?: string;
+  coverUrl?: string | null;
   mode: Room['mode'];
   maxSeats?: number;
   layoutCode?: string;
@@ -25,6 +26,28 @@ export async function createRoom(input: {
   audienceCapacity?: number;
   microphoneCapacity?: number;
 }): Promise<Room> {
+  // Host başına tek canlı oda
+  const mevcut = await supabase
+    .from('rooms')
+    .select('id, title')
+    .eq('host_id', input.hostId)
+    .eq('is_live', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (mevcut.data?.id) {
+    const err = new Error('MEVCUT_CANLI_ODA') as Error & {
+      code: string;
+      roomId: string;
+      roomTitle?: string;
+    };
+    err.code = 'MEVCUT_CANLI_ODA';
+    err.roomId = mevcut.data.id;
+    err.roomTitle = mevcut.data.title ?? undefined;
+    throw err;
+  }
+
   const maxSeats = Math.min(
     Math.max(input.maxSeats ?? input.microphoneCapacity ?? 8, 2),
     20,
@@ -34,6 +57,7 @@ export async function createRoom(input: {
     host_id: input.hostId,
     title: input.title,
     topic: input.topic ?? null,
+    cover_url: input.coverUrl ?? null,
     mode: input.mode,
     max_seats: maxSeats,
     is_live: true,
@@ -68,7 +92,29 @@ export async function createRoom(input: {
   }
 
   if (error || !data) {
-    throw new Error(error?.message ?? 'Oda olusturulamadi');
+    const mesaj = error?.message ?? 'Oda olusturulamadi';
+    if (/rooms_host_tek_canli|duplicate key|unique/i.test(mesaj)) {
+      const tekrar = await supabase
+        .from('rooms')
+        .select('id, title')
+        .eq('host_id', input.hostId)
+        .eq('is_live', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (tekrar.data?.id) {
+        const err = new Error('MEVCUT_CANLI_ODA') as Error & {
+          code: string;
+          roomId: string;
+          roomTitle?: string;
+        };
+        err.code = 'MEVCUT_CANLI_ODA';
+        err.roomId = tekrar.data.id;
+        err.roomTitle = tekrar.data.title ?? undefined;
+        throw err;
+      }
+    }
+    throw new Error(mesaj);
   }
 
   const seats = Array.from({ length: maxSeats }, (_, seat_index) => ({
@@ -120,13 +166,56 @@ export async function fetchRoom(roomId: string): Promise<Room | null> {
 }
 
 export async function fetchRoomSeats(roomId: string): Promise<RoomSeat[]> {
-  const { data, error } = await supabase
-    .from('room_seats')
-    .select('*, profile:profiles(*)')
-    .eq('room_id', roomId)
-    .order('seat_index');
-  if (error) throw error;
-  return (data as RoomSeat[]) ?? [];
+  const [seatsRes, membersRes] = await Promise.all([
+    supabase
+      .from('room_seats')
+      .select('*, profile:profiles(*)')
+      .eq('room_id', roomId)
+      .order('seat_index'),
+    supabase
+      .from('room_members')
+      .select('user_id, role')
+      .eq('room_id', roomId),
+  ]);
+  if (seatsRes.error) throw seatsRes.error;
+  const roleMap = new Map<string, string>();
+  for (const m of membersRes.data ?? []) {
+    if (m.user_id) roleMap.set(m.user_id as string, m.role as string);
+  }
+
+  let seats = ((seatsRes.data as RoomSeat[]) ?? []).map((s) => {
+    const role = s.user_id ? roleMap.get(s.user_id) : undefined;
+    return {
+      ...s,
+      member_role: (role as RoomSeat['member_role']) ?? null,
+      is_cohost: role === 'cohost',
+    };
+  });
+
+  // Profil join bazen null döner — dolu koltuk boş gibi görünmesin
+  const eksikIds = [
+    ...new Set(
+      seats
+        .filter((s) => s.user_id && !s.profile)
+        .map((s) => s.user_id as string),
+    ),
+  ];
+  if (eksikIds.length > 0) {
+    const { data: profiller } = await supabase
+      .from('profiles')
+      .select('*')
+      .in('id', eksikIds);
+    if (profiller?.length) {
+      const pMap = new Map(profiller.map((p) => [p.id as string, p]));
+      seats = seats.map((s) =>
+        s.user_id && !s.profile && pMap.has(s.user_id)
+          ? { ...s, profile: pMap.get(s.user_id) as RoomSeat['profile'] }
+          : s,
+      );
+    }
+  }
+
+  return seats;
 }
 
 export async function joinRoom(
@@ -165,18 +254,24 @@ export async function joinRoom(
   }
 }
 
-/** Odadan güvenli çıkış — koltuk + üyelik temizliği */
-export async function leaveRoom(roomId: string, userId: string) {
+/** Odadan güvenli çıkış — koltuk + üyelik temizliği (RLS: security definer RPC) */
+export async function leaveRoom(roomId: string, _userId?: string) {
+  const { error } = await supabase.rpc('odadan_ayril', { p_room_id: roomId });
+  if (!error) return;
+
+  // RPC yoksa (eski remote): doğrudan deneme — koltuk host RLS ile sessizce başarısız olabilir
+  const uid = _userId ?? (await supabase.auth.getUser()).data.user?.id;
+  if (!uid) return;
   await supabase
     .from('room_seats')
     .update({ user_id: null })
     .eq('room_id', roomId)
-    .eq('user_id', userId);
+    .eq('user_id', uid);
   await supabase
     .from('room_members')
     .delete()
     .eq('room_id', roomId)
-    .eq('user_id', userId);
+    .eq('user_id', uid);
 }
 
 export async function fetchGifts(): Promise<Gift[]> {

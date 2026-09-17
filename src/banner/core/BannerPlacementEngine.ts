@@ -31,7 +31,9 @@ export function resolveFeedInlinePlacement(
 ): string | null {
   const n = postIndexZeroBased + 1;
   if (n === 3) return 'FEED_AFTER_POST_3';
+  if (n === 6) return 'FEED_AFTER_POST_6';
   if (n === 8) return 'FEED_AFTER_POST_8';
+  if (n === 14) return 'FEED_AFTER_POST_14';
   return null;
 }
 

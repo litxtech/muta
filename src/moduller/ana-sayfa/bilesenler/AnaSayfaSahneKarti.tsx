@@ -49,7 +49,7 @@ export function AnaSayfaSahneKarti({ room, onPress, onKesfet }: Props) {
             <Image source={{ uri: kapak }} style={StyleSheet.absoluteFill} />
           ) : (
             <LinearGradient
-              colors={['#3A1838', '#1A1024', '#0E0A14']}
+              colors={[...RenkTokenlari.gradientPlaceholder]}
               start={{ x: 0.1, y: 0 }}
               end={{ x: 0.9, y: 1 }}
               style={StyleSheet.absoluteFill}
@@ -57,7 +57,7 @@ export function AnaSayfaSahneKarti({ room, onPress, onKesfet }: Props) {
           )}
 
           <LinearGradient
-            colors={['rgba(12,6,18,0.15)', 'rgba(12,6,18,0.55)', 'rgba(8,4,14,0.96)']}
+            colors={[...RenkTokenlari.overlayGradient]}
             locations={[0, 0.45, 1]}
             style={StyleSheet.absoluteFill}
           />
@@ -79,13 +79,23 @@ export function AnaSayfaSahneKarti({ room, onPress, onKesfet }: Props) {
             <Text style={styles.baslik} numberOfLines={2}>
               {room.title}
             </Text>
+            {room.topic ? (
+              <Text style={styles.aciklama} numberOfLines={2}>
+                {room.topic}
+              </Text>
+            ) : null}
+            {room.room_code ? (
+              <Text style={styles.odaKod} numberOfLines={1}>
+                {room.room_code}
+              </Text>
+            ) : null}
             <View style={styles.metaSatir}>
               <View style={styles.hostSatir}>
                 <LinearGradient
                   colors={[...RenkTokenlari.gradientPrimary]}
                   style={styles.avatar}
                 >
-                  <Ionicons name="person" size={12} color="#12040C" />
+                  <Ionicons name="person" size={12} color={RenkTokenlari.textOnPrimary} />
                 </LinearGradient>
                 <Text style={styles.host} numberOfLines={1}>
                   {room.host?.display_name ?? 'Ev sahibi'}
@@ -105,7 +115,7 @@ export function AnaSayfaSahneKarti({ room, onPress, onKesfet }: Props) {
                 style={styles.ctaIc}
               >
                 <Text style={styles.ctaYazi}>Sahneye gir</Text>
-                <Ionicons name="arrow-forward" size={16} color="#12040C" />
+                <Ionicons name="arrow-forward" size={16} color={RenkTokenlari.textOnPrimary} />
               </LinearGradient>
             </View>
           </View>
@@ -131,7 +141,7 @@ export function AnaSayfaSahneBos({ onKesfet, onOlustur }: BosProps) {
   return (
     <View style={styles.dis}>
       <LinearGradient
-        colors={['#2A1830', '#16101F', '#100C18']}
+        colors={[...RenkTokenlari.gradientPlaceholder]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.bosSahne}
@@ -213,7 +223,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(8, 4, 14, 0.55)',
+    backgroundColor: RenkTokenlari.chipFill,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: YaricapTokenlari.pill,
@@ -239,10 +249,25 @@ const styles = StyleSheet.create({
   },
   baslik: {
     ...TipografiTokenlari.title,
-    color: RenkTokenlari.text,
+    color: RenkTokenlari.textOnOverlay,
     fontSize: 26,
     lineHeight: 30,
     letterSpacing: -0.6,
+  },
+  aciklama: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textOnOverlay,
+    opacity: 0.78,
+    marginTop: 2,
+    marginBottom: 2,
+  },
+  odaKod: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.mint,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    marginTop: 2,
+    marginBottom: 4,
   },
   metaSatir: {
     flexDirection: 'row',
@@ -266,21 +291,22 @@ const styles = StyleSheet.create({
   },
   host: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
+    color: RenkTokenlari.textOnOverlay,
+    opacity: 0.82,
     flex: 1,
   },
   dinleyici: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: RenkTokenlari.chipFill,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: YaricapTokenlari.pill,
   },
   dinleyiciYazi: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.text,
+    color: RenkTokenlari.textOnOverlay,
   },
   cta: {
     marginTop: BoslukTokenlari.xs,
@@ -298,7 +324,7 @@ const styles = StyleSheet.create({
   ctaYazi: {
     ...TipografiTokenlari.body,
     fontWeight: '800',
-    color: '#12040C',
+    color: RenkTokenlari.textOnPrimary,
   },
   kesfetBag: {
     flexDirection: 'row',
@@ -354,7 +380,7 @@ const styles = StyleSheet.create({
   bosBtnAnaYazi: {
     ...TipografiTokenlari.body,
     fontWeight: '800',
-    color: '#12040C',
+    color: RenkTokenlari.textOnPrimary,
   },
   bosBtnIkincil: {
     paddingHorizontal: 14,

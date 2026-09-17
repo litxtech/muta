@@ -41,6 +41,7 @@ import {
 import type { ThreadKarsiProfil } from '../../src/moduller/gorusme/tipler';
 import { KullaniciGuvenlikMenusu } from '../../src/moduller/moderasyon/bilesenler/KullaniciGuvenlikMenusu';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
+import { ImagePickerOnIsit } from '../../src/ortak/medya/ImagePickerHazirMi';
 import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediyeMagaza';
 import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
@@ -75,6 +76,10 @@ export default function MesajDetayEkrani() {
     mediaUrl?: string | null;
   } | null>(null);
   const listRef = useRef<FlatList<DirektMesaj>>(null);
+
+  useEffect(() => {
+    ImagePickerOnIsit({ izinIste: true });
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;

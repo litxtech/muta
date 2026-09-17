@@ -1,0 +1,24 @@
+---
+description: YuzenTabBar dokunuş mimarisi — BlurView/jest tab’ı bozmasın
+globs: src/components/YuzenTabBar.tsx,src/bilesenler/yuzey/CamArkaplan.tsx,app/(tabs)/_layout.tsx,src/moduller/ana-sayfa/bilesenler/AnaSayfaCekmeceMenu.tsx
+alwaysApply: false
+---
+
+# YuzenTabBar — kalıcı dokunuş kuralları
+
+Tab menü tekrar tekrar bozuluyordu. Aşağıdakiler **zorunlu**:
+
+## Yapı
+1. **Dekor katmanı** (CamArkaplan / BlurView / overlay): `pointerEvents="none"`, absolute, Pressable’ı **sarmamaz**.
+2. **Hit katmanı**: düz `react-native` `Pressable` (RNGH Pressable / GestureDetector **yok**).
+3. Tab bar `zIndex` + `elevation` ≥ **200** — feed drawer elevation tab’ı ezmesin.
+4. Sıra sabit: Ana · Durum | + | Mesaj · Profil.
+
+## Yasak
+- BlurView / CamArkaplan ile tab butonlarını sarmak
+- Tab bar’a GestureDetector / long-press pan eklemek
+- Tab bar `zIndex`/`elevation` değerini 200’ün altına düşürmek
+- `AnaSayfaCekmeceMenu` içeriğine tab bar’dan yüksek elevation vermek
+
+## Değiştirirken
+Önce `YuzenTabBar.tsx` üstündeki mimari yorumunu oku; dokunuş sırasını bozmadan stil güncelle.

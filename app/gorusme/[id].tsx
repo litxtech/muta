@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Keyboard, StyleSheet, View } from 'react-native';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { useAuth } from '../../src/contexts/AuthContext';
@@ -16,6 +17,8 @@ import type { DirectCall, ThreadKarsiProfil } from '../../src/moduller/gorusme/t
 import { supabase } from '../../src/lib/supabase';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
+
+const KEEP_TAG = 'gorusme-call';
 
 export default function GorusmeEkrani() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,6 +38,7 @@ export default function GorusmeEkrani() {
       Keyboard.dismiss();
       await GorusmeBitir(id, reason);
       await MedyaOdasiKes();
+      void deactivateKeepAwake(KEEP_TAG);
       if (router.canGoBack()) router.back();
       else router.replace('/(tabs)/messages');
     },
@@ -44,6 +48,13 @@ export default function GorusmeEkrani() {
   useEffect(() => {
     // Mesaj composer'dan gelince klavye açık kalmasın (kamera/izin kilidi)
     Keyboard.dismiss();
+  }, []);
+
+  useEffect(() => {
+    void activateKeepAwakeAsync(KEEP_TAG);
+    return () => {
+      void deactivateKeepAwake(KEEP_TAG);
+    };
   }, []);
 
   useEffect(() => {
@@ -59,6 +70,8 @@ export default function GorusmeEkrani() {
         setCall(c);
         const isVideo = c.call_type === 'video';
         setCameraOn(isVideo);
+        // Sesli aramada kulaklık varsayılan (WhatsApp); görüntülüde hoparlör
+        setSpeaker(isVideo);
 
         const benArayan = c.caller_id === user?.id;
         if (c.status === 'ringing' && benArayan) {
@@ -90,6 +103,7 @@ export default function GorusmeEkrani() {
             roomName: c.channel_name,
             role: 'host',
             video: isVideo,
+            gorusmeModu: true,
           }),
         ]);
         if (!alive) return;
@@ -108,7 +122,7 @@ export default function GorusmeEkrani() {
           return;
         }
         setMock(false);
-        void LiveKitBaglantiYoneticisi.setSpeakerphone(true);
+        void LiveKitBaglantiYoneticisi.setSpeakerphone(isVideo);
         // Mikrofonu açık tut (muted state false ile senkron)
         LiveKitBaglantiYoneticisi.muteLocalAudio(false);
 
@@ -152,9 +166,11 @@ export default function GorusmeEkrani() {
             if (next.call_type === 'video') {
               LiveKitBaglantiYoneticisi.setLocalVideoEnabled(true);
             }
+            LiveKitBaglantiYoneticisi.muteLocalAudio(false);
           }
           if (['ended', 'rejected', 'missed', 'cancelled'].includes(next.status)) {
             void MedyaOdasiKes();
+            void deactivateKeepAwake(KEEP_TAG);
             if (router.canGoBack()) router.back();
             else router.replace('/(tabs)/messages');
           }
@@ -167,6 +183,7 @@ export default function GorusmeEkrani() {
       korumaStop?.();
       void supabase.removeChannel(channel);
       void MedyaOdasiKes();
+      void deactivateKeepAwake(KEEP_TAG);
     };
   }, [id, user?.id]);
 
@@ -188,7 +205,7 @@ export default function GorusmeEkrani() {
   const isCaller = call?.caller_id === user?.id;
 
   return (
-    <Screen edges={['top', 'bottom']}>
+    <Screen koyuSahne edges={['top', 'bottom']}>
       <ModulHataSiniri
         modulAdi="görüşme"
         varyant="ekran"
@@ -209,6 +226,13 @@ export default function GorusmeEkrani() {
             onMute={() => setMuted((v) => !v)}
             onSpeaker={() => setSpeaker((v) => !v)}
             onCamera={isVideo ? () => setCameraOn((v) => !v) : undefined}
+            onFlip={
+              isVideo
+                ? () => {
+                    void LiveKitBaglantiYoneticisi.kameraCevir();
+                  }
+                : undefined
+            }
             onHangup={() => void bitir('hangup')}
           />
         </View>

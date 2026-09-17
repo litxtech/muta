@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TamusoBanner } from './TamusoBanner';
+import { FEED_BANNER_AFTER_INDEXES } from '../core/BannerConstants';
 import { BoslukTokenlari } from '../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export type FeedBannerRow<T> =
@@ -8,12 +9,11 @@ export type FeedBannerRow<T> =
   | { kind: 'banner'; key: string; placement: string };
 
 /**
- * 2 kolon feed + after-post banner satırları.
- * Placement engine karar verir; feed dosyasına reklam mantığı gömülmez.
+ * 2 kolon feed + after-post banner satırları (yatay şerit).
  */
 export function buildFeedBannerRows<T extends { id: string }>(
   items: T[],
-  afterPostIndexes: number[] = [3, 8],
+  afterPostIndexes: readonly number[] = FEED_BANNER_AFTER_INDEXES,
 ): FeedBannerRow<T>[] {
   const after = new Set(afterPostIndexes.filter((n) => n > 0));
   const rows: FeedBannerRow<T>[] = [];
@@ -54,7 +54,7 @@ export function FeedBannerRowView({
 }): ReactElement {
   return (
     <View style={styles.row}>
-      <TamusoBanner placement={placement} screen="FEED" />
+      <TamusoBanner placement={placement} screen="FEED" compact />
     </View>
   );
 }

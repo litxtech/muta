@@ -149,110 +149,135 @@ export function useOyunOturumu(sessionId: string | undefined) {
     }
 
     const topic = gameChannelName(sessionId);
-    for (const ch of supabase.getChannels()) {
-      if (ch.topic === `realtime:${topic}` || ch.topic === topic) {
-        void supabase.removeChannel(ch);
-      }
-    }
-
-    // Tablolar henüz Database tipine ekli olmayabilir — mevcut proje deseni
+    let cancelled = false;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const kanal: any = supabase.channel(topic);
+    let kanal: any = null;
+    let attempt = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-    kanal
-      .on('broadcast', { event: 'game_event' }, ({ payload }: { payload: GameRealtimeEvent }) => {
-        const event = payload as GameRealtimeEvent;
-        if (event && typeof event === 'object' && 'type' in event) {
-          uygulaEvent(event);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bind = (k: any) =>
+      k
+        .on('broadcast', { event: 'game_event' }, ({ payload }: { payload: GameRealtimeEvent }) => {
+          const event = payload as GameRealtimeEvent;
+          if (event && typeof event === 'object' && 'type' in event) {
+            uygulaEvent(event);
+          }
+        })
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'game_sessions',
+            filter: `id=eq.${sessionId}`,
+          },
+          (payload: { new: GameSession }) => {
+            if (payload.new?.id) {
+              setDurum((prev) => ({
+                ...prev,
+                session: payload.new,
+                status: payload.new.status,
+              }));
+            }
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'game_session_players',
+            filter: `session_id=eq.${sessionId}`,
+          },
+          (payload: { new: GameSessionPlayer }) => {
+            if (payload.new?.user_id) {
+              setDurum((prev) => ({
+                ...prev,
+                players: upsertPlayer(prev.players, payload.new),
+              }));
+            }
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'game_scores',
+            filter: `session_id=eq.${sessionId}`,
+          },
+          (payload: {
+            new: {
+              user_id: string;
+              score: number;
+              highest_combo: number;
+              move_count: number;
+            };
+          }) => {
+            const row = payload.new;
+            if (!row?.user_id) return;
+            setDurum((prev) => ({
+              ...prev,
+              players: prev.players.map((p) =>
+                p.user_id === row.user_id
+                  ? {
+                      ...p,
+                      score: Number(row.score ?? p.score),
+                      combo_max: Number(row.highest_combo ?? p.combo_max),
+                      move_count: Number(row.move_count ?? p.move_count),
+                    }
+                  : p,
+              ),
+              lastEvent: {
+                type: 'score_update',
+                userId: row.user_id,
+                score: Number(row.score ?? 0),
+                comboMax: Number(row.highest_combo ?? 0),
+                moveCount: Number(row.move_count ?? 0),
+              },
+            }));
+          },
+        );
+
+    const baglan = () => {
+      if (cancelled) return;
+      for (const ch of supabase.getChannels()) {
+        if (ch.topic === `realtime:${topic}` || ch.topic === topic) {
+          void supabase.removeChannel(ch);
         }
-      })
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'game_sessions',
-          filter: `id=eq.${sessionId}`,
-        },
-        (payload: { new: GameSession }) => {
-          if (payload.new?.id) {
-            setDurum((prev) => ({
-              ...prev,
-              session: payload.new,
-              status: payload.new.status,
-            }));
-          }
-        },
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'game_session_players',
-          filter: `session_id=eq.${sessionId}`,
-        },
-        (payload: { new: GameSessionPlayer }) => {
-          if (payload.new?.user_id) {
-            setDurum((prev) => ({
-              ...prev,
-              players: upsertPlayer(prev.players, payload.new),
-            }));
-          }
-        },
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'game_scores',
-          filter: `session_id=eq.${sessionId}`,
-        },
-        (payload: {
-          new: {
-            user_id: string;
-            score: number;
-            highest_combo: number;
-            move_count: number;
-          };
-        }) => {
-          const row = payload.new;
-          if (!row?.user_id) return;
-          setDurum((prev) => ({
-            ...prev,
-            players: prev.players.map((p) =>
-              p.user_id === row.user_id
-                ? {
-                    ...p,
-                    score: Number(row.score ?? p.score),
-                    combo_max: Number(row.highest_combo ?? p.combo_max),
-                    move_count: Number(row.move_count ?? p.move_count),
-                  }
-                : p,
-            ),
-            lastEvent: {
-              type: 'score_update',
-              userId: row.user_id,
-              score: Number(row.score ?? 0),
-              comboMax: Number(row.highest_combo ?? 0),
-              moveCount: Number(row.move_count ?? 0),
-            },
-          }));
-        },
-      )
-      .subscribe((status: string) => {
+      }
+      // Tablolar henüz Database tipine ekli olmayabilir — mevcut proje deseni
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      kanal = bind(supabase.channel(topic));
+      kanal.subscribe((status: string) => {
+        if (cancelled) return;
         const bagli = status === 'SUBSCRIBED';
         setDurum((prev) => ({ ...prev, bagli }));
-        if (status === 'CHANNEL_ERROR') {
-          GameLogger.warn('oyun kanal hatası', { sessionId, topic });
+        if (status === 'SUBSCRIBED') {
+          attempt = 0;
+          return;
+        }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          GameLogger.warn('oyun kanal yeniden denenecek', { sessionId, topic, status });
+          if (kanal) void supabase.removeChannel(kanal);
+          kanal = null;
+          const delay = Math.min(10_000, 500 * 2 ** Math.min(attempt, 5));
+          attempt += 1;
+          retryTimer = setTimeout(baglan, delay);
         }
       });
+    };
+
+    baglan();
 
     return () => {
-      void supabase.removeChannel(kanal);
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      if (kanal) void supabase.removeChannel(kanal);
     };
   }, [sessionId, uygulaEvent]);
+
 
   return {
     ...durum,

@@ -14,10 +14,12 @@ import { CamArkaplan } from '../../../bilesenler/yuzey/CamArkaplan';
 import {
   BelgePdfPaylas,
   BelgeYazdir,
+  HesapHareketExcelPaylas,
   PdfDosyasiOlustur,
   WhatsAppBelgeGonder,
 } from '../BelgePaylasimIslemleri';
 import type { BelgeIcerik } from '../BelgeSablonlari';
+import type { HesapHareketleriBelgeGirdi } from '../HesapHareketleriBelgesi';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -30,6 +32,8 @@ type Props = {
   onKapat: () => void;
   icerik: BelgeIcerik | null;
   telefon?: string | null;
+  /** Varsa Excel (CSV) seçeneği gösterilir — hesap hareketleri özeti */
+  excelGirdi?: HesapHareketleriBelgeGirdi | null;
 };
 
 type Aksiyon = {
@@ -47,6 +51,7 @@ export function BelgePaylasimPaneli({
   onKapat,
   icerik,
   telefon,
+  excelGirdi,
 }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -62,6 +67,9 @@ export function BelgePaylasimPaneli({
     }
     if (key === 'pdf') {
       Alert.alert('PDF hazır', 'Dosya oluşturuldu.');
+    }
+    if (key === 'excel') {
+      Alert.alert('Excel hazır', 'CSV dosyası paylaşıma açıldı (Excel ile açılır).');
     }
     onKapat();
   };
@@ -102,19 +110,30 @@ export function BelgePaylasimPaneli({
     },
   ];
 
+  if (excelGirdi) {
+    aksiyonlar.splice(2, 0, {
+      key: 'excel',
+      label: 'Excel (CSV)',
+      alt: 'Tarih · saat · işlem · karşı taraf',
+      icon: 'grid-outline',
+      tint: RenkTokenlari.mint,
+      calistir: () =>
+        calistir('excel', () => HesapHareketExcelPaylas(excelGirdi)),
+    });
+  }
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onKapat}>
       <View style={styles.kok}>
         <Pressable style={styles.perde} onPress={onKapat} />
         <CamArkaplan
           intensity={24}
-          tint="dark"
           style={StyleSheet.absoluteFill}
-          fallbackColor="rgba(0,0,0,0.55)"
+          fallbackColor={RenkTokenlari.scrim}
           pointerEvents="none"
         />
         <View style={styles.panel}>
-          <LinearGradient colors={['#2A1C34', '#16101F']} style={styles.panelIc}>
+          <LinearGradient colors={[...RenkTokenlari.gradientCard]} style={styles.panelIc}>
             <View style={styles.ust}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.fisilti}>BELGE</Text>

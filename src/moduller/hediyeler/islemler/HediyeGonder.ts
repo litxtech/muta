@@ -23,6 +23,7 @@ export async function HediyeGonder(input: {
   quantity?: number;
   idempotencyKey?: string;
   statusId?: string | null;
+  liveSessionId?: string | null;
 }): Promise<HediyeGonderSonuc> {
   if (await KillSwitchAktifMiSunucu('kill_gift_send')) {
     return { ok: false, hata: 'Hediye gonderimi gecici olarak kapali.', kod: 'kill_switch' };
@@ -41,6 +42,7 @@ export async function HediyeGonder(input: {
     p_quantity: input.quantity ?? 1,
     p_idempotency_key: key,
     p_status_id: input.statusId ?? null,
+    p_live_session_id: input.liveSessionId ?? null,
   });
 
   if (error) return { ok: false, hata: error.message, kod: 'rpc' };

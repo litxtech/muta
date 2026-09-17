@@ -1,6 +1,5 @@
 /**
- * Canlı yayın tiyatrosu — tam ekran video + yorum + hediye + beğeni + istatistik.
- * Oda ekranı klavye düzenini takip eder (composer alt bar, liste overlay).
+ * Canlı yayın tiyatrosu — tam ekran video + Reels tarzı çekilebilir yorum + hediye.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -22,6 +21,7 @@ import { ModulHataSiniri } from '../../../ortak/hata-sinirlari/ModulHataSiniri';
 import { CanliYayinVideoSahne } from './CanliYayinVideoSahne';
 import { CanliYorumAkisi } from './CanliYorumAkisi';
 import { CanliYorumComposer } from './CanliYorumComposer';
+import { CanliYorumCekilebilirKart } from '../../canli-sohbet/bilesenler/CanliYorumCekilebilirKart';
 import { CanliBegeniEfekti } from './CanliBegeniEfekti';
 import {
   CanliYayinBegen,
@@ -31,6 +31,8 @@ import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { OzellikBayragiAktifMi } from '../../ozellik-bayraklari/OzellikBayragiAktifMi';
+import { PkSkorSeridi } from '../../pk/bilesenler/PkSkorSeridi';
+import type { PkCanliMacDetay } from '../../pk/skor/PkCanliMaciniGetir';
 
 export type CanliYayinMeta = {
   id: string;
@@ -57,6 +59,8 @@ type Props = {
   onCikis?: () => void;
   onPk?: () => void;
   onMeta?: (patch: Partial<CanliYayinMeta>) => void;
+  /** Aktif PK maçı — skor seridi */
+  pkMac?: PkCanliMacDetay | null;
 };
 
 export function CanliYayinTiyatro({
@@ -73,6 +77,7 @@ export function CanliYayinTiyatro({
   onCikis,
   onPk,
   onMeta,
+  pkMac,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { yukseklik: klavyeH, acik: klavyeAcik } = useKlavyeYuksekligi(0);
@@ -225,22 +230,7 @@ export function CanliYayinTiyatro({
           </View>
         </View>
 
-        {chatOpen ? (
-          <View
-            style={[styles.yorumOverlay, klavyeAcik && styles.yorumOverlayKlavye]}
-            pointerEvents="box-none"
-          >
-            <ModulHataSiniri modulAdi="canlı sohbet" varyant="kart">
-              <CanliYorumAkisi
-                sessionId={meta.id}
-                currentUserId={currentUserId}
-                hostId={meta.host_id}
-                yenileSinyali={yorumYenile}
-                onClose={() => setChatOpen(false)}
-              />
-            </ModulHataSiniri>
-          </View>
-        ) : null}
+        {pkMac ? <PkSkorSeridi mac={pkMac} selfLiveId={meta.id} /> : null}
       </Pressable>
 
       <View
@@ -251,13 +241,30 @@ export function CanliYayinTiyatro({
               Platform.OS === 'android' && klavyeAcik ? klavyeH : 0,
             paddingBottom: klavyeAcik
               ? Platform.OS === 'android'
-                ? 8
-                : Math.max(8, klavyeH)
-              : Math.max(10, insets.bottom + 8),
+                ? 6
+                : Math.max(6, klavyeH)
+              : Math.max(insets.bottom, 4),
           },
         ]}
       >
-        {!chatOpen ? (
+        {chatOpen ? (
+          <View style={styles.yorumPanel} pointerEvents="box-none">
+            <ModulHataSiniri modulAdi="canlı sohbet" varyant="kart">
+              <CanliYorumCekilebilirKart
+                klavyeAcik={klavyeAcik}
+                onClose={() => setChatOpen(false)}
+              >
+                <CanliYorumAkisi
+                  sessionId={meta.id}
+                  currentUserId={currentUserId}
+                  hostId={meta.host_id}
+                  yenileSinyali={yorumYenile}
+                  baslikGizle
+                />
+              </CanliYorumCekilebilirKart>
+            </ModulHataSiniri>
+          </View>
+        ) : (
           <Pressable style={styles.chatPeek} onPress={() => setChatOpen(true)}>
             <Ionicons
               name="chatbubble-ellipses"
@@ -266,7 +273,9 @@ export function CanliYayinTiyatro({
             />
             <Text style={styles.chatPeekText}>Yorumları aç</Text>
           </Pressable>
-        ) : (
+        )}
+
+        {chatOpen ? (
           <View style={styles.composerRow}>
             <CanliYorumComposer
               sessionId={meta.id}
@@ -278,7 +287,7 @@ export function CanliYayinTiyatro({
               }}
             />
           </View>
-        )}
+        ) : null}
 
         {!klavyeAcik ? (
           <View style={styles.controls}>
@@ -409,32 +418,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   statEmoji: { fontSize: 11 },
-  yorumOverlay: {
-    position: 'absolute',
-    left: 12,
-    right: 56,
-    bottom: 8,
-    height: '34%',
-    maxHeight: 260,
-    minHeight: 120,
-    zIndex: 5,
-  },
-  yorumOverlayKlavye: {
-    height: '26%',
-    maxHeight: 160,
-    minHeight: 88,
-  },
   altBar: {
     flexShrink: 0,
-    gap: 10,
-    paddingTop: 10,
+    gap: 6,
+    paddingTop: 6,
     backgroundColor: 'rgba(8,6,14,0.94)',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(255,255,255,0.08)',
   },
+  yorumPanel: {
+    paddingHorizontal: 10,
+  },
   composerRow: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     width: '100%',
+    zIndex: 8,
+    elevation: 8,
   },
   chatPeek: {
     alignSelf: 'center',
@@ -458,9 +457,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    paddingBottom: 4,
+    paddingHorizontal: 12,
+    paddingBottom: 0,
     gap: 12,
+    zIndex: 8,
+    elevation: 8,
   },
   controlBtn: {
     width: 48,

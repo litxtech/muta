@@ -2,9 +2,11 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -24,6 +26,55 @@ import {
 } from '../../../src/moduller/ajanslar/islemler/AjansPanelIslemleri';
 import { AdminStil, SayiKisa } from '../../../src/moduller/admin/bilesenler/AdminStil';
 import { RenkTokenlari } from '../../../src/tasarim-sistemi/RenkTokenlari';
+import { TipografiTokenlari } from '../../../src/tasarim-sistemi/TipografiTokenlari';
+import {
+  BoslukTokenlari,
+  YaricapTokenlari,
+} from '../../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+
+function Avatar({
+  url,
+  ad,
+  size = 44,
+}: {
+  url?: string | null;
+  ad: string;
+  size?: number;
+}) {
+  const harf = (ad.trim() || '?').charAt(0).toLocaleUpperCase('tr-TR');
+  if (url) {
+    return (
+      <Image
+        source={{ uri: url }}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: 1,
+          borderColor: RenkTokenlari.borderAccent,
+        }}
+      />
+    );
+  }
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: RenkTokenlari.bgElevated,
+        borderWidth: 1,
+        borderColor: RenkTokenlari.border,
+      }}
+    >
+      <Text style={{ color: RenkTokenlari.text, fontWeight: '800', fontSize: size * 0.36 }}>
+        {harf}
+      </Text>
+    </View>
+  );
+}
 
 function BasvuruKart({
   b,
@@ -35,14 +86,23 @@ function BasvuruKart({
   onReddet: (note: string) => void;
 }) {
   const [not, setNot] = useState('');
+  const basvuran = b.applicant_name ?? b.applicant_id.slice(0, 8);
 
   return (
     <View style={AdminStil.kart}>
-      <Text style={AdminStil.kartBaslik}>{b.agency_name}</Text>
-      <Text style={AdminStil.kartAlt}>
-        Başvuran: {b.applicant_name ?? b.applicant_id.slice(0, 8)}
-        {b.applicant_username ? ` · @${b.applicant_username}` : ''}
-      </Text>
+      <View style={styles.kartBas}>
+        <Avatar url={b.logo_url || b.applicant_avatar_url} ad={b.agency_name} size={52} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text style={AdminStil.kartBaslik}>{b.agency_name}</Text>
+          <View style={styles.satirKucuk}>
+            <Avatar url={b.applicant_avatar_url} ad={basvuran} size={22} />
+            <Text style={AdminStil.kartAlt}>
+              {basvuran}
+              {b.applicant_username ? ` · @${b.applicant_username}` : ''}
+            </Text>
+          </View>
+        </View>
+      </View>
       <Text style={AdminStil.kartAlt}>
         Ülke: {b.country ?? '—'}
         {b.expected_hosts != null ? ` · Host hedefi: ${b.expected_hosts}` : ''}
@@ -63,16 +123,7 @@ function BasvuruKart({
         onChangeText={setNot}
         placeholder="Red notu (isteğe bağlı)"
         placeholderTextColor={RenkTokenlari.textDim}
-        style={{
-          marginTop: 10,
-          borderWidth: 1,
-          borderColor: RenkTokenlari.border,
-          borderRadius: 10,
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-          color: RenkTokenlari.text,
-          backgroundColor: RenkTokenlari.bgElevated,
-        }}
+        style={styles.notInput}
       />
 
       <View style={AdminStil.aksiyonSatir}>
@@ -110,7 +161,7 @@ export default function AdminAjanslarEkrani() {
     } catch (e) {
       Alert.alert(
         'Ajanslar',
-        e instanceof Error ? e.message : 'Yüklenemedi (migration 057?)',
+        e instanceof Error ? e.message : 'Yüklenemedi (migration 092?)',
       );
       setListe([]);
       setBasvurular([]);
@@ -139,10 +190,14 @@ export default function AdminAjanslarEkrani() {
         onPress: () => {
           void (async () => {
             const r = await AdminAjansBasvuruOnayla(id);
-            if (!r.ok) Alert.alert('Onay', r.hata);
-            else {
-              Alert.alert('Tamam', 'Ajans aktif · başvuran bilgilendirildi.');
-              await yukle();
+            if (!r.ok) {
+              Alert.alert('Onay', r.hata ?? 'Başarısız');
+              return;
+            }
+            Alert.alert('Tamam', 'Ajans aktif · başvuran bilgilendirildi.');
+            await yukle();
+            if (r.agency_id) {
+              router.push(`/admin/ajanslar/${r.agency_id}` as any);
             }
           })();
         },
@@ -174,7 +229,7 @@ export default function AdminAjanslarEkrani() {
     <Screen edges={['top']}>
       <EkranBasligi
         title="Ajanslar"
-        subtitle="Başvuru onay · coin · limit"
+        subtitle="Başvuru · profil · coin · limit"
         fallbackHref="/admin"
       />
       <ScrollView
@@ -210,40 +265,90 @@ export default function AdminAjanslarEkrani() {
         ) : !liste.length ? (
           <Text style={AdminStil.bos}>Ajans yok</Text>
         ) : (
-          liste.map((a) => (
-            <Pressable
-              key={a.id}
-              style={AdminStil.kart}
-              onPress={() => router.push(`/admin/ajanslar/${a.id}` as any)}
-            >
-              <View style={AdminStil.satir}>
-                <Text style={AdminStil.kartBaslik}>{a.name}</Text>
-                <View style={AdminStil.chip}>
-                  <Text style={AdminStil.chipYazi}>
-                    {a.is_coin_distributor ? 'Dağıtıcı' : 'Kapalı'}
-                  </Text>
-                </View>
-              </View>
-              <Text style={AdminStil.kartAlt}>
-                {a.agency_public_id} · bakiye{' '}
-                {SayiKisa(a.distribution_balance)} coin
-              </Text>
-              <Text style={AdminStil.kartAlt}>
-                Günlük limit {SayiKisa(a.limits?.daily_limit)} · tek{' '}
-                {SayiKisa(a.limits?.single_transfer_limit)}
-              </Text>
-              <Text
-                style={[
-                  AdminStil.aksiyonYazi,
-                  { color: RenkTokenlari.primarySoft },
-                ]}
+          liste.map((a) => {
+            const sahip =
+              a.owner?.display_name || a.owner?.username || a.owner_id.slice(0, 8);
+            return (
+              <Pressable
+                key={a.id}
+                style={AdminStil.kart}
+                onPress={() => router.push(`/admin/ajanslar/${a.id}` as any)}
               >
-                Coin / limit paneli →
-              </Text>
-            </Pressable>
-          ))
+                <View style={styles.kartBas}>
+                  <Avatar url={a.logo_url} ad={a.name} size={52} />
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <View style={AdminStil.satir}>
+                      <Text style={[AdminStil.kartBaslik, { flex: 1 }]}>{a.name}</Text>
+                      <View style={AdminStil.chip}>
+                        <Text style={AdminStil.chipYazi}>
+                          {a.is_coin_distributor ? 'Coin yetkisi' : 'Yetkisiz'}
+                        </Text>
+                      </View>
+                    </View>
+                    {a.slogan ? (
+                      <Text style={styles.slogan} numberOfLines={1}>
+                        {a.slogan}
+                      </Text>
+                    ) : null}
+                    <View style={styles.satirKucuk}>
+                      <Avatar url={a.owner?.avatar_url} ad={sahip} size={20} />
+                      <Text style={AdminStil.kartAlt}>
+                        {sahip}
+                        {a.owner?.username ? ` · @${a.owner.username}` : ''}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <Text style={AdminStil.kartAlt}>
+                  {a.agency_public_id} · {a.country ?? '—'} · {a.host_count} üye
+                </Text>
+                <Text style={AdminStil.kartAlt}>
+                  Bakiye {SayiKisa(a.distribution_balance)} coin ·{' '}
+                  {a.limits?.unlimited
+                    ? 'sınırsız limit'
+                    : `günlük ${SayiKisa(a.limits?.daily_limit)}`}
+                </Text>
+                <Text
+                  style={[
+                    AdminStil.aksiyonYazi,
+                    { color: RenkTokenlari.primarySoft },
+                  ]}
+                >
+                  Profil / coin / limit →
+                </Text>
+              </Pressable>
+            );
+          })
         )}
       </ScrollView>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  kartBas: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: BoslukTokenlari.md,
+    marginBottom: 8,
+  },
+  satirKucuk: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  slogan: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+  },
+  notInput: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    borderRadius: YaricapTokenlari.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: RenkTokenlari.text,
+    backgroundColor: RenkTokenlari.bgElevated,
+  },
+});

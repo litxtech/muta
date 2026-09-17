@@ -5,6 +5,8 @@ import {
   BelgeMetinOlustur,
   type BelgeIcerik,
 } from './BelgeSablonlari';
+import { HesapHareketExcelCsvOlustur } from './HesapHareketleriBelgesi';
+import type { HesapHareketleriBelgeGirdi } from './HesapHareketleriBelgesi';
 
 export type BelgeIslemSonucu =
   | { ok: true; uri?: string }
@@ -21,6 +23,14 @@ async function PrintModulu() {
 async function SharingModulu() {
   try {
     return await import('expo-sharing');
+  } catch {
+    return null;
+  }
+}
+
+async function FileSystemLegacy() {
+  try {
+    return await import('expo-file-system/legacy');
   } catch {
     return null;
   }
@@ -173,6 +183,50 @@ export async function WhatsAppMetinGonder(
     return {
       ok: false,
       hata: e instanceof Error ? e.message : 'WhatsApp acilamadi',
+    };
+  }
+}
+
+/**
+ * Hesap hareketleri → Excel'in açtığı CSV dosyası + paylaşım.
+ * Türkçe sütunlar; Excel TR için ; ayırıcı.
+ */
+export async function HesapHareketExcelPaylas(
+  girdi: HesapHareketleriBelgeGirdi,
+): Promise<BelgeIslemSonucu> {
+  try {
+    const FS = await FileSystemLegacy();
+    if (!FS?.cacheDirectory) {
+      return {
+        ok: false,
+        hata: 'Dosya sistemi bu cihazda kullanılamıyor',
+      };
+    }
+    const csv = HesapHareketExcelCsvOlustur(girdi);
+    const ad = `Tamuso_Hesap_Hareketleri_${new Date()
+      .toISOString()
+      .slice(0, 10)}.csv`;
+    const uri = `${FS.cacheDirectory}${ad}`;
+    await FS.writeAsStringAsync(uri, csv, { encoding: 'utf8' });
+
+    const Sharing = await SharingModulu();
+    if (!Sharing) {
+      return { ok: false, hata: 'Paylaşım modülü yüklenemedi' };
+    }
+    const uygun = await Sharing.isAvailableAsync();
+    if (!uygun) {
+      return { ok: false, hata: 'Paylaşım bu cihazda desteklenmiyor' };
+    }
+    await Sharing.shareAsync(uri, {
+      mimeType: 'text/csv',
+      dialogTitle: 'Excel / CSV olarak paylaş',
+      UTI: 'public.comma-separated-values-text',
+    });
+    return { ok: true, uri };
+  } catch (e) {
+    return {
+      ok: false,
+      hata: e instanceof Error ? e.message : 'Excel dosyası oluşturulamadı',
     };
   }
 }

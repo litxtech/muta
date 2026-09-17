@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -17,6 +18,7 @@ import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
 import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { ImagePickerOnIsit } from '../../src/ortak/medya/ImagePickerHazirMi';
 import { KayitBekleyenAvatarAyarla } from '../../src/moduller/kimlik-dogrulama/depolama/KayitBekleyenAvatar';
 import {
   ProfilMedyasiSec,
@@ -37,9 +39,22 @@ import { ProfilSecimAlani } from '../../src/moduller/kullanici-profili/bilesenle
 import {
   DOGUM_AYLARI,
   DogumGunSecenekleri,
-  DogumTarihiDogrula,
   DogumYilSecenekleri,
 } from '../../src/moduller/kimlik-dogrulama/yas/YasKapisi';
+import {
+  KayitAlanAyarlariOnbellektenAl,
+  KayitAlanAyarlariPublicGet,
+} from '../../src/moduller/kimlik-dogrulama/kayit-alanlari/KayitAlanAyarlariPublicGet';
+import {
+  KayitAlanEtiketi,
+  KayitFormunuDogrula,
+} from '../../src/moduller/kimlik-dogrulama/kayit-alanlari/KayitFormunuDogrula';
+import {
+  AlanGorunurMu,
+  AlanZorunluMu,
+  VARSAYILAN_KAYIT_ALAN_AYARLARI,
+  type KayitAlanAyarlari,
+} from '../../src/moduller/kimlik-dogrulama/kayit-alanlari/tipler';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -60,26 +75,43 @@ const BOS_ONAY: Record<PolitikaKodu, boolean> = {
 };
 
 const YIL_OPTS = DogumYilSecenekleri(18);
-
-/** Spotify marka yeşili — resmi kayıt / giriş CTA */
 const SPOTIFY_GREEN = '#1DB954';
 
 export default function RegisterScreen() {
   const { signUp, signInWithSpotify, refreshProfile } = useAuth();
+  const [ayar, setAyar] = useState<KayitAlanAyarlari>(
+    () => KayitAlanAyarlariOnbellektenAl() ?? VARSAYILAN_KAYIT_ALAN_AYARLARI,
+  );
+  const [ayarYukleniyor, setAyarYukleniyor] = useState(
+    !KayitAlanAyarlariOnbellektenAl(),
+  );
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [gender, setGender] = useState<string>('female');
+  const [gender, setGender] = useState<string>('');
   const [dogumYil, setDogumYil] = useState('');
   const [dogumAy, setDogumAy] = useState('');
   const [dogumGun, setDogumGun] = useState('');
+  const [ozelDegerler, setOzelDegerler] = useState<Record<string, string>>({});
   const [avatar, setAvatar] = useState<SecilenProfilMedya | null>(null);
   const [loading, setLoading] = useState(false);
   const [spotifyLoading, setSpotifyLoading] = useState(false);
   const [onaylar, setOnaylar] = useState(BOS_ONAY);
   const [okunan, setOkunan] = useState<PolitikaKodu | null>(null);
+
+  const ayarlariYukle = useCallback(async () => {
+    setAyarYukleniyor(true);
+    const d = await KayitAlanAyarlariPublicGet();
+    setAyar(d);
+    setAyarYukleniyor(false);
+  }, []);
+
+  useEffect(() => {
+    ImagePickerOnIsit({ izinIste: false });
+    void ayarlariYukle();
+  }, [ayarlariYukle]);
 
   const avatarSec = async () => {
     const secim = await ProfilMedyasiSec('avatar');
@@ -111,17 +143,21 @@ export default function RegisterScreen() {
   };
 
   const onSubmit = async () => {
-    if (!phone.trim() || !password || !username || !displayName) {
-      Alert.alert('Eksik bilgi', 'Telefon, kullanıcı adı, görünen ad ve şifre gerekli.');
-      return;
-    }
-    if (password.length < 6) {
-      Alert.alert('Zayıf şifre', 'Şifre en az 6 karakter olmalı.');
-      return;
-    }
-    const dogum = DogumTarihiDogrula(dogumYil, dogumAy, dogumGun);
-    if (!dogum.ok) {
-      Alert.alert('Yaş doğrulama', dogum.hata);
+    const dogrulama = KayitFormunuDogrula(ayar, {
+      username,
+      displayName,
+      password,
+      phone,
+      email,
+      gender,
+      dogumYil,
+      dogumAy,
+      dogumGun,
+      avatarVar: !!avatar,
+      ozelDegerler,
+    });
+    if (!dogrulama.ok) {
+      Alert.alert('Eksik bilgi', dogrulama.hata);
       return;
     }
     if (!TumPolitikaOnaylariVerildi(onaylar)) {
@@ -133,13 +169,14 @@ export default function RegisterScreen() {
     }
     setLoading(true);
     const result = await signUp({
-      phone,
-      email: email.trim() || undefined,
+      phone: dogrulama.phone,
+      email: dogrulama.email,
       password,
       username,
       displayName,
-      gender,
-      birthDate: dogum.iso,
+      gender: dogrulama.gender,
+      birthDate: dogrulama.birthDate,
+      customFields: dogrulama.customFields,
     });
     if (!result.error) {
       void KayitPolitikaKabulKaydet();
@@ -151,7 +188,7 @@ export default function RegisterScreen() {
     }
     if (result.needsConfirm) {
       setLoading(false);
-      const mail = email.trim().toLowerCase();
+      const mail = (dogrulama.email ?? '').toLowerCase();
       if (!mail.includes('@')) {
         Alert.alert(
           'E-posta gerekli',
@@ -174,6 +211,12 @@ export default function RegisterScreen() {
     router.replace('/(tabs)');
   };
 
+  const phoneGorunur = AlanGorunurMu(ayar.alanlar.phone);
+  const emailGorunur = AlanGorunurMu(ayar.alanlar.email);
+  const genderGorunur = AlanGorunurMu(ayar.alanlar.gender);
+  const birthGorunur = AlanGorunurMu(ayar.alanlar.birth_date);
+  const avatarGorunur = AlanGorunurMu(ayar.alanlar.avatar);
+
   return (
     <Screen edges={['top']}>
       <KlavyeGuvenliAlan style={styles.flex}>
@@ -182,6 +225,11 @@ export default function RegisterScreen() {
           subtitle="Saniyeler içinde canlı odalara katıl"
           onBack={() => router.back()}
         />
+        {ayarYukleniyor ? (
+          <View style={styles.yukleniyor}>
+            <ActivityIndicator color={RenkTokenlari.primarySoft} />
+          </View>
+        ) : null}
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
@@ -189,52 +237,71 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
           <KlavyeKapatan style={styles.formWrap}>
-            <View style={styles.avatarBlok}>
-              <Pressable
-                onPress={() => void avatarSec()}
-                style={styles.avatarWrap}
-                accessibilityRole="button"
-                accessibilityLabel="Profil fotoğrafı seç"
-              >
-                {avatar ? (
-                  <Image source={{ uri: avatar.uri }} style={styles.avatar} />
-                ) : (
-                  <View style={[styles.avatar, styles.avatarBos]}>
-                    <Ionicons name="person" size={36} color={RenkTokenlari.textDim} />
-                  </View>
-                )}
-                <View style={styles.avatarCam}>
-                  <Ionicons name="camera" size={14} color="#12040C" />
-                </View>
-              </Pressable>
-              <Text style={styles.avatarHint}>
-                Profil fotoğrafı ekle (isteğe bağlı)
-              </Text>
-              {avatar ? (
-                <Pressable onPress={() => setAvatar(null)} hitSlop={8}>
-                  <Text style={styles.avatarKaldir}>Kaldır</Text>
-                </Pressable>
-              ) : null}
-            </View>
-
-            <View style={styles.genderRow}>
-              {GENDERS.map((g) => (
+            {avatarGorunur ? (
+              <View style={styles.avatarBlok}>
                 <Pressable
-                  key={g.id}
-                  onPress={() => setGender(g.id)}
-                  style={[styles.genderChip, gender === g.id && styles.genderActive]}
+                  onPress={() => void avatarSec()}
+                  style={styles.avatarWrap}
+                  accessibilityRole="button"
+                  accessibilityLabel="Profil fotoğrafı seç"
                 >
-                  <Text
+                  {avatar ? (
+                    <Image source={{ uri: avatar.uri }} style={styles.avatar} />
+                  ) : (
+                    <View style={[styles.avatar, styles.avatarBos]}>
+                      <Ionicons
+                        name="person"
+                        size={36}
+                        color={RenkTokenlari.textDim}
+                      />
+                    </View>
+                  )}
+                  <View style={styles.avatarCam}>
+                    <Ionicons name="camera" size={14} color="#12040C" />
+                  </View>
+                </Pressable>
+                <Text style={styles.avatarHint}>
+                  {KayitAlanEtiketi(
+                    'Profil fotoğrafı ekle',
+                    AlanZorunluMu(ayar.alanlar.avatar),
+                  )}
+                </Text>
+                {avatar ? (
+                  <Pressable onPress={() => setAvatar(null)} hitSlop={8}>
+                    <Text style={styles.avatarKaldir}>Kaldır</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+
+            {genderGorunur ? (
+              <View style={styles.genderRow}>
+                {GENDERS.map((g) => (
+                  <Pressable
+                    key={g.id}
+                    onPress={() =>
+                      setGender((prev) => (prev === g.id ? '' : g.id))
+                    }
                     style={[
-                      styles.genderText,
-                      gender === g.id && styles.genderTextActive,
+                      styles.genderChip,
+                      gender === g.id && styles.genderActive,
                     ]}
                   >
-                    {g.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+                    <Text
+                      style={[
+                        styles.genderText,
+                        gender === g.id && styles.genderTextActive,
+                      ]}
+                    >
+                      {g.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+            {genderGorunur && !AlanZorunluMu(ayar.alanlar.gender) ? (
+              <Text style={styles.istegeBagliHint}>Cinsiyet (isteğe bağlı)</Text>
+            ) : null}
 
             <TextField
               label="Kullanıcı adı"
@@ -250,69 +317,100 @@ export default function RegisterScreen() {
               placeholder="Tamuso Yıldızı"
             />
 
-            <View>
-              <Text style={styles.yasEtiket}>Doğum tarihi (18+ zorunlu)</Text>
-              <Text style={styles.yasHint}>
-                Platform yalnızca 18 yaş ve üzeri içindir. Yanlış beyan hesap
-                kapatılmasına yol açar.
-              </Text>
-              <View style={styles.dogumSatir}>
-                <View style={styles.dogumKol}>
-                  <ProfilSecimAlani
-                    label="Yıl"
-                    valueLabel={dogumYil}
-                    placeholder="Yıl"
-                    options={YIL_OPTS}
-                    onSelect={(id) => {
-                      setDogumYil(id);
-                      const maxGun = DogumGunSecenekleri(id, dogumAy || '01').length;
-                      if (dogumGun && Number(dogumGun) > maxGun) setDogumGun('');
-                    }}
-                    searchable
-                  />
-                </View>
-                <View style={styles.dogumKolKisa}>
-                  <ProfilSecimAlani
-                    label="Ay"
-                    valueLabel={dogumAy}
-                    placeholder="Ay"
-                    options={DOGUM_AYLARI}
-                    onSelect={(id) => {
-                      setDogumAy(id);
-                      const maxGun = DogumGunSecenekleri(dogumYil || '2000', id).length;
-                      if (dogumGun && Number(dogumGun) > maxGun) setDogumGun('');
-                    }}
-                  />
-                </View>
-                <View style={styles.dogumKolKisa}>
-                  <ProfilSecimAlani
-                    label="Gün"
-                    valueLabel={dogumGun}
-                    placeholder="Gün"
-                    options={DogumGunSecenekleri(dogumYil || '2000', dogumAy || '01')}
-                    onSelect={setDogumGun}
-                  />
+            {birthGorunur ? (
+              <View>
+                <Text style={styles.yasEtiket}>
+                  {KayitAlanEtiketi(
+                    'Doğum tarihi',
+                    AlanZorunluMu(ayar.alanlar.birth_date),
+                  )}
+                </Text>
+                <Text style={styles.yasHint}>
+                  {AlanZorunluMu(ayar.alanlar.birth_date)
+                    ? 'Platform yalnızca 18 yaş ve üzeri içindir. Yanlış beyan hesap kapatılmasına yol açar.'
+                    : 'Doldurursan 18+ doğrulanır. Boş bırakabilirsin.'}
+                </Text>
+                <View style={styles.dogumSatir}>
+                  <View style={styles.dogumKol}>
+                    <ProfilSecimAlani
+                      label="Yıl"
+                      valueLabel={dogumYil}
+                      placeholder="Yıl"
+                      options={YIL_OPTS}
+                      onSelect={(id) => {
+                        setDogumYil(id);
+                        const maxGun = DogumGunSecenekleri(
+                          id,
+                          dogumAy || '01',
+                        ).length;
+                        if (dogumGun && Number(dogumGun) > maxGun) {
+                          setDogumGun('');
+                        }
+                      }}
+                      searchable
+                    />
+                  </View>
+                  <View style={styles.dogumKolKisa}>
+                    <ProfilSecimAlani
+                      label="Ay"
+                      valueLabel={dogumAy}
+                      placeholder="Ay"
+                      options={DOGUM_AYLARI}
+                      onSelect={(id) => {
+                        setDogumAy(id);
+                        const maxGun = DogumGunSecenekleri(
+                          dogumYil || '2000',
+                          id,
+                        ).length;
+                        if (dogumGun && Number(dogumGun) > maxGun) {
+                          setDogumGun('');
+                        }
+                      }}
+                    />
+                  </View>
+                  <View style={styles.dogumKolKisa}>
+                    <ProfilSecimAlani
+                      label="Gün"
+                      valueLabel={dogumGun}
+                      placeholder="Gün"
+                      options={DogumGunSecenekleri(
+                        dogumYil || '2000',
+                        dogumAy || '01',
+                      )}
+                      onSelect={setDogumGun}
+                    />
+                  </View>
                 </View>
               </View>
-            </View>
+            ) : null}
 
-            <TextField
-              label="Telefon"
-              keyboardType="phone-pad"
-              textContentType="telephoneNumber"
-              autoComplete="tel"
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="05xx xxx xx xx"
-            />
-            <TextField
-              label="E-posta (doğrulama kodu)"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="sen@mail.com"
-            />
+            {phoneGorunur ? (
+              <TextField
+                label={KayitAlanEtiketi(
+                  'Telefon',
+                  AlanZorunluMu(ayar.alanlar.phone),
+                )}
+                keyboardType="phone-pad"
+                textContentType="telephoneNumber"
+                autoComplete="tel"
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="05xx xxx xx xx"
+              />
+            ) : null}
+            {emailGorunur ? (
+              <TextField
+                label={KayitAlanEtiketi(
+                  'E-posta',
+                  AlanZorunluMu(ayar.alanlar.email) || !phone.trim(),
+                )}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="sen@mail.com"
+              />
+            ) : null}
             <TextField
               label="Şifre"
               secureTextEntry
@@ -320,6 +418,67 @@ export default function RegisterScreen() {
               onChangeText={setPassword}
               placeholder="En az 6 karakter"
             />
+
+            {ayar.ozel_alanlar.map((alan) => {
+              if (alan.alan_turu === 'select' && alan.secenekler.length > 0) {
+                return (
+                  <View key={alan.id}>
+                    <Text style={styles.yasEtiket}>
+                      {KayitAlanEtiketi(alan.etiket, alan.mod === 'required')}
+                    </Text>
+                    <View style={styles.genderRow}>
+                      {alan.secenekler.map((sec) => {
+                        const aktif = ozelDegerler[alan.anahtar] === sec;
+                        return (
+                          <Pressable
+                            key={sec}
+                            onPress={() =>
+                              setOzelDegerler((prev) => ({
+                                ...prev,
+                                [alan.anahtar]: aktif ? '' : sec,
+                              }))
+                            }
+                            style={[
+                              styles.genderChip,
+                              aktif && styles.genderActive,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.genderText,
+                                aktif && styles.genderTextActive,
+                              ]}
+                            >
+                              {sec}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                );
+              }
+              return (
+                <TextField
+                  key={alan.id}
+                  label={KayitAlanEtiketi(
+                    alan.etiket,
+                    alan.mod === 'required',
+                  )}
+                  keyboardType={
+                    alan.alan_turu === 'number' ? 'numeric' : 'default'
+                  }
+                  value={ozelDegerler[alan.anahtar] ?? ''}
+                  onChangeText={(t) =>
+                    setOzelDegerler((prev) => ({
+                      ...prev,
+                      [alan.anahtar]: t,
+                    }))
+                  }
+                  placeholder={alan.etiket}
+                />
+              );
+            })}
 
             <PolitikaOnayKutulari
               onaylar={onaylar}
@@ -373,6 +532,10 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  yukleniyor: {
+    paddingVertical: BoslukTokenlari.sm,
+    alignItems: 'center',
+  },
   content: {
     flexGrow: 1,
     paddingHorizontal: BoslukTokenlari.xl,
@@ -425,9 +588,10 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.primarySoft,
     fontWeight: '600',
   },
-  genderRow: { flexDirection: 'row', gap: BoslukTokenlari.sm },
+  genderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: BoslukTokenlari.sm },
   genderChip: {
-    flex: 1,
+    flexGrow: 1,
+    minWidth: '28%',
     minHeight: 44,
     borderRadius: YaricapTokenlari.md,
     borderWidth: 1,
@@ -435,6 +599,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: RenkTokenlari.surface,
+    paddingHorizontal: BoslukTokenlari.sm,
   },
   genderActive: {
     borderColor: RenkTokenlari.primary,
@@ -442,6 +607,11 @@ const styles = StyleSheet.create({
   },
   genderText: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
   genderTextActive: { color: RenkTokenlari.primarySoft, fontWeight: '700' },
+  istegeBagliHint: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    marginTop: -BoslukTokenlari.sm,
+  },
   yasEtiket: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textMuted,

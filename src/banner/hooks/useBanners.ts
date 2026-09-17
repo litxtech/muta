@@ -2,9 +2,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { BannerService } from '../services/BannerService';
+import {
+  OtomatikPromoBannerlariGetir,
+  OtomatikPromoCacheTemizle,
+} from '../services/PromoBannerAdapter';
+import {
+  OlayBannerCacheTemizle,
+  OlayBannerRealtimeDinle,
+  OlayBannerlariGetir,
+} from '../auto/AutoBannerService';
 import { BannerEngine } from '../core/BannerEngine';
 import type { BannerCampaign, BannerUserContext, BannerUserState } from '../core/BannerTypes';
 import { uretimOrtamiMi } from '../../yapilandirma/OrtamDegiskenleri';
+import { OzellikBayragiAktifMiSunucu } from '../../moduller/ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
+import { AUTO_ROOM_PROMO_PLACEMENTS } from '../core/BannerConstants';
 
 function makeSessionId(): string {
   return `s_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
@@ -14,6 +25,16 @@ let sharedSessionId = makeSessionId();
 
 export function useBannerSessionId(): string {
   return sharedSessionId;
+}
+
+const PROMO_SLOTS = new Set<string>(Object.values(AUTO_ROOM_PROMO_PLACEMENTS));
+
+function sentetikMi(id: string): boolean {
+  return (
+    id.startsWith('promo-') ||
+    id.startsWith('auto-event-') ||
+    id.startsWith('auto-room-')
+  );
 }
 
 export function useBanners(placement: string) {
@@ -48,22 +69,74 @@ export function useBanners(placement: string) {
       accountAgeDays: ageDays,
       sessionId,
     };
-  }, [profile, isGuest, sessionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bilinçli dar bağımlılık
+  }, [
+    profile?.id,
+    profile?.created_at,
+    profile?.is_guest,
+    profile?.is_host,
+    profile?.level,
+    profile?.language,
+    profile?.country,
+    profile?.country_code,
+    profile?.region_id,
+    isGuest,
+    sessionId,
+  ]);
 
-  const reload = useCallback(async () => {
-    setLoading(true);
+  const reload = useCallback(async (opts?: { soft?: boolean }) => {
+    if (!opts?.soft) setLoading(true);
     setError(null);
     try {
-      const all = await BannerService.fetchActive();
-      const states = await BannerService.fetchUserStates(all.map((b) => b.id));
+      const [all, autoPromoAcik, autoEventAcik] = await Promise.all([
+        BannerService.fetchActive(),
+        PROMO_SLOTS.has(placement)
+          ? OzellikBayragiAktifMiSunucu('auto_promo_banners_enabled')
+          : Promise.resolve(false),
+        OzellikBayragiAktifMiSunucu('auto_event_banners_enabled'),
+      ]);
+
+      const [promos, olaylar] = await Promise.all([
+        autoPromoAcik && PROMO_SLOTS.has(placement)
+          ? OtomatikPromoBannerlariGetir()
+          : Promise.resolve([] as BannerCampaign[]),
+        autoEventAcik
+          ? OlayBannerlariGetir()
+          : Promise.resolve([] as BannerCampaign[]),
+      ]);
+
+      if (!autoPromoAcik) OtomatikPromoCacheTemizle();
+      if (!autoEventAcik) OlayBannerCacheTemizle();
+
+      const birlesik = [...all, ...promos, ...olaylar];
+      const states = await BannerService.fetchUserStates(
+        birlesik.map((b) => b.id).filter((id) => !sentetikMi(id)),
+      );
       const map = new Map(states.map((s) => [s.banner_id, s]));
       statesRef.current = map;
       const filtered = BannerEngine.forPlacement(
-        { banners: all, userStates: map, fetchedAt: Date.now() },
+        { banners: birlesik, userStates: map, fetchedAt: Date.now() },
         placement,
         ctx,
       );
-      setBanners(filtered);
+
+      const admin = filtered.filter((b) => !sentetikMi(b.id));
+      const events = filtered.filter((b) => b.id.startsWith('auto-event-'));
+      const promo = filtered.filter((b) => b.id.startsWith('promo-'));
+
+      // Olay bannerları yan yana (carousel kaydırma); admin kampanyaları önde
+      const karisik = [...admin, ...events];
+      if (karisik.length > 0) {
+        setBanners(karisik.slice(0, 8));
+      } else {
+        const tercih =
+          placement.includes('14')
+            ? promo.find((b) => b.name === 'auto_canli')
+            : placement.includes('BOTTOM')
+              ? promo.find((b) => b.name === 'auto_oyun')
+              : promo.find((b) => b.name === 'auto_oda');
+        setBanners(tercih ? [tercih] : promo.slice(0, 1));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Banner yüklenemedi');
       setBanners([]);
@@ -78,14 +151,28 @@ export function useBanners(placement: string) {
 
   useEffect(() => {
     const unsub = BannerService.subscribeRealtime(() => {
-      void reload();
+      void reload({ soft: true });
     });
     return unsub;
   }, [reload]);
 
   useEffect(() => {
+    let unsub: (() => void) | undefined;
+    try {
+      unsub = OlayBannerRealtimeDinle(() => {
+        void reload({ soft: true });
+      });
+    } catch (e) {
+      console.warn('[useBanners] olay realtime', e);
+    }
+    return () => {
+      unsub?.();
+    };
+  }, [reload]);
+
+  useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') void reload();
+      if (s === 'active') void reload({ soft: true });
     });
     return () => sub.remove();
   }, [reload]);

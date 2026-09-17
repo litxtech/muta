@@ -203,4 +203,6 @@ export type KaskadSpinRequest = {
   roomId?: string | null;
   bonusSessionId?: string | null;
   speedMode?: GameSpeedMode;
+  /** Yalnızca admin oyun-test; ses odası/solo göndermez */
+  adminTest?: boolean;
 };

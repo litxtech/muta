@@ -187,8 +187,8 @@ export function MikrofonIstekPaneli({ roomId, onDegisti }: Props) {
                     istek.user_id.slice(0, 8);
                   const koltuk =
                     typeof istek.requested_seat_index === 'number'
-                      ? `Mic ${istek.requested_seat_index + 1}`
-                      : 'İlk boş mic';
+                      ? `Koltuk ${istek.requested_seat_index + 1}`
+                      : 'İlk boş koltuk';
                   return (
                     <View key={istek.id} style={styles.satir}>
                       {istek.profile?.avatar_url ? (

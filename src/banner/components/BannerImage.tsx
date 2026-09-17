@@ -7,19 +7,27 @@ type Props = {
   uri?: string | null;
   alt?: string | null;
   aspectRatio: number;
+  /** Compact strip: köşeler kartla aynı (üst-only radius yok) */
+  flush?: boolean;
 };
 
-export function BannerImage({ uri, alt, aspectRatio }: Props) {
+export function BannerImage({ uri, alt, aspectRatio, flush }: Props) {
   const [failed, setFailed] = useState(false);
+  const radius = flush
+    ? undefined
+    : {
+        borderTopLeftRadius: BANNER_BORDER_RADIUS,
+        borderTopRightRadius: BANNER_BORDER_RADIUS,
+      };
 
   if (!uri || failed) {
-    return <View style={[styles.fallback, { aspectRatio }]} />;
+    return <View style={[styles.fallback, { aspectRatio }, radius]} />;
   }
 
   return (
     <Image
       source={{ uri }}
-      style={[styles.img, { aspectRatio }]}
+      style={[styles.img, { aspectRatio }, radius]}
       resizeMode="cover"
       accessibilityLabel={alt ?? 'Banner görseli'}
       onError={() => setFailed(true)}
@@ -30,14 +38,10 @@ export function BannerImage({ uri, alt, aspectRatio }: Props) {
 const styles = StyleSheet.create({
   img: {
     width: '100%',
-    borderTopLeftRadius: BANNER_BORDER_RADIUS,
-    borderTopRightRadius: BANNER_BORDER_RADIUS,
     backgroundColor: RenkTokenlari.surface,
   },
   fallback: {
     width: '100%',
     backgroundColor: RenkTokenlari.surface,
-    borderTopLeftRadius: BANNER_BORDER_RADIUS,
-    borderTopRightRadius: BANNER_BORDER_RADIUS,
   },
 });

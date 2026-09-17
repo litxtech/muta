@@ -9,6 +9,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { DurumOggesi } from '../islemler/DurumIslemleri';
+import { DurumOyunKazanciPayloadAl } from '../islemler/DurumIslemleri';
+import { DurumOyunKazanciKart } from './DurumOyunKazanciKart';
+import { DurumVideoOnizleme } from './DurumVideoOnizleme';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -22,6 +25,8 @@ type Props = {
   yatayPadding?: boolean;
   onPress: (oge: DurumOggesi) => void;
   onPaylas?: () => void;
+  /** Uzun basınca (kendi gönderilerinde sil vb.) */
+  onUzunBas?: (oge: DurumOggesi) => void;
 };
 
 export function DurumProfilIzgarasi({
@@ -32,6 +37,7 @@ export function DurumProfilIzgarasi({
   yatayPadding = true,
   onPress,
   onPaylas,
+  onUzunBas,
 }: Props) {
   return (
     <View style={[styles.wrap, !yatayPadding && styles.wrapSik]}>
@@ -58,22 +64,39 @@ export function DurumProfilIzgarasi({
         <Text style={styles.bos}>{bosMetin}</Text>
       ) : (
         <View style={styles.grid}>
-          {items.map((oge) => (
-            <Pressable
-              key={oge.id}
-              style={styles.hucre}
-              onPress={() => onPress(oge)}
-              accessibilityRole="imagebutton"
-              accessibilityLabel="Durum gönderisi"
-            >
-              <Image source={{ uri: oge.media_url }} style={styles.img} />
-              {oge.media_type === 'video' ? (
-                <View style={styles.videoBadge} pointerEvents="none">
-                  <Ionicons name="play" size={12} color="#fff" />
-                </View>
-              ) : null}
-            </Pressable>
-          ))}
+          {items.map((oge) => {
+            const kazanc = DurumOyunKazanciPayloadAl(oge);
+            return (
+              <Pressable
+                key={oge.id}
+                style={styles.hucre}
+                onPress={() => onPress(oge)}
+                onLongPress={
+                  onUzunBas ? () => onUzunBas(oge) : undefined
+                }
+                accessibilityRole="imagebutton"
+                accessibilityLabel={
+                  kazanc ? 'Oyun kazancı durumu' : 'Durum gönderisi'
+                }
+              >
+                {kazanc ? (
+                  <DurumOyunKazanciKart payload={kazanc} compact />
+                ) : oge.media_type === 'video' ? (
+                  <DurumVideoOnizleme
+                    uri={oge.media_url}
+                    style={styles.img}
+                  />
+                ) : (
+                  <Image source={{ uri: oge.media_url }} style={styles.img} />
+                )}
+                {oge.media_type === 'video' && !kazanc ? (
+                  <View style={styles.videoBadge} pointerEvents="none">
+                    <Ionicons name="play" size={12} color="#fff" />
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+          })}
         </View>
       )}
     </View>

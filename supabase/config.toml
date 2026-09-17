@@ -9,6 +9,12 @@ enabled = true
 [functions.livekit-token]
 verify_jwt = true
 
+[functions.kozmik-kaskad-spin]
+verify_jwt = true
+
+[functions.zeus-spin]
+verify_jwt = true
+
 [functions.iap-receipt-verify]
 verify_jwt = true
 

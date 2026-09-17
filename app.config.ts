@@ -22,7 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  userInterfaceStyle: 'dark',
+  userInterfaceStyle: 'automatic',
   scheme: SCHEME,
   ios: {
     supportsTablet: false,
@@ -71,6 +71,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'android.permission.BLUETOOTH_CONNECT',
       'android.permission.FOREGROUND_SERVICE',
       'android.permission.FOREGROUND_SERVICE_MICROPHONE',
+      'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
+      'android.permission.WAKE_LOCK',
       'android.permission.POST_NOTIFICATIONS',
       'android.permission.VIBRATE',
       'android.permission.RECEIVE_BOOT_COMPLETED',
@@ -90,7 +92,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-iap',
     'expo-system-ui',
     'expo-sharing',
-    '@livekit/react-native-expo-plugin',
+    [
+      '@livekit/react-native-expo-plugin',
+      {
+        android: {
+          // Android→iOS ses için CommunicationAudioType zorunlu
+          audioType: 'communication',
+        },
+      },
+    ],
+    './plugins/withSesOdasiForegroundService.js',
     '@config-plugins/react-native-webrtc',
     [
       'expo-image-picker',
@@ -144,8 +155,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-splash-screen',
       {
         backgroundColor: '#0B0614',
+        // Android styles her zaman @drawable/splashscreen_logo bekler;
+        // image yoksa drawable üretilmez ve processDebugResources patlar.
+        image: './assets/splash-icon.png',
+        imageWidth: 200,
         dark: {
           backgroundColor: '#0B0614',
+          image: './assets/splash-icon.png',
         },
       },
     ],

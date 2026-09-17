@@ -13,6 +13,8 @@ export type Profile = {
   phone_e164?: string | null;
   gender: Gender | null;
   birth_date: string | null;
+  /** Kayıt formu özel alan cevapları (admin tanımlı) */
+  custom_fields?: Record<string, string> | null;
   country: string | null;
   country_code?: string | null;
   region_id?: string | null;
@@ -23,6 +25,7 @@ export type Profile = {
   is_verified: boolean;
   level: number;
   xp: number;
+  primary_city_id?: string | null;
   created_at: string;
   banned_at?: string | null;
   ban_reason?: string | null;
@@ -39,6 +42,8 @@ export type Wallet = {
 
 export type Room = {
   id: string;
+  /** Kısa benzersiz oda kimliği — örn. ODA-A3K7M2 */
+  room_code?: string | null;
   host_id: string;
   title: string;
   topic: string | null;
@@ -104,4 +109,7 @@ export type RoomSeat = {
   is_muted: boolean;
   is_locked: boolean;
   profile?: Profile | null;
+  /** room_members.role — host/cohost rozeti için */
+  member_role?: 'host' | 'cohost' | 'speaker' | 'listener' | null;
+  is_cohost?: boolean;
 };

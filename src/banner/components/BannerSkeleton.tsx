@@ -4,6 +4,7 @@ import {
   BANNER_BORDER,
   BANNER_BORDER_RADIUS,
   BANNER_BG,
+  BANNER_COMPACT_MAX_HEIGHT,
   resolveBannerAspect,
 } from '../core/BannerConstants';
 import type { BannerSizeType } from '../core/BannerConstants';
@@ -16,7 +17,7 @@ type Props = {
 };
 
 export function BannerSkeleton({
-  sizeType = 'MEDIUM',
+  sizeType = 'SMALL',
   aspectRatio,
   compact,
 }: Props) {
@@ -30,7 +31,9 @@ export function BannerSkeleton({
       ]}
       accessibilityLabel="Banner yükleniyor"
     >
-      <View style={styles.shimmer} />
+      <View
+        style={[styles.shimmer, { backgroundColor: RenkTokenlari.surface }]}
+      />
     </View>
   );
 }
@@ -45,11 +48,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   compact: {
-    maxHeight: 88,
+    maxHeight: BANNER_COMPACT_MAX_HEIGHT,
   },
   shimmer: {
     flex: 1,
-    backgroundColor: RenkTokenlari.surface,
     opacity: 0.45,
   },
 });

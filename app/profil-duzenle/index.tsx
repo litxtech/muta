@@ -34,6 +34,7 @@ import {
   ProfilMedyasiYukle,
   type ProfilMedyaTuru,
 } from '../../src/moduller/kullanici-profili/islemler/ProfilMedyasiYukle';
+import { ImagePickerOnIsit } from '../../src/ortak/medya/ImagePickerHazirMi';
 import {
   BolgeleriUlkeyeGore,
   ProfilKonumKatalogunuGetir,
@@ -197,6 +198,10 @@ export default function ProfilDuzenleEkrani() {
   }, [formuDoldur]);
 
   useEffect(() => {
+    ImagePickerOnIsit({ izinIste: false });
+  }, []);
+
+  useEffect(() => {
     let iptal = false;
     (async () => {
       setBankaYukleniyor(true);
@@ -233,6 +238,7 @@ export default function ProfilDuzenleEkrani() {
 
   const medyaAc = (tur: ProfilMedyaTuru) => {
     if (misafirEngel()) return;
+    ImagePickerOnIsit({ izinIste: false });
     setMedyaMenuTur(tur);
   };
 
@@ -247,9 +253,11 @@ export default function ProfilDuzenleEkrani() {
 
   const medyaSec = async (tur: ProfilMedyaTuru) => {
     if (misafirEngel()) return;
-    setMedyaMenuTur(null);
     setMedyaBusy(tur);
-    const sonuc = await ProfilMedyasiYukle(tur);
+    // Galeriyi sheet kapanmasını beklemeden başlat (gesture + native açılış)
+    const sonucPromise = ProfilMedyasiYukle(tur);
+    setMedyaMenuTur(null);
+    const sonuc = await sonucPromise;
     setMedyaBusy(null);
     if (!sonuc.ok) {
       if (sonuc.iptal) return;
@@ -417,7 +425,7 @@ export default function ProfilDuzenleEkrani() {
             {profile?.cover_url ? (
               <Image source={{ uri: profile.cover_url }} style={styles.cover} />
             ) : (
-              <LinearGradient colors={['#3B1F4A', '#1A1228']} style={styles.cover} />
+              <LinearGradient colors={[...RenkTokenlari.gradientPlaceholder]} style={styles.cover} />
             )}
             <View style={styles.coverOverlay} pointerEvents="none">
               {!profile?.cover_url ? (

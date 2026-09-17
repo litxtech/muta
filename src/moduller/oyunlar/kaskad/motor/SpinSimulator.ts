@@ -210,12 +210,16 @@ export type SimulationReport = {
  * Batch simülasyon — bonus free spinler de (retrigger + persistent multiplier
  * dahil) simüle edilir; RTP bonus EV'sini içerir.
  */
-export function runBatchSimulation(
+type SimAccumulator = {
+  runRange: (start: number, end: number) => void;
+  buildReport: (rounds: number, betAmount: number) => SimulationReport;
+};
+
+function createSimAccumulator(
   config: KaskadMathConfig,
-  rounds: number,
   betAmount: number,
-  seedPrefix = 'sim',
-): SimulationReport {
+  seedPrefix: string,
+): SimAccumulator {
   let totalWager = 0;
   let totalPayout = 0;
   let basePayout = 0;
@@ -235,7 +239,7 @@ export function runBatchSimulation(
 
   const bonusGuardSpins = 1000;
 
-  for (let i = 0; i < rounds; i += 1) {
+  const runOne = (i: number): void => {
     const result = simulateSpin({
       config,
       seed: `${seedPrefix}-${i}`,
@@ -302,47 +306,99 @@ export function runBatchSimulation(
     if (roundPayout > 0) hits += 1;
     else zeroWins += 1;
     if (roundPayout > maxWin) maxWin = roundPayout;
-  }
+  };
 
-  const mean = rounds > 0 ? totalPayout / rounds : 0;
-  let varianceSum = 0;
-  for (const w of wins) varianceSum += (w - mean) ** 2;
-  const variance = rounds > 1 ? varianceSum / (rounds - 1) : 0;
+  const buildReport = (rounds: number, bet: number): SimulationReport => {
+    const mean = rounds > 0 ? totalPayout / rounds : 0;
+    let varianceSum = 0;
+    for (const w of wins) varianceSum += (w - mean) ** 2;
+    const variance = rounds > 1 ? varianceSum / (rounds - 1) : 0;
 
-  const sorted = [...wins].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  const medianWin =
-    sorted.length === 0
-      ? 0
-      : sorted.length % 2 === 1
-        ? sorted[mid]!
-        : (sorted[mid - 1]! + sorted[mid]!) / 2;
+    const sorted = [...wins].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const medianWin =
+      sorted.length === 0
+        ? 0
+        : sorted.length % 2 === 1
+          ? sorted[mid]!
+          : (sorted[mid - 1]! + sorted[mid]!) / 2;
+
+    return {
+      rounds,
+      bonusRounds,
+      totalWager,
+      totalPayout,
+      observedRtp: totalWager > 0 ? totalPayout / totalWager : 0,
+      baseGameRtp: totalWager > 0 ? basePayout / totalWager : 0,
+      bonusRtp: totalWager > 0 ? bonusPayout / totalWager : 0,
+      hitRate: rounds > 0 ? hits / rounds : 0,
+      zeroWinRate: rounds > 0 ? zeroWins / rounds : 0,
+      averageWin: mean,
+      medianWin,
+      maxWin,
+      maxWinMultiple: bet > 0 ? maxWin / bet : 0,
+      bonusFrequency: rounds > 0 ? bonuses / rounds : 0,
+      averageBonusPayout:
+        bonusPayouts.length > 0
+          ? bonusPayouts.reduce((a, b) => a + b, 0) / bonusPayouts.length
+          : 0,
+      averageCascades: rounds > 0 ? cascadeSum / rounds : 0,
+      cascadeDistribution: cascadeDist,
+      multiplierFrequency: rounds > 0 ? multiplierHits / rounds : 0,
+      multiplierDistribution: multDist,
+      maxMultiplier,
+      variance,
+      standardDeviation: Math.sqrt(variance),
+    };
+  };
 
   return {
-    rounds,
-    bonusRounds,
-    totalWager,
-    totalPayout,
-    observedRtp: totalWager > 0 ? totalPayout / totalWager : 0,
-    baseGameRtp: totalWager > 0 ? basePayout / totalWager : 0,
-    bonusRtp: totalWager > 0 ? bonusPayout / totalWager : 0,
-    hitRate: rounds > 0 ? hits / rounds : 0,
-    zeroWinRate: rounds > 0 ? zeroWins / rounds : 0,
-    averageWin: mean,
-    medianWin,
-    maxWin,
-    maxWinMultiple: betAmount > 0 ? maxWin / betAmount : 0,
-    bonusFrequency: rounds > 0 ? bonuses / rounds : 0,
-    averageBonusPayout:
-      bonusPayouts.length > 0
-        ? bonusPayouts.reduce((a, b) => a + b, 0) / bonusPayouts.length
-        : 0,
-    averageCascades: rounds > 0 ? cascadeSum / rounds : 0,
-    cascadeDistribution: cascadeDist,
-    multiplierFrequency: rounds > 0 ? multiplierHits / rounds : 0,
-    multiplierDistribution: multDist,
-    maxMultiplier,
-    variance,
-    standardDeviation: Math.sqrt(variance),
+    runRange: (start, end) => {
+      for (let i = start; i < end; i += 1) runOne(i);
+    },
+    buildReport,
   };
+}
+
+export function runBatchSimulation(
+  config: KaskadMathConfig,
+  rounds: number,
+  betAmount: number,
+  seedPrefix = 'sim',
+): SimulationReport {
+  const acc = createSimAccumulator(config, betAmount, seedPrefix);
+  acc.runRange(0, rounds);
+  return acc.buildReport(rounds, betAmount);
+}
+
+/**
+ * Chunk'lı asenkron simülasyon — UI thread'i kilitlemeden koşar.
+ * Her chunk sonrası event loop'a döner ve ilerleme bildirir.
+ */
+export async function runBatchSimulationAsync(
+  config: KaskadMathConfig,
+  rounds: number,
+  betAmount: number,
+  options?: {
+    seedPrefix?: string;
+    chunkSize?: number;
+    onProgress?: (done: number, total: number) => void;
+    shouldCancel?: () => boolean;
+  },
+): Promise<SimulationReport> {
+  const seedPrefix = options?.seedPrefix ?? 'sim';
+  const chunkSize = Math.max(100, options?.chunkSize ?? 2000);
+  const acc = createSimAccumulator(config, betAmount, seedPrefix);
+
+  let done = 0;
+  while (done < rounds) {
+    if (options?.shouldCancel?.()) break;
+    const end = Math.min(rounds, done + chunkSize);
+    acc.runRange(done, end);
+    done = end;
+    options?.onProgress?.(done, rounds);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
+
+  return acc.buildReport(done, betAmount);
 }

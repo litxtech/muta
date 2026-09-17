@@ -2,13 +2,9 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInRight } from 'react-native-reanimated';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
-import {
-  AnimasyonTokenlari,
-  BoslukTokenlari,
-} from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { KesfetBolumBasligi } from './KesfetBolumBasligi';
 
 export type KesfetPortal = {
@@ -37,33 +33,26 @@ export function KesfetDunyaPortallari({ portallar, onSec }: Props) {
         contentContainerStyle={styles.serit}
         decelerationRate="fast"
       >
-        {portallar.map((portal, index) => (
-          <Animated.View
+        {portallar.map((portal) => (
+          <Pressable
             key={portal.key}
-            entering={FadeInRight.delay(60 + index * 50)
-              .duration(AnimasyonTokenlari.normal)
-              .springify()
-              .damping(16)}
+            onPress={() => onSec(portal.href)}
+            style={styles.item}
+            accessibilityRole="button"
+            accessibilityLabel={portal.label}
           >
-            <Pressable
-              onPress={() => onSec(portal.href)}
-              style={({ pressed }) => [styles.item, pressed && styles.basili]}
-              accessibilityRole="button"
-              accessibilityLabel={portal.label}
+            <LinearGradient
+              colors={[`${portal.tint}44`, `${portal.tint}14`]}
+              start={{ x: 0.2, y: 0 }}
+              end={{ x: 0.9, y: 1 }}
+              style={[styles.ikon, { borderColor: `${portal.tint}55` }]}
             >
-              <LinearGradient
-                colors={[`${portal.tint}44`, `${portal.tint}14`]}
-                start={{ x: 0.2, y: 0 }}
-                end={{ x: 0.9, y: 1 }}
-                style={[styles.ikon, { borderColor: `${portal.tint}55` }]}
-              >
-                <Ionicons name={portal.icon} size={20} color={portal.tint} />
-              </LinearGradient>
-              <Text style={styles.etiket} numberOfLines={1}>
-                {portal.label}
-              </Text>
-            </Pressable>
-          </Animated.View>
+              <Ionicons name={portal.icon} size={20} color={portal.tint} />
+            </LinearGradient>
+            <Text style={styles.etiket} numberOfLines={1}>
+              {portal.label}
+            </Text>
+          </Pressable>
         ))}
       </ScrollView>
     </View>
@@ -88,7 +77,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  basili: { opacity: 0.85, transform: [{ scale: 0.96 }] },
   ikon: {
     width: 54,
     height: 54,

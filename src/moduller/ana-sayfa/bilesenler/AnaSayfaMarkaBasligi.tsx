@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   orta: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: 4,
   },
   fisilti: {
     ...TipografiTokenlari.micro,
@@ -103,10 +103,12 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: 'uppercase',
     fontSize: 10,
+    lineHeight: 13,
   },
   selam: {
     ...TipografiTokenlari.h2,
     color: RenkTokenlari.text,
     fontSize: 18,
+    lineHeight: 24,
   },
 });

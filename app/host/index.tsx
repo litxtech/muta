@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { BosDurum } from '../../src/components/BosDurum';
@@ -41,6 +41,8 @@ const BASVURU_YOL: Record<string, string> = {
 
 const BASVURU_DURUM: Record<string, string> = {
   pending: 'Beklemede',
+  agency_review: 'Ajans incelemesi',
+  platform_review: 'Platform incelemesi',
   approved: 'Onaylandı',
   rejected: 'Reddedildi',
 };
@@ -110,7 +112,16 @@ export default function HostEkrani() {
         Alert.alert('Başvuru', sonuc.hata);
         return;
       }
-      Alert.alert('Alındı', 'Ajans incelemesi bekleniyor.');
+      Alert.alert(
+        'Başvuru gönderildi',
+        'Ajans onaylayınca profilinde ajansın görünür ve üye panelin açılır.',
+        [
+          {
+            text: 'Panele git',
+            onPress: () => router.push('/ajans/uye' as any),
+          },
+        ],
+      );
       await load();
     });
   };
@@ -143,9 +154,11 @@ export default function HostEkrani() {
             </Text>
             <Text style={styles.cardMeta}>Profil: {durumMetni}</Text>
             {host?.agency_id ? (
-              <Text style={styles.cardMeta}>
-                Ajans: {host.agency_id.slice(0, 8)}…
-              </Text>
+              <GradientButton
+                title="Ajans paneli"
+                variant="ghost"
+                onPress={() => router.push('/ajans/uye' as any)}
+              />
             ) : null}
             {host ? (
               <View style={styles.stats}>

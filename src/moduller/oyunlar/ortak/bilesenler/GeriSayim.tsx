@@ -13,8 +13,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import { RenkTokenlari } from '../../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../../tasarim-sistemi/TipografiTokenlari';
-import { loadMatch3SesAyarlari } from '../../eslestirme/ses/Match3SesAyarlari';
-import { playMatch3Sfx } from '../../eslestirme/ses/Match3Sesleri';
 
 type Props = {
   running: boolean;
@@ -45,15 +43,11 @@ export function GeriSayim({ running, onDone }: Props) {
         withTiming(1, { duration: 180 }),
       );
 
-      const ayar = await loadMatch3SesAyarlari();
-      if (ayar.haptic) {
-        if (step < 3) {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        } else {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-        }
+      if (step < 3) {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       }
-      void playMatch3Sfx(step < 3 ? 'countdown' : 'game_start');
 
       step += 1;
       if (step >= STEPS.length) {

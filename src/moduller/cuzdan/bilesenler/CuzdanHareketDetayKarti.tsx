@@ -10,11 +10,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { CamArkaplan } from '../../../bilesenler/yuzey/CamArkaplan';
 import {
+  LedgerAnlasilirOzet,
+  LedgerBirimEtiketi,
+  LedgerRefEtiketi,
   LedgerSebepEtiketi,
+  LedgerTutarYazi,
   type LedgerSatiri,
 } from '../okuma/CuzdanLedgeriniGetir';
 import type { HediyeGecmisiKaydi } from '../../hediyeler/okuma/HediyeGecmisiniGetir';
 import { CEKIM_ODEME_BILGISI } from '../cekim/CekimOdemeBilgisi';
+import {
+  CoinTryKarsiligi,
+  TryYazi,
+} from '../katalog/CoinTryOrani';
 import {
   BelgePaylasDugmesi,
   BelgePaylasimPaneli,
@@ -65,6 +73,18 @@ function formatTarih(iso: string): string {
   }
 }
 
+function formatSaat(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString('tr-TR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  } catch {
+    return '—';
+  }
+}
+
 function Satir({ etiket, deger }: { etiket: string; deger: string }) {
   return (
     <View style={styles.satir}>
@@ -93,16 +113,24 @@ export function CuzdanHareketDetayKarti({ detay, onKapat }: Props) {
   if (detay.tur === 'ledger') {
     const r = detay.veri;
     const pozitif = r.delta >= 0;
-    baslik = LedgerSebepEtiketi(r.reason);
-    tutar = `${pozitif ? '+' : ''}${r.delta.toLocaleString('tr-TR')} ${r.currency === 'diamonds' || r.currency === 'diamond' ? 'elmas' : 'coin'}`;
+    baslik = LedgerAnlasilirOzet(r);
+    tutar = LedgerTutarYazi(r);
     tutarRenk = pozitif ? RenkTokenlari.mint : RenkTokenlari.danger;
     ozet = [
-      { etiket: 'İşlem türü', deger: baslik },
-      { etiket: 'Para birimi', deger: r.currency },
+      { etiket: 'İşlem türü', deger: LedgerSebepEtiketi(r.reason) },
+      { etiket: 'Para birimi', deger: LedgerBirimEtiketi(r.currency) },
       { etiket: 'Tutar', deger: tutar },
-      { etiket: 'İşlem sonrası bakiye', deger: r.balance_after.toLocaleString('tr-TR') },
-      { etiket: 'Referans', deger: r.ref_type ?? '—' },
+      {
+        etiket: 'İşlem sonrası bakiye',
+        deger: `${r.balance_after.toLocaleString('tr-TR')} ${LedgerBirimEtiketi(r.currency)}`,
+      },
+      { etiket: 'Kaynak', deger: LedgerRefEtiketi(r.ref_type) },
+      {
+        etiket: 'Yön',
+        deger: pozitif ? 'Hesaba giriş / kazanç' : 'Hesaptan çıkış / harcama',
+      },
       { etiket: 'Tarih', deger: formatTarih(r.created_at) },
+      { etiket: 'Saat', deger: formatSaat(r.created_at) },
       { etiket: 'İşlem no', deger: r.id.slice(0, 13).toUpperCase() },
     ];
   } else if (detay.tur === 'hediye') {
@@ -117,13 +145,22 @@ export function CuzdanHareketDetayKarti({ detay, onKapat }: Props) {
       ? `−${h.coins_spent.toLocaleString('tr-TR')} coin`
       : `+${h.diamonds_earned.toLocaleString('tr-TR')} elmas`;
     tutarRenk = gonderildi ? RenkTokenlari.danger : RenkTokenlari.mint;
+    const tryDeger = CoinTryKarsiligi(h.coins_spent);
     ozet = [
-      { etiket: 'Hediye', deger: `${baslik}${h.quantity > 1 ? ` ×${h.quantity}` : ''}` },
+      {
+        etiket: 'Hediye',
+        deger: `${h.gift?.emoji ?? ''} ${baslik}${h.quantity > 1 ? ` ×${h.quantity}` : ''}`.trim(),
+      },
       { etiket: 'Yön', deger: gonderildi ? 'Gönderildi' : 'Alındı' },
       { etiket: gonderildi ? 'Alıcı' : 'Gönderen', deger: kim },
       { etiket: 'Oda', deger: h.oda?.title ?? '—' },
       { etiket: 'Tutar', deger: tutar },
+      {
+        etiket: gonderildi ? 'TL değeri' : 'TL kazanç karşılığı',
+        deger: TryYazi(tryDeger),
+      },
       { etiket: 'Tarih', deger: formatTarih(h.created_at) },
+      { etiket: 'Saat', deger: formatSaat(h.created_at) },
       { etiket: 'İşlem no', deger: h.id.slice(0, 13).toUpperCase() },
     ];
   } else {
@@ -138,6 +175,7 @@ export function CuzdanHareketDetayKarti({ detay, onKapat }: Props) {
       { etiket: 'Durum', deger: detay.durumEtiket },
       { etiket: 'Ödeme süresi', deger: CEKIM_ODEME_BILGISI },
       { etiket: 'Tarih', deger: formatTarih(c.created_at) },
+      { etiket: 'Saat', deger: formatSaat(c.created_at) },
       { etiket: 'Talep no', deger: c.id.slice(0, 13).toUpperCase() },
     ];
   }
@@ -149,13 +187,12 @@ export function CuzdanHareketDetayKarti({ detay, onKapat }: Props) {
           <Pressable style={styles.perde} onPress={onKapat} />
           <CamArkaplan
             intensity={28}
-            tint="dark"
             style={StyleSheet.absoluteFill}
-            fallbackColor="rgba(0,0,0,0.55)"
+            fallbackColor={RenkTokenlari.scrim}
             pointerEvents="none"
           />
           <View style={styles.kartWrap}>
-            <LinearGradient colors={['#2A1C34', '#16101F']} style={styles.kart}>
+            <LinearGradient colors={[...RenkTokenlari.gradientCard]} style={styles.kart}>
               <View style={styles.ust}>
                 <Text style={styles.fisilti}>İŞLEM DEKONTU</Text>
                 <Pressable onPress={onKapat} style={styles.kapat} hitSlop={8}>

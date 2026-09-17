@@ -3,10 +3,14 @@ import { supabase } from '../../../lib/supabase';
 export async function CanliYayinBaslat(input: {
   title: string;
   mode?: string;
+  category?: string | null;
+  topic?: string | null;
 }): Promise<{ ok: true; session: { id: string; livekit_room_name?: string } } | { ok: false; hata: string }> {
   const { data, error } = await supabase.rpc('canli_yayin_baslat', {
     p_title: input.title,
     p_mode: input.mode ?? 'solo',
+    p_category: input.category ?? null,
+    p_topic: input.topic ?? null,
   });
   if (error) return { ok: false, hata: error.message };
   return { ok: true, session: data as { id: string; livekit_room_name?: string } };
@@ -108,4 +112,12 @@ export async function CanliYayinModerasyon(input: {
   });
   if (error) return { ok: false, hata: error.message };
   return { ok: true };
+}
+
+export async function TakipCanliYayinlariGetir(limit = 40) {
+  const { data, error } = await supabase.rpc('takip_canli_yayinlari', {
+    p_limit: limit,
+  });
+  if (error) throw error;
+  return (data as any[]) ?? [];
 }

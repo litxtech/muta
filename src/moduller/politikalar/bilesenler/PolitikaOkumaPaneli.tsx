@@ -31,9 +31,8 @@ export function PolitikaOkumaPaneli({ politika, onKapat }: Props) {
       <View style={styles.kok}>
         <CamArkaplan
           intensity={24}
-          tint="dark"
           style={StyleSheet.absoluteFill}
-          fallbackColor="rgba(0,0,0,0.55)"
+          fallbackColor={RenkTokenlari.scrim}
           pointerEvents="none"
         />
         <View style={styles.kart}>

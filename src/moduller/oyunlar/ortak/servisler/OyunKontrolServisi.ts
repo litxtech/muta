@@ -5,6 +5,7 @@
 
 import { supabase } from '../../../../lib/supabase';
 import { GameLogger } from '../../cekirdek/OyunLogger';
+import { oyunRpcRetryIle } from './OyunAgIstek';
 import type {
   GameCode,
   GameControlConfig,
@@ -20,30 +21,33 @@ export type GameControlBundle = {
 /** Uygulamada listelenmeye uygun oyun kodları (kapalı / bakım hariç). */
 export async function listVisibleGameCodes(): Promise<RpcResult<GameCode[]>> {
   try {
-    const { data, error } = await supabase
-      .from('game_control_configs')
-      .select('game_code, is_enabled, mode')
-      .eq('is_enabled', true)
-      .neq('mode', 'MAINTENANCE')
-      .order('game_code', { ascending: true });
+    const { data, error } = await oyunRpcRetryIle(() =>
+      supabase
+        .from('game_control_configs')
+        .select('game_code, is_enabled, mode')
+        .eq('is_enabled', true)
+        .neq('mode', 'MAINTENANCE')
+        .order('game_code', { ascending: true }),
+    );
 
     if (error) {
-      GameLogger.error('listVisibleGameCodes', { hata: error.message });
-      return { ok: false, hata: error.message };
+      GameLogger.warn('listVisibleGameCodes', { hata: error.message });
+      return { ok: false, hata: error.message ?? 'listVisibleGameCodes' };
     }
 
     const codes = ((data ?? []) as Array<{ game_code: GameCode }>).map((r) => r.game_code);
     return { ok: true, data: codes };
   } catch (e) {
     const hata = e instanceof Error ? e.message : 'listVisibleGameCodes başarısız';
-    GameLogger.error('listVisibleGameCodes', { hata });
+    GameLogger.warn('listVisibleGameCodes', { hata });
     return { ok: false, hata };
   }
 }
 
 export async function isGameVisible(gameCode: GameCode): Promise<boolean> {
   const res = await listVisibleGameCodes();
-  if (!res.ok) return false;
+  // Ağ kopunca oyunu kapalı gösterme — spin endpoint zaten bayrağı zorlar.
+  if (!res.ok) return true;
   return res.data.includes(gameCode);
 }
 

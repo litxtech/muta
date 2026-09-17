@@ -37,7 +37,7 @@ export function KesfetMarkaBasligi({ canliSayisi, onGeri }: Props) {
 
         <View style={styles.canliRozet}>
           <AnaSayfaCanliNokta boyut={6} />
-          <View>
+          <View style={styles.canliMetin}>
             <Text style={styles.canliSayi}>{canliSayisi}</Text>
             <Text style={styles.canliEtiket}>canlı</Text>
           </View>
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   markaBlok: {
     flex: 1,
     minWidth: 0,
-    gap: 3,
+    gap: 4,
     paddingTop: 2,
   },
   fisilti: {
@@ -80,19 +80,20 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.primarySoft,
     letterSpacing: 1.6,
     fontSize: 10,
+    lineHeight: 13,
   },
   baslik: {
     ...TipografiTokenlari.title,
     color: RenkTokenlari.text,
     letterSpacing: -0.6,
     fontSize: 28,
-    lineHeight: 32,
+    lineHeight: 34,
   },
   slogan: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textMuted,
     letterSpacing: 0.4,
-    marginTop: 2,
+    lineHeight: 18,
   },
   canliRozet: {
     flexDirection: 'row',
@@ -107,6 +108,9 @@ const styles = StyleSheet.create({
     minWidth: 78,
     marginTop: 2,
   },
+  canliMetin: {
+    gap: 2,
+  },
   canliSayi: {
     ...TipografiTokenlari.h2,
     color: RenkTokenlari.text,
@@ -116,6 +120,7 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.primarySoft,
     fontSize: 9,
+    lineHeight: 12,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },

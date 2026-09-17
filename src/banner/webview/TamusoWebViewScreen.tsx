@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -8,10 +9,10 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as WebBrowser from 'expo-web-browser';
 import { TamusoWebViewHeader } from './TamusoWebViewHeader';
 import { isSafeHttpsUrl, shouldAllowWebViewNavigation } from './WebViewSecurity';
 import { loadNativeWebView } from './loadNativeWebView';
+import { openUrlSafely } from './openUrlSafely';
 import { RenkTokenlari } from '../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../tasarim-sistemi/TipografiTokenlari';
 import { Screen } from '../../components/Screen';
@@ -31,9 +32,11 @@ export function TamusoWebViewScreen() {
   );
 
   const WebView = useMemo(() => loadNativeWebView(), []);
-  const webRef = useRef<{ goBack: () => void; goForward: () => void; reload: () => void } | null>(
-    null,
-  );
+  const webRef = useRef<{
+    goBack: () => void;
+    goForward: () => void;
+    reload: () => void;
+  } | null>(null);
   const [title, setTitle] = useState(String(params.title ?? 'Tamuso'));
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -42,7 +45,7 @@ export function TamusoWebViewScreen() {
   const [error, setError] = useState<string | null>(
     initialCheck.ok ? null : initialCheck.reason ?? 'Geçersiz URL',
   );
-  const [browserFallback, setBrowserFallback] = useState(false);
+  const [openingExternal, setOpeningExternal] = useState(false);
 
   const onNav = useCallback((nav: NavState) => {
     setCanGoBack(nav.canGoBack);
@@ -50,21 +53,23 @@ export function TamusoWebViewScreen() {
     if (nav.title) setTitle(nav.title);
   }, []);
 
+  const openExternal = useCallback(async (url: string) => {
+    setOpeningExternal(true);
+    setError(null);
+    const sonuc = await openUrlSafely(url);
+    setOpeningExternal(false);
+    if (sonuc === 'failed') {
+      setError('Bağlantı açılamadı');
+      return;
+    }
+    if (router.canGoBack()) router.back();
+  }, []);
+
   useEffect(() => {
     if (!WebView && initialCheck.ok && initialCheck.url) {
-      setBrowserFallback(true);
-      void (async () => {
-        try {
-          await WebBrowser.openBrowserAsync(initialCheck.url!);
-        } catch {
-          setError('Tarayıcı açılamadı');
-          setBrowserFallback(false);
-          return;
-        }
-        if (router.canGoBack()) router.back();
-      })();
+      void openExternal(initialCheck.url);
     }
-  }, [WebView, initialCheck.ok, initialCheck.url]);
+  }, [WebView, initialCheck.ok, initialCheck.url, openExternal]);
 
   if (!initialCheck.ok || !initialCheck.url) {
     return (
@@ -88,28 +93,35 @@ export function TamusoWebViewScreen() {
     return (
       <Screen>
         <View style={[styles.errorWrap, { paddingTop: insets.top + 24 }]}>
-          {browserFallback && !error ? (
+          {openingExternal && !error ? (
             <>
               <ActivityIndicator color={RenkTokenlari.primary} />
-              <Text style={styles.errorBody}>Tarayıcıda açılıyor…</Text>
+              <Text style={styles.errorBody}>Bağlantı açılıyor…</Text>
             </>
           ) : (
             <>
               <Text style={styles.errorTitle}>WebView yok</Text>
               <Text style={styles.errorBody}>
                 {error ??
-                  'Bu development build’de WebView yok. Yeni native build alın veya tarayıcıyı kullanın.'}
+                  'Bu development build’de WebView / WebBrowser yok. Yeni native build alın veya bağlantıyı dışarıda açın.'}
               </Text>
               <Pressable
                 accessibilityRole="button"
                 style={styles.errorBtn}
+                onPress={() => void openExternal(initialCheck.url!)}
+              >
+                <Text style={styles.errorBtnText}>Dışarıda aç</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                style={styles.errorBtnSecondary}
                 onPress={() => {
-                  void WebBrowser.openBrowserAsync(initialCheck.url!).finally(() => {
+                  void Linking.openURL(initialCheck.url!).finally(() => {
                     if (router.canGoBack()) router.back();
                   });
                 }}
               >
-                <Text style={styles.errorBtnText}>Tarayıcıda aç</Text>
+                <Text style={styles.errorBtnSecondaryText}>Sistem tarayıcısı</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"

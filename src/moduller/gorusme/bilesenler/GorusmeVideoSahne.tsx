@@ -16,8 +16,8 @@ type Props = {
 };
 
 /**
- * Uzak + yerel video katmani (LiveKit VideoView).
- * Mock / sesli aramada avatar sahnesi.
+ * WhatsApp tarzı: uzak tam ekran + yerel PiP.
+ * Karşı taraf yokken yerel kamera tam ekran (bağlantı kontrolü).
  */
 export function GorusmeVideoSahne({
   video,
@@ -42,6 +42,7 @@ export function GorusmeVideoSahne({
   const harf = (peerName ?? '?').charAt(0).toLocaleUpperCase('tr-TR');
   const nativeOk = !mock && video && !!VideoViewComp;
   const hasRemote = !!remoteVideo;
+  const localHazir = nativeOk && cameraOn && !!localVideo && !!VideoViewComp;
 
   return (
     <View style={styles.root}>
@@ -50,6 +51,15 @@ export function GorusmeVideoSahne({
           style={StyleSheet.absoluteFill}
           videoTrack={remoteVideo}
           objectFit="cover"
+          zOrder={0}
+        />
+      ) : localHazir && localVideo && VideoViewComp ? (
+        // Karşı taraf henüz yok — kendi kameran tam ekran (WhatsApp)
+        <VideoViewComp
+          style={StyleSheet.absoluteFill}
+          videoTrack={localVideo}
+          objectFit="cover"
+          mirror
           zOrder={0}
         />
       ) : (
@@ -78,9 +88,10 @@ export function GorusmeVideoSahne({
         </LinearGradient>
       )}
 
-      {video ? (
+      {/* PiP: yalnızca uzak görüntü varken (çift VideoView yükü yok) */}
+      {video && hasRemote ? (
         <View style={styles.pip}>
-          {nativeOk && cameraOn && localVideo && VideoViewComp ? (
+          {localHazir && localVideo && VideoViewComp ? (
             <VideoViewComp
               style={StyleSheet.absoluteFill}
               videoTrack={localVideo}

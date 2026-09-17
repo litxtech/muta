@@ -12,7 +12,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-/** Keşfet — yükleme sırasında nabız atan iskelet ızgara */
+/** Keşfet — yükleme sırasında nabız atan iskelet */
 export function KesfetIskelet() {
   const opaklik = useSharedValue(0.45);
 
@@ -24,11 +24,21 @@ export function KesfetIskelet() {
 
   return (
     <Animated.View style={[styles.wrap, stil]}>
-      <View style={styles.hero} />
-      <View style={styles.satir}>
-        <View style={styles.kart} />
-        <View style={styles.kart} />
+      <View style={styles.portalSatir}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <View key={i} style={styles.portal} />
+        ))}
       </View>
+      <View style={styles.modSatir}>
+        <View style={styles.mod} />
+        <View style={styles.mod} />
+      </View>
+      <View style={styles.modSatir}>
+        <View style={styles.mod} />
+        <View style={styles.mod} />
+      </View>
+      <View style={styles.trend} />
+      <View style={styles.hero} />
       <View style={styles.satir}>
         <View style={styles.kart} />
         <View style={styles.kart} />
@@ -41,9 +51,35 @@ const styles = StyleSheet.create({
   wrap: {
     paddingHorizontal: BoslukTokenlari.lg,
     gap: BoslukTokenlari.md,
+    paddingTop: BoslukTokenlari.xs,
+  },
+  portalSatir: {
+    flexDirection: 'row',
+    gap: BoslukTokenlari.md,
+  },
+  portal: {
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+    backgroundColor: RenkTokenlari.bgCard,
+  },
+  modSatir: {
+    flexDirection: 'row',
+    gap: BoslukTokenlari.sm + 2,
+  },
+  mod: {
+    flex: 1,
+    height: 96,
+    borderRadius: YaricapTokenlari.md + 2,
+    backgroundColor: RenkTokenlari.bgCard,
+  },
+  trend: {
+    height: 128,
+    borderRadius: YaricapTokenlari.md + 2,
+    backgroundColor: RenkTokenlari.bgCard,
   },
   hero: {
-    height: 150,
+    height: 160,
     borderRadius: YaricapTokenlari.md,
     backgroundColor: RenkTokenlari.bgCard,
   },

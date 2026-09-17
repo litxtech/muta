@@ -1,22 +1,16 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Screen } from '../../src/components/Screen';
-import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { BosDurum } from '../../src/components/BosDurum';
-import { TextField } from '../../src/components/TextField';
-import { GradientButton } from '../../src/components/GradientButton';
-import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
@@ -25,21 +19,35 @@ import {
   CanliYayinBaslat,
   CanliYayinBitir,
   CanliYayinlariGetir,
+  TakipCanliYayinlariGetir,
 } from '../../src/moduller/canli-yayin/islemler/CanliYayinIslemleri';
 import {
   CanliYayinTiyatro,
   type CanliYayinMeta,
 } from '../../src/moduller/canli-yayin/bilesenler/CanliYayinTiyatro';
+import { CanliYayinMarkaBasligi } from '../../src/moduller/canli-yayin/bilesenler/CanliYayinMarkaBasligi';
+import { CanliYayinStudioKarti } from '../../src/moduller/canli-yayin/bilesenler/CanliYayinStudioKarti';
+import { CanliYayinKarti } from '../../src/moduller/canli-yayin/bilesenler/CanliYayinKarti';
 import { MedyaOdasiBaglan, MedyaOdasiKes } from '../../src/moduller/livekit/MedyaBaglantisi';
-import { PkMacBaslat } from '../../src/moduller/pk/islemler/PkMacBaslat';
 import { OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import { HediyeAnimasyonKatmani } from '../../src/moduller/hediyeler/bilesenler/HediyeAnimasyonKatmani';
+import { useCanliHediyeCanlisi } from '../../src/moduller/hediyeler/gercek-zamanli/useCanliHediyeCanlisi';
+import { HediyeKatalogunuGetir } from '../../src/moduller/hediyeler/okuma/HediyeKatalogunuGetir';
+import { HEDIYE_FALLBACK_50 } from '../../src/moduller/hediyeler/katalog/HediyeFallback50';
+import { PkDavetPaneli } from '../../src/moduller/pk/bilesenler/PkDavetPaneli';
+import { PkDavetModal } from '../../src/moduller/pk/bilesenler/PkDavetModal';
+import { usePkDaveti } from '../../src/moduller/pk/kancalar/usePkDaveti';
+import { useCanliPkMac } from '../../src/moduller/pk/kancalar/useCanliPkMac';
+import type { Gift } from '../../src/types/models';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
+  AnimasyonTokenlari,
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+
+type CanliSekme = 'hepsi' | 'takip';
 
 export default function CanliYayinEkrani() {
   const navigation = useNavigation();
@@ -50,22 +58,59 @@ export default function CanliYayinEkrani() {
   const [title, setTitle] = useState('');
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [canliSekme, setCanliSekme] = useState<CanliSekme>('hepsi');
   const [yayinda, setYayinda] = useState(false);
   const [meta, setMeta] = useState<CanliYayinMeta | null>(null);
   const [medyaDurum, setMedyaDurum] = useState<string | null>(null);
   const [medyaMock, setMedyaMock] = useState(false);
+  const [gifts, setGifts] = useState<Gift[]>(HEDIYE_FALLBACK_50);
+  const [pkDavetAcik, setPkDavetAcik] = useState(false);
   const yayindaRef = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
   const liveEnabled = OzellikBayragiAktifMi('live_enabled');
   const videoEnabled = OzellikBayragiAktifMi('video_enabled');
 
+  const baslikOnerisi = useMemo(() => {
+    const ad = profile?.display_name?.trim() || profile?.username?.trim();
+    if (!ad) return '';
+    return `${ad} canlıda`;
+  }, [profile?.display_name, profile?.username]);
+
+  const { davet: gelenPkDavet, temizle: pkDavetTemizle } = usePkDaveti({
+    hostUserId: user?.id,
+    enabled: yayinda && OzellikBayragiAktifMi('pk_enabled'),
+  });
+  const { mac: pkMac, yenile: pkYenile } = useCanliPkMac({
+    liveSessionId: meta?.id,
+    enabled: yayinda && !!meta?.id,
+  });
+
+  useCanliHediyeCanlisi({
+    sessionId: meta?.id,
+    selfUserId: user?.id,
+    gifts,
+    enabled: yayinda && !!meta?.id,
+  });
+
+  React.useEffect(() => {
+    void HediyeKatalogunuGetir()
+      .then((rows) => {
+        if (rows.length) setGifts(rows);
+      })
+      .catch(() => undefined);
+  }, []);
+
   const load = useCallback(async () => {
     try {
-      setList(await CanliYayinlariGetir());
+      setList(
+        canliSekme === 'takip'
+          ? await TakipCanliYayinlariGetir()
+          : await CanliYayinlariGetir(),
+      );
     } catch {
       setList([]);
     }
-  }, []);
+  }, [canliSekme]);
 
   const yayiniSonlandir = useCallback(async () => {
     const sid = sessionIdRef.current;
@@ -202,24 +247,35 @@ export default function CanliYayinEkrani() {
             onNeedUpgrade={upgradeAc}
             onBitir={() => void bitir()}
             onMeta={(patch) => setMeta((m) => (m ? { ...m, ...patch } : m))}
+            pkMac={pkMac}
             onPk={() => {
-              void (async () => {
-                const r = await PkMacBaslat({
-                  liveAId: meta.id,
-                  sureSaniye: 300,
-                });
-                if (!r.ok) {
-                  Alert.alert('PK', r.hata);
-                  return;
-                }
-                Alert.alert('PK başladı', 'Arena 5 dk', [
-                  {
-                    text: 'Arenaya git',
-                    onPress: () => router.push('/pk' as any),
-                  },
-                  { text: 'Tamam' },
-                ]);
-              })();
+              if (pkMac) {
+                Alert.alert('PK', 'Zaten bir PK maçındasın.');
+                return;
+              }
+              setPkDavetAcik(true);
+            }}
+          />
+          <PkDavetPaneli
+            visible={pkDavetAcik}
+            fromLiveId={meta.id}
+            selfHostId={user?.id ?? meta.host_id}
+            onClose={() => setPkDavetAcik(false)}
+            onGonderildi={() => {
+              Alert.alert(
+                'PK daveti gönderildi',
+                'Rakip kabul ederse maç başlar (60 sn içinde).',
+              );
+            }}
+          />
+          <PkDavetModal
+            davet={gelenPkDavet}
+            onKapat={pkDavetTemizle}
+            onSonuc={(s) => {
+              if (s.status === 'accepted') {
+                void pkYenile();
+                Alert.alert('PK başladı!', 'Hediyeler skor ve cüzdana anlık işlenir.');
+              }
             }}
           />
           <HediyeAnimasyonKatmani />
@@ -239,136 +295,92 @@ export default function CanliYayinEkrani() {
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="canli-yayin">
-        <EkranBasligi
-          title="Canlı Yayın"
-          subtitle="Yayın · sohbet · izleyici"
-        />
-        <KlavyeKapatan style={styles.content}>
-          <View style={styles.studio}>
-            <LinearGradient
-              colors={['#2A1830', '#14101C', '#1A1224']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.studioInner}
-            >
-              <View style={styles.studioIcon}>
-                <Ionicons
-                  name="videocam"
-                  size={28}
-                  color={RenkTokenlari.primarySoft}
-                />
-              </View>
-              <Text style={styles.studioTitle}>Yayın stüdyosu</Text>
-              <Text style={styles.studioAlt}>
-                Başlık yaz, canlıya çık — kamera o anda açılır
-              </Text>
-            </LinearGradient>
-          </View>
-
-          <View style={styles.goLiveBox}>
-            <TextField
-              label="Yayın başlığı"
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Gece şovu..."
-            />
-            <GradientButton
-              title="Canlıya çık"
-              onPress={baslat}
-              loading={loading}
-            />
-          </View>
-
-          <View style={styles.sectionRow}>
-            <Text style={styles.section}>Şimdi canlı</Text>
-            <Text style={styles.count}>{list.length}</Text>
-          </View>
-          <FlatList
-            data={list}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            ListEmptyComponent={
-              <BosDurum
-                icon="videocam-outline"
-                title="Canlı yayın yok"
-                body="Yayınlar başladığında burada listelenir."
+        <FlatList
+          data={list}
+          keyExtractor={(item) => item.id}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            <View style={styles.header}>
+              <CanliYayinMarkaBasligi
+                canliSayisi={list.length}
+                onGeri={() => {
+                  if (router.canGoBack()) router.back();
+                  else router.replace('/(tabs)' as any);
+                }}
               />
-            }
-            renderItem={({ item }) => {
-              const host = item.host;
-              const ad =
-                host?.display_name?.trim() ||
-                host?.username?.trim() ||
-                'Yayıncı';
-              const gifts = item.gift_count ?? 0;
-              const coins = item.total_coins_earned ?? item.score ?? 0;
-              const likes = item.like_count ?? 0;
-              const viewers = item.viewer_count ?? 0;
-              const kapak = host?.avatar_url ?? null;
-              return (
-                <Pressable
-                  onPress={() => router.push(`/canli/${item.id}` as any)}
-                  style={({ pressed }) => [
-                    styles.cardPress,
-                    pressed && styles.cardPressed,
-                  ]}
-                >
-                  <View style={styles.card}>
-                    {kapak ? (
-                      <Image source={{ uri: kapak }} style={styles.cardKapak} />
-                    ) : (
-                      <LinearGradient
-                        colors={['#2E1A32', '#1A1224', '#14101C']}
-                        style={styles.cardKapak}
-                      />
-                    )}
-                    <LinearGradient
-                      colors={['rgba(10,8,16,0.15)', 'rgba(10,8,16,0.92)']}
-                      style={StyleSheet.absoluteFill}
-                    />
-                    <View style={styles.cardTop}>
-                      <View style={styles.livePill}>
-                        <View style={styles.liveDot} />
-                        <Text style={styles.livePillText}>CANLI</Text>
-                      </View>
-                      <View style={styles.viewerChip}>
-                        <Ionicons
-                          name="eye"
-                          size={11}
-                          color={RenkTokenlari.mint}
-                        />
-                        <Text style={styles.viewerText}>{viewers}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.cardBottom}>
-                      <Text style={styles.cardTitle} numberOfLines={2}>
-                        {item.title}
-                      </Text>
-                      <View style={styles.cardMetaRow}>
-                        <Text style={styles.cardHost} numberOfLines={1}>
-                          {ad}
+              <CanliYayinStudioKarti
+                title={title}
+                onChangeTitle={setTitle}
+                onBaslat={baslat}
+                loading={loading}
+                placeholder={baslikOnerisi || 'Gece şovu...'}
+              />
+
+              <Animated.View
+                entering={FadeInDown.delay(120)
+                  .duration(AnimasyonTokenlari.yavas)
+                  .springify()
+                  .damping(18)}
+                style={styles.sectionRow}
+              >
+                <View style={styles.sectionSol}>
+                  <View style={styles.sectionAccent} />
+                  <Text style={styles.section}>Şimdi canlı</Text>
+                </View>
+                <View style={styles.sekmeSerit}>
+                  {(
+                    [
+                      { id: 'hepsi' as const, label: 'Hepsi' },
+                      { id: 'takip' as const, label: 'Takip' },
+                    ] as const
+                  ).map((s) => {
+                    const aktif = canliSekme === s.id;
+                    return (
+                      <Pressable
+                        key={s.id}
+                        onPress={() => setCanliSekme(s.id)}
+                        style={[styles.sekme, aktif && styles.sekmeAktif]}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: aktif }}
+                      >
+                        <Text
+                          style={[styles.sekmeYazi, aktif && styles.sekmeYaziAktif]}
+                        >
+                          {s.label}
                         </Text>
-                        <View style={styles.cardStats}>
-                          {likes > 0 ? (
-                            <Text style={styles.cardStat}>♥{likes}</Text>
-                          ) : null}
-                          {gifts > 0 ? (
-                            <Text style={styles.cardStat}>🎁{gifts}</Text>
-                          ) : null}
-                          {coins > 0 ? (
-                            <Text style={styles.cardStat}>🪙{coins}</Text>
-                          ) : null}
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                </Pressable>
-              );
-            }}
-          />
-        </KlavyeKapatan>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </Animated.View>
+            </View>
+          }
+          ListEmptyComponent={
+            <BosDurum
+              icon="videocam-outline"
+              title={
+                canliSekme === 'takip'
+                  ? 'Takip ettiğin yayın yok'
+                  : 'Canlı yayın yok'
+              }
+              body={
+                canliSekme === 'takip'
+                  ? 'Takip ettiğin hesaplar yayına geçince burada görünür.'
+                  : 'Yayınlar başladığında burada listelenir.'
+              }
+            />
+          }
+          renderItem={({ item, index }) => (
+            <CanliYayinKarti
+              item={item}
+              index={index}
+              onPress={() => router.push(`/canli/${item.id}` as any)}
+            />
+          )}
+        />
         <HesabiTamamlaKarti
           visible={upgradeAcik}
           onClose={upgradeKapat}
@@ -383,148 +395,64 @@ export default function CanliYayinEkrani() {
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-    paddingHorizontal: BoslukTokenlari.xl,
-    paddingBottom: BoslukTokenlari.xl,
+  header: {
     gap: BoslukTokenlari.md,
+    paddingBottom: BoslukTokenlari.sm,
   },
-  studio: {
-    borderRadius: YaricapTokenlari.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: RenkTokenlari.borderAccent,
-  },
-  studioInner: {
-    aspectRatio: 16 / 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 24,
-  },
-  studioIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(232,64,145,0.16)',
-    borderWidth: 1,
-    borderColor: 'rgba(232,64,145,0.3)',
-    marginBottom: 4,
-  },
-  studioTitle: {
-    ...TipografiTokenlari.h2,
-    color: RenkTokenlari.text,
-  },
-  studioAlt: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
-    textAlign: 'center',
-  },
-  goLiveBox: { gap: BoslukTokenlari.md },
   sectionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: BoslukTokenlari.sm,
+    gap: BoslukTokenlari.md,
+  },
+  sectionSol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    minWidth: 0,
+  },
+  sectionAccent: {
+    width: 3,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: RenkTokenlari.primary,
   },
   section: {
     ...TipografiTokenlari.h2,
     color: RenkTokenlari.text,
+    fontSize: 17,
   },
-  count: {
+  sekmeSerit: {
+    flexDirection: 'row',
+    gap: 6,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderRadius: YaricapTokenlari.pill,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+  },
+  sekme: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: YaricapTokenlari.pill,
+  },
+  sekmeAktif: {
+    backgroundColor: 'rgba(232,64,145,0.2)',
+  },
+  sekmeYazi: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
+    fontWeight: '700',
   },
-  list: { flexGrow: 1, gap: BoslukTokenlari.md, paddingBottom: 8 },
-  cardPress: { width: '100%' },
-  cardPressed: { opacity: 0.92, transform: [{ scale: 0.985 }] },
-  card: {
-    borderRadius: YaricapTokenlari.md,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(232, 64, 145, 0.28)',
-    aspectRatio: 16 / 10,
-    justifyContent: 'space-between',
-  },
-  cardKapak: {
-    ...StyleSheet.absoluteFill,
-  },
-  cardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: BoslukTokenlari.md,
-    paddingTop: BoslukTokenlari.md,
-  },
-  livePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: YaricapTokenlari.pill,
-    backgroundColor: 'rgba(8,4,14,0.62)',
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: RenkTokenlari.live,
-  },
-  livePillText: {
-    ...TipografiTokenlari.micro,
+  sekmeYaziAktif: {
     color: RenkTokenlari.primarySoft,
-    fontWeight: '800',
-    letterSpacing: 0.4,
   },
-  viewerChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: YaricapTokenlari.pill,
-    backgroundColor: 'rgba(8,4,14,0.62)',
-  },
-  viewerText: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.text,
-    fontWeight: '700',
-  },
-  cardBottom: {
-    paddingHorizontal: BoslukTokenlari.md,
-    paddingBottom: BoslukTokenlari.md,
-    gap: 6,
-  },
-  cardTitle: {
-    ...TipografiTokenlari.body,
-    color: RenkTokenlari.text,
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  cardMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  cardHost: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
-    flex: 1,
-    minWidth: 0,
-  },
-  cardStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexShrink: 0,
-  },
-  cardStat: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
-    fontWeight: '600',
+  list: {
+    flexGrow: 1,
+    gap: BoslukTokenlari.md,
+    paddingHorizontal: BoslukTokenlari.xl,
+    paddingBottom: BoslukTokenlari.xxl,
   },
 });

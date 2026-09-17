@@ -1,6 +1,6 @@
 /**
- * Lobi ambient arka plan — gerçek insan stok videoları (Mixkit Free License).
- * Yerel asset: sessiz / döngüsel oynatılır.
+ * @deprecated Giriş lobisi videosu `giris-lobisi/sabitler/GirisAmbientVideolari` altında.
+ * Geriye uyumluluk için tutuluyor.
  */
 
 export type LobiAmbientKaynak = {

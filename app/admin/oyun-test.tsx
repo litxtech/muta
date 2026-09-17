@@ -1,11 +1,10 @@
 /**
- * Admin oyun denetim — odaya girmeden Match-3 / Kozmik Kaskad oynama.
- * Coin şartı yok (istemci + sunucu admin muafiyeti).
+ * Admin oyun denetim — odaya girmeden Kozmik Kaskad oynama.
+ * Coin şartı yok (yalnızca bu ekran; ses odasında gerçek settle).
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  Alert,
   Modal,
   Pressable,
   StyleSheet,
@@ -17,14 +16,12 @@ import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { AdminYetkisiVarMi } from '../../src/moduller/admin/yetki/AdminYetkisiVarMi';
-import { KristalSavasiEkrani } from '../../src/moduller/oyunlar/eslestirme/ekranlar/KristalSavasiEkrani';
-import { GAME_DISPLAY_NAME as MATCH3_NAME } from '../../src/moduller/oyunlar/eslestirme/sabitler/KristalSabitleri';
 import { KozmikKaskadEkrani } from '../../src/moduller/oyunlar/kaskad/ekranlar/KozmikKaskadEkrani';
 import { GAME_DISPLAY_NAME as KASKAD_NAME } from '../../src/moduller/oyunlar/kaskad/sabitler/KaskadSabitleri';
-import {
-  DEFAULT_DURATION_SECONDS,
-  DURATION_OPTIONS_SECONDS,
-} from '../../src/moduller/oyunlar/ortak/sabitler/OyunSabitleri';
+import { ZeusEkrani } from '../../src/moduller/oyunlar/zeus/ekranlar/ZeusEkrani';
+import { GAME_DISPLAY_NAME as ZEUS_NAME } from '../../src/moduller/oyunlar/zeus/config/ZeusSabitleri';
+import { SlotOyunEkrani } from '../../src/moduller/oyunlar/slot/ekranlar/SlotOyunEkrani';
+import { GAME_DISPLAY_NAME as NOX_NAME } from '../../src/moduller/oyunlar/slot/sabitler/SlotAyarlari';
 import type { RoomGameMeta } from '../../src/moduller/oyunlar/ortak/tipler/OyunTipleri';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
@@ -33,17 +30,12 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-type AktifOyun = 'idle' | 'match3' | 'kaskad';
+type AktifOyun = 'idle' | 'kaskad' | 'zeus' | 'nox';
 
 export default function AdminOyunTestEkrani() {
   const { profile } = useAuth();
   const admin = AdminYetkisiVarMi(profile);
   const [aktif, setAktif] = useState<AktifOyun>('idle');
-  const [duration, setDuration] = useState(DEFAULT_DURATION_SECONDS);
-  const [matchSeed, setMatchSeed] = useState(() =>
-    Math.floor(Math.random() * 2_147_483_647),
-  );
-  const [endsAt, setEndsAt] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -63,13 +55,6 @@ export default function AdminOyunTestEkrani() {
     [],
   );
 
-  const baslatMatch3 = () => {
-    const seed = Math.floor(Math.random() * 2_147_483_647);
-    setMatchSeed(seed);
-    setEndsAt(new Date(Date.now() + duration * 1000).toISOString());
-    setAktif('match3');
-  };
-
   if (!admin) return null;
 
   return (
@@ -84,51 +69,51 @@ export default function AdminOyunTestEkrani() {
         <View style={styles.banner}>
           <Text style={styles.bannerTitle}>Admin ücretsiz test</Text>
           <Text style={styles.bannerBody}>
-            Odaya girmeden oynarsın. Kozmik Kaskad bahisleri coin düşürmez;
-            Match-3 skor sunucuya yazılmaz.
+            Bu ekran odasız denetimdir — coin düşmez. Ses odasında oynarken
+            admin hesabı da gerçek bahis/kazanç ile çalışır; bakiye anlık
+            güncellenir.
           </Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.eyebrow}>KRİSTAL SAVAŞI</Text>
-          <Text style={styles.cardTitle}>{MATCH3_NAME}</Text>
-          <Text style={styles.cardBody}>
-            Yerel solo pratik — aynı tahta motoru, oda / oturum yok.
-          </Text>
-
-          <Text style={styles.durationLabel}>Süre</Text>
-          <View style={styles.durationRow}>
-            {DURATION_OPTIONS_SECONDS.map((sec) => (
-              <Pressable
-                key={sec}
-                style={[styles.chip, duration === sec && styles.chipOn]}
-                onPress={() => setDuration(sec)}
-              >
-                <Text
-                  style={[styles.chipText, duration === sec && styles.chipTextOn]}
-                >
-                  {sec}s
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Pressable style={styles.cta} onPress={baslatMatch3}>
-            <Text style={styles.ctaText}>Match-3 başlat</Text>
-          </Pressable>
         </View>
 
         <View style={[styles.card, styles.cardAlt]}>
           <Text style={styles.eyebrow}>KOZMİK KASKAD</Text>
           <Text style={styles.cardTitle}>{KASKAD_NAME}</Text>
           <Text style={styles.cardBody}>
-            Canlı spin API · admin hesabında bakiye kontrolü yok.
+            Canlı spin API · oda yok → coin düşmez. Ses odasında gerçek settle.
           </Text>
           <Pressable
             style={[styles.cta, styles.ctaAlt]}
             onPress={() => setAktif('kaskad')}
           >
             <Text style={styles.ctaText}>Kaskad aç</Text>
+          </Pressable>
+        </View>
+
+        <View style={[styles.card, styles.cardZeus]}>
+          <Text style={styles.eyebrowZeus}>OLYMPUS</Text>
+          <Text style={styles.cardTitle}>{ZEUS_NAME}</Text>
+          <Text style={styles.cardBody}>
+            6×5 cascade · sunucu settle. Bu ekranda coin düşmez.
+          </Text>
+          <Pressable
+            style={[styles.cta, styles.ctaZeus]}
+            onPress={() => setAktif('zeus')}
+          >
+            <Text style={styles.ctaText}>Zeus aç</Text>
+          </Pressable>
+        </View>
+
+        <View style={[styles.card, styles.cardNox]}>
+          <Text style={styles.eyebrowNox}>NIGHT SLOT</Text>
+          <Text style={styles.cardTitle}>{NOX_NAME}</Text>
+          <Text style={styles.cardBody}>
+            5×3 payline · wild/scatter · sunucu settle. Bu ekranda coin düşmez.
+          </Text>
+          <Pressable
+            style={[styles.cta, styles.ctaNox]}
+            onPress={() => setAktif('nox')}
+          >
+            <Text style={styles.ctaText}>NOX aç</Text>
           </Pressable>
         </View>
 
@@ -141,35 +126,6 @@ export default function AdminOyunTestEkrani() {
       </View>
 
       <Modal
-        visible={aktif === 'match3'}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={() => setAktif('idle')}
-      >
-        {aktif === 'match3' && endsAt ? (
-          <KristalSavasiEkrani
-            sessionId=""
-            seed={matchSeed}
-            endsAt={endsAt}
-            roomMeta={roomMeta}
-            players={[]}
-            durationSeconds={duration}
-            inputLocked={false}
-            timerArmed
-            practiceMode
-            onExit={() => setAktif('idle')}
-            onFinished={(payload) => {
-              Alert.alert(
-                'Test bitti',
-                `Skor ${payload.score} · hamle ${payload.moveCount} · combo ${payload.highestCombo}`,
-                [{ text: 'Tamam', onPress: () => setAktif('idle') }],
-              );
-            }}
-          />
-        ) : null}
-      </Modal>
-
-      <Modal
         visible={aktif === 'kaskad'}
         animationType="slide"
         presentationStyle="fullScreen"
@@ -179,6 +135,39 @@ export default function AdminOyunTestEkrani() {
           <KozmikKaskadEkrani
             roomId={null}
             voiceActive={false}
+            adminTestMode
+            onClose={() => setAktif('idle')}
+          />
+        ) : null}
+      </Modal>
+
+      <Modal
+        visible={aktif === 'zeus'}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setAktif('idle')}
+      >
+        {aktif === 'zeus' ? (
+          <ZeusEkrani
+            roomId={null}
+            voiceActive={false}
+            adminTestMode
+            onClose={() => setAktif('idle')}
+          />
+        ) : null}
+      </Modal>
+
+      <Modal
+        visible={aktif === 'nox'}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setAktif('idle')}
+      >
+        {aktif === 'nox' ? (
+          <SlotOyunEkrani
+            roomId={null}
+            voiceActive={false}
+            adminTest
             onClose={() => setAktif('idle')}
           />
         ) : null}
@@ -222,8 +211,26 @@ const styles = StyleSheet.create({
   cardAlt: {
     borderColor: 'rgba(167,139,250,0.35)',
   },
+  cardZeus: {
+    borderColor: 'rgba(232,197,71,0.45)',
+  },
+  cardNox: {
+    borderColor: 'rgba(124,58,237,0.5)',
+  },
   eyebrow: {
     color: RenkTokenlari.primarySoft,
+    fontSize: TipografiTokenlari.micro.fontSize,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  eyebrowZeus: {
+    color: '#E8C547',
+    fontSize: TipografiTokenlari.micro.fontSize,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  eyebrowNox: {
+    color: '#B794F6',
     fontSize: TipografiTokenlari.micro.fontSize,
     fontWeight: '800',
     letterSpacing: 1.2,
@@ -238,28 +245,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: TipografiTokenlari.body.fontSize,
   },
-  durationLabel: {
-    color: RenkTokenlari.textMuted,
-    marginTop: 12,
-    marginBottom: 8,
-    fontWeight: '700',
-    fontSize: TipografiTokenlari.caption.fontSize,
-  },
-  durationRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: YaricapTokenlari.pill,
-    backgroundColor: RenkTokenlari.surface,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-  },
-  chipOn: {
-    borderColor: RenkTokenlari.primary,
-    backgroundColor: 'rgba(232,64,145,0.18)',
-  },
-  chipText: { color: RenkTokenlari.textMuted, fontWeight: '700' },
-  chipTextOn: { color: RenkTokenlari.primarySoft },
   cta: {
     marginTop: 16,
     backgroundColor: RenkTokenlari.primary,
@@ -268,6 +253,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ctaAlt: { backgroundColor: RenkTokenlari.violet },
+  ctaZeus: { backgroundColor: '#C9A24A' },
+  ctaNox: { backgroundColor: '#7C3AED' },
   ctaText: {
     color: '#fff',
     fontWeight: '900',

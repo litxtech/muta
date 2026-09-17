@@ -2,10 +2,12 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { CanliCoinSimgesi } from './CanliCoinSimgesi';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
+  GolgeTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
@@ -25,10 +27,10 @@ function formatBakiye(n: number): string {
 function maskeHesap(kod?: string | null): string {
   const temiz = (kod ?? 'TAMUSO').replace(/\s/g, '').toUpperCase().slice(-8);
   const pad = temiz.padStart(8, '0');
-  return `••••  ••••  ••••  ${pad.slice(0, 4)} ${pad.slice(4)}`;
+  return `${pad.slice(0, 4)}  ${pad.slice(4)}`;
 }
 
-/** Banka kartı estetiğinde bakiye yüzü */
+/** Premium banka kartı — bakiye yüzü */
 export function CuzdanBankaKarti({
   coins,
   diamonds,
@@ -40,21 +42,34 @@ export function CuzdanBankaKarti({
   return (
     <View style={styles.wrap}>
       <LinearGradient
-        colors={['#2C1A3A', '#1A1028', '#120E1C']}
+        colors={[...RenkTokenlari.gradientCard]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.kart}
       >
-        <View style={styles.parlama} pointerEvents="none" />
+        <View style={styles.parlamaUst} pointerEvents="none" />
+        <View style={styles.parlamaAlt} pointerEvents="none" />
+
         <View style={styles.ust}>
-          <View>
+          <View style={styles.markaBlok}>
             <Text style={styles.marka}>TAMUSO</Text>
             <Text style={styles.kartTip}>Premium cüzdan</Text>
           </View>
-          <View style={styles.chip}>
+          <View style={styles.chipWrap}>
             <LinearGradient
               colors={[...RenkTokenlari.gradientGold]}
-              style={styles.chipIc}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.chip}
+            >
+              <View style={styles.chipCizgi} />
+              <View style={[styles.chipCizgi, { top: 14 }]} />
+            </LinearGradient>
+            <Ionicons
+              name="wifi"
+              size={16}
+              color={RenkTokenlari.textDim}
+              style={styles.nfc}
             />
           </View>
         </View>
@@ -62,41 +77,42 @@ export function CuzdanBankaKarti({
         <Text style={styles.hesapNo}>{maskeHesap(hesapKodu)}</Text>
 
         <View style={styles.bakiyeSatir}>
-          <View style={styles.bakiyeKol}>
+          <View style={styles.bakiyeKart}>
             <View style={styles.etiketSatir}>
-              <LinearGradient colors={[...RenkTokenlari.gradientGold]} style={styles.miniIkon}>
-                <Ionicons name="ellipse" size={8} color="#12040C" />
-              </LinearGradient>
-              <Text style={styles.etiket}>Coin hesabı</Text>
+              <CanliCoinSimgesi size={22} seviye={0.4} />
+              <Text style={styles.etiket}>Coin</Text>
             </View>
-            <Text style={styles.tutar}>{formatBakiye(coins)}</Text>
+            <Text style={styles.tutar} numberOfLines={1}>
+              {formatBakiye(coins)}
+            </Text>
           </View>
-          <View style={styles.ayrac} />
-          <View style={styles.bakiyeKol}>
+          <View style={styles.bakiyeKart}>
             <View style={styles.etiketSatir}>
               <LinearGradient
                 colors={[...RenkTokenlari.gradientDiamond]}
-                style={styles.miniIkon}
+                style={styles.elmasIkon}
               >
-                <Ionicons name="diamond" size={9} color="#12040C" />
+                <Ionicons name="diamond" size={11} color="#12040C" />
               </LinearGradient>
-              <Text style={styles.etiket}>Elmas hesabı</Text>
+              <Text style={styles.etiket}>Elmas</Text>
             </View>
-            <Text style={styles.tutar}>{formatBakiye(diamonds)}</Text>
+            <Text style={styles.tutar} numberOfLines={1}>
+              {formatBakiye(diamonds)}
+            </Text>
           </View>
         </View>
 
         <View style={styles.alt}>
-          <View>
+          <View style={styles.altSol}>
             <Text style={styles.altEtiket}>Hesap sahibi</Text>
             <Text style={styles.altDeger} numberOfLines={1}>
               {(sahipAdi ?? 'Üye').toUpperCase()}
             </Text>
           </View>
           <View style={styles.altSag}>
-            <Text style={styles.altEtiket}>Özet</Text>
+            <Text style={styles.altEtiket}>Yükleme / harcama</Text>
             <Text style={styles.altDegerMini}>
-              +{formatBakiye(yuklenen)} / −{formatBakiye(harcanan)}
+              +{formatBakiye(yuklenen)}  ·  −{formatBakiye(harcanan)}
             </Text>
           </View>
         </View>
@@ -108,90 +124,126 @@ export function CuzdanBankaKarti({
 const styles = StyleSheet.create({
   wrap: {
     marginHorizontal: BoslukTokenlari.xl,
+    ...GolgeTokenlari.soft,
   },
   kart: {
-    borderRadius: YaricapTokenlari.lg + 2,
+    borderRadius: YaricapTokenlari.xl,
     padding: BoslukTokenlari.xl,
+    paddingBottom: BoslukTokenlari.lg + 4,
     borderWidth: 1,
-    borderColor: 'rgba(240, 180, 41, 0.28)',
-    minHeight: 210,
+    borderColor: 'rgba(240, 180, 41, 0.22)',
+    minHeight: 228,
     overflow: 'hidden',
     gap: BoslukTokenlari.lg,
   },
-  parlama: {
+  parlamaUst: {
     position: 'absolute',
-    top: -40,
-    right: -20,
+    top: -50,
+    right: -30,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(232, 64, 145, 0.18)',
+  },
+  parlamaAlt: {
+    position: 'absolute',
+    bottom: -60,
+    left: -40,
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: 'rgba(232, 64, 145, 0.16)',
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
   },
   ust: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
+  markaBlok: { gap: 3 },
   marka: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.accent,
-    letterSpacing: 2.4,
+    letterSpacing: 2.8,
     fontWeight: '800',
+    fontSize: 11,
   },
   kartTip: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textMuted,
-    marginTop: 2,
-    fontSize: 10,
+    fontSize: 11,
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   chip: {
-    width: 42,
-    height: 30,
-    borderRadius: 6,
-    overflow: 'hidden',
+    width: 44,
+    height: 32,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(240,180,41,0.45)',
+    borderColor: 'rgba(255,255,255,0.35)',
+    overflow: 'hidden',
+    justifyContent: 'center',
   },
-  chipIc: { flex: 1 },
+  chipCizgi: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    top: 8,
+  },
+  nfc: {
+    transform: [{ rotate: '90deg' }],
+  },
   hesapNo: {
     ...TipografiTokenlari.body,
     color: RenkTokenlari.text,
-    letterSpacing: 2.2,
+    letterSpacing: 3.2,
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 15,
+    opacity: 0.92,
   },
   bakiyeSatir: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    gap: BoslukTokenlari.sm,
   },
-  bakiyeKol: { flex: 1, gap: 6 },
-  ayrac: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    marginHorizontal: BoslukTokenlari.md,
+  bakiyeKart: {
+    flex: 1,
+    gap: 8,
+    paddingVertical: BoslukTokenlari.md,
+    paddingHorizontal: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.md,
+    backgroundColor: RenkTokenlari.pressFill,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
   },
   etiketSatir: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
-  miniIkon: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+  elmasIkon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
   etiket: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
-    fontSize: 10,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
   tutar: {
     ...TipografiTokenlari.title,
     color: RenkTokenlari.text,
-    fontSize: 26,
-    letterSpacing: -0.5,
+    fontSize: 24,
+    letterSpacing: -0.6,
+    fontWeight: '800',
   },
   alt: {
     flexDirection: 'row',
@@ -199,26 +251,29 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: BoslukTokenlari.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.1)',
+    borderTopColor: RenkTokenlari.divider,
     paddingTop: BoslukTokenlari.md,
   },
-  altSag: { alignItems: 'flex-end' },
+  altSol: { flex: 1, minWidth: 0 },
+  altSag: { alignItems: 'flex-end', flexShrink: 0 },
   altEtiket: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
     fontSize: 9,
-    letterSpacing: 0.8,
-    marginBottom: 2,
+    letterSpacing: 0.9,
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
   altDeger: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.text,
     fontWeight: '700',
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
   altDegerMini: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textMuted,
     fontWeight: '600',
+    fontSize: 11,
   },
 });

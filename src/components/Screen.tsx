@@ -8,12 +8,23 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../theme/colors';
+import { RenkTokenlariKoyu } from '../tasarim-sistemi/RenkTokenlari';
+import {
+  koyuSahneKilidiCik,
+  koyuSahneKilidiGir,
+  paletiAl,
+} from '../tasarim-sistemi/tema/TemaDurumu';
+import { useTemayaAboneOl } from '../tasarim-sistemi/tema/useTemayaAboneOl';
+import { TabSayfaKaydirSarici } from './tab-navigasyon/TabSayfaKaydirSarici';
 
 type Edge = 'top' | 'bottom' | 'left' | 'right';
 
 type Props = ViewProps & {
   edges?: Edge[];
+  /** Ana sekme ekranlarında yatay kaydırarak komşu taba geç. */
+  tabSayfaKaydir?: boolean;
+  /** Canlı oda / sahne — uygulama teması beyaz olsa da koyu sahne. */
+  koyuSahne?: boolean;
 };
 
 /**
@@ -24,9 +35,19 @@ export function Screen({
   children,
   style,
   edges = ['top', 'bottom'],
+  tabSayfaKaydir = false,
+  koyuSahne = false,
   ...rest
 }: Props) {
   const [klavyeAcik, setKlavyeAcik] = useState(false);
+  useTemayaAboneOl();
+  const palet = koyuSahne ? RenkTokenlariKoyu : paletiAl();
+
+  useEffect(() => {
+    if (!koyuSahne) return;
+    koyuSahneKilidiGir();
+    return () => koyuSahneKilidiCik();
+  }, [koyuSahne]);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -49,16 +70,24 @@ export function Screen({
     return edges;
   }, [edges, klavyeAcik]);
 
+  const icerik = (
+    <SafeAreaView style={[styles.safe, style]} edges={aktifEdges} {...rest}>
+      {children}
+    </SafeAreaView>
+  );
+
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: palet.bg }]}>
       <LinearGradient
-        colors={[...colors.gradientNight]}
+        colors={[...palet.gradientNight]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      <SafeAreaView style={[styles.safe, style]} edges={aktifEdges} {...rest}>
-        {children}
-      </SafeAreaView>
+      {tabSayfaKaydir ? (
+        <TabSayfaKaydirSarici>{icerik}</TabSayfaKaydirSarici>
+      ) : (
+        icerik
+      )}
     </View>
   );
 }
@@ -71,7 +100,6 @@ export function klavyeBosluktaKapat(): void {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.bg,
   },
   safe: {
     flex: 1,

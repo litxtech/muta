@@ -25,6 +25,8 @@ import {
 import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediyeMagaza';
 import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
 import { HediyeAnimasyonKatmani } from '../../src/moduller/hediyeler/bilesenler/HediyeAnimasyonKatmani';
+import { useCanliHediyeCanlisi } from '../../src/moduller/hediyeler/gercek-zamanli/useCanliHediyeCanlisi';
+import { useCanliPkMac } from '../../src/moduller/pk/kancalar/useCanliPkMac';
 import { supabase } from '../../src/lib/supabase';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
@@ -40,6 +42,17 @@ export default function CanliIzleyiciEkrani() {
   const [loading, setLoading] = useState(true);
   const [medyaDurum, setMedyaDurum] = useState('Bağlanıyor…');
   const [medyaMock, setMedyaMock] = useState(false);
+  const { mac: pkMac } = useCanliPkMac({
+    liveSessionId: meta?.id ?? (typeof id === 'string' ? id : undefined),
+    enabled: !!meta?.id,
+  });
+
+  useCanliHediyeCanlisi({
+    sessionId: meta?.id,
+    selfUserId: user?.id,
+    gifts: magaza.gifts,
+    enabled: !!meta?.id,
+  });
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -189,7 +202,7 @@ export default function CanliIzleyiciEkrani() {
 
   if (loading) {
     return (
-      <Screen>
+      <Screen koyuSahne>
         <ActivityIndicator
           color={RenkTokenlari.primarySoft}
           style={{ marginTop: 80 }}
@@ -200,7 +213,7 @@ export default function CanliIzleyiciEkrani() {
 
   if (!meta) {
     return (
-      <Screen edges={['top']}>
+      <Screen koyuSahne edges={['top']}>
         <View style={styles.bos}>
           <Text style={styles.bosTitle}>Yayın bulunamadı</Text>
           <Pressable onPress={() => router.back()} style={styles.geri}>
@@ -212,7 +225,7 @@ export default function CanliIzleyiciEkrani() {
   }
 
   return (
-    <Screen edges={[]}>
+    <Screen koyuSahne edges={[]}>
       <ModulHataSiniri modulAdi="canli-yayin">
         <CanliYayinTiyatro
           rol="izleyici"
@@ -225,10 +238,31 @@ export default function CanliIzleyiciEkrani() {
           onNeedUpgrade={upgradeAc}
           onCikis={() => router.back()}
           onMeta={(patch) => setMeta((m) => (m ? { ...m, ...patch } : m))}
-          onHediye={() =>
+          pkMac={pkMac}
+          onHediye={() => {
+            const pkAlicilar =
+              pkMac && pkMac.host_a_id && pkMac.host_b_id
+                ? [
+                    {
+                      id: pkMac.host_a_id,
+                      ad: pkMac.side_a?.host_name ?? 'Yayıncı A',
+                      liveSessionId: pkMac.live_a_id,
+                      side: 'a' as const,
+                    },
+                    {
+                      id: pkMac.host_b_id,
+                      ad: pkMac.side_b?.host_name ?? 'Yayıncı B',
+                      liveSessionId: pkMac.live_b_id,
+                      side: 'b' as const,
+                    },
+                  ].filter((a) => a.id !== user?.id)
+                : undefined;
+
             magaza.ac({
               receiverId: meta.host_id,
               aliciAdi: meta.hostAd,
+              liveSessionId: meta.id,
+              pkAlicilar,
               animasyon: true,
               onBasarili: (_g, adet) => {
                 setMeta((m) =>
@@ -239,12 +273,13 @@ export default function CanliIzleyiciEkrani() {
                       }
                     : m,
                 );
+                void refreshWallet();
               },
-            })
-          }
+            });
+          }}
         />
 
-        <HediyeMagazaBaglamasi magaza={magaza} misafirKart={false} />
+        <HediyeMagazaBaglamasi magaza={magaza} misafirKart={false} animasyon={false} />
         <HediyeAnimasyonKatmani />
 
         <HesabiTamamlaKarti

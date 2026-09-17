@@ -65,6 +65,14 @@ const MODULLER: Modul[] = [
     bolum: 'İnsanlar',
   },
   {
+    icon: 'add-circle-outline',
+    label: 'Coin yükle',
+    alt: 'İsim yaz · avatar · yükle',
+    href: '/admin/coin',
+    tint: RenkTokenlari.accent,
+    bolum: 'İnsanlar',
+  },
+  {
     icon: 'cash-outline',
     label: 'Ciro',
     alt: 'Anlık · gün · hafta · ay · PDF',
@@ -161,6 +169,22 @@ const MODULLER: Modul[] = [
     bolum: 'Büyüme',
   },
   {
+    icon: 'film-outline',
+    label: 'Giriş lobisi',
+    alt: 'Video · resim · logo · metin',
+    href: '/admin/giris-lobisi',
+    tint: RenkTokenlari.primarySoft,
+    bolum: 'Büyüme',
+  },
+  {
+    icon: 'clipboard-outline',
+    label: 'Kayıt alanları',
+    alt: 'Zorunlu · gizli · özel alan',
+    href: '/admin/kayit-alanlari',
+    tint: RenkTokenlari.mint,
+    bolum: 'Büyüme',
+  },
+  {
     icon: 'link-outline',
     label: 'Paylaşım',
     alt: 'İndirme linkleri',
@@ -179,7 +203,7 @@ const MODULLER: Modul[] = [
   {
     icon: 'ribbon-outline',
     label: 'Sertifikasyon',
-    alt: 'Kontrol listeleri',
+    alt: 'Kontrol · ağ · stres testi',
     href: '/sertifikasyon',
     tint: RenkTokenlari.accent,
     bolum: 'Operasyon',
@@ -187,7 +211,7 @@ const MODULLER: Modul[] = [
   {
     icon: 'grid-outline',
     label: 'Platform',
-    alt: 'Operasyon paneli',
+    alt: 'Etkinlik · görev · kısayollar',
     href: '/platform',
     tint: RenkTokenlari.mint,
     bolum: 'Operasyon',
@@ -195,7 +219,7 @@ const MODULLER: Modul[] = [
   {
     icon: 'lock-closed-outline',
     label: 'Güvenlik',
-    alt: 'Olaylar & risk',
+    alt: 'Koruma · bildir · olaylar',
     href: '/guvenlik',
     tint: RenkTokenlari.danger,
     bolum: 'Operasyon',
@@ -247,31 +271,37 @@ export default function AdminHubEkrani() {
   const p = ozet?.platform;
   const kpis = [
     {
+      id: 'kullanici',
       n: SayiKisa(p?.kullanici.toplam ?? null),
       l: 'Kullanıcı',
       tint: RenkTokenlari.accent,
     },
     {
-      n: SayiKisa(p?.finans.toplam_yukleme_coin ?? ozet?.liveRooms),
-      l: p ? 'Toplam coin' : 'Canlı oda',
+      id: 'coin',
+      n: p ? SayiKisa(p.finans.toplam_yukleme_coin) : '—',
+      l: 'Toplam coin',
       tint: RenkTokenlari.primarySoft,
     },
     {
+      id: 'cekim_veya_push',
       n: String(p?.finans.bekleyen_cekim ?? ozet?.pendingOutbox ?? '—'),
       l: p ? 'Bekleyen çekim' : 'Push kuyruk',
       tint: RenkTokenlari.warning,
     },
     {
+      id: 'rapor',
       n: String(p?.sosyal.acik_rapor ?? ozet?.openReports ?? '—'),
       l: 'Açık rapor',
       tint: RenkTokenlari.danger,
     },
     {
+      id: 'canli_oda',
       n: String(p?.canli.odalar ?? ozet?.liveRooms ?? '—'),
       l: 'Canlı oda',
       tint: RenkTokenlari.live,
     },
     {
+      id: 'canli_pk',
       n: String(p?.canli.pk ?? ozet?.livePk ?? '—'),
       l: 'Canlı PK',
       tint: RenkTokenlari.violet,
@@ -305,7 +335,7 @@ export default function AdminHubEkrani() {
         }
       >
         <LinearGradient
-          colors={['#2A1838', '#1A1228', '#16101F']}
+          colors={[...RenkTokenlari.gradientCard]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={AdminStil.hero}
@@ -326,7 +356,7 @@ export default function AdminHubEkrani() {
 
         <View style={AdminStil.kpiGrid}>
           {kpis.map((k) => (
-            <View key={k.l} style={AdminStil.kpi}>
+            <View key={k.id} style={AdminStil.kpi}>
               <Text style={[AdminStil.kpiN, { color: k.tint }]}>{k.n}</Text>
               <Text style={AdminStil.kpiL}>{k.l}</Text>
             </View>

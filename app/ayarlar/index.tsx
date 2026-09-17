@@ -12,12 +12,16 @@ import {
 } from '../../src/moduller/ayarlar/islemler/KullaniciAyarlariniYonet';
 import {
   GIZLILIK_ALAN_ETIKETLERI,
+  PROFIL_GOSTERGE_GIZLILIK,
   GizlilikAyariKaydet,
   GizlilikAyarlariniGetir,
   type GizlilikAyarlari,
 } from '../../src/moduller/ayarlar/islemler/GizlilikAyarlariniYonet';
+import { useKullanimSuresi } from '../../src/moduller/kullanim-suresi/baglam/KullanimSuresiSaglayici';
 import { UygulamaKimligi } from '../../src/yapilandirma/UygulamaKimligi';
 import { OrtamDegiskenleri } from '../../src/yapilandirma/OrtamDegiskenleri';
+import { GorunumSecimKartlari } from '../../src/moduller/gorunum/bilesenler/GorunumSecimKartlari';
+import { useTema } from '../../src/tasarim-sistemi/tema/TemaSaglayici';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -33,12 +37,20 @@ const EMPTY_PRIVACY: GizlilikAyarlari = {
   hide_agency: false,
   hide_gift_collection: false,
   hide_top_supporter: false,
+  hide_level: false,
+  hide_topup_coin: false,
+  hide_prestige: false,
+  hide_account_value: false,
+  is_private: false,
 };
 
 export default function AyarlarEkrani() {
   const [push, setPush] = useState(true);
   const [dil, setDil] = useState('tr');
   const [privacy, setPrivacy] = useState<GizlilikAyarlari>(EMPTY_PRIVACY);
+  const { formatli: kullanimFormatli, yenile: kullanimYenile } =
+    useKullanimSuresi();
+  const { palet } = useTema();
 
   useFocusEffect(
     useCallback(() => {
@@ -47,7 +59,8 @@ export default function AyarlarEkrani() {
         setDil(a.dil);
       });
       void GizlilikAyarlariniGetir().then(setPrivacy);
-    }, []),
+      void kullanimYenile();
+    }, [kullanimYenile]),
   );
 
   const pushDegistir = async (v: boolean) => {
@@ -108,6 +121,15 @@ export default function AyarlarEkrani() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
         >
+          <Text style={[styles.sectionLabel, { color: palet.textDim }]}>
+            Görünüm
+          </Text>
+          <Text style={[styles.sectionHint, { color: palet.textMuted }]}>
+            Siyah, beyaz veya premium temalardan birini seç. Seçimin tüm uygulamaya uygulanır.
+          </Text>
+          <GorunumSecimKartlari />
+          <View style={{ height: BoslukTokenlari.lg }} />
+
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
               <Text style={styles.label}>Push bildirimleri</Text>
@@ -117,8 +139,19 @@ export default function AyarlarEkrani() {
               value={push}
               onValueChange={(v) => void pushDegistir(v)}
               trackColor={{ true: RenkTokenlari.primary, false: RenkTokenlari.border }}
+              thumbColor={palet.bgElevated}
             />
           </View>
+
+          <ListeGrubu title="Kullanım">
+            <ListeSatiri
+              icon="time-outline"
+              label="Uygulamada geçirdiğin süre"
+              value={kullanimFormatli}
+              showChevron={false}
+              last
+            />
+          </ListeGrubu>
 
           <ListeGrubu>
             <ListeSatiri
@@ -134,6 +167,34 @@ export default function AyarlarEkrani() {
               onPress={dilSec}
               last
             />
+          </ListeGrubu>
+
+          <ListeGrubu title="Profil göstergeleri">
+            <Text style={[styles.sectionHint, { marginBottom: 0, paddingTop: BoslukTokenlari.sm }]}>
+              Kapalı olanlar profilini ziyaret edenlere görünmez.
+            </Text>
+            {PROFIL_GOSTERGE_GIZLILIK.map((item, index) => (
+              <View
+                key={item.key}
+                style={[
+                  styles.privacyRow,
+                  index < PROFIL_GOSTERGE_GIZLILIK.length - 1 && styles.privacyBorder,
+                ]}
+              >
+                <View style={styles.privacyCopy}>
+                  <Text style={styles.labelSmall}>{item.label}</Text>
+                  {item.aciklama ? (
+                    <Text style={styles.hint}>{item.aciklama}</Text>
+                  ) : null}
+                </View>
+                <Switch
+                  value={privacy[item.key]}
+                  onValueChange={(v) => void privacyDegistir(item.key, v)}
+                  trackColor={{ true: RenkTokenlari.primary, false: RenkTokenlari.border }}
+                  thumbColor={palet.bgElevated}
+                />
+              </View>
+            ))}
           </ListeGrubu>
 
           <ListeGrubu title="Gizlilik">
@@ -155,6 +216,7 @@ export default function AyarlarEkrani() {
                   value={privacy[item.key]}
                   onValueChange={(v) => void privacyDegistir(item.key, v)}
                   trackColor={{ true: RenkTokenlari.primary, false: RenkTokenlari.border }}
+                  thumbColor={palet.bgElevated}
                 />
               </View>
             ))}
@@ -213,6 +275,20 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: BoslukTokenlari.xl,
     paddingBottom: BoslukTokenlari.xxl,
+  },
+  sectionLabel: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    paddingHorizontal: BoslukTokenlari.sm,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  sectionHint: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    paddingHorizontal: BoslukTokenlari.sm,
+    marginBottom: BoslukTokenlari.md,
+    lineHeight: 18,
   },
   row: {
     flexDirection: 'row',

@@ -109,7 +109,8 @@ const styles = StyleSheet.create({
   },
   hucre: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 2,
+    overflow: 'visible',
   },
 });

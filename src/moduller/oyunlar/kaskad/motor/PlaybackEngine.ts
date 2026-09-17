@@ -6,12 +6,24 @@
 import {
   ANTICIPATION_MS,
   DESTROY_MS,
-  DROP_MS_PER_CELL,
+  GRID_ROWS,
   MATCH_GLOW_MS,
   MULTIPLIER_COLLECT_MS,
   MULTIPLIER_REVEAL_MS,
+  winCelebrationMs,
 } from '../sabitler/KaskadSabitleri';
-import type { KaskadPhase, SpinResult } from '../tipler/KaskadTipleri';
+import {
+  dropDistancesBetween,
+  dropDistancesFromAbove,
+  dusmeToplamMs,
+  maxDusmeMesafesi,
+} from '../../ortak/grid/DusmeMesafeleri';
+import { isEmptyInstanceId } from '../symbols/SymbolRules';
+import type {
+  GridMatrix,
+  KaskadPhase,
+  SpinResult,
+} from '../tipler/KaskadTipleri';
 
 export type PlaybackListener = (
   phase: KaskadPhase,
@@ -26,32 +38,31 @@ export type PlaybackController = {
   getPhase(): KaskadPhase;
 };
 
-type Signal = { cancelled: boolean; skipped: boolean };
+type Signal = { cancelled: boolean; skipped: boolean; wake?: () => void };
 
 const SKIP_FACTOR = 0.15;
-const BASE_DROP_MS = DROP_MS_PER_CELL[3];
-const SPIN_START_MS = 120;
-const WIN_STEP_MS = 160;
-const SCATTER_CHECK_MS = 180;
+/** Patlama görünür olsun; gravity hemen başlasın. */
+const DESTROY_THEN_DROP_MS = Math.round(DESTROY_MS * 0.42);
+const SPIN_START_MS = 80;
+const SCATTER_CHECK_MS = 140;
 const BONUS_INTRO_MS = 2400;
-const BONUS_MODE_MS = 400;
-const RETRIGGER_MS = 900;
-const FINALIZE_MS = 200;
+const BONUS_MODE_MS = 320;
+const RETRIGGER_MS = 700;
+const FINALIZE_MS = 140;
 
 function delay(ms: number, signal: Signal): Promise<void> {
   return new Promise((resolve) => {
     const effective = signal.skipped ? Math.max(16, ms * SKIP_FACTOR) : ms;
-    const t = setTimeout(() => {
-      clearInterval(iv);
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(t);
+      signal.wake = undefined;
       resolve();
-    }, effective);
-    const iv = setInterval(() => {
-      if (signal.cancelled || signal.skipped) {
-        clearTimeout(t);
-        clearInterval(iv);
-        resolve();
-      }
-    }, 40);
+    };
+    const t = setTimeout(finish, effective);
+    signal.wake = finish;
   });
 }
 
@@ -72,10 +83,12 @@ export function createPlaybackController(opts: {
     getPhase: () => phase,
     cancel() {
       signal.cancelled = true;
+      signal.wake?.();
       setPhase('IDLE');
     },
     skip() {
       signal.skipped = true;
+      signal.wake?.();
     },
     async play(result: SpinResult) {
       signal.cancelled = false;
@@ -85,9 +98,21 @@ export function createPlaybackController(opts: {
       await delay(SPIN_START_MS * factor, signal);
       if (signal.cancelled) return;
 
-      setPhase('SYMBOLS_DROP', { grid: result.initialGrid });
-      await delay(BASE_DROP_MS * factor, signal);
+      const initialDrop = dropDistancesFromAbove(
+        result.initialGrid,
+        isEmptyInstanceId,
+      );
+      setPhase('SYMBOLS_DROP', {
+        grid: result.initialGrid,
+        dropping: initialDrop,
+      });
+      await delay(
+        dusmeToplamMs(maxDusmeMesafesi(initialDrop) || GRID_ROWS, factor),
+        signal,
+      );
       if (signal.cancelled) return;
+
+      let prevGrid: GridMatrix = result.initialGrid;
 
       for (const step of result.cascades) {
         setPhase('MATCH_CHECK', {
@@ -105,7 +130,7 @@ export function createPlaybackController(opts: {
         if (signal.cancelled) return;
 
         setPhase('DESTROY', { removedIds: step.removedIds });
-        await delay(DESTROY_MS * factor, signal);
+        await delay(DESTROY_THEN_DROP_MS * factor, signal);
         if (signal.cancelled) return;
 
         if (step.multipliers.length > 0) {
@@ -121,13 +146,20 @@ export function createPlaybackController(opts: {
           if (signal.cancelled) return;
         }
 
+        const dropping = dropDistancesBetween(
+          prevGrid,
+          step.gridAfter,
+          isEmptyInstanceId,
+        );
         setPhase('CASCADE', {
           cascadeIndex: step.cascadeIndex,
           gridAfter: step.gridAfter,
           newSymbols: step.newSymbols,
+          dropping,
         });
-        await delay((BASE_DROP_MS + WIN_STEP_MS) * factor, signal);
+        await delay(dusmeToplamMs(maxDusmeMesafesi(dropping), factor), signal);
         if (signal.cancelled) return;
+        prevGrid = step.gridAfter;
       }
 
       // Anticipation yalnızca sonuç gerçekten bonus içeriyorsa —
@@ -167,15 +199,7 @@ export function createPlaybackController(opts: {
           baseWin: result.baseWin,
           totalMultiplier: result.totalMultiplier,
         });
-        const bigMs =
-          result.winTier === 'DIVINE'
-            ? 3400
-            : result.winTier === 'COSMIC'
-              ? 2600
-              : result.winTier === 'THUNDER'
-                ? 2000
-                : 1400;
-        await delay(bigMs * factor, signal);
+        await delay(winCelebrationMs(result.winTier) * factor, signal);
         if (signal.cancelled) return;
       }
 

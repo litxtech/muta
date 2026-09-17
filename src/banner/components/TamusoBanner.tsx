@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useBanners } from '../hooks/useBanners';
 import { BannerCarousel } from './BannerCarousel';
-import { BannerSkeleton } from './BannerSkeleton';
 import { BoslukTokenlari } from '../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { TipografiTokenlari } from '../../tasarim-sistemi/TipografiTokenlari';
 import { RenkTokenlari } from '../../tasarim-sistemi/RenkTokenlari';
@@ -18,19 +17,14 @@ type Props = {
 /**
  * Merkezi banner bileşeni — sayfalar sadece placement verir.
  * @example <TamusoBanner placement="FEED_TOP" />
+ *
+ * Boş placement’ta iskelet GÖSTERİLMEZ (profil/feed’de flaş: iskelet → null).
  */
 export function TamusoBanner({ placement, screen, compact, style }: Props) {
   const { banners, loading, dismissLocal, sessionId, debug } =
     useBanners(placement);
 
-  if (loading && banners.length === 0) {
-    return (
-      <View style={[styles.wrap, style]}>
-        <BannerSkeleton compact={compact} />
-      </View>
-    );
-  }
-
+  // Boşken iskelet flaşı yok — null dön
   if (banners.length === 0) return null;
 
   return (
@@ -47,6 +41,7 @@ export function TamusoBanner({ placement, screen, compact, style }: Props) {
       {debug && !uretimOrtamiMi && (
         <Text style={styles.debug}>
           {placement} · {banners.length} banner
+          {loading ? ' ·…' : ''}
         </Text>
       )}
     </View>
@@ -56,7 +51,7 @@ export function TamusoBanner({ placement, screen, compact, style }: Props) {
 const styles = StyleSheet.create({
   wrap: {
     marginHorizontal: BoslukTokenlari.lg,
-    marginVertical: BoslukTokenlari.sm,
+    marginVertical: BoslukTokenlari.xs,
   },
   debug: {
     ...TipografiTokenlari.micro,

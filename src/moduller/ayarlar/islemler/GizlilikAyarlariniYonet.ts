@@ -8,6 +8,11 @@ export type GizlilikAyarlari = {
   hide_agency: boolean;
   hide_gift_collection: boolean;
   hide_top_supporter: boolean;
+  hide_level: boolean;
+  hide_topup_coin: boolean;
+  hide_prestige: boolean;
+  hide_account_value: boolean;
+  is_private: boolean;
 };
 
 const DEFAULTS: GizlilikAyarlari = {
@@ -18,23 +23,40 @@ const DEFAULTS: GizlilikAyarlari = {
   hide_agency: false,
   hide_gift_collection: false,
   hide_top_supporter: false,
+  hide_level: false,
+  hide_topup_coin: false,
+  hide_prestige: false,
+  hide_account_value: false,
+  is_private: false,
 };
 
+const SELECT_ALANLARI =
+  'hide_recharge_rank, hide_gifter_rank, hide_current_room, hide_last_seen, hide_agency, hide_gift_collection, hide_top_supporter, hide_level, hide_topup_coin, hide_prestige, hide_account_value, is_private';
+
+function satirdanAyarlar(data: Partial<GizlilikAyarlari> | null): GizlilikAyarlari {
+  return { ...DEFAULTS, ...(data ?? {}) };
+}
+
+/** Oturum sahibinin gizlilik ayarları */
 export async function GizlilikAyarlariniGetir(): Promise<GizlilikAyarlari> {
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
   if (!uid) return { ...DEFAULTS };
+  return GizlilikAyarlariniKullaniciIcinGetir(uid);
+}
 
+/** Herhangi bir kullanıcının profil gösterme bayrakları (ziyaret UI) */
+export async function GizlilikAyarlariniKullaniciIcinGetir(
+  userId: string,
+): Promise<GizlilikAyarlari> {
   const { data, error } = await supabase
     .from('user_privacy_settings')
-    .select(
-      'hide_recharge_rank, hide_gifter_rank, hide_current_room, hide_last_seen, hide_agency, hide_gift_collection, hide_top_supporter',
-    )
-    .eq('user_id', uid)
+    .select(SELECT_ALANLARI)
+    .eq('user_id', userId)
     .maybeSingle();
 
   if (error || !data) return { ...DEFAULTS };
-  return { ...DEFAULTS, ...(data as GizlilikAyarlari) };
+  return satirdanAyarlar(data as Partial<GizlilikAyarlari>);
 }
 
 export async function GizlilikAyariKaydet(
@@ -44,6 +66,15 @@ export async function GizlilikAyariKaydet(
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
   if (!uid) return { ok: false, hata: 'Oturum yok' };
+
+  if (alan === 'is_private') {
+    const { data, error } = await supabase.rpc('gizli_hesap_ayarla', {
+      p_is_private: deger,
+    });
+    if (error) return { ok: false, hata: error.message };
+    const row = data as { ok?: boolean } | null;
+    return { ok: row?.ok !== false };
+  }
 
   const { error } = await supabase.from('user_privacy_settings').upsert(
     {
@@ -57,6 +88,7 @@ export async function GizlilikAyariKaydet(
   return { ok: true };
 }
 
+/** Genel gizlilik (liderlik, oda, hesap) */
 export const GIZLILIK_ALAN_ETIKETLERI: {
   key: keyof GizlilikAyarlari;
   label: string;
@@ -70,7 +102,44 @@ export const GIZLILIK_ALAN_ETIKETLERI: {
   { key: 'hide_gifter_rank', label: 'Hediye sıralamamı gizle' },
   { key: 'hide_current_room', label: 'Bulunduğum odayı gizle' },
   { key: 'hide_last_seen', label: 'Son görülmeyi gizle' },
-  { key: 'hide_agency', label: 'Ajansımı gizle' },
   { key: 'hide_gift_collection', label: 'Hediye koleksiyonumu gizle' },
   { key: 'hide_top_supporter', label: 'En çok destekçiyi gizle' },
+  {
+    key: 'is_private',
+    label: 'Gizli hesap',
+    aciklama: 'Takip isteklerin onayın olmadan kimse seni takip edemez',
+  },
+];
+
+/** Profil ziyaretinde görünen göstergeler — kapalıysa başkası göremez */
+export const PROFIL_GOSTERGE_GIZLILIK: {
+  key: keyof GizlilikAyarlari;
+  label: string;
+  aciklama?: string;
+}[] = [
+  {
+    key: 'hide_prestige',
+    label: 'Ünvanlarımı gizle',
+    aciklama: 'VIP, hediye, çekicilik ve yükleme rozetleri',
+  },
+  {
+    key: 'hide_agency',
+    label: 'Ajansımı gizle',
+    aciklama: 'Profil ziyaretinde ajans rozetin görünmez',
+  },
+  {
+    key: 'hide_topup_coin',
+    label: 'Yüklenen coinimi gizle',
+    aciklama: 'Toplam yüklediğin coin miktarı profilde görünmez',
+  },
+  {
+    key: 'hide_level',
+    label: 'Seviyemi gizle',
+    aciklama: 'Seviye ve tecrübe puanın profilde görünmez',
+  },
+  {
+    key: 'hide_account_value',
+    label: 'Hesap değerimi gizle',
+    aciklama: 'Güven / kalite skorun profil ziyaretlerinde görünmez',
+  },
 ];

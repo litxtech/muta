@@ -24,7 +24,10 @@ function normalizeCampaign(row: Record<string, unknown>): BannerCampaign {
   };
 }
 
-let realtimeBound = false;
+let kampanyaRealtime: {
+  kanal: ReturnType<typeof supabase.channel>;
+  dinleyiciler: Set<() => void>;
+} | null = null;
 
 export const BannerService = {
   async fetchActive(placement?: string): Promise<BannerCampaign[]> {
@@ -70,27 +73,58 @@ export const BannerService = {
     }
   },
 
-  /** Tek realtime abonelik — tüm kampanya değişiklikleri */
+  /** Tek kanal, çoklu dinleyici — tablar arası çift subscribe hatasını önler */
   subscribeRealtime(onChange: () => void): () => void {
-    if (realtimeBound) {
-      return () => undefined;
+    if (!kampanyaRealtime) {
+      const mevcut = supabase.getChannels().filter((ch) => {
+        const t = ch.topic ?? '';
+        return (
+          t === 'banner_campaigns_rt' ||
+          t === 'realtime:banner_campaigns_rt' ||
+          t.endsWith(':banner_campaigns_rt')
+        );
+      });
+      // Senkron: removeChannel fire-and-forget; yeni isim ile çakışmayı önle
+      for (const ch of mevcut) {
+        void supabase.removeChannel(ch);
+      }
+
+      const dinleyiciler = new Set<() => void>();
+      const kanalAdi = `banner_campaigns_rt_${Date.now().toString(36)}`;
+      const kanal = supabase.channel(kanalAdi);
+      try {
+        kanal.on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'banner_campaigns' },
+          () => {
+            BannerCacheService.invalidate();
+            for (const fn of dinleyiciler) {
+              try {
+                fn();
+              } catch {
+                /* ignore */
+              }
+            }
+          },
+        );
+        kanal.subscribe();
+      } catch (e) {
+        console.warn('[BannerService] realtime', e);
+      }
+
+      kampanyaRealtime = { kanal, dinleyiciler };
     }
-    realtimeBound = true;
-    const channel = supabase
-      .channel('banner_campaigns_rt')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'banner_campaigns' },
-        () => {
-          BannerCacheService.invalidate();
-          onChange();
-        },
-      )
-      .subscribe();
+
+    kampanyaRealtime.dinleyiciler.add(onChange);
 
     return () => {
-      realtimeBound = false;
-      void supabase.removeChannel(channel);
+      if (!kampanyaRealtime) return;
+      kampanyaRealtime.dinleyiciler.delete(onChange);
+      if (kampanyaRealtime.dinleyiciler.size === 0) {
+        const { kanal } = kampanyaRealtime;
+        kampanyaRealtime = null;
+        void supabase.removeChannel(kanal);
+      }
     };
   },
 

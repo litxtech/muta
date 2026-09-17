@@ -25,7 +25,8 @@ import {
 import { CanliHediyeSimgesi } from '../../src/moduller/cuzdan/bilesenler/CanliCoinSimgesi';
 import {
   CuzdanLedgeriniGetir,
-  LedgerSebepEtiketi,
+  LedgerAnlasilirOzet,
+  LedgerBirimEtiketi,
   type LedgerSatiri,
 } from '../../src/moduller/cuzdan/okuma/CuzdanLedgeriniGetir';
 import { CoinPaketiSatinAl } from '../../src/moduller/iap/islemler/CoinPaketiSatinAl';
@@ -52,6 +53,20 @@ import {
   CuzdanHareketDetayKarti,
   type CuzdanHareketDetay,
 } from '../../src/moduller/cuzdan/bilesenler/CuzdanHareketDetayKarti';
+import {
+  BelgePaylasDugmesi,
+  BelgePaylasimPaneli,
+} from '../../src/moduller/belge-paylasim/bilesenler/BelgePaylasimPaneli';
+import { HesapHareketleriBelgesiOlustur } from '../../src/moduller/belge-paylasim/HesapHareketleriBelgesi';
+import type { HesapHareketleriBelgeGirdi } from '../../src/moduller/belge-paylasim/HesapHareketleriBelgesi';
+import {
+  OyunGecmisiniGetir,
+  type OyunGecmisiKaydi,
+} from '../../src/moduller/oyunlar/ortak/servisler/OyunGecmisiniGetir';
+import {
+  OyunOyuncuIstatistikGetir,
+  type OyunOyuncuIstatistik,
+} from '../../src/moduller/oyunlar/ortak/servisler/OyunIstatistikServisi';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import type { CoinPackage } from '../../src/types/models';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
@@ -60,6 +75,10 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import {
+  CoinTryKarsiligi,
+  TryYazi,
+} from '../../src/moduller/cuzdan/katalog/CoinTryOrani';
 
 type CekimTalebi = {
   id: string;
@@ -78,11 +97,6 @@ const CEKIM_DURUM: Record<string, string> = {
   frozen: 'Donduruldu',
 };
 
-function LedgerBirimEtiketi(currency: string): string {
-  if (currency === 'diamonds' || currency === 'diamond') return 'elmas';
-  return 'coin';
-}
-
 type Sekme = 'hareket' | 'hediye' | 'yukle' | 'cekim';
 
 function formatTarih(iso: string): string {
@@ -90,6 +104,7 @@ function formatTarih(iso: string): string {
     return new Date(iso).toLocaleString('tr-TR', {
       day: '2-digit',
       month: 'short',
+      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -113,6 +128,13 @@ export default function WalletScreen() {
   const [banka, setBanka] = useState<BankaHesabi | null>(null);
   const [sekme, setSekme] = useState<Sekme>('hareket');
   const [detay, setDetay] = useState<CuzdanHareketDetay | null>(null);
+  const [oyunlar, setOyunlar] = useState<OyunGecmisiKaydi[]>([]);
+  const [oyunStats, setOyunStats] = useState<OyunOyuncuIstatistik | null>(null);
+  const [belgeAcik, setBelgeAcik] = useState(false);
+  const [excelGirdi, setExcelGirdi] = useState<HesapHareketleriBelgeGirdi | null>(
+    null,
+  );
+  const [belgeBusy, setBelgeBusy] = useState(false);
 
   const yenileHepsi = useCallback(async () => {
     await refreshWallet();
@@ -122,7 +144,7 @@ export default function WalletScreen() {
         if (data.length) setPackages(data);
       })
       .catch(() => undefined);
-    CuzdanLedgeriniGetir(40)
+    CuzdanLedgeriniGetir(80)
       .then(setLedger)
       .catch(() => setLedger([]));
     CekimTaleplerimiGetir()
@@ -132,12 +154,18 @@ export default function WalletScreen() {
       .then(setBanka)
       .catch(() => setBanka(null));
     if (user?.id) {
-      HediyeGecmisiniGetir(user.id, 40)
+      HediyeGecmisiniGetir(user.id, 80)
         .then(setHediyeler)
         .catch(() => setHediyeler([]));
       ProfilIstatistikleriniGetir(user.id)
         .then(setStats)
         .catch(() => setStats(null));
+      OyunGecmisiniGetir(user.id, 60)
+        .then(setOyunlar)
+        .catch(() => setOyunlar([]));
+      OyunOyuncuIstatistikGetir(user.id)
+        .then(setOyunStats)
+        .catch(() => setOyunStats(null));
     }
   }, [refreshWallet, user?.id]);
 
@@ -146,6 +174,62 @@ export default function WalletScreen() {
       void yenileHepsi();
     }, [yenileHepsi]),
   );
+
+  const hesapBelgesi = useMemo(() => {
+    if (!excelGirdi) return null;
+    return HesapHareketleriBelgesiOlustur(excelGirdi);
+  }, [excelGirdi]);
+
+  const hesapOzetiniAc = useCallback(async () => {
+    setBelgeBusy(true);
+    try {
+      const [ledgerBuyuk, hediyeBuyuk, cekimler, oyunBuyuk, oyunOzet] =
+        await Promise.all([
+          CuzdanLedgeriniGetir(250).catch(() => ledger),
+          user?.id
+            ? HediyeGecmisiniGetir(user.id, 200).catch(() => hediyeler)
+            : Promise.resolve(hediyeler),
+          CekimTaleplerimiGetir().catch(() => withdrawals),
+          user?.id
+            ? OyunGecmisiniGetir(user.id, 120).catch(() => oyunlar)
+            : Promise.resolve(oyunlar),
+          user?.id
+            ? OyunOyuncuIstatistikGetir(user.id).catch(() => oyunStats)
+            : Promise.resolve(oyunStats),
+        ]);
+
+      const girdi: HesapHareketleriBelgeGirdi = {
+        sahipAdi: profile?.display_name ?? profile?.username,
+        hesapKodu: profile?.public_user_id ?? user?.id,
+        coins: wallet?.coins ?? 0,
+        diamonds: wallet?.diamonds ?? 0,
+        ledger: ledgerBuyuk,
+        hediyeler: hediyeBuyuk,
+        cekimler: (cekimler as CekimTalebi[]).map((w) => ({
+          ...w,
+          durumEtiket: CEKIM_DURUM[w.status] ?? w.status,
+        })),
+        oyunlar: oyunBuyuk,
+        oyunOzet: oyunOzet ?? null,
+      };
+      setExcelGirdi(girdi);
+      setBelgeAcik(true);
+    } finally {
+      setBelgeBusy(false);
+    }
+  }, [
+    ledger,
+    hediyeler,
+    withdrawals,
+    oyunlar,
+    oyunStats,
+    user?.id,
+    profile?.display_name,
+    profile?.username,
+    profile?.public_user_id,
+    wallet?.coins,
+    wallet?.diamonds,
+  ]);
 
   const yuklemeler = useMemo(
     () => ledger.filter((r) => r.delta > 0 && (r.currency === 'coin' || r.currency === 'coins')),
@@ -295,69 +379,107 @@ export default function WalletScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <KlavyeKapatan>
-            <CuzdanBankaKarti
-              coins={wallet?.coins ?? 0}
-              diamonds={wallet?.diamonds ?? 0}
-              hesapKodu={profile?.public_user_id ?? user?.id}
-              sahipAdi={profile?.display_name ?? profile?.username}
-              yuklenen={stats?.total_topup_coin ?? 0}
-              harcanan={stats?.total_spent_coin ?? 0}
-            />
+            <View style={styles.heroBolum}>
+              <CuzdanBankaKarti
+                coins={wallet?.coins ?? 0}
+                diamonds={wallet?.diamonds ?? 0}
+                hesapKodu={profile?.public_user_id ?? user?.id}
+                sahipAdi={profile?.display_name ?? profile?.username}
+                yuklenen={stats?.total_topup_coin ?? 0}
+                harcanan={stats?.total_spent_coin ?? 0}
+              />
 
-            {purchaseLocked ? (
-              <Text style={styles.lockHint}>Satın alma geçici olarak kapalı</Text>
-            ) : null}
-
-            <View style={styles.summaryRow}>
-              <OzetKutu
-                icon="arrow-up-circle"
-                tint={RenkTokenlari.danger}
-                label="Gönderilen"
-                value={String(stats?.total_gifts_sent ?? gonderilen.length)}
-              />
-              <OzetKutu
-                icon="arrow-down-circle"
-                tint={RenkTokenlari.mint}
-                label="Alınan"
-                value={String(stats?.total_gifts_received ?? alinan.length)}
-              />
-              <OzetKutu
-                icon="trending-up"
-                tint={RenkTokenlari.accent}
-                label="Yükleme"
-                value={String(yuklemeler.length)}
-              />
+              {purchaseLocked ? (
+                <Text style={styles.lockHint}>Satın alma geçici olarak kapalı</Text>
+              ) : null}
             </View>
 
-            <View style={styles.tabs}>
-              {sekmeler.map((s) => {
-                const aktif = sekme === s.id;
-                return (
-                  <Pressable
-                    key={s.id}
-                    onPress={() => setSekme(s.id)}
-                    style={[styles.tab, aktif && styles.tabActive]}
-                  >
-                    <Ionicons
-                      name={s.icon}
-                      size={15}
-                      color={aktif ? RenkTokenlari.text : RenkTokenlari.textDim}
-                    />
-                    <Text
-                      style={[styles.tabText, aktif && styles.tabTextActive]}
-                      numberOfLines={1}
+            <View style={styles.ozetBolum}>
+              <Text style={styles.bolumEtiket}>Özet</Text>
+              <View style={styles.summaryRow}>
+                <OzetKutu
+                  icon="arrow-up-circle"
+                  tint={RenkTokenlari.danger}
+                  label="Gönderilen"
+                  value={String(stats?.total_gifts_sent ?? gonderilen.length)}
+                />
+                <OzetKutu
+                  icon="arrow-down-circle"
+                  tint={RenkTokenlari.mint}
+                  label="Alınan"
+                  value={String(stats?.total_gifts_received ?? alinan.length)}
+                />
+                <OzetKutu
+                  icon="trending-up"
+                  tint={RenkTokenlari.accent}
+                  label="Yükleme"
+                  value={String(yuklemeler.length)}
+                />
+              </View>
+            </View>
+
+            <View style={styles.sekmeBolum}>
+              <Text style={styles.bolumEtiket}>İşlemler</Text>
+              <View style={styles.tabs}>
+                {sekmeler.map((s) => {
+                  const aktif = sekme === s.id;
+                  return (
+                    <Pressable
+                      key={s.id}
+                      onPress={() => setSekme(s.id)}
+                      style={({ pressed }) => [
+                        styles.tab,
+                        aktif && styles.tabActive,
+                        pressed && { opacity: 0.9 },
+                      ]}
                     >
-                      {s.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+                      <View
+                        style={[
+                          styles.tabIkon,
+                          aktif && styles.tabIkonActive,
+                        ]}
+                      >
+                        <Ionicons
+                          name={s.icon}
+                          size={18}
+                          color={aktif ? '#12040C' : RenkTokenlari.textMuted}
+                        />
+                      </View>
+                      <Text
+                        style={[styles.tabText, aktif && styles.tabTextActive]}
+                        numberOfLines={1}
+                      >
+                        {s.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
 
             {sekme === 'hareket' ? (
               <View style={styles.panel}>
-                <Text style={styles.panelTitle}>Hesap hareketleri</Text>
-                <Text style={styles.panelSub}>Detay için satıra dokun</Text>
+                <View style={styles.panelBaslikSatir}>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={styles.panelTitle}>Hesap hareketleri</Text>
+                    <Text style={styles.panelSub}>
+                      Yükleme · hediye · oyun · çekim — detay için dokun
+                    </Text>
+                  </View>
+                  <BelgePaylasDugmesi
+                    onPress={() => {
+                      if (belgeBusy) return;
+                      void hesapOzetiniAc();
+                    }}
+                    label={belgeBusy ? 'Hazırlanıyor…' : 'PDF / Excel'}
+                  />
+                </View>
+                {oyunStats && oyunStats.totalGames > 0 ? (
+                  <Text style={styles.oyunOzetSatir}>
+                    Oyun: {oyunStats.totalGames} · Kazanç (1.): {oyunStats.wins} ·
+                    Oran %{oyunStats.winRate} · {oyunStats.leagueLabel}
+                  </Text>
+                ) : null}
                 {ledger.length === 0 ? (
                   <Empty text="Henüz hareket yok" />
                 ) : (
@@ -387,12 +509,13 @@ export default function WalletScreen() {
                         />
                       </View>
                       <View style={styles.lineCopy}>
-                        <Text style={styles.lineTitle} numberOfLines={1}>
-                          {LedgerSebepEtiketi(row.reason)}
+                        <Text style={styles.lineTitle} numberOfLines={2}>
+                          {LedgerAnlasilirOzet(row)}
                         </Text>
                         <Text style={styles.lineMeta}>
                           {formatTarih(row.created_at)}
-                          {row.ref_type ? ` · ${row.ref_type}` : ''}
+                          {' · '}
+                          {row.delta >= 0 ? 'Giriş / kazanç' : 'Çıkış / harcama'}
                         </Text>
                       </View>
                       <Text
@@ -424,7 +547,9 @@ export default function WalletScreen() {
             {sekme === 'hediye' ? (
               <View style={styles.panel}>
                 <Text style={styles.panelTitle}>Hediye geçmişi</Text>
-                <Text style={styles.panelSub}>Canlı simgeler · detay için dokun</Text>
+                <Text style={styles.panelSub}>
+                  Alınan hediye · elmas · TL karşılığı · detay için dokun
+                </Text>
                 {hediyeler.length === 0 ? (
                   <Empty text="Henüz hediye yok" />
                 ) : (
@@ -434,6 +559,7 @@ export default function WalletScreen() {
                       h.karsi_profil?.username ??
                       'Kullanıcı';
                     const gonderildi = h.yon === 'gonderilen';
+                    const tryDeger = CoinTryKarsiligi(h.coins_spent);
                     return (
                       <Pressable
                         key={h.id}
@@ -457,19 +583,37 @@ export default function WalletScreen() {
                             {h.oda?.title ? ` · ${h.oda.title}` : ''}
                             {` · ${formatTarih(h.created_at)}`}
                           </Text>
+                          {!gonderildi ? (
+                            <Text style={styles.lineTry}>
+                              Kazanç: {TryYazi(tryDeger)}
+                            </Text>
+                          ) : (
+                            <Text style={styles.lineTryMuted}>
+                              Değer: {TryYazi(tryDeger)}
+                            </Text>
+                          )}
                         </View>
-                        <Text
-                          style={[
-                            styles.lineDelta,
-                            {
-                              color: gonderildi
-                                ? RenkTokenlari.danger
-                                : RenkTokenlari.mint,
-                            },
-                          ]}
-                        >
-                          {gonderildi ? `-${h.coins_spent}` : `+${h.diamonds_earned}`}
-                        </Text>
+                        <View style={styles.lineRight}>
+                          <Text
+                            style={[
+                              styles.lineDelta,
+                              {
+                                color: gonderildi
+                                  ? RenkTokenlari.danger
+                                  : RenkTokenlari.mint,
+                              },
+                            ]}
+                          >
+                            {gonderildi
+                              ? `-${h.coins_spent}`
+                              : `+${h.diamonds_earned}`}
+                          </Text>
+                          {!gonderildi ? (
+                            <Text style={styles.lineTryDelta}>
+                              {TryYazi(tryDeger)}
+                            </Text>
+                          ) : null}
+                        </View>
                         <Ionicons
                           name="chevron-forward"
                           size={14}
@@ -572,6 +716,13 @@ export default function WalletScreen() {
 
       <CuzdanHareketDetayKarti detay={detay} onKapat={() => setDetay(null)} />
 
+      <BelgePaylasimPaneli
+        visible={belgeAcik}
+        onKapat={() => setBelgeAcik(false)}
+        icerik={hesapBelgesi}
+        excelGirdi={excelGirdi}
+      />
+
       <HesabiTamamlaKarti
         visible={upgradeAcik}
         onClose={upgradeKapat}
@@ -597,7 +748,9 @@ function OzetKutu({
 }) {
   return (
     <View style={styles.summary}>
-      <Ionicons name={icon} size={14} color={tint} />
+      <View style={[styles.summaryIkon, { backgroundColor: `${tint}22` }]}>
+        <Ionicons name={icon} size={16} color={tint} />
+      </View>
       <Text style={styles.summaryVal}>{value}</Text>
       <Text style={styles.summaryLbl}>{label}</Text>
     </View>
@@ -622,17 +775,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  baslikCopy: { flex: 1, alignItems: 'center', gap: 2 },
+  baslikCopy: { flex: 1, alignItems: 'center', gap: 4 },
   baslikFisilti: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.primarySoft,
     letterSpacing: 1.4,
     fontSize: 9,
+    lineHeight: 12,
   },
-  baslik: { ...TipografiTokenlari.h1, color: RenkTokenlari.text },
+  baslik: {
+    ...TipografiTokenlari.h1,
+    color: RenkTokenlari.text,
+    lineHeight: 28,
+  },
   scroll: {
     paddingBottom: YUZEN_TAB_ICERIK_BOSLUGU,
+    gap: BoslukTokenlari.xxl,
+    paddingTop: BoslukTokenlari.sm,
+  },
+  heroBolum: {
     gap: BoslukTokenlari.md,
+  },
+  ozetBolum: {
+    gap: BoslukTokenlari.sm,
+    paddingHorizontal: BoslukTokenlari.xl,
+  },
+  sekmeBolum: {
+    gap: BoslukTokenlari.sm,
+    paddingHorizontal: BoslukTokenlari.xl,
+  },
+  bolumEtiket: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    letterSpacing: 1.2,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    fontSize: 10,
+    marginLeft: 2,
   },
   lockHint: {
     ...TipografiTokenlari.micro,
@@ -643,69 +822,96 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: 'row',
     gap: BoslukTokenlari.sm,
-    paddingHorizontal: BoslukTokenlari.xl,
   },
   summary: {
     flex: 1,
     minWidth: 0,
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: BoslukTokenlari.md,
-    paddingHorizontal: 4,
-    borderRadius: YaricapTokenlari.md,
+    gap: 6,
+    paddingVertical: BoslukTokenlari.lg,
+    paddingHorizontal: BoslukTokenlari.sm,
+    borderRadius: YaricapTokenlari.lg,
     backgroundColor: RenkTokenlari.bgCard,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
   },
+  summaryIkon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
   summaryVal: {
-    ...TipografiTokenlari.caption,
+    ...TipografiTokenlari.body,
     color: RenkTokenlari.text,
     fontWeight: '800',
+    fontSize: 16,
   },
   summaryLbl: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
-    fontSize: 9,
+    fontSize: 10,
     textAlign: 'center',
   },
   tabs: {
-    marginHorizontal: BoslukTokenlari.xl,
     flexDirection: 'row',
-    padding: 4,
-    borderRadius: YaricapTokenlari.md,
-    backgroundColor: RenkTokenlari.bgCard,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-    gap: 4,
+    gap: BoslukTokenlari.sm,
   },
   tab: {
     flex: 1,
     minWidth: 0,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 10,
+    gap: 8,
+    paddingVertical: BoslukTokenlari.md + 2,
     paddingHorizontal: 4,
-    borderRadius: YaricapTokenlari.sm,
+    borderRadius: YaricapTokenlari.lg,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
   },
   tabActive: {
+    backgroundColor: 'rgba(232, 64, 145, 0.12)',
+    borderColor: 'rgba(232, 64, 145, 0.35)',
+  },
+  tabIkon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: RenkTokenlari.surface,
+  },
+  tabIkonActive: {
+    backgroundColor: RenkTokenlari.primarySoft,
   },
   tabText: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
     fontWeight: '600',
+    fontSize: 11,
   },
   tabTextActive: { color: RenkTokenlari.text, fontWeight: '700' },
   panel: {
     marginHorizontal: BoslukTokenlari.xl,
     gap: BoslukTokenlari.sm,
   },
+  panelBaslikSatir: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: BoslukTokenlari.sm,
+    marginBottom: 2,
+  },
   panelTitle: { ...TipografiTokenlari.h2, color: RenkTokenlari.text },
   panelSub: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
+  },
+  oyunOzetSatir: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.accent,
     marginBottom: 4,
   },
   panelHintWarn: {
@@ -763,7 +969,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: RenkTokenlari.pressFill,
     flexShrink: 0,
   },
   lineCopy: { flex: 1, gap: 2, minWidth: 0 },
@@ -773,10 +979,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   lineMeta: { ...TipografiTokenlari.micro, color: RenkTokenlari.textDim },
+  lineTry: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.mint,
+    fontWeight: '700',
+  },
+  lineTryMuted: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+  },
+  lineRight: { alignItems: 'flex-end', gap: 2, flexShrink: 0 },
   lineDelta: {
     ...TipografiTokenlari.caption,
     fontWeight: '800',
     flexShrink: 0,
+  },
+  lineTryDelta: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.mint,
+    fontWeight: '700',
   },
   pkg: { marginBottom: 8 },
   pkgInner: {

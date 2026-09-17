@@ -3,7 +3,7 @@
  */
 
 import { calcClusterWin } from '../paytable/PaytableEngine';
-import { participatesInMatch } from '../symbols/SymbolRules';
+import { isEmptyInstanceId, participatesInMatch } from '../symbols/SymbolRules';
 import type {
   GridMatrix,
   KaskadMathConfig,
@@ -20,6 +20,7 @@ export function detectMatches(
 
   for (const row of grid) {
     for (const cell of row) {
+      if (isEmptyInstanceId(cell.instanceId)) continue;
       if (!participatesInMatch(cell.symbolType)) continue;
       const list = counts.get(cell.symbolType) ?? [];
       list.push(cell.instanceId);

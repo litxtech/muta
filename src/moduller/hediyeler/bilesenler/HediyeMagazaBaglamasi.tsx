@@ -2,13 +2,12 @@ import React from 'react';
 import { HediyeMagazaPaneli } from './HediyeMagazaPaneli';
 import { HediyeAnimasyonKatmani } from './HediyeAnimasyonKatmani';
 import { HesabiTamamlaKarti } from '../../misafir-hesabi/bilesenler/HesabiTamamlaKarti';
+import { CoinYuklePaneli } from '../../cuzdan/bilesenler/CoinYuklePaneli';
 import { useAuth } from '../../../contexts/AuthContext';
-import type { useHediyeMagaza } from '../islemler/useHediyeMagaza';
-
-type Magaza = ReturnType<typeof useHediyeMagaza>;
+import type { HediyeMagazaDurumu } from '../islemler/HediyeMagazaTipleri';
 
 type Props = {
-  magaza: Magaza;
+  magaza: HediyeMagazaDurumu;
   /** Animasyon katmanı (oda / canlı için true) */
   animasyon?: boolean;
   /** Misafir upgrade kartı (ekran zaten varsa false) */
@@ -22,6 +21,7 @@ export function HediyeMagazaBaglamasi({
   misafirKart = true,
 }: Props) {
   const { refreshProfile, refreshWallet } = useAuth();
+  const yukle = magaza.coinYuklePaneli;
 
   return (
     <>
@@ -30,10 +30,26 @@ export function HediyeMagazaBaglamasi({
         gifts={magaza.gifts}
         coins={magaza.coins}
         aliciAdi={magaza.aliciAdi}
+        pkAlicilar={magaza.pkAlicilar}
+        seciliPkAliciId={magaza.seciliPkAliciId}
+        onPkAliciSec={magaza.setSeciliPkAliciId}
         onSend={magaza.gonder}
         onClose={magaza.kapat}
         onCoinYukle={magaza.coinYukle}
+        gonderiyor={magaza.gonderiyor}
       />
+      {yukle ? (
+        <CoinYuklePaneli
+          visible={yukle.acik}
+          packages={yukle.packages}
+          locked={yukle.purchaseLocked}
+          coins={magaza.coins}
+          onBuy={yukle.satinAl}
+          onClose={yukle.kapat}
+          upgradeAcik={yukle.upgradeAcik}
+          upgradeKapat={yukle.upgradeKapat}
+        />
+      ) : null}
       {animasyon ? <HediyeAnimasyonKatmani /> : null}
       {misafirKart ? (
         <HesabiTamamlaKarti

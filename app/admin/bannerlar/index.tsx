@@ -6,6 +6,7 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -16,6 +17,10 @@ import { EkranBasligi } from '../../../src/components/EkranBasligi';
 import { GradientButton } from '../../../src/components/GradientButton';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { AdminYetkisiVarMi } from '../../../src/moduller/admin/yetki/AdminYetkisiVarMi';
+import { AdminOzellikBayragiAyarla } from '../../../src/moduller/admin/platform/AdminPlatformIslemleri';
+import { OzellikBayragiAktifMiSunucu } from '../../../src/moduller/ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
+import { OtomatikPromoCacheTemizle } from '../../../src/banner/services/PromoBannerAdapter';
+import { AdminOtomatikBannerPaneli } from '../../../src/banner/admin/AdminOtomatikBannerPaneli';
 import { BannerAdminService } from '../../../src/banner/admin/BannerAdminService';
 import {
   BANNER_STATUS_LABELS,
@@ -34,11 +39,18 @@ export default function AdminBannerlarEkrani() {
   const admin = AdminYetkisiVarMi(profile);
   const [liste, setListe] = useState<BannerCampaign[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [otomatikAcik, setOtomatikAcik] = useState(true);
+  const [otomatikKaydediyor, setOtomatikKaydediyor] = useState(false);
 
   const load = useCallback(async () => {
     setYukleniyor(true);
     try {
-      setListe(await BannerAdminService.list());
+      const [kampanyalar, auto] = await Promise.all([
+        BannerAdminService.list(),
+        OzellikBayragiAktifMiSunucu('auto_promo_banners_enabled'),
+      ]);
+      setListe(kampanyalar);
+      setOtomatikAcik(auto);
     } catch (e) {
       Alert.alert('Hata', e instanceof Error ? e.message : 'Liste alınamadı');
       setListe([]);
@@ -86,6 +98,24 @@ export default function AdminBannerlarEkrani() {
     ]);
   };
 
+  const otomatikDegistir = async (v: boolean) => {
+    const onceki = otomatikAcik;
+    setOtomatikAcik(v);
+    setOtomatikKaydediyor(true);
+    try {
+      await AdminOzellikBayragiAyarla('auto_promo_banners_enabled', v);
+      OtomatikPromoCacheTemizle();
+    } catch (e) {
+      setOtomatikAcik(onceki);
+      Alert.alert(
+        'Hata',
+        e instanceof Error ? e.message : 'Otomatik banner ayarı kaydedilemedi',
+      );
+    } finally {
+      setOtomatikKaydediyor(false);
+    }
+  };
+
   return (
     <Screen edges={['top']}>
       <EkranBasligi
@@ -103,6 +133,27 @@ export default function AdminBannerlarEkrani() {
           />
         }
       >
+        <View style={styles.toggleCard}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={styles.name}>Popülerlik promo bannerları</Text>
+            <Text style={styles.meta}>
+              Admin kampanyası yokken en popüler oda / canlı / oyun şeridi
+            </Text>
+          </View>
+          <Switch
+            value={otomatikAcik}
+            onValueChange={(v) => void otomatikDegistir(v)}
+            disabled={otomatikKaydediyor}
+            trackColor={{
+              false: RenkTokenlari.surface,
+              true: RenkTokenlari.primary,
+            }}
+            thumbColor={RenkTokenlari.text}
+          />
+        </View>
+
+        <AdminOtomatikBannerPaneli />
+
         <GradientButton
           title="Yeni banner"
           onPress={() => router.push('/admin/bannerlar/yeni' as never)}
@@ -222,6 +273,16 @@ function ActionChip({
 }
 
 const styles = StyleSheet.create({
+  toggleCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.md,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    backgroundColor: RenkTokenlari.bgCard,
+  },
   card: {
     padding: BoslukTokenlari.md,
     borderRadius: YaricapTokenlari.md,

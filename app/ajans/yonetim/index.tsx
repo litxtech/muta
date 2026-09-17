@@ -17,6 +17,7 @@ import {
   AjansYonetimAjanslarim,
   type AjansYonetimOzet,
 } from '../../../src/moduller/ajanslar/islemler/AjansPanelIslemleri';
+import { SahipOlunanAjanslariGetir } from '../../../src/moduller/ajanslar/okuma/AjanslariGetir';
 import { RenkTokenlari } from '../../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -32,13 +33,44 @@ export default function AjansYonetimHubEkrani() {
   const yukle = useCallback(async () => {
     setYukleniyor(true);
     try {
-      const a = await AjansYonetimAjanslarim();
+      let a = await AjansYonetimAjanslarim();
+      if (!a.length) {
+        const yedek = await SahipOlunanAjanslariGetir().catch(() => []);
+        a = yedek.map((x) => ({
+          id: x.id,
+          agency_public_id: x.agency_public_id,
+          name: x.name,
+          status: x.status,
+          is_coin_distributor: x.is_coin_distributor,
+          invite_code: x.invite_code,
+          host_count: x.host_count,
+          level_code: x.level_code,
+        }));
+      }
       setListe(a);
       if (a.length === 1) {
         router.replace(`/ajans/${a[0].id}` as any);
       }
     } catch {
-      setListe([]);
+      try {
+        const yedek = await SahipOlunanAjanslariGetir();
+        const a = yedek.map((x) => ({
+          id: x.id,
+          agency_public_id: x.agency_public_id,
+          name: x.name,
+          status: x.status,
+          is_coin_distributor: x.is_coin_distributor,
+          invite_code: x.invite_code,
+          host_count: x.host_count,
+          level_code: x.level_code,
+        }));
+        setListe(a);
+        if (a.length === 1) {
+          router.replace(`/ajans/${a[0].id}` as any);
+        }
+      } catch {
+        setListe([]);
+      }
     } finally {
       setYukleniyor(false);
     }
@@ -54,8 +86,8 @@ export default function AjansYonetimHubEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="ajans-yonetim" varyant="ekran" fallbackHref="/ajans">
         <EkranBasligi
-          title="Ajans Yönetim"
-          subtitle="Kurallar · ödeme · coin"
+          title="Ajansım"
+          subtitle="Üyeler · ciro · davet · oda"
           fallbackHref={"/(tabs)/profile" as any}
         />
         {yukleniyor ? (
@@ -93,7 +125,7 @@ export default function AjansYonetimHubEkrani() {
                     {item.host_count} host
                   </Text>
                   <Text style={styles.chip}>
-                    {item.is_coin_distributor ? 'Dağıtıcı açık' : 'Dağıtıcı kapalı'}
+                    {item.is_coin_distributor ? 'Coin yetkisi açık' : 'Coin yetkisi kapalı'}
                     {' · '}
                     {item.status}
                   </Text>

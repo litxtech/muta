@@ -2,8 +2,8 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -11,13 +11,6 @@ import {
 } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Screen } from '../../src/components/Screen';
@@ -27,13 +20,16 @@ import { useMisafirIslemKapisi } from '../../src/moduller/misafir-hesabi/islemle
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
 import { ProfilAvatarKucuk } from '../../src/moduller/canli-sohbet/bilesenler/ProfilAvatarKucuk';
 import { DurumYorumPaneli } from '../../src/moduller/durum/bilesenler/DurumYorumPaneli';
+import { DurumResimLightbox } from '../../src/moduller/durum/bilesenler/DurumResimLightbox';
 import { KullaniciGuvenlikMenusu } from '../../src/moduller/moderasyon/bilesenler/KullaniciGuvenlikMenusu';
 import {
   DurumBegeniToggle,
   DurumDetayGetir,
+  DurumOyunKazanciPayloadAl,
   DurumSil,
   type DurumOggesi,
 } from '../../src/moduller/durum/islemler/DurumIslemleri';
+import { DurumOyunKazanciKart } from '../../src/moduller/durum/bilesenler/DurumOyunKazanciKart';
 import { DurumTarihSaat } from '../../src/moduller/durum/islemler/DurumZaman';
 import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediyeMagaza';
 import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
@@ -41,22 +37,26 @@ import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-const W = Dimensions.get('window').width;
-
 function VideoTam({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.play();
   });
   return (
-    <VideoView
-      player={player}
-      style={StyleSheet.absoluteFill}
-      contentFit="contain"
-      // Android nativeControls tüm overlay Pressable'ları yutar.
-      nativeControls={false}
-      pointerEvents="none"
-    />
+    <View style={StyleSheet.absoluteFill} pointerEvents="none" collapsable={false}>
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="contain"
+        // Android nativeControls tüm overlay Pressable'ları yutar.
+        nativeControls={false}
+        playsInline
+        pointerEvents="none"
+        {...(Platform.OS === 'android'
+          ? { surfaceType: 'textureView' as const }
+          : null)}
+      />
+    </View>
   );
 }
 
@@ -70,8 +70,7 @@ export default function DurumDetayEkrani() {
   const [yukleniyor, setYukleniyor] = useState(true);
   const [yorumAcik, setYorumAcik] = useState(false);
   const [bildirAcik, setBildirAcik] = useState(false);
-
-  const tx = useSharedValue(0);
+  const [lightboxAcik, setLightboxAcik] = useState(false);
 
   const kapat = useCallback(() => {
     if (router.canGoBack()) router.back();
@@ -95,27 +94,6 @@ export default function DurumDetayEkrani() {
       void yukle();
     }, [yukle]),
   );
-
-  const pan = Gesture.Pan()
-    .activeOffsetX([-16, 16])
-    .failOffsetY([-24, 24])
-    .onUpdate((e) => {
-      if (e.translationX < 0) tx.value = e.translationX;
-    })
-    .onEnd((e) => {
-      if (e.translationX < -W * 0.28 || e.velocityX < -800) {
-        tx.value = withSpring(-W, { damping: 20 }, () => {
-          runOnJS(kapat)();
-        });
-      } else {
-        tx.value = withSpring(0);
-      }
-    });
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tx.value }],
-    opacity: 1 + tx.value / (W * 1.4),
-  }));
 
   const begen = () => {
     if (!oge) return;
@@ -174,21 +152,35 @@ export default function DurumDetayEkrani() {
           </View>
         ) : (
           <View style={styles.root}>
-            <GestureDetector gesture={pan}>
-              <Animated.View style={[styles.medyaKatman, animStyle]}>
-                {oge.media_type === 'video' ? (
-                  <VideoTam uri={oge.media_url} />
-                ) : (
-                  <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <View style={styles.medyaKatman}>
+              {(() => {
+                const kazanc = DurumOyunKazanciPayloadAl(oge);
+                if (kazanc) {
+                  return (
+                    <View style={styles.kartWrap}>
+                      <DurumOyunKazanciKart payload={kazanc} />
+                    </View>
+                  );
+                }
+                if (oge.media_type === 'video') {
+                  return <VideoTam uri={oge.media_url} />;
+                }
+                return (
+                  <Pressable
+                    style={StyleSheet.absoluteFill}
+                    onPress={() => setLightboxAcik(true)}
+                    accessibilityRole="imagebutton"
+                    accessibilityLabel="Resmi büyüt"
+                  >
                     <Image
                       source={{ uri: oge.media_url }}
                       style={StyleSheet.absoluteFill}
                       resizeMode="contain"
                     />
-                  </View>
-                )}
-              </Animated.View>
-            </GestureDetector>
+                  </Pressable>
+                );
+              })()}
+            </View>
 
             <View
               style={[styles.ust, { paddingTop: insets.top + 8 }]}
@@ -216,16 +208,18 @@ export default function DurumDetayEkrani() {
               <View style={styles.ustSag}>
                 {oge.is_mine ? (
                   <>
-                    <Pressable
-                      style={styles.ikonBtn}
-                      onPress={() =>
-                        router.push(`/durum/duzenle?id=${oge.id}` as any)
-                      }
-                      hitSlop={8}
-                      accessibilityLabel="Düzenle"
-                    >
-                      <Ionicons name="create-outline" size={20} color="#fff" />
-                    </Pressable>
+                    {oge.post_kind !== 'game_win' ? (
+                      <Pressable
+                        style={styles.ikonBtn}
+                        onPress={() =>
+                          router.push(`/durum/duzenle?id=${oge.id}` as any)
+                        }
+                        hitSlop={8}
+                        accessibilityLabel="Düzenle"
+                      >
+                        <Ionicons name="create-outline" size={20} color="#fff" />
+                      </Pressable>
+                    ) : null}
                     <Pressable style={styles.ikonBtn} onPress={sil} hitSlop={8}>
                       <Ionicons name="trash-outline" size={20} color="#fff" />
                     </Pressable>
@@ -244,10 +238,6 @@ export default function DurumDetayEkrani() {
                 </Pressable>
               </View>
             </View>
-
-            <Text style={styles.ipucu} pointerEvents="none">
-              ← Sola kaydırarak çık
-            </Text>
 
             <View style={[styles.alt, { paddingBottom: insets.bottom + 16 }]}>
               {oge.caption ? (
@@ -326,7 +316,7 @@ export default function DurumDetayEkrani() {
                     <Ionicons name="alert-circle-outline" size={26} color="#fff" />
                     <Text style={styles.aksiyonYazi}>Bildir</Text>
                   </Pressable>
-                ) : (
+                ) : oge.post_kind !== 'game_win' ? (
                   <Pressable
                     style={styles.aksiyon}
                     onPress={() =>
@@ -336,6 +326,11 @@ export default function DurumDetayEkrani() {
                   >
                     <Ionicons name="create-outline" size={26} color="#fff" />
                     <Text style={styles.aksiyonYazi}>Düzenle</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable style={styles.aksiyon} onPress={sil} hitSlop={10}>
+                    <Ionicons name="trash-outline" size={26} color="#fff" />
+                    <Text style={styles.aksiyonYazi}>Kaldır</Text>
                   </Pressable>
                 )}
               </View>
@@ -376,6 +371,13 @@ export default function DurumDetayEkrani() {
           />
         ) : null}
 
+        {oge && lightboxAcik && oge.media_type === 'image' ? (
+          <DurumResimLightbox
+            uri={oge.media_url}
+            onClose={() => setLightboxAcik(false)}
+          />
+        ) : null}
+
         <HediyeMagazaBaglamasi magaza={magaza} misafirKart={false} />
 
         <HesabiTamamlaKarti
@@ -399,6 +401,12 @@ const styles = StyleSheet.create({
   medyaKatman: {
     ...StyleSheet.absoluteFill,
     backgroundColor: '#000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kartWrap: {
+    width: '88%',
+    maxWidth: 360,
   },
   ust: {
     position: 'absolute',
@@ -435,15 +443,6 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  ipucu: {
-    position: 'absolute',
-    top: '48%',
-    left: 12,
-    ...TipografiTokenlari.micro,
-    color: 'rgba(255,255,255,0.35)',
-    transform: [{ rotate: '-90deg' }],
-    zIndex: 5,
   },
   alt: {
     position: 'absolute',

@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -19,14 +21,24 @@ import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri'
 import { useAuth } from '../../src/contexts/AuthContext';
 import {
   AjansCoinTransfer,
+  AjansHostBasvurusunuOnayla,
+  AjansHostBasvurusunuReddet,
   AjansKurallariKaydet,
   AjansOdemeMesajiOlustur,
   AjansOdemeSablonuKaydet,
   AjansPanelDetayGetir,
   AjansSil,
+  AjansUyeOdaKur,
+  AjansUyeOyunOzetiGetir,
   LimitKalan,
   type AjansPanelDetay,
+  type AjansUyeOzet,
 } from '../../src/moduller/ajanslar/islemler/AjansPanelIslemleri';
+import { AjansCoinYukleKarti } from '../../src/moduller/ajanslar/bilesenler/AjansCoinYukleKarti';
+import {
+  AjansMedyaYukle,
+  AjansProfilGuncelle,
+} from '../../src/moduller/ajanslar/okuma/AjansProfilGetir';
 import {
   KullanicilariAra,
   type ArananKullanici,
@@ -35,6 +47,10 @@ import {
   MesajGonder,
   OzelSohbetAcVeyaGetir,
 } from '../../src/moduller/mesajlasma/islemler/MesajGonder';
+import {
+  CoinTryKarsiligi,
+  TryYazi,
+} from '../../src/moduller/cuzdan/katalog/CoinTryOrani';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -44,6 +60,21 @@ import {
 
 function sayi(n: number) {
   return new Intl.NumberFormat('tr-TR').format(n);
+}
+
+function dakikaMetni(n: number) {
+  const d = Math.max(0, Math.floor(Number(n) || 0));
+  if (d < 60) return `${sayi(d)} dk`;
+  const saat = Math.floor(d / 60);
+  const kalan = d % 60;
+  return kalan ? `${sayi(saat)} sa ${kalan} dk` : `${sayi(saat)} sa`;
+}
+
+function uyeAdi(u: {
+  display_name?: string | null;
+  username?: string | null;
+}) {
+  return u.display_name || u.username || 'Kullanıcı';
 }
 
 function uuidYerel() {
@@ -108,8 +139,95 @@ function LimitCubugu({
   );
 }
 
+function UyeKart({ uye }: { uye: AjansUyeOzet }) {
+  return (
+    <Pressable
+      style={styles.uyeKart}
+      onPress={() => router.push(`/kullanici/${uye.user_id}` as any)}
+    >
+      <View style={styles.uyeSol}>
+        {uye.avatar_url ? (
+          <Image source={{ uri: uye.avatar_url }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarBos]}>
+            <Ionicons name="person" size={18} color={RenkTokenlari.textDim} />
+          </View>
+        )}
+        <View style={{ flex: 1 }}>
+          <Text style={styles.uyeAd}>{uyeAdi(uye)}</Text>
+          <Text style={styles.uyeAlt}>
+            {uye.public_user_id || uye.username || '—'}
+          </Text>
+        </View>
+        <Ionicons
+          name="chevron-forward"
+          size={18}
+          color={RenkTokenlari.textDim}
+        />
+      </View>
+      <View style={styles.statGrid}>
+        <View style={styles.statHucre}>
+          <Text style={styles.statBaslik}>Ses</Text>
+          <Text style={styles.statDeger}>
+            {dakikaMetni(uye.ses_dakika_toplam)}
+          </Text>
+          <Text style={styles.statAlt}>
+            Ay {dakikaMetni(uye.ses_dakika_ay)}
+          </Text>
+        </View>
+        <View style={styles.statHucre}>
+          <Text style={styles.statBaslik}>Yayın</Text>
+          <Text style={styles.statDeger}>
+            {dakikaMetni(uye.yayin_dakika_toplam)}
+          </Text>
+          <Text style={styles.statAlt}>
+            Ay {dakikaMetni(uye.yayin_dakika_ay)}
+          </Text>
+        </View>
+        <View style={styles.statHucre}>
+          <Text style={styles.statBaslik}>Yükleme</Text>
+          <Text style={styles.statDeger}>
+            {sayi(uye.yukleme_coin_toplam)}
+          </Text>
+          <Text style={styles.statAlt}>
+            Ay {sayi(uye.yukleme_coin_ay)}
+          </Text>
+        </View>
+        <View style={styles.statHucre}>
+          <Text style={styles.statBaslik}>Kazanç</Text>
+          <Text style={styles.statDeger}>
+            {sayi(uye.kazanc_elmas_toplam)}
+          </Text>
+          <Text style={styles.statAlt}>
+            Ay {sayi(uye.kazanc_elmas_ay)}
+          </Text>
+        </View>
+        <View style={styles.statHucre}>
+          <Text style={styles.statBaslik}>Oyun +</Text>
+          <Text style={styles.statDeger}>
+            {sayi(uye.oyun_kazanc_coin ?? 0)}
+          </Text>
+          <Text style={styles.statAlt}>
+            {TryYazi(CoinTryKarsiligi(uye.oyun_kazanc_coin ?? 0))}
+          </Text>
+        </View>
+        <View style={styles.statHucre}>
+          <Text style={styles.statBaslik}>Oyun −</Text>
+          <Text style={styles.statDeger}>
+            {sayi(uye.oyun_kayip_coin ?? 0)}
+          </Text>
+          <Text style={styles.statAlt}>
+            Ay {sayi(uye.oyun_kayip_coin_ay ?? 0)}
+          </Text>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 export default function AjansPanelEkrani() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { user } = useAuth();
   const [detay, setDetay] = useState<AjansPanelDetay | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -127,12 +245,40 @@ export default function AjansPanelEkrani() {
   const [odemeArama, setOdemeArama] = useState('');
   const [odemeSonuclar, setOdemeSonuclar] = useState<ArananKullanici[]>([]);
   const [odemeSecili, setOdemeSecili] = useState<ArananKullanici | null>(null);
+  const [davetArama, setDavetArama] = useState('');
+  const [davetSonuclar, setDavetSonuclar] = useState<ArananKullanici[]>([]);
+  const [davetSecili, setDavetSecili] = useState<ArananKullanici | null>(null);
+  const [odaUyeId, setOdaUyeId] = useState<string | null>(null);
+  const [odaBaslik, setOdaBaslik] = useState('');
+  const [profilAd, setProfilAd] = useState('');
+  const [profilSlogan, setProfilSlogan] = useState('');
+  const [profilUlke, setProfilUlke] = useState('');
+  const [profilAciklama, setProfilAciklama] = useState('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
 
   const yukle = useCallback(async () => {
     if (!id) return;
     setYukleniyor(true);
     try {
       const d = await AjansPanelDetayGetir(id);
+      try {
+        const oyunlar = await AjansUyeOyunOzetiGetir(id);
+        const map = new Map(oyunlar.map((o) => [o.user_id, o]));
+        d.uyeler = (d.uyeler ?? []).map((u) => {
+          const o = map.get(u.user_id);
+          if (!o) return u;
+          return {
+            ...u,
+            oyun_kazanc_coin: o.oyun_kazanc_coin,
+            oyun_kayip_coin: o.oyun_kayip_coin,
+            oyun_kazanc_coin_ay: o.oyun_kazanc_coin_ay,
+            oyun_kayip_coin_ay: o.oyun_kayip_coin_ay,
+          };
+        });
+      } catch {
+        /* migration 105 yoksa sessiz */
+      }
       setDetay(d);
       setKurallar(d.rules?.body ?? '');
       setHolder(d.payment_template?.account_holder ?? '');
@@ -140,6 +286,12 @@ export default function AjansPanelEkrani() {
       setIban(d.payment_template?.iban ?? '');
       setTelefon(d.payment_template?.phone ?? '');
       setOdemeNot(d.payment_template?.note ?? '');
+      setProfilAd(d.agency.name ?? '');
+      setProfilSlogan(d.agency.slogan ?? '');
+      setProfilUlke(d.agency.country ?? '');
+      setProfilAciklama(d.agency.description ?? '');
+      setLogoUrl(d.agency.logo_url ?? null);
+      setBannerUrl(d.agency.banner_url ?? null);
     } catch (e) {
       Alert.alert(
         'Ajans',
@@ -205,12 +357,66 @@ export default function AjansPanelEkrani() {
     return () => clearTimeout(t);
   }, [odemeArama, user?.id]);
 
+  useEffect(() => {
+    const q = davetArama.trim();
+    if (q.length < 1) {
+      setDavetSonuclar([]);
+      return;
+    }
+    const t = setTimeout(() => {
+      void (async () => {
+        try {
+          setDavetSonuclar(
+            await KullanicilariAra({
+              sorgu: q,
+              haricUserId: user?.id,
+              limit: 12,
+            }),
+          );
+        } catch {
+          setDavetSonuclar([]);
+        }
+      })();
+    }, 200);
+    return () => clearTimeout(t);
+  }, [davetArama, user?.id]);
+
   const bakiye = detay?.wallet?.distribution_balance ?? 0;
+  const ciro = detay?.ciro;
+  const uyeler = detay?.uyeler ?? [];
+  const bekleyenHostlar = detay?.bekleyen_host_basvurulari ?? [];
   const limits = detay?.limits;
   const unlimited = Boolean(limits?.unlimited);
-  const sahibi = detay?.agency.owner_id === user?.id;
+  // Sunucu bayrağı (094+) veya owner_id eşleşmesi — yönetim özellikleri
+  const sahibi = Boolean(
+    detay?.ben_sahibiyim === true ||
+      (detay?.agency.owner_id &&
+        user?.id &&
+        String(detay.agency.owner_id).toLowerCase() ===
+          String(user.id).toLowerCase()),
+  );
+  const davetKodu = detay?.agency.invite_code ?? '';
+  const coinYetkili = Boolean(detay?.agency.is_coin_distributor);
 
-  const hizliCoin = useMemo(() => [1000, 5000, 10000, 25000], []);
+  const hizliCoin = useMemo(() => [1000, 5000, 10000, 25000, 50000], []);
+
+  const hizliUyeSec = (u: {
+    user_id: string;
+    display_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  }) => {
+    setSecili({
+      id: u.user_id,
+      display_name: u.display_name,
+      username: u.username,
+      avatar_url: u.avatar_url,
+      public_user_id: null,
+      is_verified: false,
+    });
+    setArama(u.display_name || u.username || '');
+    setSonuclar([]);
+  };
 
   const yukleCoin = () => {
     if (!id || !secili) {
@@ -379,12 +585,220 @@ export default function AjansPanelEkrani() {
     );
   };
 
+  const davetKoduKopyala = () => {
+    if (!davetKodu) {
+      Alert.alert('Davet', 'Davet kodu yok.');
+      return;
+    }
+    void (async () => {
+      try {
+        const Clipboard = await import('expo-clipboard');
+        await Clipboard.setStringAsync(davetKodu);
+        Alert.alert('Kopyalandı', davetKodu);
+      } catch {
+        Alert.alert('Davet kodu', davetKodu);
+      }
+    })();
+  };
+
+  const davetKoduPaylas = () => {
+    if (!davetKodu) {
+      Alert.alert('Davet', 'Davet kodu yok.');
+      return;
+    }
+    const ad = detay?.agency.name ?? 'Ajans';
+    void Share.share({
+      message: `${ad} ajansına katıl. Davet kodu: ${davetKodu}\nUygulamada Ev sahibi paneli → Ajansa katıl.`,
+    });
+  };
+
+  const davetDmGonder = () => {
+    if (!davetSecili) {
+      Alert.alert('Davet', 'Kullanıcı seç.');
+      return;
+    }
+    if (!davetKodu) {
+      Alert.alert('Davet', 'Davet kodu yok.');
+      return;
+    }
+    const ad = detay?.agency.name ?? 'Ajans';
+    const body = [
+      `${ad} ajansına davet edildin.`,
+      '',
+      `Davet kodu: ${davetKodu}`,
+      'Mesajdaki “Daveti kabul et” ile başvurabilirsin.',
+    ].join('\n');
+    Alert.alert(
+      'Davet gönder',
+      `${uyeAdi(davetSecili)} kullanıcısına davet mesajı gitsin mi?`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Gönder',
+          onPress: () => {
+            void (async () => {
+              setBusy(true);
+              const sohbet = await OzelSohbetAcVeyaGetir(davetSecili.id);
+              if (!sohbet.ok) {
+                setBusy(false);
+                Alert.alert('Davet', sohbet.hata);
+                return;
+              }
+              const msg = await MesajGonder({
+                threadId: sohbet.threadId,
+                body,
+                clientId: uuidYerel(),
+              });
+              setBusy(false);
+              if (!msg.ok) {
+                Alert.alert('Davet', msg.hata);
+                return;
+              }
+              Alert.alert('Gönderildi', 'Davet mesajı iletildi.');
+              setDavetSecili(null);
+              setDavetArama('');
+            })();
+          },
+        },
+      ],
+    );
+  };
+
+  const hostBasvuruOnayla = (basvuruId: string, ad: string) => {
+    Alert.alert('Onayla', `${ad} ajansa katılsın mı?`, [
+      { text: 'Vazgeç', style: 'cancel' },
+      {
+        text: 'Onayla',
+        onPress: () => {
+          void (async () => {
+            setBusy(true);
+            const r = await AjansHostBasvurusunuOnayla(basvuruId);
+            setBusy(false);
+            if (!r.ok) {
+              Alert.alert('Onay', r.hata ?? 'Başarısız');
+              return;
+            }
+            Alert.alert('Tamam', 'Başvuru onaylandı.');
+            await yukle();
+          })();
+        },
+      },
+    ]);
+  };
+
+  const hostBasvuruReddet = (basvuruId: string, ad: string) => {
+    Alert.alert('Reddet', `${ad} başvurusu reddedilsin mi?`, [
+      { text: 'Vazgeç', style: 'cancel' },
+      {
+        text: 'Reddet',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            setBusy(true);
+            const r = await AjansHostBasvurusunuReddet(basvuruId);
+            setBusy(false);
+            if (!r.ok) {
+              Alert.alert('Red', r.hata ?? 'Başarısız');
+              return;
+            }
+            Alert.alert('Tamam', 'Başvuru reddedildi.');
+            await yukle();
+          })();
+        },
+      },
+    ]);
+  };
+
+  const uyeOdaKur = () => {
+    if (!id || !odaUyeId) {
+      Alert.alert('Oda', 'Üye seç.');
+      return;
+    }
+    const baslik = odaBaslik.trim();
+    if (baslik.length < 2) {
+      Alert.alert('Oda', 'Başlık en az 2 karakter.');
+      return;
+    }
+    const uye = uyeler.find((u) => u.user_id === odaUyeId);
+    Alert.alert(
+      'Ses odası kur',
+      `${uye ? uyeAdi(uye) : 'Üye'} adına oda açılsın mı?`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Kur',
+          onPress: () => {
+            void (async () => {
+              setBusy(true);
+              const r = await AjansUyeOdaKur({
+                agencyId: id,
+                userId: odaUyeId,
+                title: baslik,
+              });
+              setBusy(false);
+              if (!r.ok || !r.room_id) {
+                Alert.alert('Oda', r.hata ?? 'Oluşturulamadı');
+                return;
+              }
+              setOdaBaslik('');
+              setOdaUyeId(null);
+              Alert.alert('Oda hazır', 'Üye odasına gidebilirsin.', [
+                {
+                  text: 'Odaya git',
+                  onPress: () => router.push(`/room/${r.room_id}` as any),
+                },
+                { text: 'Tamam' },
+              ]);
+            })();
+          },
+        },
+      ],
+    );
+  };
+
+  const profilKaydet = () => {
+    if (!id) return;
+    void (async () => {
+      setBusy(true);
+      const r = await AjansProfilGuncelle({
+        agencyId: id,
+        name: profilAd.trim(),
+        slogan: profilSlogan.trim(),
+        country: profilUlke.trim(),
+        description: profilAciklama.trim(),
+      });
+      setBusy(false);
+      if (!r.ok) Alert.alert('Profil', r.hata);
+      else {
+        Alert.alert('Tamam', 'Ajans profili güncellendi.');
+        await yukle();
+      }
+    })();
+  };
+
+  const medyaYukle = (tur: 'logo' | 'banner') => {
+    if (!id) return;
+    void (async () => {
+      setBusy(true);
+      const r = await AjansMedyaYukle({ agencyId: id, tur });
+      setBusy(false);
+      if (!r.ok) {
+        if (!r.iptal) Alert.alert('Medya', r.hata);
+        return;
+      }
+      if (tur === 'logo') setLogoUrl(r.url);
+      else setBannerUrl(r.url);
+      Alert.alert('Tamam', tur === 'logo' ? 'Logo güncellendi.' : 'Banner güncellendi.');
+      await yukle();
+    })();
+  };
+
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="ajans-panel" varyant="ekran" fallbackHref="/ajans">
         <EkranBasligi
-          title={detay?.agency.name ?? 'Ajans Yönetim'}
-          subtitle="Kurallar · ödeme · coin"
+          title={detay?.agency.name ?? 'Ajansım'}
+          subtitle="Üyeler · ciro · davet · oda"
           fallbackHref={"/ajans/yonetim" as any}
         />
         {yukleniyor && !detay ? (
@@ -407,20 +821,41 @@ export default function AjansPanelEkrani() {
             keyboardShouldPersistTaps="handled"
           >
             <LinearGradient
-              colors={['#1F1630', '#121018']}
+              colors={[...RenkTokenlari.gradientPlaceholder]}
               style={styles.hero}
             >
               <Text style={styles.heroEyebrow}>
-                {detay.agency.agency_public_id} · {detay.agency.level_code}
+                {detay.agency.agency_public_id} · {detay.agency.level_code} ·{' '}
+                {uyeler.length} üye
               </Text>
-              <Text style={styles.heroBakiye}>{sayi(bakiye)}</Text>
-              <Text style={styles.heroAlt}>Dağıtım bakiyesi (coin)</Text>
+              <Text style={styles.heroBakiye}>
+                {sayi(ciro?.elmas_bakiye ?? detay.wallet?.diamonds ?? 0)}
+              </Text>
+              <Text style={styles.heroAlt}>Toplam ciro (elmas)</Text>
+              <View style={styles.ciroSatir}>
+                <View style={styles.ciroKart}>
+                  <Text style={styles.ciroDeger}>
+                    {sayi(ciro?.ledger_toplam ?? 0)}
+                  </Text>
+                  <Text style={styles.ciroLabel}>Ledger toplam</Text>
+                </View>
+                <View style={styles.ciroKart}>
+                  <Text style={styles.ciroDeger}>
+                    {sayi(ciro?.ledger_aylik ?? 0)}
+                  </Text>
+                  <Text style={styles.ciroLabel}>Bu ay</Text>
+                </View>
+                <View style={styles.ciroKart}>
+                  <Text style={styles.ciroDeger}>{sayi(bakiye)}</Text>
+                  <Text style={styles.ciroLabel}>Dağıtım coin</Text>
+                </View>
+              </View>
               <View style={styles.heroChipSatir}>
                 <View style={styles.chip}>
                   <Text style={styles.chipYazi}>
                     {detay.agency.is_coin_distributor
-                      ? 'Dağıtıcı açık'
-                      : 'Dağıtıcı kapalı'}
+                      ? 'Coin yetkisi açık'
+                      : 'Coin yetkisi kapalı'}
                   </Text>
                 </View>
                 <View style={styles.chip}>
@@ -431,13 +866,334 @@ export default function AjansPanelEkrani() {
                 <View style={styles.chip}>
                   <Text style={styles.chipYazi}>{detay.agency.status}</Text>
                 </View>
-                <View style={styles.chip}>
-                  <Text style={styles.chipYazi}>
-                    Davet {detay.agency.invite_code ?? '—'}
-                  </Text>
-                </View>
               </View>
+              {davetKodu ? (
+                <View style={styles.davetKodSatir}>
+                  <Text style={styles.davetKod}>{davetKodu}</Text>
+                  <Pressable style={styles.davetIcon} onPress={davetKoduKopyala}>
+                    <Ionicons
+                      name="copy-outline"
+                      size={18}
+                      color={RenkTokenlari.primarySoft}
+                    />
+                  </Pressable>
+                  <Pressable style={styles.davetIcon} onPress={davetKoduPaylas}>
+                    <Ionicons
+                      name="share-outline"
+                      size={18}
+                      color={RenkTokenlari.primarySoft}
+                    />
+                  </Pressable>
+                </View>
+              ) : null}
             </LinearGradient>
+
+            {sahibi ? (
+              <>
+                <Pressable
+                  style={styles.profilLink}
+                  onPress={() => router.push(`/ajans/profil/${id}` as any)}
+                >
+                  <Ionicons
+                    name="eye-outline"
+                    size={16}
+                    color={RenkTokenlari.primarySoft}
+                  />
+                  <Text style={styles.profilLinkYazi}>Genel profili görüntüle</Text>
+                </Pressable>
+
+                <Text style={styles.bolum}>Ajans profili</Text>
+                <View style={styles.kart}>
+                  {(bannerUrl || logoUrl) && (
+                    <View style={styles.profilOnizleme}>
+                      {bannerUrl ? (
+                        <Image source={{ uri: bannerUrl }} style={styles.profilBanner} />
+                      ) : (
+                        <View style={[styles.profilBanner, styles.profilBannerBos]} />
+                      )}
+                      {logoUrl ? (
+                        <Image source={{ uri: logoUrl }} style={styles.profilLogo} />
+                      ) : (
+                        <View style={[styles.profilLogo, styles.profilLogoBos]}>
+                          <Ionicons
+                            name="business"
+                            size={20}
+                            color={RenkTokenlari.primarySoft}
+                          />
+                        </View>
+                      )}
+                    </View>
+                  )}
+                  <View style={styles.medyaSatir}>
+                    <Pressable
+                      style={styles.medyaBtn}
+                      onPress={() => medyaYukle('logo')}
+                      disabled={busy}
+                    >
+                      <Ionicons name="image-outline" size={16} color="#12040C" />
+                      <Text style={styles.medyaBtnYazi}>Logo</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.medyaBtn}
+                      onPress={() => medyaYukle('banner')}
+                      disabled={busy}
+                    >
+                      <Ionicons name="images-outline" size={16} color="#12040C" />
+                      <Text style={styles.medyaBtnYazi}>Banner</Text>
+                    </Pressable>
+                  </View>
+                  <TextInput
+                    value={profilAd}
+                    onChangeText={setProfilAd}
+                    placeholder="Ajans adı"
+                    placeholderTextColor={RenkTokenlari.textDim}
+                    style={styles.input}
+                  />
+                  <TextInput
+                    value={profilSlogan}
+                    onChangeText={setProfilSlogan}
+                    placeholder="Slogan"
+                    placeholderTextColor={RenkTokenlari.textDim}
+                    style={styles.input}
+                  />
+                  <TextInput
+                    value={profilUlke}
+                    onChangeText={setProfilUlke}
+                    placeholder="Ülke / bölge"
+                    placeholderTextColor={RenkTokenlari.textDim}
+                    style={styles.input}
+                  />
+                  <TextInput
+                    value={profilAciklama}
+                    onChangeText={setProfilAciklama}
+                    placeholder="Ajans açıklaması"
+                    placeholderTextColor={RenkTokenlari.textDim}
+                    style={[styles.input, styles.area]}
+                    multiline
+                    textAlignVertical="top"
+                  />
+                  <Pressable
+                    style={[styles.ctaGhost, busy && styles.ctaDisabled]}
+                    onPress={profilKaydet}
+                    disabled={busy}
+                  >
+                    <Text style={styles.ctaGhostYazi}>Profili kaydet</Text>
+                  </Pressable>
+                </View>
+
+                <Text style={styles.bolum}>Coin yükleme</Text>
+                <AjansCoinYukleKarti
+                  yetkili={coinYetkili}
+                  bakiye={bakiye}
+                  busy={busy}
+                  arama={arama}
+                  onArama={(t) => {
+                    setArama(t);
+                    setSecili(null);
+                  }}
+                  sonuclar={sonuclar}
+                  secili={secili}
+                  onSec={(k) => {
+                    setSecili(k);
+                    setArama(k.display_name || k.username || '');
+                    setSonuclar([]);
+                  }}
+                  onSecTemizle={() => setSecili(null)}
+                  coin={coin}
+                  onCoin={setCoin}
+                  hizliMiktarlar={hizliCoin}
+                  hizliUyeler={uyeler}
+                  onHizliUye={hizliUyeSec}
+                  onYukle={yukleCoin}
+                />
+              </>
+            ) : null}
+
+            <Text style={styles.bolum}>Üyeler</Text>
+            {uyeler.length === 0 ? (
+              <Text style={styles.bos}>Henüz kayıtlı üye yok</Text>
+            ) : (
+              uyeler.map((u) => (
+                <UyeKart key={u.user_id} uye={u} />
+              ))
+            )}
+
+            {sahibi ? (
+              <>
+                <Text style={styles.bolum}>Ajansa davet</Text>
+                <View style={styles.kart}>
+                  <Text style={styles.hint}>
+                    Davet kodunu paylaş veya kullanıcıya DM gönder. Alıcı mesajdaki
+                    “Daveti kabul et” ile başvurabilir.
+                  </Text>
+                  <TextInput
+                    value={davetArama}
+                    onChangeText={(t) => {
+                      setDavetArama(t);
+                      setDavetSecili(null);
+                    }}
+                    placeholder="Kullanıcı ara (@ veya isim)"
+                    placeholderTextColor={RenkTokenlari.textDim}
+                    style={styles.input}
+                  />
+                  {davetSecili ? (
+                    <View style={styles.secili}>
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={18}
+                        color={RenkTokenlari.mint}
+                      />
+                      <Text style={styles.seciliYazi}>
+                        {uyeAdi(davetSecili)}
+                      </Text>
+                    </View>
+                  ) : (
+                    davetSonuclar.slice(0, 6).map((k) => (
+                      <Pressable
+                        key={k.id}
+                        style={styles.aramaSatir}
+                        onPress={() => {
+                          setDavetSecili(k);
+                          setDavetArama(k.display_name || k.username || '');
+                          setDavetSonuclar([]);
+                        }}
+                      >
+                        <Text style={styles.aramaAd}>
+                          {k.display_name || k.username}
+                        </Text>
+                        <Text style={styles.aramaAlt}>
+                          {k.public_user_id || k.username}
+                        </Text>
+                      </Pressable>
+                    ))
+                  )}
+                  <Pressable
+                    style={[styles.cta, busy && styles.ctaDisabled]}
+                    onPress={davetDmGonder}
+                    disabled={busy}
+                  >
+                    <Ionicons name="mail-outline" size={16} color="#12040C" />
+                    <Text style={styles.ctaYazi}> Davet mesajı gönder</Text>
+                  </Pressable>
+                </View>
+
+                {bekleyenHostlar.length > 0 ? (
+                  <>
+                    <Text style={styles.bolum}>Bekleyen başvurular</Text>
+                    {bekleyenHostlar.map((b) => {
+                      const ad = uyeAdi(b);
+                      return (
+                        <View key={b.id} style={styles.basvuruKart}>
+                          <Pressable
+                            style={styles.uyeSol}
+                            onPress={() =>
+                              router.push(`/kullanici/${b.user_id}` as any)
+                            }
+                          >
+                            {b.avatar_url ? (
+                              <Image
+                                source={{ uri: b.avatar_url }}
+                                style={styles.avatar}
+                              />
+                            ) : (
+                              <View style={[styles.avatar, styles.avatarBos]}>
+                                <Ionicons
+                                  name="person"
+                                  size={18}
+                                  color={RenkTokenlari.textDim}
+                                />
+                              </View>
+                            )}
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.uyeAd}>{ad}</Text>
+                              <Text style={styles.uyeAlt}>
+                                {b.public_user_id || b.username || '—'} ·{' '}
+                                {new Date(b.created_at).toLocaleDateString(
+                                  'tr-TR',
+                                )}
+                              </Text>
+                            </View>
+                          </Pressable>
+                          <View style={styles.basvuruAksiyon}>
+                            <Pressable
+                              style={styles.onayBtn}
+                              onPress={() => hostBasvuruOnayla(b.id, ad)}
+                              disabled={busy}
+                            >
+                              <Text style={styles.onayBtnYazi}>Onayla</Text>
+                            </Pressable>
+                            <Pressable
+                              style={styles.redBtn}
+                              onPress={() => hostBasvuruReddet(b.id, ad)}
+                              disabled={busy}
+                            >
+                              <Text style={styles.redBtnYazi}>Red</Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </>
+                ) : null}
+
+                <Text style={styles.bolum}>Üye için ses odası kur</Text>
+                <View style={styles.kart}>
+                  <Text style={styles.hint}>
+                    Oda seçilen üyenin host hesabında açılır.
+                  </Text>
+                  {uyeler.length === 0 ? (
+                    <Text style={styles.bos}>Önce üye ekle</Text>
+                  ) : (
+                    <View style={styles.uyeSecSatir}>
+                      {uyeler.map((u) => {
+                        const secili = odaUyeId === u.user_id;
+                        return (
+                          <Pressable
+                            key={u.user_id}
+                            style={[
+                              styles.uyeChip,
+                              secili && styles.uyeChipSecili,
+                            ]}
+                            onPress={() => setOdaUyeId(u.user_id)}
+                          >
+                            {u.avatar_url ? (
+                              <Image
+                                source={{ uri: u.avatar_url }}
+                                style={styles.uyeChipAvatar}
+                              />
+                            ) : null}
+                            <Text
+                              style={[
+                                styles.uyeChipYazi,
+                                secili && styles.uyeChipYaziSecili,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {uyeAdi(u)}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  )}
+                  <TextInput
+                    value={odaBaslik}
+                    onChangeText={setOdaBaslik}
+                    placeholder="Oda başlığı"
+                    placeholderTextColor={RenkTokenlari.textDim}
+                    style={styles.input}
+                  />
+                  <Pressable
+                    style={[styles.cta, busy && styles.ctaDisabled]}
+                    onPress={uyeOdaKur}
+                    disabled={busy}
+                  >
+                    <Ionicons name="mic" size={16} color="#12040C" />
+                    <Text style={styles.ctaYazi}> Ses odası kur</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : null}
 
             <Text style={styles.bolum}>Limit kullanımı</Text>
             {limits ? (
@@ -593,77 +1349,6 @@ export default function AjansPanelEkrani() {
                   >
                     <Ionicons name="send" size={16} color="#12040C" />
                     <Text style={styles.ctaYazi}> Ödeme bilgisini gönder</Text>
-                  </Pressable>
-                </View>
-
-                <Text style={styles.bolum}>Kullanıcıya coin yükle</Text>
-                <View style={styles.kart}>
-                  <TextInput
-                    value={arama}
-                    onChangeText={(t) => {
-                      setArama(t);
-                      setSecili(null);
-                    }}
-                    placeholder="Kullanıcı ara (@ veya isim)"
-                    placeholderTextColor={RenkTokenlari.textDim}
-                    style={styles.input}
-                  />
-                  {secili ? (
-                    <View style={styles.secili}>
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={18}
-                        color={RenkTokenlari.mint}
-                      />
-                      <Text style={styles.seciliYazi}>
-                        {secili.display_name || secili.username}
-                      </Text>
-                    </View>
-                  ) : (
-                    sonuclar.slice(0, 6).map((k) => (
-                      <Pressable
-                        key={k.id}
-                        style={styles.aramaSatir}
-                        onPress={() => {
-                          setSecili(k);
-                          setArama(k.display_name || k.username || '');
-                          setSonuclar([]);
-                        }}
-                      >
-                        <Text style={styles.aramaAd}>
-                          {k.display_name || k.username}
-                        </Text>
-                        <Text style={styles.aramaAlt}>
-                          {k.public_user_id || k.username}
-                        </Text>
-                      </Pressable>
-                    ))
-                  )}
-                  <View style={styles.hizliSatir}>
-                    {hizliCoin.map((n) => (
-                      <Pressable
-                        key={n}
-                        style={styles.hizli}
-                        onPress={() => setCoin(String(n))}
-                      >
-                        <Text style={styles.hizliYazi}>{sayi(n)}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                  <TextInput
-                    value={coin}
-                    onChangeText={setCoin}
-                    keyboardType="number-pad"
-                    placeholder="Coin miktarı"
-                    placeholderTextColor={RenkTokenlari.textDim}
-                    style={styles.input}
-                  />
-                  <Pressable
-                    style={[styles.cta, busy && styles.ctaDisabled]}
-                    onPress={yukleCoin}
-                    disabled={busy}
-                  >
-                    <Text style={styles.ctaYazi}>Coin yükle</Text>
                   </Pressable>
                 </View>
 
@@ -907,5 +1592,237 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.textDim,
     textAlign: 'center',
     paddingVertical: BoslukTokenlari.xl,
+  },
+  ciroSatir: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  ciroKart: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: YaricapTokenlari.sm,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    gap: 2,
+  },
+  ciroDeger: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.text,
+    fontWeight: '800',
+  },
+  ciroLabel: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+  },
+  davetKodSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: YaricapTokenlari.sm,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  davetKod: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.primarySoft,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    flex: 1,
+  },
+  davetIcon: { padding: 4 },
+  uyeKart: {
+    padding: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.md,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    gap: 10,
+  },
+  uyeSol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: RenkTokenlari.surface,
+  },
+  avatarBos: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uyeAd: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+  },
+  uyeAlt: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+  },
+  statGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  statHucre: {
+    width: '47%',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: YaricapTokenlari.sm,
+    backgroundColor: RenkTokenlari.surface,
+    gap: 2,
+  },
+  statBaslik: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    fontWeight: '700',
+  },
+  statDeger: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+  },
+  statAlt: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+  },
+  basvuruKart: {
+    padding: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.md,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    gap: 10,
+  },
+  basvuruAksiyon: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  onayBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: RenkTokenlari.mint,
+    alignItems: 'center',
+  },
+  onayBtnYazi: {
+    ...TipografiTokenlari.caption,
+    color: '#0A1A12',
+    fontWeight: '800',
+  },
+  redBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: 'rgba(255,80,80,0.12)',
+    borderWidth: 1,
+    borderColor: RenkTokenlari.danger,
+    alignItems: 'center',
+  },
+  redBtnYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.danger,
+    fontWeight: '800',
+  },
+  uyeSecSatir: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  uyeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '48%',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: RenkTokenlari.surface,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+  },
+  uyeChipSecili: {
+    borderColor: RenkTokenlari.primarySoft,
+    backgroundColor: 'rgba(232, 180, 255, 0.12)',
+  },
+  uyeChipAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+  },
+  uyeChipYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  uyeChipYaziSecili: {
+    color: RenkTokenlari.primarySoft,
+  },
+  profilLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.borderAccent,
+  },
+  profilLinkYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.primarySoft,
+    fontWeight: '700',
+  },
+  profilOnizleme: {
+    marginBottom: 4,
+  },
+  profilBanner: {
+    width: '100%',
+    height: 72,
+    borderRadius: YaricapTokenlari.sm,
+    backgroundColor: RenkTokenlari.surface,
+  },
+  profilBannerBos: { backgroundColor: RenkTokenlari.surface },
+  profilLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    marginTop: -24,
+    marginLeft: 12,
+    borderWidth: 2,
+    borderColor: RenkTokenlari.bgCard,
+    backgroundColor: RenkTokenlari.surface,
+  },
+  profilLogoBos: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  medyaSatir: { flexDirection: 'row', gap: 8 },
+  medyaBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: RenkTokenlari.primary,
+  },
+  medyaBtnYazi: {
+    ...TipografiTokenlari.caption,
+    color: '#12040C',
+    fontWeight: '800',
   },
 });

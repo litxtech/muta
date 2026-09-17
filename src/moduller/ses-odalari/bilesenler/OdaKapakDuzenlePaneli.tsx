@@ -394,7 +394,7 @@ export function OdaKapakDuzenlePaneli({
               onFocus={() => alanOdak()}
             />
 
-            <Text style={styles.koltukEtiket}>Mikrofon koltuğu</Text>
+            <Text style={styles.koltukEtiket}>Koltuk sayısı</Text>
             <Text style={styles.koltukAlt}>
               {ODA_KOLTUK_MIN}–{ODA_KOLTUK_MAX} arası · dolu {doluKoltuk}
               {maxSeats < (maxSeatsIlk || 8) && doluKoltuk > maxSeats

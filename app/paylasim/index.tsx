@@ -95,7 +95,7 @@ export default function PaylasimEkrani() {
         subtitle="Link ile indir · davet kodu"
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={['#2A1C34', '#16101F']} style={styles.kart}>
+        <LinearGradient colors={[...RenkTokenlari.gradientCard]} style={styles.kart}>
           <Text style={styles.fisilti}>DAVET</Text>
           <Text style={styles.baslik}>{OrtamDegiskenleri.uygulamaAdi}</Text>
           <Text style={styles.alt}>

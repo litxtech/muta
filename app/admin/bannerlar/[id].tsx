@@ -11,7 +11,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import { GaleriAc } from '../../../src/ortak/medya/ImagePickerHazirMi';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../../src/components/Screen';
 import { EkranBasligi } from '../../../src/components/EkranBasligi';
@@ -88,8 +88,8 @@ function emptyForm(): BannerAdminSavePayload {
     media_type: 'IMAGE_TEXT',
     media_url: '',
     thumbnail_url: '',
-    size_type: 'MEDIUM',
-    aspect_ratio: '16:6',
+    size_type: 'SMALL',
+    aspect_ratio: '4:1',
     priority: 50,
     status: 'DRAFT',
     start_at: null,
@@ -115,9 +115,10 @@ function emptyForm(): BannerAdminSavePayload {
     actions: [
       {
         slot: 0,
-        action_type: 'IN_APP_WEBVIEW',
-        button_text: 'Detayları Gör',
-        url: 'https://',
+        action_type: 'NONE',
+        button_text: '',
+        url: '',
+        target: '',
         payload_json: {},
       },
     ],
@@ -213,16 +214,14 @@ export default function AdminBannerDuzenleEkrani() {
   }, []);
 
   const pickMedia = async (tur: 'image' | 'video') => {
-    const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes:
-        tur === 'video'
-          ? ImagePicker.MediaTypeOptions.Videos
-          : ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      allowsEditing: false,
+    const secim = await GaleriAc({
+      mediaTypes: tur === 'video' ? ['videos'] : ['images'],
     });
-    if (res.canceled || !res.assets[0]) return;
-    const asset = res.assets[0];
+    if (!secim.ok) {
+      if (!secim.iptal) Alert.alert('Medya', secim.hata);
+      return;
+    }
+    const asset = secim.asset;
     setUploading(true);
     try {
       const uploaded = await BannerAdminService.uploadMedia({
@@ -250,6 +249,30 @@ export default function AdminBannerDuzenleEkrani() {
     if (!form.name.trim()) {
       Alert.alert('Eksik', 'Banner adı zorunlu');
       return;
+    }
+    const webAksiyonlar = (form.actions ?? []).filter(
+      (a) =>
+        a.action_type === 'WEB_URL' || a.action_type === 'IN_APP_WEBVIEW',
+    );
+    for (const a of webAksiyonlar) {
+      const url = (a.url ?? a.target ?? '').trim();
+      if (!url || url === 'https://' || url === 'http://') {
+        Alert.alert(
+          'Eksik URL',
+          'Web aksiyonu için tam HTTPS adresi gir (ör. https://ornek.com).',
+        );
+        return;
+      }
+      try {
+        const u = new URL(url);
+        if (u.protocol !== 'https:' || !u.hostname) {
+          Alert.alert('Geçersiz URL', 'Sadece https:// ile başlayan geçerli adresler.');
+          return;
+        }
+      } catch {
+        Alert.alert('Geçersiz URL', 'Web adresi hatalı.');
+        return;
+      }
     }
     setSaving(true);
     try {

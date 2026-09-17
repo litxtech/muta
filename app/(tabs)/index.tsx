@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
+  BackHandler,
   FlatList,
   Pressable,
   RefreshControl,
@@ -9,8 +9,8 @@ import {
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useFocusEffect } from 'expo-router';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import { router, useFocusEffect, useNavigation } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../src/components/Screen';
 import { YUZEN_TAB_ICERIK_BOSLUGU } from '../../src/components/YuzenTabBar';
 import { useAuth } from '../../src/contexts/AuthContext';
@@ -21,19 +21,25 @@ import {
   CanliFeedGetir,
   type FeedOggesi,
 } from '../../src/moduller/ana-sayfa/okuma/AnaSayfaIcerikleriniGetir';
+import {
+  FEED_AKTIF_ANIMASYON_KART_SAYISI,
+  feedIzgarasiniKur,
+  type FeedIzgaraOgesi,
+} from '../../src/moduller/ana-sayfa/okuma/AnaSayfaFeedIzgarasi';
 import { AnaSayfaAtmosfer } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaAtmosfer';
 import { AnaSayfaFeedBasligi } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaFeedBasligi';
 import { AnaSayfaFeedKart } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaFeedKart';
 import {
-  AnaSayfaHizliErisim,
-  type AnaSayfaHizliOge,
-} from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaHizliErisim';
+  AnaSayfaFiltreCipleri,
+  type FeedFiltre,
+  type FeedFiltreOgesi,
+} from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaFiltreCipleri';
+import { AnaSayfaIskelet } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaIskelet';
 import {
   AnaSayfaCekmeceMenu,
   AnaSayfaHamburgerDugmesi,
   type AnaSayfaMenuOgesi,
 } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaCekmeceMenu';
-import { AnaSayfaSesCubuklari } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaSesCubuklari';
 import { CihazPushTokeniniKaydet } from '../../src/moduller/bildirimler/kayit/CihazPushTokeniniKaydet';
 import { useBildirimler } from '../../src/moduller/bildirimler/baglam/BildirimSaglayici';
 import { BildirimZiliDugmesi } from '../../src/moduller/bildirimler/bilesenler/BildirimZiliDugmesi';
@@ -42,11 +48,9 @@ import { supabase } from '../../src/lib/supabase';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
-  AnimasyonTokenlari,
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
-import { Ionicons } from '@expo/vector-icons';
 import { TamusoBanner } from '../../src/banner';
 import {
   buildFeedBannerRows,
@@ -82,15 +86,17 @@ function bolumHedef(kod: string): string {
 
 const YENILE_MS = 18000;
 
-/** Ana akım — sadece canlı içerik, buton kalabalığı yok */
+/** Ana akım — yayın ve ses odası kartları 2'li ızgarada aşağı akar */
 export default function HomeScreen() {
   const { profile } = useAuth();
+  const navigation = useNavigation();
   const isAdmin = AdminYetkisiVarMi(profile);
   const { okunmamis, yenile: bildirimYenile } = useBildirimler();
-  const { yetkili: ajansYetkili, yonetimHref } = useAjansYonetim();
+  const { yonetimHref } = useAjansYonetim();
   const [feed, setFeed] = useState<FeedOggesi[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuAcik, setMenuAcik] = useState(false);
+  const [filtre, setFiltre] = useState<FeedFiltre>('tumu');
   const odakli = useRef(false);
   const bolumler = useMemo(() => AnaSayfaBolumleriniGetir().filter((b) => b.aktif), []);
 
@@ -106,6 +112,29 @@ export default function HomeScreen() {
       if (!sessiz) setLoading(false);
     }
   }, []);
+
+  /** Ana sayfada swipe-back / geçmiş geri kilit — sol kenar hamburger'a kalsın */
+  useFocusEffect(
+    useCallback(() => {
+      navigation.setOptions({
+        gestureEnabled: false,
+        fullScreenGestureEnabled: false,
+      });
+
+      const onBack = () => {
+        if (menuAcik) {
+          setMenuAcik(false);
+          return true;
+        }
+        return true;
+      };
+      const sub = BackHandler.addEventListener('hardwareBackPress', onBack);
+
+      return () => {
+        sub.remove();
+      };
+    }, [navigation, menuAcik]),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -127,7 +156,6 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const topic = 'feed-live-rooms';
-    // Ayni isimli kanal subscribe sonrasi .on() eklenemez (Strict Mode / yeniden mount)
     for (const ch of supabase.getChannels()) {
       if (ch.topic === `realtime:${topic}` || ch.topic === topic) {
         void supabase.removeChannel(ch);
@@ -157,44 +185,6 @@ export default function HomeScreen() {
     };
   }, []);
 
-  const hizliErisim = useMemo<AnaSayfaHizliOge[]>(
-    () => [
-      {
-        key: 'oda-ac',
-        baslik: 'Ses odası aç',
-        alt: 'Yeni oda kur, yayına geç',
-        icon: 'add-circle-outline',
-        tint: RenkTokenlari.primarySoft,
-        href: '/(tabs)/create',
-      },
-      {
-        key: 'odalari-gez',
-        baslik: 'Odaları gez',
-        alt: 'Canlı ses odalarına katıl',
-        icon: 'headset-outline',
-        tint: RenkTokenlari.mint,
-        href: '/(tabs)/rooms',
-      },
-      {
-        key: 'ajans-kur',
-        baslik: 'Ajans kur',
-        alt: 'Başvur → admin onaylar',
-        icon: 'business-outline',
-        tint: RenkTokenlari.magenta,
-        href: '/ajans',
-      },
-      {
-        key: 'kesfet',
-        baslik: 'Keşfet',
-        alt: 'Modlara göre gez',
-        icon: 'compass-outline',
-        tint: RenkTokenlari.violet,
-        href: '/kesfet',
-      },
-    ],
-    [],
-  );
-
   const menuOgeleri = useMemo<AnaSayfaMenuOgesi[]>(() => {
     const dunyalar = bolumler
       .filter(
@@ -218,12 +208,12 @@ export default function HomeScreen() {
         baslik: 'Ses odası aç',
         alt: 'Yeni oda kur',
         icon: 'add-circle-outline',
-        tint: RenkTokenlari.primarySoft,
+        tint: RenkTokenlari.mint,
         href: '/(tabs)/create',
       },
       {
         key: 'rooms',
-        baslik: 'Canlı odalar',
+        baslik: 'Ses odaları',
         alt: 'Listeye gir · katıl',
         icon: 'headset-outline',
         tint: RenkTokenlari.mint,
@@ -241,30 +231,18 @@ export default function HomeScreen() {
         key: 'live',
         baslik: 'Canlı yayın',
         alt: 'Kamerayla yayına çık',
-        icon: 'radio-outline',
+        icon: 'videocam-outline',
         tint: RenkTokenlari.live,
         href: '/canli',
       },
       {
-        key: 'agency',
-        baslik: 'Ajans kur',
-        alt: 'Başvuru · paneller',
-        icon: 'business-outline',
+        key: 'agency_manage',
+        baslik: 'Ajansım',
+        alt: 'Kurallar · ödeme · coin',
+        icon: 'briefcase-outline',
         tint: RenkTokenlari.magenta,
-        href: '/ajans',
+        href: yonetimHref,
       },
-      ...(ajansYetkili
-        ? [
-            {
-              key: 'agency_manage',
-              baslik: 'Ajans Yönetim',
-              alt: 'Kurallar · ödeme · coin',
-              icon: 'briefcase-outline' as const,
-              tint: RenkTokenlari.magenta,
-              href: yonetimHref,
-            },
-          ]
-        : []),
       {
         key: 'host',
         baslik: 'Host ol',
@@ -302,7 +280,7 @@ export default function HomeScreen() {
             {
               key: 'admin_oyun_test',
               baslik: 'Oyun testi',
-              alt: 'Odasız · coin’siz denetim',
+              alt: "Odasız · coin'siz denetim",
               icon: 'flask-outline' as const,
               tint: RenkTokenlari.violet,
               href: '/admin/oyun-test',
@@ -321,152 +299,195 @@ export default function HomeScreen() {
 
     const keys = new Set<string>(dunyalar.map((d) => d.key));
     return [...dunyalar, ...ekstra.filter((e) => !keys.has(e.key))];
-  }, [bolumler, ajansYetkili, yonetimHref, isAdmin]);
+  }, [bolumler, yonetimHref, isAdmin]);
+
+  const yayinSayisi = useMemo(() => feed.filter((o) => o.tur === 'canli').length, [feed]);
+  const sesSayisi = useMemo(() => feed.filter((o) => o.tur === 'oda').length, [feed]);
+
+  const izgara = useMemo(() => feedIzgarasiniKur(feed, filtre), [feed, filtre]);
 
   const feedRows = useMemo(
-    () => buildFeedBannerRows(feed, [3, 8, 15]),
-    [feed],
+    () => buildFeedBannerRows(izgara),
+    [izgara],
   );
 
+  const filtreler = useMemo<FeedFiltreOgesi[]>(
+    () => [
+      {
+        kod: 'tumu',
+        etiket: 'Tümü',
+        icon: 'sparkles',
+        tint: RenkTokenlari.primarySoft,
+      },
+      {
+        kod: 'canli',
+        etiket: 'Canlı',
+        icon: 'videocam',
+        sayi: yayinSayisi,
+        tint: RenkTokenlari.primarySoft,
+      },
+      {
+        kod: 'ses',
+        etiket: 'Ses odası',
+        icon: 'headset',
+        sayi: sesSayisi,
+        tint: RenkTokenlari.mint,
+      },
+    ],
+    [sesSayisi, yayinSayisi],
+  );
+
+  const kartAc = useCallback((oge: FeedIzgaraOgesi) => {
+    router.push(oge.oge.href as any);
+  }, []);
+
+  const bosMesaj =
+    filtre === 'canli'
+      ? { eyebrow: 'CANLI YAYIN', baslik: 'Şu an yayın yok', alt: 'Kamerayı aç, sahne senin olsun.' }
+      : filtre === 'ses'
+        ? { eyebrow: 'SES SAHNESİ', baslik: 'İlk ses odasını aç', alt: 'Canlı ses odası yok — kendi odanı kur.' }
+        : { eyebrow: 'SAHNE', baslik: 'Sahne sessiz', alt: 'Canlı içerik yok — ilk odayı sen aç veya yayına çık.' };
+
   return (
-    <Screen edges={['top']}>
+    <Screen edges={['top']} tabSayfaKaydir>
       <ModulHataSiniri modulAdi="ana-sayfa">
-        <View style={styles.root}>
-          <AnaSayfaAtmosfer />
+        <AnaSayfaCekmeceMenu
+          acik={menuAcik}
+          onAcikDegisti={setMenuAcik}
+          ogeler={menuOgeleri}
+          onOgeSec={(href) => router.push(href as any)}
+          profil={{
+            displayName:
+              profile?.display_name ??
+              (profile?.username ? `@${profile.username}` : 'Misafir'),
+            username: profile?.username,
+            avatarUrl: profile?.avatar_url,
+          }}
+          onProfilPress={() => router.navigate('/(tabs)/profile')}
+        >
+          <View style={styles.root}>
+            <AnaSayfaAtmosfer />
 
-          <AnaSayfaFeedBasligi
-            canliSayisi={feed.length}
-            solAksiyon={
-              <AnaSayfaHamburgerDugmesi onPress={() => setMenuAcik(true)} />
-            }
-            sagAksiyon={
-              <BildirimZiliDugmesi
-                sayi={okunmamis}
-                onPress={() => router.push('/bildirimler' as any)}
-              />
-            }
-          />
-
-          {loading && feed.length === 0 ? (
-            <ActivityIndicator color={RenkTokenlari.primary} style={styles.loader} />
-          ) : (
-            <FlatList
-              data={feedRows}
-              keyExtractor={(item) => item.key}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.list}
-              refreshControl={
-                <RefreshControl
-                  refreshing={loading}
-                  onRefresh={() => void load()}
-                  tintColor={RenkTokenlari.primary}
+            <AnaSayfaFeedBasligi
+              sesSayisi={sesSayisi}
+              yayinSayisi={yayinSayisi}
+              solAksiyon={
+                <AnaSayfaHamburgerDugmesi onPress={() => setMenuAcik(true)} />
+              }
+              sagAksiyon={
+                <BildirimZiliDugmesi
+                  sayi={okunmamis}
+                  onPress={() => router.push('/bildirimler' as any)}
                 />
               }
-              ListHeaderComponent={
-                <View>
-                  <TamusoBanner placement="HOME_TOP" screen="HOME" />
-                  <TamusoBanner placement="FEED_TOP" screen="FEED" />
-                  <AnaSayfaHizliErisim
-                    ogeler={hizliErisim}
-                    onSec={(href) => router.push(href as any)}
-                  />
-                  <TamusoBanner placement="HOME_MIDDLE" screen="HOME" />
-                  {feed.length > 0 ? (
-                    <View style={styles.bolumBaslik}>
-                      <Text style={styles.bolumYazi}>Şimdi yayında</Text>
-                      <View style={styles.bolumCizgi} />
-                    </View>
-                  ) : null}
-                </View>
-              }
-              ListFooterComponent={
-                <TamusoBanner placement="HOME_BOTTOM" screen="HOME" />
-              }
-              ListEmptyComponent={
-                <Animated.View
-                  entering={FadeInUp.delay(120)
-                    .duration(AnimasyonTokenlari.yavas)
-                    .springify()
-                    .damping(16)}
-                >
-                  <LinearGradient
-                    colors={['#3A1A38', '#1A1226', '#121018']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.bos}
-                  >
-                    <View style={styles.bosUst}>
-                      <AnaSayfaSesCubuklari yukseklik={16} />
-                      <Text style={styles.bosEyebrow}>SAHNE BEKLİYOR</Text>
-                    </View>
-                    <Text style={styles.bosBaslik}>İlk ses odasını aç</Text>
-                    <Text style={styles.bosAlt}>
-                      Canlı oda yok — kendi sahneni kur veya odaları gez.
-                    </Text>
-                    <View style={styles.bosAksiyonlar}>
-                      <Pressable
-                        onPress={() => router.navigate('/(tabs)/create')}
-                        style={styles.bosBtn}
-                      >
-                        <LinearGradient
-                          colors={[...RenkTokenlari.gradientPrimary]}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.bosBtnIc}
-                        >
-                          <Ionicons name="mic" size={15} color="#12040C" />
-                          <Text style={styles.bosBtnYazi}>Ses odası aç</Text>
-                        </LinearGradient>
-                      </Pressable>
-                      <Pressable
-                        onPress={() => router.navigate('/(tabs)/rooms')}
-                        style={styles.bosBtnIkincil}
-                      >
-                        <Text style={styles.bosBtnIkincilYazi}>Odaları gez</Text>
-                      </Pressable>
-                    </View>
-                  </LinearGradient>
-                </Animated.View>
-              }
-              renderItem={({ item, index }) => {
-                if (item.kind === 'banner') {
-                  return <FeedBannerRowView placement={item.placement} />;
-                }
-                return (
-                  <View style={styles.satir}>
-                    {item.items.map((oge: FeedOggesi, i: number) => (
-                      <View key={oge.id} style={styles.kartWrap}>
-                        <AnaSayfaFeedKart
-                          oge={oge}
-                          index={index * 2 + i}
-                          onPress={() => router.push(oge.href as any)}
-                        />
-                      </View>
-                    ))}
-                    {item.items.length === 1 ? (
-                      <View style={[styles.kartWrap, { opacity: 0 }]} />
-                    ) : null}
-                  </View>
-                );
-              }}
             />
-          )}
 
-          <AnaSayfaCekmeceMenu
-            acik={menuAcik}
-            onAcikDegisti={setMenuAcik}
-            ogeler={menuOgeleri}
-            onOgeSec={(href) => router.push(href as any)}
-            profil={{
-              displayName:
-                profile?.display_name ??
-                (profile?.username ? `@${profile.username}` : 'Misafir'),
-              username: profile?.username,
-              avatarUrl: profile?.avatar_url,
-            }}
-            onProfilPress={() => router.navigate('/(tabs)/profile')}
-          />
-        </View>
+            <AnaSayfaFiltreCipleri ogeler={filtreler} secili={filtre} onSec={setFiltre} />
+
+            <TamusoBanner placement="HOME_TOP" screen="HOME" compact />
+
+            {loading && feed.length === 0 ? (
+              <AnaSayfaIskelet satir={3} />
+            ) : (
+              <FlatList
+                data={feedRows}
+                keyExtractor={(item) => item.key}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.list}
+                initialNumToRender={4}
+                windowSize={5}
+                maxToRenderPerBatch={4}
+                removeClippedSubviews
+                refreshControl={
+                  <RefreshControl
+                    refreshing={loading}
+                    onRefresh={() => void load()}
+                    tintColor={RenkTokenlari.primary}
+                  />
+                }
+                ListFooterComponent={
+                  <View style={styles.footer}>
+                    <TamusoBanner placement="HOME_BOTTOM" screen="HOME" compact />
+                  </View>
+                }
+                ListEmptyComponent={
+                  <View>
+                    <LinearGradient
+                      colors={[...RenkTokenlari.gradientPlaceholder]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.bos}
+                    >
+                      <View style={styles.bosUst}>
+                        <Text style={styles.bosEyebrow}>{bosMesaj.eyebrow}</Text>
+                      </View>
+                      <Text style={styles.bosBaslik}>{bosMesaj.baslik}</Text>
+                      <Text style={styles.bosAlt}>{bosMesaj.alt}</Text>
+                      <View style={styles.bosAksiyonlar}>
+                        <Pressable
+                          onPress={() =>
+                            filtre === 'canli'
+                              ? router.push('/canli' as any)
+                              : router.navigate('/(tabs)/create')
+                          }
+                          style={styles.bosBtn}
+                        >
+                          <LinearGradient
+                            colors={[...RenkTokenlari.gradientPrimary]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.bosBtnIc}
+                          >
+                            <Ionicons
+                              name={filtre === 'canli' ? 'videocam' : 'mic'}
+                              size={15}
+                              color="#12040C"
+                            />
+                            <Text style={styles.bosBtnYazi}>
+                              {filtre === 'canli' ? 'Yayına çık' : 'Ses odası aç'}
+                            </Text>
+                          </LinearGradient>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => router.push('/kesfet' as any)}
+                          style={styles.bosBtnIkincil}
+                        >
+                          <Text style={styles.bosBtnIkincilYazi}>Keşfet</Text>
+                        </Pressable>
+                      </View>
+                    </LinearGradient>
+                  </View>
+                }
+                renderItem={({ item, index }) => {
+                  if (item.kind === 'banner') {
+                    return <FeedBannerRowView placement={item.placement} />;
+                  }
+                  return (
+                    <View style={styles.satir}>
+                      {item.items.map((oge: FeedIzgaraOgesi, i: number) => {
+                        const kartIndex = index * 2 + i;
+                        const aktif = kartIndex < FEED_AKTIF_ANIMASYON_KART_SAYISI;
+                        return (
+                          <View key={oge.id} style={styles.kartWrap}>
+                            <AnaSayfaFeedKart
+                              oge={oge.oge}
+                              index={kartIndex}
+                              aktif={aktif}
+                              onPress={() => kartAc(oge)}
+                            />
+                          </View>
+                        );
+                      })}
+                      {item.items.length === 1 ? (
+                        <View style={styles.kartWrap} pointerEvents="none" />
+                      ) : null}
+                    </View>
+                  );
+                }}
+              />
+            )}
+          </View>
+        </AnaSayfaCekmeceMenu>
       </ModulHataSiniri>
     </Screen>
   );
@@ -477,42 +498,28 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: BoslukTokenlari.lg,
     paddingBottom: YUZEN_TAB_ICERIK_BOSLUGU,
-    paddingTop: BoslukTokenlari.xs,
-    gap: BoslukTokenlari.md,
+    paddingTop: BoslukTokenlari.sm,
+    gap: BoslukTokenlari.md + 2,
   },
   satir: {
+    flexDirection: 'row',
     gap: BoslukTokenlari.md,
+    overflow: 'visible',
   },
   kartWrap: {
     flex: 1,
-    maxWidth: '48.5%',
+    minWidth: 0,
+    overflow: 'visible',
   },
-  bolumBaslik: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: BoslukTokenlari.sm,
-    marginBottom: BoslukTokenlari.xs,
+  footer: {
+    marginTop: BoslukTokenlari.sm,
   },
-  bolumYazi: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    fontSize: 11,
-  },
-  bolumCizgi: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: RenkTokenlari.border,
-  },
-  loader: { marginTop: 48 },
   bos: {
-    marginTop: BoslukTokenlari.lg,
+    marginTop: BoslukTokenlari.md,
     padding: BoslukTokenlari.xl,
     borderRadius: YaricapTokenlari.lg,
     borderWidth: 1,
-    borderColor: 'rgba(232,64,145,0.35)',
+    borderColor: 'rgba(61,207,176,0.28)',
     gap: 8,
     overflow: 'hidden',
   },
@@ -524,7 +531,7 @@ const styles = StyleSheet.create({
   },
   bosEyebrow: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.primarySoft,
+    color: RenkTokenlari.mint,
     letterSpacing: 1.6,
     fontWeight: '800',
   },

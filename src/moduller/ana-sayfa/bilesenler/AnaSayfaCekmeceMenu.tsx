@@ -1,32 +1,40 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import {
   Dimensions,
   Image,
-  Modal,
-  Pressable,
-  ScrollView,
+  Platform,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {
+  Gesture,
+  GestureDetector,
+  Pressable,
+  ScrollView,
+} from 'react-native-gesture-handler';
 import Animated, {
+  Extrapolation,
+  FadeInDown,
+  interpolate,
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CamArkaplan } from '../../../bilesenler/yuzey/CamArkaplan';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
+  AnimasyonTokenlari,
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
-import { YUZEN_TAB_ICERIK_BOSLUGU } from '../../../components/YuzenTabBosluk';
+import { yuzenTabBarToplamYukseklik } from '../../../components/YuzenTabBosluk';
+import { kullaniciTemaKodunuAl } from '../../../tasarim-sistemi/tema/TemaDurumu';
+import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
 
 export type AnaSayfaMenuOgesi = {
   key: string;
@@ -50,17 +58,26 @@ type Props = {
   onOgeSec: (href: string) => void;
   profil?: AnaSayfaMenuProfil | null;
   onProfilPress: () => void;
+  children: ReactNode;
 };
 
 const EKRAN_W = Dimensions.get('window').width;
-/** X tarzı dar çekmece — metin listesi */
 const MENU_W = Math.min(Math.round(EKRAN_W * 0.78), 320);
 const EDGE = 36;
-const SPRING = { damping: 26, stiffness: 240, mass: 0.78 };
+/** Titremesiz — overshoot yok, çift spring yok */
+const SPRING = {
+  damping: 34,
+  stiffness: 260,
+  mass: 0.85,
+  overshootClamping: true,
+} as const;
+const PAN_ACTIVE_X = 12;
+const PAN_FAIL_Y = 24;
+const HIZ_ESIK = 420;
+const ACILIS_ESIK = 0.35;
 
 /**
- * Hamburger menü — X (Twitter) gibi alt alta metin satırları.
- * Modal: yüzen tab bar üstünde açılır.
+ * X tarzı push drawer — modern üst sahne + kaydırılabilir menü kartları.
  */
 export function AnaSayfaCekmeceMenu({
   acik,
@@ -69,21 +86,30 @@ export function AnaSayfaCekmeceMenu({
   onOgeSec,
   profil,
   onProfilPress,
+  children,
 }: Props) {
+  useTemayaAboneOl();
   const insets = useSafeAreaInsets();
   const acikSv = useSharedValue(0);
   const surukleBaslangic = useSharedValue(0);
-  const [modalAcik, setModalAcik] = useState(acik);
+  const acikTema = kullaniciTemaKodunuAl() === 'acik';
+  const ustGradient = RenkTokenlari.gradientNight;
+  const ustAccent = acikTema
+    ? (['rgba(214,46,130,0.18)', 'rgba(91,47,212,0.08)', 'transparent'] as const)
+    : Platform.OS === 'ios'
+      ? (['rgba(240,107,168,0.35)', 'rgba(196,59,255,0.12)', 'transparent'] as const)
+      : (['rgba(232,64,145,0.42)', 'rgba(139,92,246,0.18)', 'transparent'] as const);
+  const ustYazi = RenkTokenlari.text;
+  const ustYaziSoluk = RenkTokenlari.textMuted;
+  /** Jest zaten spring başlattıysa useEffect tekrar basmasın */
+  const jestSpringRef = useRef(false);
 
   useEffect(() => {
-    if (acik) {
-      setModalAcik(true);
-      acikSv.value = withSpring(1, SPRING);
+    if (jestSpringRef.current) {
+      jestSpringRef.current = false;
       return;
     }
-    acikSv.value = withSpring(0, SPRING, (bitti) => {
-      if (bitti) runOnJS(setModalAcik)(false);
-    });
+    acikSv.value = withSpring(acik ? 1 : 0, SPRING);
   }, [acik, acikSv]);
 
   const setAcik = useCallback(
@@ -93,119 +119,223 @@ export function AnaSayfaCekmeceMenu({
     [onAcikDegisti],
   );
 
-  const openModalIfNeeded = useCallback(() => {
-    setModalAcik(true);
-  }, []);
+  const jestBitir = useCallback(
+    (sonraki: boolean) => {
+      jestSpringRef.current = true;
+      acikSv.value = withSpring(sonraki ? 1 : 0, SPRING);
+      onAcikDegisti(sonraki);
+    },
+    [acikSv, onAcikDegisti],
+  );
 
-  const pan = Gesture.Pan()
-    .activeOffsetX([-14, 14])
-    .failOffsetY([-28, 28])
-    .onBegin(() => {
-      surukleBaslangic.value = acikSv.value;
-    })
-    .onUpdate((e) => {
-      const soldan = e.absoluteX < EDGE + 12 && surukleBaslangic.value < 0.2;
-      const menuIci = surukleBaslangic.value > 0.15;
-      if (!soldan && !menuIci && Math.abs(e.translationX) < 10) return;
+  const kapat = useCallback(() => {
+    onAcikDegisti(false);
+  }, [onAcikDegisti]);
 
-      if (e.translationX > 8 && surukleBaslangic.value < 0.2) {
-        runOnJS(openModalIfNeeded)();
-      }
+  const kenarPan = useMemo(
+    () =>
+      Gesture.Pan()
+        .enabled(!acik)
+        .hitSlop({ left: 0, width: EDGE, top: 0, bottom: 0 })
+        .activeOffsetX(PAN_ACTIVE_X)
+        .failOffsetY([-PAN_FAIL_Y, PAN_FAIL_Y])
+        .onBegin(() => {
+          surukleBaslangic.value = acikSv.value;
+        })
+        .onUpdate((e) => {
+          const delta = e.translationX / MENU_W;
+          acikSv.value = Math.min(
+            1,
+            Math.max(0, surukleBaslangic.value + delta),
+          );
+        })
+        .onEnd((e) => {
+          const hiz = e.velocityX;
+          const sonraki =
+            hiz > HIZ_ESIK
+              ? true
+              : hiz < -HIZ_ESIK
+                ? false
+                : acikSv.value > ACILIS_ESIK;
+          runOnJS(jestBitir)(sonraki);
+        }),
+    [acik, acikSv, jestBitir, surukleBaslangic],
+  );
 
-      const delta = e.translationX / MENU_W;
-      const next = Math.min(1, Math.max(0, surukleBaslangic.value + delta));
-      acikSv.value = next;
-    })
-    .onEnd((e) => {
-      const hiz = e.velocityX;
-      const ac =
-        hiz > 450
-          ? true
-          : hiz < -450
-            ? false
-            : acikSv.value > 0.28;
-      acikSv.value = withSpring(ac ? 1 : 0, SPRING, (bitti) => {
-        if (!ac && bitti) runOnJS(setModalAcik)(false);
-      });
-      runOnJS(setAcik)(ac);
-    });
+  const ekranKapatPan = useMemo(
+    () =>
+      Gesture.Pan()
+        .enabled(acik)
+        .activeOffsetX(-PAN_ACTIVE_X)
+        .failOffsetY([-PAN_FAIL_Y, PAN_FAIL_Y])
+        .onBegin(() => {
+          surukleBaslangic.value = acikSv.value;
+        })
+        .onUpdate((e) => {
+          const delta = e.translationX / MENU_W;
+          acikSv.value = Math.min(
+            1,
+            Math.max(0, surukleBaslangic.value + delta),
+          );
+        })
+        .onEnd((e) => {
+          const hiz = e.velocityX;
+          const sonraki =
+            hiz > HIZ_ESIK
+              ? true
+              : hiz < -HIZ_ESIK
+                ? false
+                : acikSv.value > ACILIS_ESIK;
+          runOnJS(jestBitir)(sonraki);
+        }),
+    [acik, acikSv, jestBitir, surukleBaslangic],
+  );
 
   const panelStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: (acikSv.value - 1) * MENU_W }],
+    opacity: interpolate(
+      acikSv.value,
+      [0, 0.2, 1],
+      [0.5, 1, 1],
+      Extrapolation.CLAMP,
+    ),
+    transform: [
+      {
+        translateX: interpolate(
+          acikSv.value,
+          [0, 1],
+          [-MENU_W * 0.06, 0],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
   }));
+
+  /** Sadece transform — margin/border layout titretmesin */
+  const icerikStyle = useAnimatedStyle(() => {
+    const t = acikSv.value;
+    return {
+      transform: [
+        {
+          translateX: interpolate(
+            t,
+            [0, 1],
+            [0, MENU_W - 12],
+            Extrapolation.CLAMP,
+          ),
+        },
+        {
+          translateY: interpolate(t, [0, 1], [0, 8], Extrapolation.CLAMP),
+        },
+        {
+          scale: interpolate(t, [0, 1], [1, 0.98], Extrapolation.CLAMP),
+        },
+      ],
+      borderRadius: interpolate(t, [0, 1], [0, 26], Extrapolation.CLAMP),
+    };
+  });
 
   const perdeStyle = useAnimatedStyle(() => ({
-    opacity: acikSv.value * 0.55,
+    opacity: acikSv.value * 0.16,
   }));
 
-  const edgeStyle = useAnimatedStyle(() => ({
-    opacity: 1 - acikSv.value,
+  const kenarIsikStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(acikSv.value, [0, 0.35, 1], [0, 0.6, 1], Extrapolation.CLAMP),
   }));
 
   const ad = profil?.displayName?.trim() || 'Kullanıcı';
   const harf = (ad[0] ?? 'K').toUpperCase();
-  const altBosluk = YUZEN_TAB_ICERIK_BOSLUGU + Math.max(insets.bottom, 8);
+  const altBosluk = yuzenTabBarToplamYukseklik(insets.bottom);
+  const ustPad = insets.top + (Platform.OS === 'ios' ? 8 : 12);
 
   return (
-    <>
-      <View style={styles.edgeKok} pointerEvents="box-none">
-        <GestureDetector gesture={pan}>
-          <Animated.View
-            style={[styles.edgeHit, { top: insets.top + 8 }, edgeStyle]}
-            pointerEvents={acik || modalAcik ? 'none' : 'auto'}
-          />
-        </GestureDetector>
-      </View>
+    <GestureDetector gesture={ekranKapatPan}>
+      <View style={styles.kok}>
+        <LinearGradient
+          colors={[...ustGradient]}
+          style={styles.kokZemin}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={[...ustAccent]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0.6 }}
+          style={styles.kokParlama}
+          pointerEvents="none"
+        />
 
-      <Modal
-        visible={modalAcik}
-        transparent
-        animationType="none"
-        statusBarTranslucent
-        onRequestClose={() => setAcik(false)}
-      >
-        <View style={styles.modalKok} pointerEvents="box-none">
-          <Animated.View style={[styles.perde, perdeStyle]}>
-            <Pressable
-              style={StyleSheet.absoluteFill}
-              onPress={() => setAcik(false)}
-            />
-          </Animated.View>
-
-          <GestureDetector gesture={pan}>
-            <Animated.View
+        <Animated.View
+          style={[styles.panel, { width: MENU_W }, panelStyle]}
+          pointerEvents={acik ? 'auto' : 'none'}
+        >
+          <ScrollView
+            style={styles.listeScroll}
+            contentContainerStyle={[
+              styles.liste,
+              { paddingTop: ustPad, paddingBottom: altBosluk },
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces
+            overScrollMode="always"
+            decelerationRate="fast"
+          >
+            {/* Üst kart — kaydırınca menüyle birlikte iner */}
+            <View
               style={[
-                styles.panel,
+                styles.ustSahne,
                 {
-                  width: MENU_W,
-                  paddingTop: insets.top + 8,
-                  paddingBottom: Math.max(insets.bottom, 12),
+                  borderColor: RenkTokenlari.border,
+                  backgroundColor: RenkTokenlari.bgCard,
                 },
-                panelStyle,
               ]}
-              pointerEvents="auto"
             >
-              <CamArkaplan
-                intensity={48}
-                tint="dark"
+              <LinearGradient
+                colors={[...ustGradient]}
                 style={StyleSheet.absoluteFill}
-                fallbackColor={RenkTokenlari.bgElevated}
                 pointerEvents="none"
               />
               <LinearGradient
-                colors={['#1A1224', '#121018']}
-                style={StyleSheet.absoluteFill}
+                colors={[...ustAccent]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
+                style={styles.ustParlama}
                 pointerEvents="none"
               />
-              <View style={styles.panelIc} pointerEvents="box-none">
-              <View style={styles.ustBar}>
+              {Platform.OS === 'ios' ? (
+                <View style={styles.iosCam} pointerEvents="none" />
+              ) : (
+                <View style={styles.androidMaterial} pointerEvents="none" />
+              )}
+
+              <View style={styles.ustIc}>
+                <View style={styles.markaSatir}>
+                  <Text style={[styles.marka, { color: ustYazi }]}>Tamuso</Text>
+                  <View
+                    style={[
+                      styles.platformRozet,
+                      {
+                        backgroundColor: RenkTokenlari.pressFill,
+                        borderColor: RenkTokenlari.border,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.platformRozetYazi, { color: ustYazi }]}>
+                      {Platform.OS === 'ios' ? 'iOS' : 'Android'}
+                    </Text>
+                  </View>
+                </View>
+
                 <Pressable
                   onPress={() => {
-                    setAcik(false);
+                    kapat();
                     onProfilPress();
                   }}
                   style={({ pressed }) => [
-                    styles.profilBlok,
+                    styles.profilKart,
+                    {
+                      backgroundColor: RenkTokenlari.pressFill,
+                      borderColor: RenkTokenlari.border,
+                    },
                     pressed && styles.pressed,
                   ]}
                   accessibilityLabel="Profilime git"
@@ -213,93 +343,132 @@ export function AnaSayfaCekmeceMenu({
                   {profil?.avatarUrl ? (
                     <Image
                       source={{ uri: profil.avatarUrl }}
-                      style={styles.avatar}
+                      style={[styles.avatar, { borderColor: RenkTokenlari.border }]}
                     />
                   ) : (
                     <LinearGradient
                       colors={[...RenkTokenlari.gradientPrimary]}
-                      style={styles.avatar}
+                      style={[styles.avatar, { borderColor: 'transparent' }]}
                     >
                       <Text style={styles.avatarHarf}>{harf}</Text>
                     </LinearGradient>
                   )}
                   <View style={styles.profilCopy}>
-                    <Text style={styles.profilAd} numberOfLines={1}>
+                    <Text style={[styles.profilAd, { color: ustYazi }]} numberOfLines={1}>
                       {ad}
                     </Text>
                     {profil?.username ? (
-                      <Text style={styles.profilUser} numberOfLines={1}>
+                      <Text style={[styles.profilUser, { color: ustYaziSoluk }]} numberOfLines={1}>
                         @{profil.username}
                       </Text>
                     ) : (
-                      <Text style={styles.profilUser}>Profili görüntüle</Text>
+                      <Text style={[styles.profilUser, { color: ustYaziSoluk }]}>
+                        Profili görüntüle
+                      </Text>
                     )}
                   </View>
-                </Pressable>
-                <Pressable
-                  onPress={() => setAcik(false)}
-                  style={styles.kapat}
-                  accessibilityLabel="Menüyü kapat"
-                  hitSlop={8}
-                >
                   <Ionicons
-                    name="close"
-                    size={20}
-                    color={RenkTokenlari.textMuted}
+                    name="chevron-forward"
+                    size={16}
+                    color={RenkTokenlari.textDim}
                   />
                 </Pressable>
               </View>
+            </View>
 
-              <View style={styles.cizgi} />
+            <Text style={styles.bolumEtiket}>Keşfet</Text>
 
-              <ScrollView
-                style={styles.listeScroll}
-                contentContainerStyle={[
-                  styles.liste,
-                  { paddingBottom: altBosluk },
-                ]}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
+            {ogeler.map((oge, i) => (
+              <Animated.View
+                key={oge.key}
+                entering={
+                  acik
+                    ? FadeInDown.delay(40 + i * 28)
+                        .duration(AnimasyonTokenlari.normal)
+                        .springify()
+                        .damping(18)
+                    : undefined
+                }
               >
-                {ogeler.map((oge) => (
-                  <Pressable
-                    key={oge.key}
-                    onPress={() => {
-                      setAcik(false);
-                      onOgeSec(oge.href);
-                    }}
-                    style={({ pressed }) => [
-                      styles.satir,
-                      pressed && styles.satirPressed,
+                <Pressable
+                  onPress={() => {
+                    kapat();
+                    onOgeSec(oge.href);
+                  }}
+                  style={({ pressed }) => [
+                    styles.satir,
+                    pressed && styles.satirPressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${oge.baslik}. ${oge.alt}`}
+                >
+                  <View
+                    style={[
+                      styles.ikonKuyu,
+                      { backgroundColor: `${oge.tint}22` },
                     ]}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${oge.baslik}. ${oge.alt}`}
                   >
-                    <Ionicons
-                      name={oge.icon}
-                      size={24}
-                      color={RenkTokenlari.text}
-                      style={styles.satirIkon}
-                    />
-                    <View style={styles.satirMetin}>
-                      <Text style={styles.satirBaslik} numberOfLines={1}>
-                        {oge.baslik}
-                      </Text>
-                      {oge.alt ? (
-                        <Text style={styles.satirAlt} numberOfLines={1}>
-                          {oge.alt}
-                        </Text>
-                      ) : null}
-                    </View>
-                  </Pressable>
-                ))}
-              </ScrollView>
-              </View>
+                    <Ionicons name={oge.icon} size={18} color={oge.tint} />
+                  </View>
+                  <View style={styles.satirCopy}>
+                    <Text style={styles.satirBaslik} numberOfLines={1}>
+                      {oge.baslik}
+                    </Text>
+                    <Text style={styles.satirAlt} numberOfLines={1}>
+                      {oge.alt}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={14}
+                    color={RenkTokenlari.textDim}
+                  />
+                </Pressable>
+              </Animated.View>
+            ))}
+          </ScrollView>
+        </Animated.View>
+
+        <GestureDetector gesture={kenarPan}>
+          <Animated.View
+            style={[styles.icerik, icerikStyle]}
+            pointerEvents="box-none"
+            collapsable={false}
+          >
+            {children}
+
+            {/* Menü ↔ feed yumuşak kenar ışığı */}
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.kenarIsik, kenarIsikStyle]}
+            >
+              <LinearGradient
+                colors={[
+                  'rgba(240,107,168,0.28)',
+                  'rgba(139,92,246,0.08)',
+                  'transparent',
+                ]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={StyleSheet.absoluteFill}
+              />
             </Animated.View>
-          </GestureDetector>
-        </View>
-      </Modal>
-    </>
+
+            <Animated.View
+              style={[styles.perde, perdeStyle]}
+              pointerEvents={acik ? 'auto' : 'none'}
+              collapsable={false}
+            >
+              <Pressable
+                style={StyleSheet.absoluteFill}
+                onPress={kapat}
+                accessibilityLabel="Menüyü kapat"
+              />
+            </Animated.View>
+          </Animated.View>
+        </GestureDetector>
+      </View>
+    </GestureDetector>
   );
 }
 
@@ -319,132 +488,226 @@ export function AnaSayfaHamburgerDugmesi({ onPress }: { onPress: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  edgeKok: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 30,
-  },
-  modalKok: {
+  kok: {
     flex: 1,
+    backgroundColor: RenkTokenlari.bg,
+    overflow: 'hidden',
   },
-  edgeHit: {
+  kokZemin: {
     position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
     left: 0,
-    width: EDGE,
-    height: 140,
-    zIndex: 40,
   },
-  perde: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: '#000',
-    zIndex: 50,
-    elevation: 8,
+  kokParlama: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '70%',
+    height: '55%',
+    opacity: 0.85,
   },
   panel: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    zIndex: 60,
-    elevation: 28,
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: BoslukTokenlari.lg,
-    overflow: 'hidden',
-    backgroundColor: RenkTokenlari.bgElevated,
+    zIndex: 1,
+    backgroundColor: 'transparent',
   },
-  panelIc: {
-    flex: 1,
-    zIndex: 2,
-    elevation: 6,
-  },
-  ustBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
+  ustSahne: {
     marginBottom: BoslukTokenlari.md,
+    paddingBottom: BoslukTokenlari.md,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: RenkTokenlari.border,
   },
-  profilBlok: {
-    flex: 1,
-    minWidth: 0,
+  ustIc: {
+    paddingHorizontal: BoslukTokenlari.md,
+    paddingTop: BoslukTokenlari.sm,
+  },
+  ustParlama: {
+    position: 'absolute',
+    top: -30,
+    left: -50,
+    width: 180,
+    height: 140,
+    borderRadius: 90,
+  },
+  iosCam: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: RenkTokenlari.pressFill,
+  },
+  androidMaterial: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: RenkTokenlari.scrim,
+    opacity: 0.35,
+  },
+  markaSatir: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 8,
-    paddingRight: 4,
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarHarf: {
+  marka: {
     ...TipografiTokenlari.h2,
-    color: '#12040C',
     fontSize: 20,
-  },
-  profilCopy: { flex: 1, minWidth: 0, gap: 2 },
-  profilAd: {
-    ...TipografiTokenlari.h2,
     fontWeight: '800',
     color: RenkTokenlari.text,
-    fontSize: 18,
+    letterSpacing: -0.4,
   },
-  profilUser: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
+  platformRozet: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: RenkTokenlari.pressFill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: RenkTokenlari.border,
   },
-  kapat: {
+  platformRozetYazi: {
+    ...TipografiTokenlari.micro,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    color: RenkTokenlari.text,
+  },
+  profilKart: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 52,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingRight: 12,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: RenkTokenlari.pressFill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: RenkTokenlari.border,
+  },
+  avatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
+    borderWidth: 1.5,
+    borderColor: RenkTokenlari.border,
   },
-  cizgi: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    marginBottom: BoslukTokenlari.sm,
+  avatarHarf: {
+    ...TipografiTokenlari.h2,
+    color: RenkTokenlari.textOnPrimary,
+    fontSize: 14,
+  },
+  profilCopy: { flex: 1, minWidth: 0, gap: 1 },
+  profilAd: {
+    ...TipografiTokenlari.h2,
+    fontWeight: '800',
+    color: RenkTokenlari.text,
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
+  profilUser: {
+    ...TipografiTokenlari.micro,
+    fontSize: 11,
+    color: RenkTokenlari.textMuted,
   },
   listeScroll: { flex: 1 },
   liste: {
-    paddingTop: 4,
-    gap: 0,
+    gap: 8,
+    paddingHorizontal: BoslukTokenlari.md,
+  },
+  bolumEtiket: {
+    ...TipografiTokenlari.micro,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    color: RenkTokenlari.textDim,
+    marginBottom: 2,
+    marginLeft: 6,
+    marginTop: 4,
+    textTransform: 'uppercase',
   },
   satir: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 18,
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    borderRadius: YaricapTokenlari.md,
+    gap: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 18,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: RenkTokenlari.border,
   },
   satirPressed: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: RenkTokenlari.surface,
+    transform: [{ scale: 0.985 }],
   },
-  satirIkon: {
-    width: 28,
-    textAlign: 'center',
+  ikonKuyu: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  satirMetin: {
+  satirCopy: {
     flex: 1,
     minWidth: 0,
-    gap: 2,
+    gap: 1,
   },
   satirBaslik: {
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 19,
     fontWeight: '700',
     color: RenkTokenlari.text,
     letterSpacing: -0.2,
   },
   satirAlt: {
     ...TipografiTokenlari.micro,
+    fontSize: 11,
     color: RenkTokenlari.textMuted,
   },
-  pressed: { opacity: 0.85 },
+  pressed: { opacity: 0.88 },
+  icerik: {
+    flex: 1,
+    zIndex: 2,
+    backgroundColor: RenkTokenlari.bg,
+    overflow: 'hidden',
+    // elevation düşük tut — YuzenTabBar (200) altında kalsın, tab dokunuşunu ezmesin
+    shadowColor: '#000',
+    shadowOffset: { width: -4, height: 4 },
+    shadowRadius: 20,
+    shadowOpacity: 0.25,
+    elevation: 8,
+  },
+  kenarIsik: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 28,
+    zIndex: 30,
+  },
+  perde: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: RenkTokenlari.scrim,
+    // Tab bar (200) altında; açıkken feed’i örter, tab’ı yutmaz
+    zIndex: 40,
+    elevation: 40,
+  },
   hamBtn: {
     width: 42,
     height: 42,

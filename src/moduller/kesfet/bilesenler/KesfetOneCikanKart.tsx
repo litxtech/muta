@@ -23,7 +23,7 @@ export function KesfetOneCikanKart({ room, onPress }: Props) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.press, pressed && styles.basili]}
+      style={styles.press}
       accessibilityRole="button"
       accessibilityLabel={`Öne çıkan oda: ${room.title}`}
     >
@@ -32,14 +32,14 @@ export function KesfetOneCikanKart({ room, onPress }: Props) {
           <Image source={{ uri: kapak }} style={styles.kapak} />
         ) : (
           <LinearGradient
-            colors={['#3A1A38', '#1A1226', '#121018']}
+            colors={[...RenkTokenlari.gradientPlaceholder]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.kapak}
           />
         )}
         <LinearGradient
-          colors={['rgba(14,8,20,0.1)', 'rgba(14,8,20,0.94)']}
+          colors={[...RenkTokenlari.overlayGradient]}
           style={StyleSheet.absoluteFill}
         />
 
@@ -75,10 +75,9 @@ export function KesfetOneCikanKart({ room, onPress }: Props) {
 
 const styles = StyleSheet.create({
   press: { width: '100%' },
-  basili: { opacity: 0.92, transform: [{ scale: 0.99 }] },
   kart: {
-    minHeight: 150,
-    borderRadius: YaricapTokenlari.md,
+    minHeight: 168,
+    borderRadius: YaricapTokenlari.md + 2,
     borderWidth: 1,
     borderColor: RenkTokenlari.borderAccent,
     overflow: 'hidden',
@@ -97,7 +96,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(8, 4, 14, 0.6)',
+    backgroundColor: RenkTokenlari.chipFill,
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: YaricapTokenlari.pill,
@@ -112,7 +111,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(8, 4, 14, 0.6)',
+    backgroundColor: RenkTokenlari.chipFill,
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: YaricapTokenlari.pill,
@@ -128,7 +127,7 @@ const styles = StyleSheet.create({
   },
   baslik: {
     ...TipografiTokenlari.h2,
-    color: RenkTokenlari.text,
+    color: RenkTokenlari.textOnOverlay,
     letterSpacing: -0.3,
   },
   metaSatir: {
@@ -146,7 +145,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: RenkTokenlari.pressFill,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: YaricapTokenlari.pill,

@@ -65,6 +65,22 @@ export async function AdminIhtarKaldir(
   return { ok: true, veri: data as Record<string, unknown> };
 }
 
+/** Tam platform admin yetkisi ver / kaldir (is_admin). */
+export async function AdminKullaniciAdminYetkiAyarla(
+  userId: string,
+  isAdmin: boolean,
+): Promise<AdminIslemSonucu> {
+  const { data, error } = await supabase.rpc(
+    'admin_kullanici_admin_yetki_ayarla',
+    {
+      p_user_id: userId,
+      p_is_admin: isAdmin,
+    },
+  );
+  if (error) return { ok: false, hata: error.message };
+  return { ok: true, veri: data as Record<string, unknown> };
+}
+
 export async function AdminKullaniciOlustur(input: {
   email: string;
   password: string;
@@ -103,6 +119,49 @@ export async function AdminKullaniciOlustur(input: {
     return {
       ok: false,
       hata: e instanceof Error ? e.message : 'Oluşturma başarısız',
+    };
+  }
+}
+
+/** Admin: hedef kullanıcının şifresini değiştir. */
+export async function AdminKullaniciSifreDegistir(input: {
+  userId: string;
+  password: string;
+}): Promise<AdminIslemSonucu> {
+  const url = `${OrtamDegiskenleri.supabaseUrl.replace(/\/$/, '')}/functions/v1/admin-kullanici-sifre-degistir`;
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    return { ok: false, hata: 'Oturum yok' };
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: OrtamDegiskenleri.supabaseAnonAnahtari,
+      },
+      body: JSON.stringify({
+        user_id: input.userId,
+        password: input.password,
+      }),
+    });
+    const json = (await res.json()) as {
+      ok?: boolean;
+      user_id?: string;
+      error?: string;
+    };
+    if (!res.ok || !json.ok) {
+      return { ok: false, hata: json.error ?? 'Şifre değiştirilemedi' };
+    }
+    return { ok: true, veri: json as Record<string, unknown> };
+  } catch (e) {
+    return {
+      ok: false,
+      hata: e instanceof Error ? e.message : 'Şifre değiştirme başarısız',
     };
   }
 }

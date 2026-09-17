@@ -16,33 +16,46 @@ type Props = {
   onPress: () => void;
 };
 
+/** Instagram tile — büyük, görsel ağırlıklı oda mod kartı */
 export function OdaModSecimKarti({ mod, secili, onPress }: Props) {
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.press, pressed && styles.pressed]}
+      accessibilityRole="button"
+      accessibilityState={{ selected: secili }}
+      accessibilityLabel={mod.ad}
     >
       <LinearGradient
         colors={
           secili
-            ? [`${mod.tint}55`, `${mod.tint}18`]
-            : ['rgba(42,36,56,0.95)', 'rgba(24,18,34,0.98)']
+            ? [`${mod.tint}AA`, `${mod.tint}44`, 'rgba(12,8,20,0.95)']
+            : [`${mod.tint}38`, 'rgba(28,22,40,0.96)', 'rgba(14,10,22,0.98)']
         }
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.kart, secili && { borderColor: `${mod.tint}99` }]}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={[
+          styles.kart,
+          secili && {
+            borderColor: mod.tint,
+            borderWidth: 2,
+          },
+        ]}
       >
-        <View style={[styles.ikon, { backgroundColor: `${mod.tint}22`, borderColor: `${mod.tint}55` }]}>
-          <Ionicons name={mod.icon} size={22} color={mod.tint} />
+        <View style={[styles.ikon, { backgroundColor: `${mod.tint}33` }]}>
+          <Ionicons name={mod.icon} size={30} color={mod.tint} />
         </View>
-        <Text style={styles.ad}>{mod.ad}</Text>
-        <Text style={styles.alt} numberOfLines={1}>
-          {mod.alt}
-        </Text>
-        <Text style={[styles.kod, secili && { color: mod.tint }]}>{mod.kod}</Text>
+
+        <View style={styles.metin}>
+          <Text style={styles.ad}>{mod.ad}</Text>
+          <Text style={styles.alt} numberOfLines={2}>
+            {mod.alt}
+          </Text>
+        </View>
+
         {secili ? (
           <View style={[styles.seciliRozet, { backgroundColor: mod.tint }]}>
-            <Ionicons name="checkmark" size={12} color="#12040C" />
+            <Ionicons name="checkmark" size={14} color="#12040C" />
           </View>
         ) : null}
       </LinearGradient>
@@ -51,50 +64,53 @@ export function OdaModSecimKarti({ mod, secili, onPress }: Props) {
 }
 
 const styles = StyleSheet.create({
-  press: { width: '47%', flexGrow: 1, maxWidth: '48.5%' },
-  pressed: { opacity: 0.9, transform: [{ scale: 0.98 }] },
+  press: {
+    width: '100%',
+  },
+  pressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.985 }],
+  },
   kart: {
-    minHeight: 132,
-    borderRadius: YaricapTokenlari.md + 2,
-    padding: BoslukTokenlari.md,
+    minHeight: 148,
+    borderRadius: YaricapTokenlari.xl,
+    padding: BoslukTokenlari.lg,
     borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-    gap: 4,
+    borderColor: 'rgba(255,255,255,0.1)',
+    gap: BoslukTokenlari.md,
     overflow: 'hidden',
+    justifyContent: 'space-between',
   },
   ikon: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    marginBottom: 6,
+  },
+  metin: {
+    gap: 4,
   },
   ad: {
-    ...TipografiTokenlari.h2,
+    ...TipografiTokenlari.title,
     color: RenkTokenlari.text,
-    fontSize: 17,
+    fontSize: 22,
+    lineHeight: 26,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   alt: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
-  },
-  kod: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textDim,
-    fontSize: 9,
-    letterSpacing: 0.8,
-    marginTop: 4,
-    textTransform: 'uppercase',
+    ...TipografiTokenlari.caption,
+    color: 'rgba(255,255,255,0.7)',
+    lineHeight: 17,
   },
   seciliRozet: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    top: 14,
+    right: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },

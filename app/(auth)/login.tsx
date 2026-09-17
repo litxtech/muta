@@ -1,43 +1,104 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Alert,
+  Image,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
   Platform,
 } from 'react-native';
-import { Link, router } from 'expo-router';
+import { Link, router, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { Ionicons } from '@expo/vector-icons';
-import { Screen } from '../../src/components/Screen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TextField } from '../../src/components/TextField';
 import { GradientButton } from '../../src/components/GradientButton';
 import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
 import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan';
+import { GirisLobiArkaPlan } from '../../src/moduller/giris-lobisi/bilesenler/GirisLobiArkaPlan';
+import { GirisLobisiPublicGet } from '../../src/moduller/giris-lobisi/islemler/GirisLobisiPublicGet';
+import {
+  GirisLobisiOnbellekDisktenYukle,
+  GirisLobisiOnbellektenAl,
+} from '../../src/moduller/giris-lobisi/onbellek/GirisLobisiOnbellek';
+import {
+  VARSAYILAN_GIRIS_LOBISI_AYAR,
+  type GirisLobisiAyar,
+  type GirisLobisiMedya,
+} from '../../src/moduller/giris-lobisi/tipler';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { GirisLobiOturumGecmisi } from '../../src/moduller/kimlik-dogrulama/oturum-gecmisi/bilesenler/GirisLobiOturumGecmisi';
+import type { OturumGecmisiKaydi } from '../../src/moduller/kimlik-dogrulama/oturum-gecmisi/tipler';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
+import { useTema } from '../../src/tasarim-sistemi/tema/TemaSaglayici';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { env } from '../../src/lib/env';
-import { UygulamaKimligi } from '../../src/yapilandirma/UygulamaKimligi';
 
-/** Spotify marka yeşili — resmi giriş CTA */
 const SPOTIFY_GREEN = '#1DB954';
 
+/**
+ * Giriş lobisi — metin/logo/medya admin panelinden gelir.
+ * Medya yoksa modern gradient. Form Modal üstünde (VideoView z-order).
+ */
 export default function LoginScreen() {
-  const { signIn, signInWithApple, signInWithSpotify, continueAsGuest } =
-    useAuth();
+  const insets = useSafeAreaInsets();
+  const { palet } = useTema();
+  const {
+    signIn,
+    signInWithApple,
+    signInWithSpotify,
+    continueAsGuest,
+    signInFromHistory,
+  } = useAuth();
   const [kimlik, setKimlik] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [spotifyLoading, setSpotifyLoading] = useState(false);
+  const [gecmisBusyId, setGecmisBusyId] = useState<string | null>(null);
+  const onbellekBaslangic = GirisLobisiOnbellektenAl();
+  const [ayar, setAyar] = useState<GirisLobisiAyar>(
+    () => onbellekBaslangic?.ayar ?? VARSAYILAN_GIRIS_LOBISI_AYAR,
+  );
+  const [medya, setMedya] = useState<GirisLobisiMedya[]>(
+    () => onbellekBaslangic?.medya ?? [],
+  );
+  /** Modal native katmanda stack üstünde kalır; blur'da kapatılmazsa kayıt formunu engeller. */
+  const [lobiOdakli, setLobiOdakli] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      let iptal = false;
+      setLobiOdakli(true);
+
+      void (async () => {
+        const disk =
+          GirisLobisiOnbellektenAl() ??
+          (await GirisLobisiOnbellekDisktenYukle());
+        if (!iptal && disk) {
+          setAyar(disk.ayar);
+          setMedya(disk.medya);
+        }
+        const d = await GirisLobisiPublicGet();
+        if (iptal) return;
+        setAyar(d.ayar);
+        setMedya(d.medya);
+      })();
+
+      return () => {
+        iptal = true;
+        setLobiOdakli(false);
+      };
+    }, []),
+  );
 
   const onSubmit = async () => {
     if (!kimlik.trim() || !password) {
@@ -92,138 +153,298 @@ export default function LoginScreen() {
     router.replace('/(tabs)');
   };
 
-  return (
-    <Screen>
-      <KlavyeGuvenliAlan style={styles.flex}>
-        <KlavyeKapatan style={styles.dismiss}>
-        <View style={styles.hero}>
-          <LinearGradient
-            colors={[...RenkTokenlari.gradientPrimary]}
-            style={styles.logoBlob}
-          >
-            <Text style={styles.logoMark}>M</Text>
-          </LinearGradient>
-          <Text style={styles.brand}>{UygulamaKimligi.APP_NAME}</Text>
-          <Text style={styles.tagline}>Sesli sohbet. Hediye. Kazanç.</Text>
-          {env.appEnv !== 'production' ? (
-            <Text style={styles.envBadge}>{env.appEnv.toUpperCase()}</Text>
-          ) : null}
-        </View>
+  const onGecmisSec = async (kayit: OturumGecmisiKaydi) => {
+    setGecmisBusyId(kayit.userId);
+    const sonuc = await signInFromHistory(kayit);
+    setGecmisBusyId(null);
+    if (sonuc.ok) {
+      router.replace('/(tabs)');
+      return;
+    }
+    if (sonuc.needsPassword) {
+      const k = (sonuc.kimlik ?? kayit.kimlik ?? kayit.username ?? '').trim();
+      if (k) setKimlik(k);
+      setPassword('');
+      Alert.alert('Tekrar giriş', sonuc.hata);
+      return;
+    }
+    Alert.alert('Giriş başarısız', sonuc.hata);
+  };
 
-        <View style={styles.form}>
-          <TextField
-            label="Mail veya kullanıcı adı"
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="default"
-            textContentType="username"
-            value={kimlik}
-            onChangeText={setKimlik}
-            returnKeyType="next"
-          />
-          <TextField
-            label="Şifre"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-            returnKeyType="done"
-            blurOnSubmit
-            onSubmitEditing={() => void onSubmit()}
-          />
-          <Link href="/(auth)/forgot-password" asChild>
-            <Pressable>
-              <Text style={styles.forgot}>Şifremi unuttum</Text>
-            </Pressable>
-          </Link>
-          <GradientButton title="Giriş Yap" onPress={onSubmit} loading={loading} />
-          <Pressable
-            onPress={() => void onSpotify()}
-            disabled={spotifyLoading}
-            style={[styles.spotifyBtn, spotifyLoading && styles.spotifyDisabled]}
-            accessibilityRole="button"
-            accessibilityLabel="Spotify ile giriş yap"
+  const heroVar =
+    ayar.logo_goster ||
+    ayar.marka_goster ||
+    ayar.slogan_goster ||
+    Boolean(ayar.ust_metin?.trim());
+
+  return (
+    <View style={styles.root}>
+      <GirisLobiArkaPlan medya={medya} aktif={lobiOdakli} />
+
+      {lobiOdakli ? (
+        <View style={styles.modalRoot} pointerEvents="box-none">
+          <KlavyeGuvenliAlan
+            style={[
+              styles.flex,
+              {
+                paddingTop: insets.top + 12,
+                paddingBottom: Math.max(insets.bottom, 16),
+              },
+            ]}
           >
-            <Ionicons name="musical-notes" size={20} color="#121212" />
-            <Text style={styles.spotifyText}>
-              {spotifyLoading ? 'Spotify bağlanıyor…' : 'Spotify ile devam et'}
-            </Text>
-          </Pressable>
-          {Platform.OS === 'ios' ? (
-            <View style={styles.appleWrap}>
-              <AppleAuthentication.AppleAuthenticationButton
-                buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-                cornerRadius={14}
-                style={styles.appleBtn}
-                onPress={onApple}
-              />
-              {appleLoading ? (
-                <Text style={styles.appleHint}>Apple ile bağlanıyor…</Text>
-              ) : null}
-            </View>
-          ) : null}
-          <GradientButton
-            title="Misafir olarak devam et"
-            variant="ghost"
-            onPress={onGuest}
-            loading={guestLoading}
-          />
-          <Link href="/(auth)/register" asChild>
-            <Pressable style={styles.switchRow}>
-              <Text style={styles.switchText}>Hesabın yok mu? </Text>
-              <Text style={styles.switchLink}>Kayıt ol</Text>
-            </Pressable>
-          </Link>
+            <KlavyeKapatan style={styles.dismiss}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.scroll}
+              >
+                {heroVar ? (
+                  <View style={styles.hero}>
+                    {ayar.logo_goster ? (
+                      ayar.logo_url ? (
+                        <Image
+                          source={{ uri: ayar.logo_url }}
+                          style={styles.logoImg}
+                          resizeMode="contain"
+                        />
+                      ) : (
+                        <LinearGradient
+                          colors={[...RenkTokenlari.gradientPrimary]}
+                          style={styles.logoBlob}
+                        >
+                          <Text style={styles.logoMark}>
+                            {(ayar.logo_harf || 'M').slice(0, 2)}
+                          </Text>
+                        </LinearGradient>
+                      )
+                    ) : null}
+                    {ayar.marka_goster && ayar.marka_adi ? (
+                      <Text style={styles.brand}>{ayar.marka_adi}</Text>
+                    ) : null}
+                    {ayar.slogan_goster && ayar.slogan ? (
+                      <Text style={styles.tagline}>{ayar.slogan}</Text>
+                    ) : null}
+                    {ayar.ust_metin ? (
+                      <Text style={styles.ustMetin}>{ayar.ust_metin}</Text>
+                    ) : null}
+                    {env.appEnv !== 'production' ? (
+                      <Text style={styles.envBadge}>
+                        {env.appEnv.toUpperCase()}
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : env.appEnv !== 'production' ? (
+                  <View style={styles.hero}>
+                    <Text style={styles.envBadge}>
+                      {env.appEnv.toUpperCase()}
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.heroBos} />
+                )}
+
+                <GirisLobiOturumGecmisi
+                  onSec={onGecmisSec}
+                  busyUserId={gecmisBusyId}
+                />
+
+                <View style={styles.formKart}>
+                  <Text style={styles.formBaslik}>{ayar.form_baslik}</Text>
+                  {ayar.form_alt ? (
+                    <Text style={styles.formAlt}>{ayar.form_alt}</Text>
+                  ) : null}
+
+                  <TextField
+                    label="Mail veya kullanıcı adı"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="default"
+                    textContentType="username"
+                    value={kimlik}
+                    onChangeText={setKimlik}
+                    returnKeyType="next"
+                    style={styles.inputCam}
+                  />
+                  <TextField
+                    label="Şifre"
+                    secureTextEntry
+                    value={password}
+                    onChangeText={setPassword}
+                    returnKeyType="done"
+                    blurOnSubmit
+                    onSubmitEditing={() => void onSubmit()}
+                    style={styles.inputCam}
+                  />
+                  <Link href="/(auth)/forgot-password" asChild>
+                    <Pressable>
+                      <Text style={styles.forgot}>Şifremi unuttum</Text>
+                    </Pressable>
+                  </Link>
+                  <GradientButton
+                    title="Giriş Yap"
+                    onPress={onSubmit}
+                    loading={loading}
+                  />
+                  <Pressable
+                    onPress={() => void onSpotify()}
+                    disabled={spotifyLoading}
+                    style={[
+                      styles.spotifyBtn,
+                      spotifyLoading && styles.spotifyDisabled,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Spotify ile giriş yap"
+                  >
+                    <Ionicons name="musical-notes" size={20} color="#121212" />
+                    <Text style={styles.spotifyText}>
+                      {spotifyLoading
+                        ? 'Spotify bağlanıyor…'
+                        : 'Spotify ile devam et'}
+                    </Text>
+                  </Pressable>
+                  {Platform.OS === 'ios' ? (
+                    <View style={styles.appleWrap}>
+                      <AppleAuthentication.AppleAuthenticationButton
+                        buttonType={
+                          AppleAuthentication.AppleAuthenticationButtonType
+                            .SIGN_IN
+                        }
+                        buttonStyle={
+                          palet.statusBar === 'dark'
+                            ? AppleAuthentication.AppleAuthenticationButtonStyle
+                                .BLACK
+                            : AppleAuthentication.AppleAuthenticationButtonStyle
+                                .WHITE
+                        }
+                        cornerRadius={14}
+                        style={styles.appleBtn}
+                        onPress={onApple}
+                      />
+                      {appleLoading ? (
+                        <Text style={styles.appleHint}>
+                          Apple ile bağlanıyor…
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+                  <GradientButton
+                    title="Misafir olarak devam et"
+                    variant="ghost"
+                    onPress={onGuest}
+                    loading={guestLoading}
+                  />
+                  <Link href="/(auth)/register" asChild>
+                    <Pressable
+                      style={styles.switchRow}
+                      onPress={() => setLobiOdakli(false)}
+                    >
+                      <Text style={styles.switchText}>Hesabın yok mu? </Text>
+                      <Text style={styles.switchLink}>Kayıt ol</Text>
+                    </Pressable>
+                  </Link>
+                </View>
+              </ScrollView>
+            </KlavyeKapatan>
+          </KlavyeGuvenliAlan>
         </View>
-        </KlavyeKapatan>
-      </KlavyeGuvenliAlan>
-    </Screen>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: RenkTokenlari.bg,
+  },
+  modalRoot: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'transparent',
+  },
   flex: {
     flex: 1,
     paddingHorizontal: BoslukTokenlari.xl,
-    justifyContent: 'space-between',
   },
-  dismiss: {
-    flex: 1,
+  dismiss: { flex: 1 },
+  scroll: {
+    flexGrow: 1,
     justifyContent: 'space-between',
+    gap: BoslukTokenlari.xl,
+    paddingBottom: BoslukTokenlari.lg,
   },
   hero: {
     alignItems: 'center',
-    paddingTop: BoslukTokenlari.xxxl,
-    gap: BoslukTokenlari.md,
+    paddingTop: BoslukTokenlari.lg,
+    gap: BoslukTokenlari.sm,
   },
+  heroBos: { height: 24 },
   logoBlob: {
-    width: 88,
-    height: 88,
+    width: 76,
+    height: 76,
     borderRadius: YaricapTokenlari.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: BoslukTokenlari.sm,
+    marginBottom: 4,
   },
-  logoMark: { fontSize: 40, fontWeight: '900', color: '#12040C' },
-  brand: { ...TipografiTokenlari.hero, color: RenkTokenlari.text },
-  tagline: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
+  logoImg: {
+    width: 88,
+    height: 88,
+    marginBottom: 4,
+  },
+  logoMark: { fontSize: 36, fontWeight: '900', color: '#12040C' },
+  brand: {
+    ...TipografiTokenlari.hero,
+    color: RenkTokenlari.text,
+  },
+  tagline: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.textMuted,
+    textAlign: 'center',
+  },
+  ustMetin: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    textAlign: 'center',
+    marginTop: 4,
+  },
   envBadge: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.accent,
-    marginTop: BoslukTokenlari.xs,
+    marginTop: 4,
     borderWidth: 1,
     borderColor: RenkTokenlari.accent,
     paddingHorizontal: BoslukTokenlari.md,
     paddingVertical: BoslukTokenlari.xs,
     borderRadius: YaricapTokenlari.pill,
     overflow: 'hidden',
+    backgroundColor: RenkTokenlari.surface,
   },
-  form: { gap: BoslukTokenlari.lg, paddingBottom: BoslukTokenlari.xl },
+  formKart: {
+    gap: BoslukTokenlari.md,
+    padding: BoslukTokenlari.lg,
+    borderRadius: 22,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+  },
+  formBaslik: {
+    ...TipografiTokenlari.h2,
+    color: RenkTokenlari.text,
+  },
+  formAlt: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+    marginTop: -6,
+    marginBottom: 4,
+  },
+  inputCam: {
+    backgroundColor: RenkTokenlari.surface,
+    borderColor: RenkTokenlari.border,
+  },
   forgot: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.primarySoft,
     textAlign: 'right',
-    marginBottom: BoslukTokenlari.xs,
   },
   spotifyBtn: {
     minHeight: 48,
@@ -251,9 +472,12 @@ const styles = StyleSheet.create({
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: BoslukTokenlari.sm,
+    marginTop: 4,
   },
-  switchText: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
+  switchText: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.textMuted,
+  },
   switchLink: {
     ...TipografiTokenlari.body,
     color: RenkTokenlari.primarySoft,

@@ -1,3 +1,5 @@
+import { temaKodunuAl } from './tema/TemaDurumu';
+
 export const BoslukTokenlari = {
   xs: 4,
   sm: 8,
@@ -16,7 +18,7 @@ export const YaricapTokenlari = {
   pill: 999,
 } as const;
 
-export const GolgeTokenlari = {
+const GolgeKoyu = {
   soft: {
     shadowColor: '#000',
     shadowOpacity: 0.25,
@@ -32,6 +34,33 @@ export const GolgeTokenlari = {
     elevation: 4,
   },
 } as const;
+
+const GolgeAcik = {
+  soft: {
+    shadowColor: '#1C1228',
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
+  },
+  card: {
+    shadowColor: '#1C1228',
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+} as const;
+
+type GolgeSet = typeof GolgeKoyu;
+
+/** Aktif gorunume gore kart golgesi — acik temada kartlar zeminden ayrilir. */
+export const GolgeTokenlari: GolgeSet = new Proxy(GolgeKoyu, {
+  get(_hedef, prop: string | symbol) {
+    const set = temaKodunuAl() === 'acik' ? GolgeAcik : GolgeKoyu;
+    return set[prop as keyof GolgeSet];
+  },
+}) as GolgeSet;
 
 export const AnimasyonTokenlari = {
   hizli: 160,

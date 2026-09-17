@@ -1,5 +1,6 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Pressable,
@@ -19,12 +20,13 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
 import { useMisafirIslemKapisi } from '../../src/moduller/misafir-hesabi/islemler/useMisafirIslemKapisi';
 import { AjansBasvurusuOlustur } from '../../src/moduller/ajanslar/islemler/AjansIslemleri';
+import { AjansBasvurularimiGetir } from '../../src/moduller/ajanslar/okuma/AjanslariGetir';
 import {
-  AjansBasvurularimiGetir,
-  PopulerAjanslariGetir,
-  SahipOlunanAjanslariGetir,
-  type Ajans,
-} from '../../src/moduller/ajanslar/okuma/AjanslariGetir';
+  AjansListesiModernGetir,
+  type AjansListeKart,
+} from '../../src/moduller/ajanslar/okuma/AjansProfilGetir';
+import { AjansKesfetKarti } from '../../src/moduller/ajanslar/bilesenler/AjansKesfetKarti';
+import { useAjansYonetim } from '../../src/moduller/ajanslar/kancalar/useAjansYonetim';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -83,44 +85,58 @@ function formDogrula(f: FormState): string | null {
 }
 
 export default function AjansEkrani() {
-  const { isGuest, refreshProfile, refreshWallet } = useAuth();
+  const { user, isGuest, refreshProfile, refreshWallet } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
+  const {
+    yetkili,
+    yonetimHref,
+    yukleniyor: yetkiYukleniyor,
+  } = useAjansYonetim();
   const [form, setForm] = useState<FormState>(BOS_FORM);
-  const [popular, setPopular] = useState<Ajans[]>([]);
-  const [mine, setMine] = useState<Ajans[]>([]);
+  const [liste, setListe] = useState<AjansListeKart[]>([]);
   const [apps, setApps] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const [basvuruAcik, setBasvuruAcik] = useState(false);
 
   const setAlan = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((onceki) => ({ ...onceki, [key]: value }));
   };
 
   const load = useCallback(async () => {
+    setYukleniyor(true);
     try {
-      const [p, m, a] = await Promise.all([
-        PopulerAjanslariGetir().catch(() => []),
-        SahipOlunanAjanslariGetir().catch(() => []),
+      const [p, a] = await Promise.all([
+        AjansListesiModernGetir(40).catch(() => []),
         AjansBasvurularimiGetir().catch(() => []),
       ]);
-      setPopular(p);
-      setMine(m);
+      setListe(p);
       setApps(a);
     } catch {
-      /* migration */
+      setListe([]);
+      setApps([]);
+    } finally {
+      setYukleniyor(false);
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
+      // Kabul edilmiş ajans sahibi → başvuru değil yönetim paneli
+      if (yetkiYukleniyor) return;
+      if (yetkili) {
+        router.replace(yonetimHref as any);
+        return;
+      }
       void load();
-    }, [load]),
+    }, [load, yetkili, yonetimHref, yetkiYukleniyor]),
   );
 
   const basvur = () => {
     islemiDene('ajans_olustur', async () => {
       const hata = formDogrula(form);
       if (hata) {
-        Alert.alert('Eksik bilgi', hata);
+        Alert.alert('Başvuru', hata);
         return;
       }
       setLoading(true);
@@ -129,8 +145,8 @@ export default function AjansEkrani() {
         country: form.country.trim(),
         email: form.email.trim(),
         phone: form.phone.trim(),
-        experience: form.experience.trim() || undefined,
         expectedHosts: Number(form.expectedHosts),
+        experience: form.experience.trim() || undefined,
         description: form.description.trim(),
       });
       setLoading(false);
@@ -138,187 +154,177 @@ export default function AjansEkrani() {
         Alert.alert('Başvuru', sonuc.hata);
         return;
       }
+      setForm(BOS_FORM);
+      setBasvuruAcik(false);
       Alert.alert(
         'Başvuru alındı',
         'Ajans başvurun yetkili adminlere iletildi. Onay sonrası ajansın aktif olur.',
       );
-      setForm(BOS_FORM);
       await load();
     });
   };
 
-  const liste = mine.length ? mine : popular;
-  const bekleyenVar = apps.some((a) =>
-    ['pending', 'under_review'].includes(String(a.status)),
+  const bekleyenVar = useMemo(
+    () => apps.some((a) => a.status === 'pending' || a.status === 'under_review'),
+    [apps],
   );
+
+  if (yetkiYukleniyor || yetkili) {
+    return (
+      <Screen edges={['top']}>
+        <ModulHataSiniri modulAdi="ajanslar">
+          <EkranBasligi
+            title="Ajanslar"
+            subtitle="Yönlendiriliyor…"
+            fallbackHref={"/(tabs)" as any}
+          />
+          <ActivityIndicator
+            color={RenkTokenlari.primarySoft}
+            style={{ marginTop: 40 }}
+          />
+        </ModulHataSiniri>
+      </Screen>
+    );
+  }
 
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="ajanslar">
-        <KlavyeKapatan>
-          <EkranBasligi
-            title="Ajanslar"
-            subtitle="Kur · başvur · admin onaylar"
-          />
+        <EkranBasligi
+          title="Ajanslar"
+          subtitle="Keşfet · profil · başvuru"
+          fallbackHref={"/(tabs)" as any}
+        />
+        <KlavyeKapatan style={{ flex: 1 }}>
           <FlatList
             data={liste}
             keyExtractor={(item) => item.id}
-            keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.list}
+            keyboardShouldPersistTaps="handled"
             ListHeaderComponent={
               <View style={styles.headerBlock}>
-                <View style={styles.bilgiKart}>
-                  <Text style={styles.bilgiBaslik}>Nasıl çalışır?</Text>
-                  <Text style={styles.bilgiMadde}>1. Aşağıdaki formu doldur</Text>
-                  <Text style={styles.bilgiMadde}>
-                    2. Başvuru yetkili adminlere gider
+                <Pressable
+                  style={styles.basvuruToggle}
+                  onPress={() => setBasvuruAcik((v) => !v)}
+                >
+                  <Text style={styles.basvuruToggleYazi}>
+                    {basvuruAcik ? 'Başvuruyu gizle' : 'Ajans kur / başvur'}
                   </Text>
-                  <Text style={styles.bilgiMadde}>
-                    3. Onaylanınca ajans paneli açılır
-                  </Text>
-                </View>
+                </Pressable>
 
-                <View style={styles.formCard}>
-                  <Text style={styles.formBaslik}>Ajans başvurusu</Text>
-                  <Text style={styles.formAlt}>
-                    Zorunlu alanlar admin incelemesi için kullanılır.
-                  </Text>
-
-                  <TextField
-                    label="Ajans adı *"
-                    value={form.name}
-                    onChangeText={(t) => setAlan('name', t)}
-                    placeholder="Örn. Tamuso Stars"
-                    maxLength={60}
-                  />
-                  <TextField
-                    label="Ülke / bölge *"
-                    value={form.country}
-                    onChangeText={(t) => setAlan('country', t)}
-                    placeholder="TR"
-                    autoCapitalize="characters"
-                    maxLength={40}
-                  />
-                  <TextField
-                    label="İletişim e-postası *"
-                    value={form.email}
-                    onChangeText={(t) => setAlan('email', t)}
-                    placeholder="ajans@ornek.com"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                  />
-                  <TextField
-                    label="Telefon *"
-                    value={form.phone}
-                    onChangeText={(t) => setAlan('phone', t)}
-                    placeholder="+90 5xx xxx xx xx"
-                    keyboardType="phone-pad"
-                  />
-                  <TextField
-                    label="Beklenen host sayısı *"
-                    value={form.expectedHosts}
-                    onChangeText={(t) =>
-                      setAlan('expectedHosts', t.replace(/[^\d]/g, ''))
-                    }
-                    placeholder="Örn. 20"
-                    keyboardType="number-pad"
-                    maxLength={4}
-                  />
-                  <TextField
-                    label="Deneyim (isteğe bağlı)"
-                    value={form.experience}
-                    onChangeText={(t) => setAlan('experience', t)}
-                    placeholder="Önceki ajans / yayıncılık deneyimin"
-                    multiline
-                    style={styles.cokSatir}
-                  />
-                  <TextField
-                    label="Ajans açıklaması *"
-                    value={form.description}
-                    onChangeText={(t) => setAlan('description', t)}
-                    placeholder="Ne tür hostlar yöneteceksin? Hedefin ne?"
-                    multiline
-                    style={styles.cokSatir}
-                    maxLength={800}
-                  />
-
-                  {bekleyenVar ? (
-                    <Text style={styles.uyari}>
-                      Bekleyen başvurun var — admin yanıtını bekle.
-                    </Text>
-                  ) : null}
-
-                  <GradientButton
-                    title="Başvuruyu gönder"
-                    onPress={basvur}
-                    loading={loading}
-                    disabled={bekleyenVar}
-                  />
-                </View>
-
-                <Text style={styles.section}>Başvurularım</Text>
-                {apps.length === 0 ? (
-                  <BosDurum
-                    icon="document-text-outline"
-                    title="Başvuru yok"
-                    body="Henüz ajans başvurusu göndermedin."
-                  />
-                ) : (
-                  <View style={styles.appsCard}>
-                    {apps.map((a, i) => (
-                      <View
-                        key={a.id}
-                        style={[
-                          styles.appRow,
-                          i === apps.length - 1 && styles.appRowLast,
-                        ]}
-                      >
-                        <View style={{ flex: 1, gap: 2 }}>
-                          <Text style={styles.appName}>{a.agency_name}</Text>
-                          {a.country ? (
-                            <Text style={styles.appMeta}>{a.country}</Text>
-                          ) : null}
-                        </View>
-                        <Text style={styles.appStatus}>
-                          {durumEtiketi(a.status)}
-                        </Text>
-                      </View>
-                    ))}
+                {basvuruAcik ? (
+                  <View style={styles.formCard}>
+                    <Text style={styles.formBaslik}>Ajans başvurusu</Text>
+                    <TextField
+                      label="Ajans adı *"
+                      value={form.name}
+                      onChangeText={(t) => setAlan('name', t)}
+                      placeholder="Örn. Nova Agency"
+                    />
+                    <TextField
+                      label="Ülke / bölge *"
+                      value={form.country}
+                      onChangeText={(t) => setAlan('country', t)}
+                      placeholder="TR"
+                      autoCapitalize="characters"
+                    />
+                    <TextField
+                      label="E-posta *"
+                      value={form.email}
+                      onChangeText={(t) => setAlan('email', t)}
+                      placeholder="ajans@ornek.com"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                    />
+                    <TextField
+                      label="Telefon *"
+                      value={form.phone}
+                      onChangeText={(t) => setAlan('phone', t)}
+                      placeholder="+90…"
+                      keyboardType="phone-pad"
+                    />
+                    <TextField
+                      label="Beklenen host *"
+                      value={form.expectedHosts}
+                      onChangeText={(t) => setAlan('expectedHosts', t)}
+                      placeholder="10"
+                      keyboardType="number-pad"
+                    />
+                    <TextField
+                      label="Deneyim"
+                      value={form.experience}
+                      onChangeText={(t) => setAlan('experience', t)}
+                      placeholder="Önceki ajans / yayıncılık deneyimin"
+                    />
+                    <TextField
+                      label="Ajans açıklaması *"
+                      value={form.description}
+                      onChangeText={(t) => setAlan('description', t)}
+                      placeholder="Ajansını kısaca anlat…"
+                      multiline
+                    />
+                    <GradientButton
+                      title="Başvuruyu gönder"
+                      onPress={basvur}
+                      loading={loading}
+                      disabled={bekleyenVar}
+                    />
                   </View>
-                )}
+                ) : null}
 
-                <Text style={styles.section}>
-                  {mine.length ? 'Ajanslarım' : 'Popüler ajanslar'}
-                </Text>
+                {apps.length > 0 ? (
+                  <>
+                    <Text style={styles.section}>Başvurularım</Text>
+                    <View style={styles.appsCard}>
+                      {apps.map((a, i) => (
+                        <View
+                          key={a.id}
+                          style={[
+                            styles.appRow,
+                            i === apps.length - 1 && styles.appRowLast,
+                          ]}
+                        >
+                          <View style={{ flex: 1, gap: 2 }}>
+                            <Text style={styles.appName}>{a.agency_name}</Text>
+                            {a.country ? (
+                              <Text style={styles.appMeta}>{a.country}</Text>
+                            ) : null}
+                          </View>
+                          <Text style={styles.appStatus}>
+                            {durumEtiketi(a.status)}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </>
+                ) : null}
+
+                <Text style={styles.section}>Popüler ajanslar</Text>
+                {yukleniyor && liste.length === 0 ? (
+                  <ActivityIndicator
+                    color={RenkTokenlari.primarySoft}
+                    style={{ marginVertical: 20 }}
+                  />
+                ) : null}
               </View>
             }
             ListEmptyComponent={
-              <BosDurum
-                icon="business-outline"
-                title="Ajans bulunamadı"
-                body="Başvurun onaylanınca burada görünür."
-              />
+              yukleniyor ? null : (
+                <BosDurum
+                  icon="business-outline"
+                  title="Ajans bulunamadı"
+                  body="Aktif ajanslar burada listelenir."
+                />
+              )
             }
             renderItem={({ item }) => (
-              <Pressable
-                style={styles.card}
-                onPress={() => {
-                  if (mine.some((m) => m.id === item.id)) {
-                    router.push(`/ajans/${item.id}` as any);
-                  }
-                }}
-              >
-                <Text style={styles.cardTitle}>{item.name}</Text>
-                <Text style={styles.cardMeta}>
-                  {item.agency_public_id} · {item.level_code} · {item.host_count}{' '}
-                  host
-                  {item.invite_code ? ` · davet ${item.invite_code}` : ''}
-                </Text>
-                {mine.some((m) => m.id === item.id) ? (
-                  <Text style={styles.panelLink}>Ajans Yönetim →</Text>
-                ) : null}
-              </Pressable>
+              <AjansKesfetKarti
+                ajans={item}
+                sahipMi={item.owner_id === user?.id}
+                onPress={() =>
+                  router.push(`/ajans/profil/${item.id}` as any)
+                }
+              />
             )}
           />
         </KlavyeKapatan>
@@ -339,26 +345,20 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: BoslukTokenlari.lg,
     paddingBottom: BoslukTokenlari.xxxl,
-    gap: BoslukTokenlari.sm,
   },
   headerBlock: { gap: BoslukTokenlari.sm, marginBottom: BoslukTokenlari.sm },
-  bilgiKart: {
-    padding: BoslukTokenlari.lg,
+  basvuruToggle: {
+    paddingVertical: 12,
     borderRadius: YaricapTokenlari.md,
-    backgroundColor: 'rgba(167, 139, 250, 0.08)',
     borderWidth: 1,
     borderColor: RenkTokenlari.borderAccent,
-    gap: 4,
+    alignItems: 'center',
+    backgroundColor: RenkTokenlari.bgCard,
   },
-  bilgiBaslik: {
-    ...TipografiTokenlari.body,
-    color: RenkTokenlari.text,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  bilgiMadde: {
+  basvuruToggleYazi: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
+    color: RenkTokenlari.primarySoft,
+    fontWeight: '700',
   },
   formCard: {
     padding: BoslukTokenlari.lg,
@@ -366,30 +366,21 @@ const styles = StyleSheet.create({
     backgroundColor: RenkTokenlari.bgCard,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
-    gap: BoslukTokenlari.md,
+    gap: BoslukTokenlari.sm,
   },
   formBaslik: {
     ...TipografiTokenlari.h2,
     color: RenkTokenlari.text,
-  },
-  formAlt: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
-    marginTop: -6,
-  },
-  cokSatir: {
-    minHeight: 88,
-    textAlignVertical: 'top',
-    paddingTop: 12,
-  },
-  uyari: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.accent,
+    fontWeight: '800',
+    marginBottom: 4,
   },
   section: {
-    ...TipografiTokenlari.h2,
-    color: RenkTokenlari.text,
-    marginTop: BoslukTokenlari.md,
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textDim,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    fontWeight: '700',
+    marginTop: BoslukTokenlari.sm,
   },
   appsCard: {
     borderRadius: YaricapTokenlari.md,
@@ -401,31 +392,24 @@ const styles = StyleSheet.create({
   appRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: BoslukTokenlari.md,
-    paddingHorizontal: BoslukTokenlari.md,
+    gap: 12,
+    padding: BoslukTokenlari.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: RenkTokenlari.border,
-    gap: 8,
   },
   appRowLast: { borderBottomWidth: 0 },
-  appName: { ...TipografiTokenlari.body, color: RenkTokenlari.text, fontWeight: '600' },
-  appMeta: { ...TipografiTokenlari.micro, color: RenkTokenlari.textMuted },
-  appStatus: { ...TipografiTokenlari.caption, color: RenkTokenlari.primarySoft },
-  card: {
-    padding: BoslukTokenlari.lg,
-    borderRadius: YaricapTokenlari.md,
-    backgroundColor: RenkTokenlari.bgCard,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-    gap: BoslukTokenlari.xs,
+  appName: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.text,
+    fontWeight: '600',
   },
-  cardTitle: { ...TipografiTokenlari.h2, color: RenkTokenlari.text },
-  cardMeta: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
-  panelLink: {
-    ...TipografiTokenlari.caption,
+  appMeta: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+  },
+  appStatus: {
+    ...TipografiTokenlari.micro,
     color: RenkTokenlari.primarySoft,
     fontWeight: '700',
-    marginTop: 4,
   },
 });

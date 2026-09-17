@@ -12,6 +12,15 @@ import type { KaskadSymbolType } from '../tipler/KaskadTipleri';
 /** Boş hücre placeholder'ı — grid compaction sırasında kullanılır */
 export const EMPTY_INSTANCE_ID = '__empty__' as const;
 
+/** Pozisyona özgü boş id — React list key çakışmasını önler */
+export function emptyInstanceId(row: number, column: number): string {
+  return `__empty_r${row}c${column}`;
+}
+
+export function isEmptyInstanceId(id: string): boolean {
+  return id === EMPTY_INSTANCE_ID || id.startsWith('__empty_');
+}
+
 export function isPaySymbol(type: KaskadSymbolType): boolean {
   return (ALL_PAY_SYMBOLS as readonly string[]).includes(type);
 }

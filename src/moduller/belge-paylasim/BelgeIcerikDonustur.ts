@@ -1,7 +1,11 @@
 import type { AdminOzet } from '../admin/okuma/AdminOzetGetir';
 import type { BelgeIcerik } from './BelgeSablonlari';
 import {
+  LedgerAnlasilirOzet,
+  LedgerBirimEtiketi,
+  LedgerRefEtiketi,
   LedgerSebepEtiketi,
+  LedgerTutarYazi,
   type LedgerSatiri,
 } from '../cuzdan/okuma/CuzdanLedgeriniGetir';
 import type { HediyeGecmisiKaydi } from '../hediyeler/okuma/HediyeGecmisiniGetir';
@@ -163,27 +167,46 @@ export function AdminOzetBelgesiOlustur(ozet: AdminOzet | null): BelgeIcerik {
   };
 }
 
-/** Cüzdan hareket / hediye / çekim → belge */
+/** Cüzdan hareket / hediye / çekim → belge (Türkçe, anlaşılır) */
 export function CuzdanHareketBelgesiOlustur(
   detay: BelgeCuzdanHareketGirdi,
 ): BelgeIcerik {
   if (detay.tur === 'ledger') {
     const r: LedgerSatiri = detay.veri;
+    const tarih = new Date(r.created_at);
     return {
       baslik: 'Cüzdan dekontu',
-      altBaslik: LedgerSebepEtiketi(r.reason),
-      ozet: `${r.delta >= 0 ? '+' : ''}${r.delta} ${r.currency}`,
+      altBaslik: LedgerAnlasilirOzet(r),
+      platformAdi: 'Tamuso',
+      ozet: LedgerTutarYazi(r),
       satirlar: [
         { etiket: 'İşlem', deger: LedgerSebepEtiketi(r.reason) },
-        { etiket: 'Tutar', deger: String(r.delta) },
-        { etiket: 'Birim', deger: r.currency },
-        { etiket: 'Bakiye sonrası', deger: String(r.balance_after) },
-        { etiket: 'Referans', deger: r.ref_type ?? '—' },
+        { etiket: 'Açıklama', deger: LedgerAnlasilirOzet(r) },
+        { etiket: 'Tutar', deger: LedgerTutarYazi(r) },
+        { etiket: 'Birim', deger: LedgerBirimEtiketi(r.currency) },
+        {
+          etiket: 'İşlem sonrası bakiye',
+          deger: `${r.balance_after.toLocaleString('tr-TR')} ${LedgerBirimEtiketi(r.currency)}`,
+        },
+        { etiket: 'Kaynak', deger: LedgerRefEtiketi(r.ref_type) },
         {
           etiket: 'Tarih',
-          deger: new Date(r.created_at).toLocaleString('tr-TR'),
+          deger: tarih.toLocaleDateString('tr-TR', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+          }),
         },
-        { etiket: 'İşlem no', deger: r.id },
+        {
+          etiket: 'Saat',
+          deger: tarih.toLocaleTimeString('tr-TR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
+        },
+        { etiket: 'İşlem no', deger: r.id.slice(0, 13).toUpperCase() },
       ],
       not: 'Tamuso cüzdan hareket belgesi.',
     };
@@ -195,46 +218,92 @@ export function CuzdanHareketBelgesiOlustur(
       h.karsi_profil?.display_name ??
       h.karsi_profil?.username ??
       'Kullanıcı';
+    const tarih = new Date(h.created_at);
+    const gonderildi = h.yon === 'gonderilen';
     return {
       baslik: 'Hediye belgesi',
       altBaslik: h.gift?.name ?? 'Hediye',
-      ozet:
-        h.yon === 'gonderilen'
-          ? `Gönderildi → ${kim}`
-          : `Alındı ← ${kim}`,
+      platformAdi: 'Tamuso',
+      ozet: gonderildi ? `Gönderildi → ${kim}` : `Alındı ← ${kim}`,
       satirlar: [
-        { etiket: 'Hediye', deger: h.gift?.name ?? '—' },
+        {
+          etiket: 'Hediye',
+          deger: `${h.gift?.emoji ?? ''} ${h.gift?.name ?? '—'}`.trim(),
+        },
         { etiket: 'Adet', deger: String(h.quantity) },
-        { etiket: 'Yön', deger: h.yon === 'gonderilen' ? 'Gönderilen' : 'Alınan' },
-        { etiket: 'Karşı taraf', deger: kim },
+        {
+          etiket: 'Yön',
+          deger: gonderildi ? 'Gönderildi' : 'Alındı',
+        },
+        {
+          etiket: gonderildi ? 'Alıcı' : 'Gönderen',
+          deger: kim,
+        },
         { etiket: 'Oda', deger: h.oda?.title ?? '—' },
-        { etiket: 'Coin', deger: String(h.coins_spent) },
-        { etiket: 'Elmas', deger: String(h.diamonds_earned) },
+        {
+          etiket: 'Harcanan coin',
+          deger: h.coins_spent.toLocaleString('tr-TR'),
+        },
+        {
+          etiket: 'Kazanılan elmas',
+          deger: h.diamonds_earned.toLocaleString('tr-TR'),
+        },
         {
           etiket: 'Tarih',
-          deger: new Date(h.created_at).toLocaleString('tr-TR'),
+          deger: tarih.toLocaleDateString('tr-TR', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric',
+          }),
         },
-        { etiket: 'İşlem no', deger: h.id },
+        {
+          etiket: 'Saat',
+          deger: tarih.toLocaleTimeString('tr-TR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
+        },
+        { etiket: 'İşlem no', deger: h.id.slice(0, 13).toUpperCase() },
       ],
       not: 'Tamuso hediye işlem belgesi.',
     };
   }
 
   const c = detay.veri;
+  const tarih = new Date(c.created_at);
   return {
     baslik: 'Çekim talebi',
     altBaslik: detay.durumEtiket,
-    ozet: `${c.diamonds} elmas · ${c.method}`,
+    platformAdi: 'Tamuso',
+    ozet: `${c.diamonds.toLocaleString('tr-TR')} elmas · ${c.method}`,
     satirlar: [
-      { etiket: 'Miktar', deger: `${c.diamonds} elmas` },
+      {
+        etiket: 'Miktar',
+        deger: `${c.diamonds.toLocaleString('tr-TR')} elmas`,
+      },
       { etiket: 'Yöntem', deger: c.method },
       { etiket: 'Durum', deger: detay.durumEtiket },
       { etiket: 'Ödeme süresi', deger: CEKIM_ODEME_BILGISI },
       {
         etiket: 'Tarih',
-        deger: new Date(c.created_at).toLocaleString('tr-TR'),
+        deger: tarih.toLocaleDateString('tr-TR', {
+          weekday: 'long',
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+        }),
       },
-      { etiket: 'Talep no', deger: c.id },
+      {
+        etiket: 'Saat',
+        deger: tarih.toLocaleTimeString('tr-TR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }),
+      },
+      { etiket: 'Talep no', deger: c.id.slice(0, 13).toUpperCase() },
     ],
     not: CEKIM_ODEME_BILGISI,
   };

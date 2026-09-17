@@ -1,6 +1,7 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { CoinSkoruFormatla } from '../okuma/LiderlikSiralamasiniGetir';
 import type { SiralamaSatiri } from '../okuma/LiderlikSiralamasiniGetir';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
@@ -30,9 +31,17 @@ export function SiralamaKullaniciSatiri({
     'Kullanıcı';
   const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
   const medal = MEDAL[rank];
+  const profilId = item.user_id;
 
   return (
-    <View style={[styles.row, rank <= 3 && styles.rowTop]}>
+    <Pressable
+      style={[styles.row, rank <= 3 && styles.rowTop]}
+      disabled={!profilId}
+      onPress={() => {
+        if (!profilId) return;
+        router.push(`/kullanici/${profilId}` as any);
+      }}
+    >
       <View style={styles.rankWrap}>
         {medal ? (
           <LinearGradient colors={medal as [string, string]} style={styles.medal}>
@@ -69,7 +78,7 @@ export function SiralamaKullaniciSatiri({
         <Text style={styles.score}>{CoinSkoruFormatla(item.score)}</Text>
         <Text style={styles.birim}>{birim}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 

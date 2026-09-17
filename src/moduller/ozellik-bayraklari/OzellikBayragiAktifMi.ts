@@ -22,6 +22,7 @@ const yerelBayraklar: Record<OzellikBayragiAnahtari, boolean> = {
   events_enabled: true,
   missions_enabled: true,
   announcements_enabled: true,
+  auto_promo_banners_enabled: true,
   policies_enabled: true,
   moderation_enabled: true,
   analytics_enabled: true,
@@ -32,8 +33,8 @@ const yerelBayraklar: Record<OzellikBayragiAnahtari, boolean> = {
   iap_enabled: true,
   stripe_enabled: false,
   games_enabled: true,
-  match3_enabled: true,
   kozmik_kaskad_enabled: true,
+  zeus_enabled: true,
 };
 
 const yerelKillSwitch: Record<KillSwitchAnahtari, boolean> = {

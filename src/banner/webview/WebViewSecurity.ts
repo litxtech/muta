@@ -40,9 +40,9 @@ export function isSafeHttpsUrl(raw: string): UrlValidation {
     return { ok: false, reason: 'Sadece HTTPS izinli' };
   }
 
-  // Host kontrolü
+  // Host kontrolü — "https://" boş host'u da yakala
   if (!parsed.hostname || parsed.hostname === 'localhost') {
-    return { ok: false, reason: 'Geçersiz host' };
+    return { ok: false, reason: 'Eksik veya geçersiz adres (ör. https://ornek.com)' };
   }
 
   // Userinfo (user:pass@) şüpheli — engelle

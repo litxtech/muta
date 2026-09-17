@@ -45,7 +45,7 @@ export function OyunDavetiModal({
       <View style={styles.backdrop}>
         <View style={styles.card}>
           <Text style={styles.eyebrow}>OYUN DAVETİ</Text>
-          <Text style={styles.title}>{davet?.gameName ?? 'Tamuso Match'}</Text>
+          <Text style={styles.title}>{davet?.gameName ?? 'Tamuso Oyun'}</Text>
           <Text style={styles.body}>
             {davet?.hostName ?? 'Bir oyuncu'} bir oyun başlattı. Katılmak ister misin?
           </Text>

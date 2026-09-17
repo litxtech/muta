@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -48,8 +49,14 @@ export function OyunLobisi({
           </Text>
         </View>
         {onIptal ? (
-          <Pressable onPress={onIptal} style={styles.kapat} hitSlop={12}>
-            <Text style={styles.kapatYazi}>Kapat</Text>
+          <Pressable
+            onPress={onIptal}
+            style={styles.kapat}
+            hitSlop={12}
+            accessibilityLabel="Oyunu bitir"
+          >
+            <Ionicons name="arrow-back" size={18} color={RenkTokenlari.text} />
+            <Text style={styles.kapatYazi}>Oyunu bitir</Text>
           </Pressable>
         ) : null}
       </View>
@@ -120,6 +127,9 @@ const styles = StyleSheet.create({
     marginTop: BoslukTokenlari.sm,
   },
   kapat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: BoslukTokenlari.md,
     paddingVertical: BoslukTokenlari.sm,
     borderRadius: YaricapTokenlari.md,
@@ -129,7 +139,7 @@ const styles = StyleSheet.create({
   },
   kapatYazi: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
+    color: RenkTokenlari.text,
     fontWeight: '700',
   },
   list: {

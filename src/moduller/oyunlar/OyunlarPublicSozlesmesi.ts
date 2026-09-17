@@ -95,28 +95,42 @@ export { CanliSkorPaneli } from './ortak/bilesenler/CanliSkorPaneli';
 export { OyunSonucuModal } from './ortak/bilesenler/OyunSonucuModal';
 export { GeriSayim } from './ortak/bilesenler/GeriSayim';
 export { MiniOdaSeridi } from './ortak/bilesenler/MiniOdaSeridi';
+export { OyunAuraCerceve } from './ortak/bilesenler/OyunAuraCerceve';
+export {
+  OYUN_KART_KATALOGU,
+  feedOyunKartlari,
+  oyunKartKimligi,
+} from './ortak/katalog/OyunKartKatalogu';
+export type { OyunKartKimligi } from './ortak/katalog/OyunKartKatalogu';
 
 export { OyunOdaKatmani } from './oda/OyunOdaKatmani';
 export type { OyunOdaKatmaniProps } from './oda/OyunOdaKatmani';
 
-export { registerMatch3 } from './eslestirme/Match3Kayit';
-export { KristalSavasiEkrani } from './eslestirme/ekranlar/KristalSavasiEkrani';
-export { createBoard } from './eslestirme/motor/TahtaOlusturucu';
-export { createSeededRandom, mulberry32 } from './eslestirme/motor/SeedMotoru';
-export { applyMove } from './eslestirme/motor/HamleMotoru';
-export { boardHash } from './eslestirme/motor/TahtaHash';
-export {
-  GAME_CODE as MATCH3_GAME_CODE,
-  GAME_VERSION as MATCH3_GAME_VERSION,
-  GAME_DISPLAY_NAME,
-} from './eslestirme/sabitler/KristalSabitleri';
-
 export { registerKozmikKaskad } from './kaskad/KaskadKayit';
 export { KozmikKaskadEkrani } from './kaskad/ekranlar/KozmikKaskadEkrani';
+export { registerZeus } from './zeus/ZeusKayit';
+export { ZeusEkrani } from './zeus/ekranlar/ZeusEkrani';
+export { registerNoxReels } from './slot/SlotKayit';
+export { SlotOyunEkrani } from './slot/ekranlar/SlotOyunEkrani';
+export {
+  GAME_CODE as ZEUS_GAME_CODE,
+  GAME_VERSION as ZEUS_GAME_VERSION,
+  GAME_DISPLAY_NAME as ZEUS_DISPLAY_NAME,
+} from './zeus/config/ZeusSabitleri';
 export {
   GAME_CODE as KASKAD_GAME_CODE,
   GAME_VERSION as KASKAD_GAME_VERSION,
   GAME_DISPLAY_NAME as KASKAD_DISPLAY_NAME,
 } from './kaskad/sabitler/KaskadSabitleri';
+export {
+  GAME_CODE as NOX_GAME_CODE,
+  GAME_VERSION as NOX_GAME_VERSION,
+  GAME_DISPLAY_NAME as NOX_DISPLAY_NAME,
+  DEFAULT_MATH_CONFIG as NOX_DEFAULT_MATH_CONFIG,
+} from './slot/sabitler/SlotAyarlari';
 export { simulateSpin, runBatchSimulation } from './kaskad/motor/SpinSimulator';
 export { DEFAULT_MATH_CONFIG } from './kaskad/sabitler/KaskadSabitleri';
+export {
+  simulateSlotSpin,
+  runBatchSimulation as runNoxBatchSimulation,
+} from './slot/motor/SlotMotoru';

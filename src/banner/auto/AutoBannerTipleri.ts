@@ -1,0 +1,68 @@
+/** Olay tabanlı otomatik banner ayarları / liste */
+
+export type AutoBannerKind =
+  | 'room_coins'
+  | 'live_coins'
+  | 'seats_full'
+  | 'game_coins';
+
+export type AutoBannerAyarlari = {
+  enabled: boolean;
+  feature_flag: boolean;
+  ttl_hours: number;
+  cooldown_hours: number;
+  room_coin_threshold: number;
+  live_coin_threshold: number;
+  game_coin_threshold: number;
+  seats_full_enabled: boolean;
+  room_coins_enabled: boolean;
+  live_coins_enabled: boolean;
+  game_coins_enabled: boolean;
+  max_active: number;
+  carousel_max: number;
+  updated_at?: string;
+};
+
+export type AutoBannerKayit = {
+  id: string;
+  kind: AutoBannerKind;
+  source_key: string;
+  ref_type: 'room' | 'live_session' | 'game';
+  ref_id: string;
+  title: string;
+  subtitle: string | null;
+  badge: string | null;
+  media_url: string | null;
+  gradient_json: { colors?: string[] } | null;
+  action_type: string;
+  action_target: string;
+  metric_value: number;
+  active: boolean;
+  created_at: string;
+  expires_at: string;
+  deactivated_at: string | null;
+  deactivate_reason: string | null;
+};
+
+export const AUTO_BANNER_KIND_LABELS: Record<AutoBannerKind, string> = {
+  room_coins: 'Oda coin eşiği',
+  live_coins: 'Canlı coin eşiği',
+  seats_full: 'Koltuklar dolu',
+  game_coins: 'Oyun coin eşiği',
+};
+
+export const AUTO_BANNER_AYAR_VARSAYILAN: AutoBannerAyarlari = {
+  enabled: true,
+  feature_flag: true,
+  ttl_hours: 12,
+  cooldown_hours: 12,
+  room_coin_threshold: 50000,
+  live_coin_threshold: 50000,
+  game_coin_threshold: 10000,
+  seats_full_enabled: true,
+  room_coins_enabled: true,
+  live_coins_enabled: true,
+  game_coins_enabled: true,
+  max_active: 20,
+  carousel_max: 8,
+};

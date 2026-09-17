@@ -1,5 +1,5 @@
 import { supabase } from '../../../lib/supabase';
-import { ImagePickerModuluYukle } from '../../../ortak/medya/ImagePickerHazirMi';
+import { GaleriAc } from '../../../ortak/medya/ImagePickerHazirMi';
 import {
   DepoyaMedyaYukle,
   MedyaUzantisiCoz,
@@ -14,57 +14,30 @@ export type SecilenProfilMedya = {
 
 /**
  * Galeriden profil görseli seçer (yüklemez). Kayıt öncesi önizleme için.
+ * İzin beklemeden sistem seçiciyi açar (PHPicker / Photo Picker).
  */
 export async function ProfilMedyasiSec(
-  tur: ProfilMedyaTuru,
+  _tur: ProfilMedyaTuru,
 ): Promise<
   | { ok: true; medya: SecilenProfilMedya }
   | { ok: false; hata: string; iptal?: boolean }
 > {
-  const mod = await ImagePickerModuluYukle();
-  if (!mod.ok) {
-    return {
-      ok: false,
-      hata: mod.hata.includes('build')
-        ? 'Fotoğraf seçici bu build’de yok. Yeni development build kur.'
-        : mod.hata,
-    };
-  }
-
-  const { ImagePicker } = mod;
-
-  try {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      return { ok: false, hata: 'Galeri izni gerekli.' };
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: tur === 'cover' ? [3, 1] : [1, 1],
-      quality: 0.85,
-    });
-
-    if (result.canceled || !result.assets?.[0]) {
-      return { ok: false, hata: 'İptal', iptal: true };
-    }
-
-    const asset = result.assets[0];
-    return {
-      ok: true,
-      medya: { uri: asset.uri, mimeType: asset.mimeType },
-    };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes('ExponentImagePicker') || msg.includes('native module')) {
+  const secim = await GaleriAc({ mediaTypes: ['images'] });
+  if (!secim.ok) {
+    if (secim.hata.includes('build') || secim.hata.includes('native')) {
       return {
         ok: false,
-        hata: 'Fotoğraf seçici native modülü yok. Yeni development build kur.',
+        hata: 'Fotoğraf seçici bu build’de yok. Yeni development build kur.',
+        iptal: secim.iptal,
       };
     }
-    return { ok: false, hata: msg };
+    return secim;
   }
+
+  return {
+    ok: true,
+    medya: { uri: secim.asset.uri, mimeType: secim.asset.mimeType },
+  };
 }
 
 /**

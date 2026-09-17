@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Modal,
   Platform,
   Pressable,
@@ -16,12 +17,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKlavyeYuksekligi } from '../../../bilesenler/klavye/useKlavyeYuksekligi';
 import { ProfilAvatarKucuk } from '../../canli-sohbet/bilesenler/ProfilAvatarKucuk';
 import {
+  DurumYorumBegeniToggle,
   DurumYorumEkle,
   DurumYorumSil,
   DurumYorumlariGetir,
   type DurumYorum,
 } from '../islemler/DurumIslemleri';
+import { DurumMedyasiSecVeYukle } from '../islemler/DurumMedyasiYukle';
 import { DurumTarihSaat } from '../islemler/DurumZaman';
+import { DurumResimLightbox } from './DurumResimLightbox';
 import { KullaniciGuvenlikMenusu } from '../../moderasyon/bilesenler/KullaniciGuvenlikMenusu';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
@@ -39,6 +43,10 @@ type Props = {
   onProfil?: (userId: string) => void;
 };
 
+type Satir =
+  | { kind: 'root'; yorum: DurumYorum; yanitlar: DurumYorum[] }
+  | { kind: 'reply'; yorum: DurumYorum; rootId: string };
+
 export function DurumYorumPaneli({
   visible,
   statusId,
@@ -51,9 +59,13 @@ export function DurumYorumPaneli({
   const { yukseklik: klavyeH, acik: klavyeAcik } = useKlavyeYuksekligi(0);
   const [yorumlar, setYorumlar] = useState<DurumYorum[]>([]);
   const [metin, setMetin] = useState('');
+  const [medyaUrl, setMedyaUrl] = useState<string | null>(null);
+  const [yanitHedef, setYanitHedef] = useState<DurumYorum | null>(null);
   const [yukleniyor, setYukleniyor] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [medyaBusy, setMedyaBusy] = useState(false);
   const [bildirYorum, setBildirYorum] = useState<DurumYorum | null>(null);
+  const [lightboxUri, setLightboxUri] = useState<string | null>(null);
 
   const yukle = async () => {
     setYukleniyor(true);
@@ -70,18 +82,56 @@ export function DurumYorumPaneli({
     if (visible) void yukle();
   }, [visible, statusId]);
 
+  const satirlar = useMemo(() => {
+    const roots = yorumlar.filter((y) => !y.parent_id);
+    const byParent = new Map<string, DurumYorum[]>();
+    for (const y of yorumlar) {
+      if (!y.parent_id) continue;
+      const list = byParent.get(y.parent_id) ?? [];
+      list.push(y);
+      byParent.set(y.parent_id, list);
+    }
+    const out: Satir[] = [];
+    for (const root of roots) {
+      out.push({ kind: 'root', yorum: root, yanitlar: byParent.get(root.id) ?? [] });
+      for (const r of byParent.get(root.id) ?? []) {
+        out.push({ kind: 'reply', yorum: r, rootId: root.id });
+      }
+    }
+    return out;
+  }, [yorumlar]);
+
+  const gonderilebilir = !!metin.trim() || !!medyaUrl;
+
   const gonder = async () => {
-    if (!metin.trim() || busy) return;
+    if (!gonderilebilir || busy) return;
     setBusy(true);
-    const r = await DurumYorumEkle(statusId, metin.trim());
+    const r = await DurumYorumEkle(statusId, metin.trim(), {
+      parentId: yanitHedef?.parent_id ?? yanitHedef?.id ?? null,
+      mediaUrl: medyaUrl,
+    });
     setBusy(false);
     if (!r.ok) {
       Alert.alert('Yorum', r.hata ?? 'Gönderilemedi');
       return;
     }
     setMetin('');
+    setMedyaUrl(null);
+    setYanitHedef(null);
     await yukle();
     onChanged?.();
+  };
+
+  const resimSec = async () => {
+    if (medyaBusy) return;
+    setMedyaBusy(true);
+    const r = await DurumMedyasiSecVeYukle('image');
+    setMedyaBusy(false);
+    if (!r.ok) {
+      if (!r.iptal) Alert.alert('Medya', r.hata);
+      return;
+    }
+    setMedyaUrl(r.url);
   };
 
   const sil = (y: DurumYorum) => {
@@ -105,26 +155,119 @@ export function DurumYorumPaneli({
     ]);
   };
 
-  const yorumMenu = (y: DurumYorum) => {
-    if (y.is_mine || canModerate) {
-      Alert.alert('Yorum', undefined, [
-        {
-          text: 'Sil',
-          style: 'destructive',
-          onPress: () => sil(y),
-        },
-        { text: 'Vazgeç', style: 'cancel' },
-      ]);
-      return;
-    }
-    Alert.alert('Yorum', undefined, [
-      {
-        text: 'Bildir',
-        style: 'destructive',
-        onPress: () => setBildirYorum(y),
-      },
-      { text: 'Vazgeç', style: 'cancel' },
-    ]);
+  const begen = (y: DurumYorum) => {
+    void (async () => {
+      const r = await DurumYorumBegeniToggle(y.id);
+      if (!r.ok) {
+        Alert.alert('Beğeni', r.hata ?? 'Başarısız');
+        return;
+      }
+      setYorumlar((prev) =>
+        prev.map((item) =>
+          item.id === y.id
+            ? {
+                ...item,
+                liked_by_me: !!r.liked,
+                like_count: r.like_count ?? item.like_count,
+              }
+            : item,
+        ),
+      );
+    })();
+  };
+
+  const renderYorum = (item: Satir) => {
+    const y = item.yorum;
+    const yanitMi = item.kind === 'reply';
+
+    return (
+      <View style={[styles.satir, yanitMi && styles.satirYanit]}>
+        <Pressable onPress={() => onProfil?.(y.user_id)} hitSlop={4}>
+          <ProfilAvatarKucuk
+            size={yanitMi ? 28 : 36}
+            displayName={y.display_name}
+            username={y.username}
+            avatarUrl={y.avatar_url}
+          />
+        </Pressable>
+
+        <View style={styles.satirGovde}>
+          <View style={styles.balon}>
+            <Pressable onPress={() => onProfil?.(y.user_id)}>
+              <Text style={styles.satirIsim}>{y.display_name}</Text>
+            </Pressable>
+            {y.body ? <Text style={styles.satirBody}>{y.body}</Text> : null}
+            {y.media_url ? (
+              <Pressable
+                onPress={() => setLightboxUri(y.media_url)}
+                style={styles.yorumResimHit}
+              >
+                <Image
+                  source={{ uri: y.media_url }}
+                  style={styles.yorumResim}
+                  resizeMode="cover"
+                />
+              </Pressable>
+            ) : null}
+          </View>
+
+          <View style={styles.metaSatir}>
+            <Text style={styles.zaman}>{DurumTarihSaat(y.created_at)}</Text>
+
+            <Pressable style={styles.metaBtn} onPress={() => begen(y)} hitSlop={8}>
+              <Ionicons
+                name={y.liked_by_me ? 'heart' : 'heart-outline'}
+                size={14}
+                color={y.liked_by_me ? RenkTokenlari.danger : RenkTokenlari.textDim}
+              />
+              {y.like_count > 0 ? (
+                <Text
+                  style={[
+                    styles.metaYazi,
+                    y.liked_by_me && { color: RenkTokenlari.danger },
+                  ]}
+                >
+                  {y.like_count}
+                </Text>
+              ) : (
+                <Text style={styles.metaYazi}>Beğen</Text>
+              )}
+            </Pressable>
+
+            <Pressable
+              style={styles.metaBtn}
+              onPress={() => setYanitHedef(y)}
+              hitSlop={8}
+            >
+              <Text style={styles.metaYazi}>Yanıtla</Text>
+            </Pressable>
+
+            {!y.is_mine ? (
+              <Pressable
+                style={styles.metaBtn}
+                onPress={() => setBildirYorum(y)}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name="flag-outline"
+                  size={13}
+                  color={RenkTokenlari.textDim}
+                />
+                <Text style={styles.metaYazi}>Bildir</Text>
+              </Pressable>
+            ) : null}
+
+            {y.is_mine || canModerate ? (
+              <Pressable style={styles.metaBtn} onPress={() => sil(y)} hitSlop={8}>
+                <Text style={[styles.metaYazi, { color: RenkTokenlari.danger }]}>
+                  Sil
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      </View>
+    );
   };
 
   return (
@@ -152,7 +295,12 @@ export function DurumYorumPaneli({
             ]}
           >
             <View style={styles.handle} />
-            <Text style={styles.baslik}>Yorumlar</Text>
+            <View style={styles.baslikSatir}>
+              <Text style={styles.baslik}>Yorumlar</Text>
+              <Pressable onPress={onClose} hitSlop={12} style={styles.kapatBtn}>
+                <Ionicons name="close" size={22} color={RenkTokenlari.textMuted} />
+              </Pressable>
+            </View>
 
             {yukleniyor && !yorumlar.length ? (
               <ActivityIndicator
@@ -161,73 +309,83 @@ export function DurumYorumPaneli({
               />
             ) : (
               <FlatList
-                data={yorumlar}
-                keyExtractor={(i) => i.id}
+                data={satirlar}
+                keyExtractor={(i) => i.yorum.id}
                 contentContainerStyle={styles.list}
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="on-drag"
                 ListEmptyComponent={
-                  <Text style={styles.bos}>Henüz yorum yok</Text>
+                  <Text style={styles.bos}>Henüz yorum yok — ilk yorumu sen yaz</Text>
                 }
-                renderItem={({ item }) => (
-                  <View style={styles.satir}>
-                    <Pressable
-                      style={styles.satirSol}
-                      onPress={() => onProfil?.(item.user_id)}
-                      onLongPress={() => yorumMenu(item)}
-                    >
-                      <ProfilAvatarKucuk
-                        size={36}
-                        displayName={item.display_name}
-                        username={item.username}
-                        avatarUrl={item.avatar_url}
-                      />
-                      <View style={styles.satirGovde}>
-                        <Text style={styles.satirIsim}>
-                          {item.display_name}
-                          <Text style={styles.satirZaman}>
-                            {'  '}
-                            {DurumTarihSaat(item.created_at)}
-                          </Text>
-                        </Text>
-                        <Text style={styles.satirBody}>{item.body}</Text>
-                      </View>
-                    </Pressable>
-                    {item.is_mine || canModerate ? (
-                      <Pressable onPress={() => sil(item)} hitSlop={10}>
-                        <Ionicons
-                          name="trash-outline"
-                          size={16}
-                          color={RenkTokenlari.textDim}
-                        />
-                      </Pressable>
-                    ) : (
-                      <Pressable onPress={() => yorumMenu(item)} hitSlop={10}>
-                        <Ionicons
-                          name="flag-outline"
-                          size={16}
-                          color={RenkTokenlari.textDim}
-                        />
-                      </Pressable>
-                    )}
-                  </View>
-                )}
+                renderItem={({ item }) => renderYorum(item)}
               />
             )}
 
+            {yanitHedef ? (
+              <View style={styles.yanitBar}>
+                <Text style={styles.yanitBarYazi} numberOfLines={1}>
+                  {yanitHedef.display_name} yanıtlanıyor
+                </Text>
+                <Pressable onPress={() => setYanitHedef(null)} hitSlop={10}>
+                  <Ionicons name="close-circle" size={18} color={RenkTokenlari.textDim} />
+                </Pressable>
+              </View>
+            ) : null}
+
+            {medyaUrl ? (
+              <View style={styles.onizlemeSatir}>
+                <Pressable onPress={() => setLightboxUri(medyaUrl)}>
+                  <Image
+                    source={{ uri: medyaUrl }}
+                    style={styles.onizleme}
+                    resizeMode="cover"
+                  />
+                </Pressable>
+                <Pressable
+                  style={styles.onizlemeSil}
+                  onPress={() => setMedyaUrl(null)}
+                  hitSlop={8}
+                >
+                  <Ionicons name="close" size={14} color="#fff" />
+                </Pressable>
+              </View>
+            ) : null}
+
             <View style={styles.inputSatir}>
+              <Pressable
+                style={styles.medyaBtn}
+                onPress={() => void resimSec()}
+                disabled={medyaBusy}
+                hitSlop={6}
+                accessibilityLabel="Yoruma resim ekle"
+              >
+                {medyaBusy ? (
+                  <ActivityIndicator size="small" color={RenkTokenlari.primarySoft} />
+                ) : (
+                  <Ionicons
+                    name="image-outline"
+                    size={22}
+                    color={RenkTokenlari.textMuted}
+                  />
+                )}
+              </Pressable>
               <TextInput
                 style={styles.input}
                 value={metin}
                 onChangeText={setMetin}
-                placeholder="Yorum yaz…"
+                placeholder={
+                  yanitHedef
+                    ? `${yanitHedef.display_name} için yanıt yaz…`
+                    : 'Yorum yaz…'
+                }
                 placeholderTextColor={RenkTokenlari.textDim}
                 maxLength={500}
+                multiline
               />
               <Pressable
-                style={[styles.gonder, !metin.trim() && { opacity: 0.4 }]}
+                style={[styles.gonder, !gonderilebilir && { opacity: 0.4 }]}
                 onPress={() => void gonder()}
-                disabled={!metin.trim() || busy}
+                disabled={!gonderilebilir || busy}
               >
                 <Ionicons name="send" size={18} color="#12040C" />
               </Pressable>
@@ -244,6 +402,7 @@ export function DurumYorumPaneli({
           contentType="status_comment"
           contentId={bildirYorum.id}
           contentPreview={bildirYorum.body}
+          contentMediaUrl={bildirYorum.media_url}
           onClose={() => setBildirYorum(null)}
           onReported={() =>
             Alert.alert(
@@ -253,6 +412,11 @@ export function DurumYorumPaneli({
           }
         />
       ) : null}
+
+      <DurumResimLightbox
+        uri={lightboxUri}
+        onClose={() => setLightboxUri(null)}
+      />
     </>
   );
 }
@@ -270,7 +434,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   sheet: {
-    maxHeight: '72%',
+    maxHeight: '82%',
+    minHeight: '52%',
     backgroundColor: RenkTokenlari.bgElevated,
     borderTopLeftRadius: YaricapTokenlari.xl,
     borderTopRightRadius: YaricapTokenlari.xl,
@@ -286,51 +451,144 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: RenkTokenlari.border,
     marginTop: 10,
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  baslikSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: BoslukTokenlari.lg,
+    marginBottom: 4,
+    minHeight: 40,
   },
   baslik: {
     ...TipografiTokenlari.h2,
     color: RenkTokenlari.text,
     textAlign: 'center',
-    marginBottom: 8,
+    flex: 1,
+  },
+  kapatBtn: {
+    position: 'absolute',
+    right: BoslukTokenlari.md,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   list: {
     paddingHorizontal: BoslukTokenlari.lg,
     paddingBottom: 12,
-    gap: 12,
+    paddingTop: 4,
+    gap: 14,
+    flexGrow: 1,
   },
   bos: {
-    ...TipografiTokenlari.caption,
+    ...TipografiTokenlari.body,
     color: RenkTokenlari.textDim,
     textAlign: 'center',
-    marginTop: 24,
+    marginTop: 40,
+    lineHeight: 22,
   },
   satir: {
     flexDirection: 'row',
     gap: 10,
     alignItems: 'flex-start',
   },
-  satirSol: {
-    flex: 1,
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'flex-start',
-    minWidth: 0,
+  satirYanit: {
+    marginLeft: 36,
+    paddingLeft: 8,
+    borderLeftWidth: 2,
+    borderLeftColor: RenkTokenlari.border,
   },
-  satirGovde: { flex: 1, minWidth: 0 },
+  satirGovde: { flex: 1, minWidth: 0, gap: 6 },
+  balon: {
+    backgroundColor: RenkTokenlari.bgCard,
+    borderRadius: YaricapTokenlari.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4,
+  },
   satirIsim: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.text,
     fontWeight: '800',
-  },
-  satirZaman: {
-    fontWeight: '500',
-    color: RenkTokenlari.textDim,
+    fontSize: 13,
   },
   satirBody: {
     ...TipografiTokenlari.body,
+    color: RenkTokenlari.text,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  yorumResimHit: {
+    marginTop: 6,
+    borderRadius: 10,
+    overflow: 'hidden',
+    alignSelf: 'flex-start',
+  },
+  yorumResim: {
+    width: 160,
+    height: 160,
+    backgroundColor: RenkTokenlari.bgElevated,
+  },
+  metaSatir: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 12,
+    paddingLeft: 4,
+  },
+  zaman: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+  },
+  metaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minHeight: 28,
+  },
+  metaYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    fontWeight: '700',
+  },
+  yanitBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingVertical: 6,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: RenkTokenlari.border,
+  },
+  yanitBarYazi: {
+    ...TipografiTokenlari.caption,
     color: RenkTokenlari.textMuted,
-    marginTop: 2,
+    flex: 1,
+  },
+  onizlemeSatir: {
+    position: 'relative',
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingTop: 8,
+    alignSelf: 'flex-start',
+  },
+  onizleme: {
+    width: 72,
+    height: 72,
+    borderRadius: 10,
+  },
+  onizlemeSil: {
+    position: 'absolute',
+    top: 2,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   inputSatir: {
     flexDirection: 'row',
@@ -339,18 +597,28 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: RenkTokenlari.border,
+    alignItems: 'flex-end',
+  },
+  medyaBtn: {
+    width: 42,
+    height: 42,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   input: {
     flex: 1,
     minHeight: 42,
+    maxHeight: 110,
     borderRadius: YaricapTokenlari.md,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
     backgroundColor: RenkTokenlari.bgCard,
     paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
     color: RenkTokenlari.text,
     ...TipografiTokenlari.body,
+    fontSize: 15,
+    lineHeight: 20,
   },
   gonder: {
     width: 42,

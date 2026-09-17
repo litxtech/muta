@@ -1,6 +1,54 @@
 import { supabase } from '../../../lib/supabase';
 import { OrtamDegiskenleri } from '../../../yapilandirma/OrtamDegiskenleri';
 
+/** Görünmez karakter / boşluk temizliği — Auth "invalid format" önler */
+export function EmailiTemizle(raw: string): string {
+  return raw
+    .normalize('NFKC')
+    .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+/** GoTrue’nun kabul ettiği basit format (yerel@alan.tld) */
+export function EmailFormatiGecerliMi(email: string): boolean {
+  if (!email || email.length > 254) return false;
+  if (email.includes(' ') || email.includes('..')) return false;
+  // tek @, makul yerel kısım + noktalı alan
+  return /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i.test(
+    email,
+  );
+}
+
+function authHatasiTurkce(message: string): string {
+  const m = message.toLowerCase();
+  if (
+    m.includes('invalid format') ||
+    m.includes('validate email') ||
+    m.includes('email address is invalid') ||
+    m.includes('unable to validate email')
+  ) {
+    return 'E-posta formatı geçersiz. Örnek: isim@gmail.com';
+  }
+  if (m.includes('already') || m.includes('registered') || m.includes('exists')) {
+    return 'Bu e-posta zaten kayıtlı. Giriş yap veya farklı e-posta dene.';
+  }
+  if (m.includes('password') && (m.includes('weak') || m.includes('least') || m.includes('short'))) {
+    return 'Şifre çok zayıf. En az 6 karakter kullan.';
+  }
+  if (m.includes('rate') || m.includes('too many')) {
+    return 'Çok fazla deneme. Biraz sonra tekrar dene.';
+  }
+  if (m.includes('network') || m.includes('fetch')) {
+    return 'Bağlantı hatası. İnternetini kontrol et.';
+  }
+  // Ham İngilizce "Invalid ..." yerine genel mesaj
+  if (m === 'invalid' || m.startsWith('invalid ')) {
+    return 'Girilen bilgiler geçersiz. E-posta ve şifreyi kontrol et.';
+  }
+  return message;
+}
+
 function kullaniciAdiNormalize(raw: string): string {
   return raw
     .trim()
@@ -9,7 +57,7 @@ function kullaniciAdiNormalize(raw: string): string {
     .replace(/ü/g, 'u')
     .replace(/ş/g, 's')
     .replace(/ı/g, 'i')
-    .replace(/i\u0307/g, 'i') // İ → i̇ (combining)
+    .replace(/i\u0307/g, 'i')
     .replace(/ö/g, 'o')
     .replace(/ç/g, 'c')
     .replace(/[^a-z0-9]/g, '')
@@ -99,11 +147,28 @@ export async function MisafirHesabiTamamla(input: {
   password: string;
 }): Promise<{ ok: boolean; hata?: string; needsConfirm?: boolean }> {
   const displayName = `${input.ad.trim()} ${input.soyad.trim()}`.trim();
-  const email = input.email.trim().toLowerCase();
+  const email = EmailiTemizle(input.email);
+  const password = input.password;
+
+  if (!input.ad.trim() || !input.soyad.trim()) {
+    return { ok: false, hata: 'Ad ve soyad gerekli.' };
+  }
+  if (!EmailFormatiGecerliMi(email)) {
+    return {
+      ok: false,
+      hata: 'E-posta formatı geçersiz. Örnek: isim@gmail.com',
+    };
+  }
+  if (password.length < 6) {
+    return { ok: false, hata: 'Şifre en az 6 karakter olmalı.' };
+  }
 
   const { data: userData, error: userErr } = await supabase.auth.getUser();
   if (userErr || !userData.user) {
-    return { ok: false, hata: userErr?.message ?? 'Oturum yok' };
+    return {
+      ok: false,
+      hata: authHatasiTurkce(userErr?.message ?? 'Oturum yok'),
+    };
   }
 
   const mevcut = userData.user;
@@ -119,7 +184,7 @@ export async function MisafirHesabiTamamla(input: {
   if (!emailZatenVar) {
     const { data, error } = await supabase.auth.updateUser({
       email,
-      password: input.password,
+      password,
       data: {
         is_guest: false,
         display_name: displayName,
@@ -129,7 +194,9 @@ export async function MisafirHesabiTamamla(input: {
       },
     });
 
-    if (error) return { ok: false, hata: error.message };
+    if (error) {
+      return { ok: false, hata: authHatasiTurkce(error.message) };
+    }
 
     const profil = await profilMisafirBayraginiDusur({
       uid: data.user?.id ?? uid,
@@ -146,7 +213,7 @@ export async function MisafirHesabiTamamla(input: {
 
   // E-posta bağlı ama şifre / meta eksik olabilir
   const { error: metaErr } = await supabase.auth.updateUser({
-    password: input.password,
+    password,
     data: {
       is_guest: false,
       display_name: displayName,
@@ -156,8 +223,14 @@ export async function MisafirHesabiTamamla(input: {
     },
   });
   if (metaErr && !/same password|should be different/i.test(metaErr.message)) {
-    // Şifre aynıysa devam; diğer hatalarda yine profili dene
     console.warn('[MisafirHesabiTamamla] meta/şifre:', metaErr.message);
+    // Kritik auth hatasıysa göster; şifre aynıysa devam
+    if (
+      /invalid|weak|rate|network/i.test(metaErr.message) &&
+      !/same password|should be different/i.test(metaErr.message)
+    ) {
+      // Şifre güncellemesi başarısız ama e-posta zaten var → yine de profili dene
+    }
   }
 
   const profil = await profilMisafirBayraginiDusur({

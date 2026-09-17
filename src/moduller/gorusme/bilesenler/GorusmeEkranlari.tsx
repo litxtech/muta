@@ -90,6 +90,7 @@ export function GorusmeAktifEkrani({
   onSpeaker,
   onCamera,
   onHangup,
+  onFlip,
 }: AktifProps) {
   const saniye = useGorusmeSuresi(baglandi, answeredAt);
   const ad =
@@ -158,13 +159,20 @@ export function GorusmeAktifEkrani({
               aktif={!cameraOn}
               onPress={onCamera}
             />
-          ) : (
+          ) : null}
+          {video && onFlip && cameraOn ? (
+            <Kontrol
+              icon="camera-reverse"
+              label="Çevir"
+              onPress={onFlip}
+            />
+          ) : !video ? (
             <Kontrol
               icon="ellipsis-horizontal"
               label="Diğer"
               onPress={() => undefined}
             />
-          )}
+          ) : null}
         </View>
 
         <Pressable

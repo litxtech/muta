@@ -6,16 +6,23 @@ import { AnimasyonTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapToke
 type Props = {
   boyut?: number;
   renk?: string;
+  /** false ise sabit nokta (liste performansı) */
+  nabiz?: boolean;
 };
 
 /** Canlı yayın nabız noktası — markanın imza hareketi */
 export function AnaSayfaCanliNokta({
   boyut = 7,
   renk = RenkTokenlari.live,
+  nabiz: nabizAcik = true,
 }: Props) {
   const nabiz = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (!nabizAcik) {
+      nabiz.setValue(0);
+      return;
+    }
     const dongu = Animated.loop(
       Animated.sequence([
         Animated.timing(nabiz, {
@@ -32,7 +39,7 @@ export function AnaSayfaCanliNokta({
     );
     dongu.start();
     return () => dongu.stop();
-  }, [nabiz]);
+  }, [nabiz, nabizAcik]);
 
   const halkaOlcek = nabiz.interpolate({
     inputRange: [0, 1],
@@ -45,19 +52,21 @@ export function AnaSayfaCanliNokta({
 
   return (
     <View style={[styles.wrap, { width: boyut * 2.6, height: boyut * 2.6 }]}>
-      <Animated.View
-        style={[
-          styles.halka,
-          {
-            width: boyut,
-            height: boyut,
-            borderRadius: boyut / 2,
-            backgroundColor: renk,
-            opacity: halkaOpaklik,
-            transform: [{ scale: halkaOlcek }],
-          },
-        ]}
-      />
+      {nabizAcik ? (
+        <Animated.View
+          style={[
+            styles.halka,
+            {
+              width: boyut,
+              height: boyut,
+              borderRadius: boyut / 2,
+              backgroundColor: renk,
+              opacity: halkaOpaklik,
+              transform: [{ scale: halkaOlcek }],
+            },
+          ]}
+        />
+      ) : null}
       <View
         style={[
           styles.cekirdek,

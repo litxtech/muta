@@ -39,8 +39,15 @@ export async function routeBannerAction(
         return { ok: true };
 
       case 'INTERNAL_SCREEN': {
-        const key = (action.target ?? '').toLowerCase().trim();
-        const path = INTERNAL_SCREEN_MAP[key] ?? action.target;
+        const raw = (action.target ?? '').trim();
+        if (!raw) return { ok: false, error: 'Hedef ekran yok' };
+        // `/oyun/zeus` gibi absolute path'ler doğrudan
+        if (raw.startsWith('/')) {
+          router.push(raw as never);
+          return { ok: true };
+        }
+        const key = raw.toLowerCase();
+        const path = INTERNAL_SCREEN_MAP[key];
         if (!path) return { ok: false, error: 'Hedef ekran yok' };
         router.push(path as never);
         return { ok: true };

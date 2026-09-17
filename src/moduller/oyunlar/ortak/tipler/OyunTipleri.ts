@@ -2,7 +2,7 @@
  * Tamuso Games — paylaşılan oturum / ekonomi / kayıt tipleri.
  */
 
-export type GameCode = 'match3' | 'kozmik_kaskad' | (string & {});
+export type GameCode = 'kozmik_kaskad' | 'zeus' | 'nox_reels' | (string & {});
 
 export type GameSessionStatus =
   | 'waiting'

@@ -2,11 +2,9 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInUp } from 'react-native-reanimated';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
-  AnimasyonTokenlari,
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -67,25 +65,14 @@ export function KesfetModKartlari({ aktifMode, onSec, sayaclar }: Props) {
         alt={aktifMode ? 'Tekrar dokununca filtre kalkar' : 'Moda göre gez'}
       />
       <View style={styles.izgara}>
-        {KESFET_MODLARI.map((mod, index) => {
+        {KESFET_MODLARI.map((mod) => {
           const aktif = aktifMode === mod.mode;
           const sayi = sayaclar?.[mod.mode] ?? 0;
           return (
-            <Animated.View
-              key={mod.mode}
-              style={styles.kartWrap}
-              entering={FadeInUp.delay(40 + index * 45)
-                .duration(AnimasyonTokenlari.normal)
-                .springify()
-                .damping(16)}
-            >
+            <View key={mod.mode} style={styles.kartWrap}>
               <Pressable
                 onPress={() => onSec(aktif ? null : mod.mode)}
-                style={({ pressed }) => [
-                  styles.kart,
-                  aktif && styles.kartAktif,
-                  pressed && styles.basili,
-                ]}
+                style={[styles.kart, aktif && styles.kartAktif]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: aktif }}
                 accessibilityLabel={`${mod.baslik} modu`}
@@ -123,7 +110,7 @@ export function KesfetModKartlari({ aktifMode, onSec, sayaclar }: Props) {
                   </Text>
                 </LinearGradient>
               </Pressable>
-            </Animated.View>
+            </View>
           );
         })}
       </View>
@@ -154,7 +141,6 @@ const styles = StyleSheet.create({
   kartAktif: {
     borderColor: RenkTokenlari.borderAccent,
   },
-  basili: { opacity: 0.9, transform: [{ scale: 0.98 }] },
   kartIc: {
     padding: BoslukTokenlari.md,
     gap: 4,

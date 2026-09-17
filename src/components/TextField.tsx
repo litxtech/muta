@@ -19,6 +19,7 @@ export function TextField({ label, error, style, ...rest }: Props) {
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         placeholderTextColor={colors.textDim}
+        selectionColor={colors.primary}
         style={[styles.input, error ? styles.inputError : null, style]}
         blurOnSubmit={false}
         {...rest}

@@ -23,7 +23,6 @@ import {
   YaricapTokenlari,
 } from '../../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { LeaderboardEntry } from '../tipler/OyunTipleri';
-import { playMatch3Sfx } from '../../eslestirme/ses/Match3Sesleri';
 
 type Props = {
   visible: boolean;
@@ -82,7 +81,7 @@ function PodiumRow({
 
 export function OyunSonucuModal({
   visible,
-  title = 'KRİSTAL SAVAŞI',
+  title = 'OYUN SONUCU',
   rankings,
   selfUserId,
   onClose,
@@ -90,12 +89,6 @@ export function OyunSonucuModal({
 }: Props) {
   const sorted = [...rankings].sort((a, b) => a.rank - b.rank);
   const self = sorted.find((e) => e.userId === selfUserId);
-
-  useEffect(() => {
-    if (visible) {
-      void playMatch3Sfx(self?.rank === 1 ? 'win' : 'game_end');
-    }
-  }, [visible, self?.rank]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>

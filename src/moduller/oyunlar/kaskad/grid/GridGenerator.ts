@@ -3,8 +3,12 @@
  */
 
 import type { SeededRng } from '../rng/SeededRng';
-import { ALL_PAY_SYMBOLS, LOW_SYMBOLS } from '../sabitler/KaskadSabitleri';
-import { isMultiplier, isScatter } from '../symbols/SymbolRules';
+import { ALL_PAY_SYMBOLS } from '../sabitler/KaskadSabitleri';
+import {
+  emptyInstanceId,
+  isMultiplier,
+  isScatter,
+} from '../symbols/SymbolRules';
 import type {
   GridCell,
   GridMatrix,
@@ -24,17 +28,16 @@ export function nextInstanceId(prefix = 'c'): string {
 }
 
 export function createEmptyGrid(cols: number, rows: number): GridMatrix {
-  const placeholder: KaskadSymbolType = LOW_SYMBOLS[0] ?? 'blueCrystal';
   const grid: GridMatrix = [];
   for (let r = 0; r < rows; r += 1) {
     const row: GridCell[] = [];
     for (let c = 0; c < cols; c += 1) {
       row.push({
         id: `r${r}c${c}`,
-        symbolType: placeholder,
+        symbolType: 'blueCrystal',
         row: r,
         column: c,
-        instanceId: nextInstanceId(),
+        instanceId: emptyInstanceId(r, c),
         multiplierValue: null,
       });
     }

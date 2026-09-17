@@ -31,7 +31,7 @@ export function MesajBosDurum({ misafir, kapali, onAksiyon }: Props) {
   return (
     <View style={styles.wrap}>
       <LinearGradient
-        colors={['#2A1830', '#16101F', '#100C18']}
+        colors={[...RenkTokenlari.gradientPlaceholder]}
         style={styles.kart}
       >
         <View style={styles.ikon}>

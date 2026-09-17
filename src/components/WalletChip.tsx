@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
   },
   value: {
     ...TipografiTokenlari.caption,
-    color: '#12040C',
+    color: RenkTokenlari.textOnPrimary,
     fontWeight: '700',
   },
 });

@@ -1,18 +1,27 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Tabs, router } from 'expo-router';
+import type { BottomTabBarProps } from 'expo-router/build/react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { YuzenTabBar } from '../../src/components/YuzenTabBar';
+import { yuzenTabBarToplamYukseklik } from '../../src/components/YuzenTabBosluk';
 import { useAuth } from '../../src/contexts/AuthContext';
-import { colors } from '../../src/theme/colors';
 
 /**
  * Sekmeler: Ana · Durum · Oluştur · Mesaj · Profil
- * Odalar tabda gizli; oluştur / ana menüden açılır.
+ * YuzenTabBar in-flow (absolute değil) — iOS çıkış/geri dönüşte bozulmaz.
  */
 export default function TabsLayout() {
   const { session, loading } = useAuth();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = yuzenTabBarToplamYukseklik(insets.bottom);
+
+  const renderTabBar = useCallback(
+    (props: BottomTabBarProps) => <YuzenTabBar {...props} />,
+    [],
+  );
 
   useEffect(() => {
     if (loading) return;
@@ -21,18 +30,24 @@ export default function TabsLayout() {
     }
   }, [loading, session]);
 
-  if (loading || !session) {
+  // Oturum varken loading spinner Tabs’ı UNMOUNT ETMESİN — remount iOS layout bozar
+  if (!session) {
+    if (loading) {
+      return (
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: RenkTokenlari.bg,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <ActivityIndicator color={RenkTokenlari.primary} size="large" />
+        </View>
+      );
+    }
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.bg,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <ActivityIndicator color={colors.primary} size="large" />
-      </View>
+      <View style={{ flex: 1, backgroundColor: RenkTokenlari.bg }} />
     );
   }
 
@@ -43,19 +58,22 @@ export default function TabsLayout() {
       fallbackHref="/(auth)/login"
     >
       <Tabs
-        backBehavior="history"
-        tabBar={(props) => <YuzenTabBar {...props} />}
+        backBehavior="none"
+        tabBar={renderTabBar}
         screenOptions={{
           headerShown: false,
-          tabBarShowLabel: true,
+          animation: 'none',
+          tabBarShowLabel: false,
           tabBarActiveTintColor: RenkTokenlari.primarySoft,
           tabBarInactiveTintColor: RenkTokenlari.textDim,
           tabBarStyle: {
-            position: 'absolute',
+            height: tabBarHeight,
             backgroundColor: 'transparent',
             borderTopWidth: 0,
             elevation: 0,
+            position: 'relative',
           },
+          tabBarBackground: () => null,
         }}
       >
         <Tabs.Screen name="index" options={{ title: 'Ana Sayfa' }} />

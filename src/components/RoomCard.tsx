@@ -22,29 +22,81 @@ const MODE_LABEL: Record<Room['mode'], string> = {
 type Props = {
   room: Room;
   onPress: () => void;
+  /** avatar: yuvarlak kompakt; kart: kapaklı dikdörtgen */
+  variant?: 'avatar' | 'kart';
 };
 
-export function RoomCard({ room, onPress }: Props) {
+export function RoomCard({ room, onPress, variant = 'kart' }: Props) {
+  if (variant === 'avatar') {
+    return <AvatarKart room={room} onPress={onPress} />;
+  }
+  return <KapakKart room={room} onPress={onPress} />;
+}
+
+function AvatarKart({ room, onPress }: { room: Room; onPress: () => void }) {
   const kapak = room.cover_url ?? room.host?.avatar_url ?? null;
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.press, pressed && styles.pressed]}
+      style={styles.avatarPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${room.title}, canlı`}
     >
+      <View style={styles.avatarHalka}>
+        {kapak ? (
+          <Image
+            source={{ uri: kapak }}
+            style={styles.avatarImg}
+            resizeMode="cover"
+          />
+        ) : (
+          <LinearGradient
+            colors={[...RenkTokenlari.gradientPrimary]}
+            style={styles.avatarImg}
+          >
+            <Ionicons name="mic" size={22} color={RenkTokenlari.textOnPrimary} />
+          </LinearGradient>
+        )}
+        <View style={styles.avatarCanli}>
+          <AnaSayfaCanliNokta boyut={5} />
+        </View>
+        <View style={styles.avatarDinleyici}>
+          <Ionicons name="headset" size={9} color={RenkTokenlari.text} />
+          <Text style={styles.avatarDinleyiciYazi}>{room.listener_count}</Text>
+        </View>
+      </View>
+
+      <Text style={styles.avatarBaslik} numberOfLines={2}>
+        {room.title}
+      </Text>
+      <Text style={styles.avatarAlt} numberOfLines={1}>
+        {room.room_code
+          ? room.room_code
+          : `${MODE_LABEL[room.mode]} · ${room.host?.display_name ?? 'Ev sahibi'}`}
+      </Text>
+    </Pressable>
+  );
+}
+
+function KapakKart({ room, onPress }: { room: Room; onPress: () => void }) {
+  const kapak = room.cover_url ?? room.host?.avatar_url ?? null;
+
+  return (
+    <Pressable onPress={onPress} style={styles.press}>
       <View style={styles.card}>
         {kapak ? (
           <Image source={{ uri: kapak }} style={styles.kapak} />
         ) : (
           <LinearGradient
-            colors={['#2E1A32', '#1A1224', '#14101C']}
+            colors={[...RenkTokenlari.gradientPlaceholder]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.kapak}
           />
         )}
         <LinearGradient
-          colors={['rgba(14,8,20,0.2)', 'rgba(14,8,20,0.92)']}
+          colors={[...RenkTokenlari.overlayGradient]}
           style={styles.overlay}
         />
 
@@ -65,6 +117,11 @@ export function RoomCard({ room, onPress }: Props) {
               {room.topic}
             </Text>
           ) : null}
+          {room.room_code ? (
+            <Text style={styles.odaKod} numberOfLines={1}>
+              {room.room_code}
+            </Text>
+          ) : null}
 
           <View style={styles.bottom}>
             <View style={styles.hostRow}>
@@ -72,7 +129,7 @@ export function RoomCard({ room, onPress }: Props) {
                 colors={[...RenkTokenlari.gradientPrimary]}
                 style={styles.avatar}
               >
-                <Ionicons name="person" size={11} color="#12040C" />
+                <Ionicons name="person" size={11} color={RenkTokenlari.textOnPrimary} />
               </LinearGradient>
               <Text style={styles.host} numberOfLines={1}>
                 {room.host?.display_name ?? 'Ev sahibi'}
@@ -91,7 +148,85 @@ export function RoomCard({ room, onPress }: Props) {
 
 const styles = StyleSheet.create({
   press: { width: '100%' },
-  pressed: { opacity: 0.92, transform: [{ scale: 0.985 }] },
+
+  /* —— Avatar (kompakt yuvarlak) —— */
+  avatarPress: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 0,
+    paddingBottom: 0,
+    gap: 3,
+  },
+  avatarHalka: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 2,
+    borderColor: RenkTokenlari.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    marginTop: 0,
+    marginBottom: 0,
+  },
+  avatarImg: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarCanli: {
+    position: 'absolute',
+    top: -1,
+    right: -1,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: RenkTokenlari.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: RenkTokenlari.primary,
+  },
+  avatarDinleyici: {
+    position: 'absolute',
+    bottom: -2,
+    right: -4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: RenkTokenlari.chipFill,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: YaricapTokenlari.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(232, 64, 145, 0.35)',
+  },
+  avatarDinleyiciYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.text,
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  avatarBaslik: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 15,
+    textAlign: 'center',
+    paddingHorizontal: 2,
+  },
+  avatarAlt: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+    fontSize: 10,
+    textAlign: 'center',
+  },
+
+  /* —— Kart (kapaklı) —— */
   card: {
     borderRadius: YaricapTokenlari.md,
     borderWidth: 1,
@@ -101,10 +236,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   kapak: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
   },
   overlay: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
   },
   top: {
     flexDirection: 'row',
@@ -117,7 +252,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(8, 4, 14, 0.55)',
+    backgroundColor: RenkTokenlari.chipFill,
     paddingHorizontal: 7,
     paddingVertical: 4,
     borderRadius: YaricapTokenlari.pill,
@@ -140,12 +275,21 @@ const styles = StyleSheet.create({
   title: {
     ...TipografiTokenlari.body,
     fontWeight: '700',
-    color: RenkTokenlari.text,
+    color: RenkTokenlari.textOnOverlay,
     lineHeight: 20,
   },
   topic: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
+    color: RenkTokenlari.textOnOverlay,
+    opacity: 0.78,
+    marginBottom: 2,
+  },
+  odaKod: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.mint,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    fontSize: 10,
     marginBottom: 4,
   },
   bottom: {
@@ -169,20 +313,21 @@ const styles = StyleSheet.create({
   },
   host: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
+    color: RenkTokenlari.textOnOverlay,
+    opacity: 0.82,
     flex: 1,
   },
   meta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: RenkTokenlari.chipFill,
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: YaricapTokenlari.pill,
   },
   metaText: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.text,
+    color: RenkTokenlari.textOnOverlay,
   },
 });

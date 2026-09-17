@@ -47,7 +47,7 @@ export function KesfetFiltreCipleri({ cipler, aktifId, onSec }: Props) {
                 style={styles.ic}
               >
                 {cip.icon ? (
-                  <Ionicons name={cip.icon} size={13} color="#12040C" />
+                  <Ionicons name={cip.icon} size={13} color={RenkTokenlari.textOnPrimary} />
                 ) : null}
                 <Text style={styles.yaziAktif}>{cip.label}</Text>
               </LinearGradient>
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   yaziAktif: {
     ...TipografiTokenlari.caption,
-    color: '#12040C',
+    color: RenkTokenlari.textOnPrimary,
     fontWeight: '800',
   },
 });

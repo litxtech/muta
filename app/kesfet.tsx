@@ -10,17 +10,15 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInUp } from 'react-native-reanimated';
 import { Screen } from '../src/components/Screen';
-import { EkranBasligi } from '../src/components/EkranBasligi';
 import { RoomCard } from '../src/components/RoomCard';
 import { BosDurum } from '../src/components/BosDurum';
 import { ModulHataSiniri } from '../src/ortak/hata-sinirlari/ModulHataSiniri';
+import { TamusoBanner } from '../src/banner';
+import { AnaSayfaAtmosfer } from '../src/moduller/ana-sayfa/bilesenler/AnaSayfaAtmosfer';
 import {
   KESFET_FILTRELERI,
-  KesfetKategorileriniGetir,
   type KesfetFiltresi,
-  type KesfetKategorisi,
 } from '../src/moduller/kesfet/filtreler/KesfetFiltreleri';
 import { KesfetOneriGetir } from '../src/moduller/kesfet/okuma/KesfetOneriGetir';
 import { KesfetAramaCubugu } from '../src/moduller/kesfet/bilesenler/KesfetAramaCubugu';
@@ -30,54 +28,57 @@ import {
 } from '../src/moduller/kesfet/bilesenler/KesfetFiltreCipleri';
 import { KesfetOneCikanKart } from '../src/moduller/kesfet/bilesenler/KesfetOneCikanKart';
 import { KesfetIskelet } from '../src/moduller/kesfet/bilesenler/KesfetIskelet';
-import type { Room } from '../src/types/models';
+import { KesfetMarkaBasligi } from '../src/moduller/kesfet/bilesenler/KesfetMarkaBasligi';
+import {
+  KesfetDunyaPortallari,
+  type KesfetPortal,
+} from '../src/moduller/kesfet/bilesenler/KesfetDunyaPortallari';
+import { KesfetModKartlari } from '../src/moduller/kesfet/bilesenler/KesfetModKartlari';
+import { KesfetTrendSeridi } from '../src/moduller/kesfet/bilesenler/KesfetTrendSeridi';
+import { KesfetBolumBasligi } from '../src/moduller/kesfet/bilesenler/KesfetBolumBasligi';
+import { KesfetOnerilenKullanicilar } from '../src/moduller/kesfet/bilesenler/KesfetOnerilenKullanicilar';
+import { TakipOnerileriniGetir } from '../src/moduller/takip/oneri/TakipOneriServisi';
+import { TakipServisi } from '../src/moduller/takip/islemler/TakipServisi';
+import type { TakipOnerisi } from '../src/moduller/takip/TakipTipleri';
+import { OzellikBayragiAktifMi } from '../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
+import { useAjansYonetim } from '../src/moduller/ajanslar/kancalar/useAjansYonetim';
+import type { Room, RoomMode } from '../src/types/models';
 import { RenkTokenlari } from '../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../src/tasarim-sistemi/TipografiTokenlari';
 import {
-  AnimasyonTokenlari,
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 const FILTRE_IKONLARI: Record<KesfetFiltresi, keyof typeof Ionicons.glyphMap> = {
-  global: 'earth-outline',
-  country: 'flag-outline',
-  language: 'language-outline',
+  global: 'grid-outline',
   online: 'pulse-outline',
-  live: 'radio-outline',
-  voice_room: 'headset-outline',
   new_creator: 'sparkles-outline',
   trending: 'flame-outline',
 };
 
-const KATEGORI_IKONLARI: Record<string, keyof typeof Ionicons.glyphMap> = {
-  party: 'sparkles-outline',
-  karaoke: 'mic-outline',
-  game: 'game-controller-outline',
-  dating: 'heart-outline',
-};
-
+/** Tam Keşfet hub — dünyalar, modlar, trend ve canlı ızgara */
 export default function KesfetEkrani() {
-  const [filtre, setFiltre] = useState<KesfetFiltresi>('voice_room');
-  const [kategoriler, setKategoriler] = useState<KesfetKategorisi[]>([]);
-  const [kategori, setKategori] = useState<string | null>(null);
+  const [filtre, setFiltre] = useState<KesfetFiltresi>('global');
+  const [mode, setMode] = useState<RoomMode | null>(null);
   const [arama, setArama] = useState('');
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  const [oneriler, setOneriler] = useState<TakipOnerisi[]>([]);
+  const [oneriBusy, setOneriBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [cats, data] = await Promise.all([
-        KesfetKategorileriniGetir().catch(() => []),
-        KesfetOneriGetir({ filtre, kategori }).catch(() => []),
-      ]);
-      setKategoriler(cats);
+      // Mod sayaçları için tüm canlıları çek; mod filtresi istemci tarafında
+      const data = await KesfetOneriGetir({ filtre, mode: null }).catch(() => []);
       setRooms(data);
+      const people = await TakipOnerileriniGetir(8).catch(() => []);
+      setOneriler(people);
     } finally {
       setLoading(false);
     }
-  }, [filtre, kategori]);
+  }, [filtre]);
 
   useFocusEffect(
     useCallback(() => {
@@ -95,20 +96,105 @@ export default function KesfetEkrani() {
     [],
   );
 
-  const kategoriCipleri = useMemo<KesfetCipi[]>(
-    () =>
-      kategoriler.map((k) => ({
-        id: k.code,
-        label: k.name,
-        icon: KATEGORI_IKONLARI[k.code] ?? 'pricetag-outline',
-      })),
-    [kategoriler],
-  );
+  const portallar = useMemo<KesfetPortal[]>(() => {
+    const liste: KesfetPortal[] = [
+      {
+        key: 'rooms',
+        label: 'Odalar',
+        icon: 'headset-outline',
+        href: '/(tabs)/rooms',
+        tint: RenkTokenlari.mint,
+      },
+      {
+        key: 'create',
+        label: 'Oda aç',
+        icon: 'add-circle-outline',
+        href: '/(tabs)/create',
+        tint: RenkTokenlari.primarySoft,
+      },
+    ];
+
+    if (OzellikBayragiAktifMi('city_league_enabled')) {
+      liste.push({
+        key: 'sehir',
+        label: 'Şehir',
+        icon: 'business-outline',
+        href: '/sehir',
+        tint: RenkTokenlari.primarySoft,
+      });
+      liste.push({
+        key: 'lig',
+        label: 'Lig',
+        icon: 'trophy-outline',
+        href: '/sehir/lig',
+        tint: RenkTokenlari.accent,
+      });
+    }
+
+    if (OzellikBayragiAktifMi('agency_enabled')) {
+      liste.push({
+        key: 'ajans',
+        label: 'Ajans',
+        icon: 'people-outline',
+        href: '/ajans',
+        tint: RenkTokenlari.violet,
+      });
+    }
+
+    if (OzellikBayragiAktifMi('pk_enabled')) {
+      liste.push({
+        key: 'pk',
+        label: 'PK',
+        icon: 'flash-outline',
+        href: '/pk',
+        tint: RenkTokenlari.accent,
+      });
+    }
+
+    liste.push({
+      key: 'siralamalar',
+      label: 'Sıra',
+      icon: 'podium-outline',
+      href: '/siralamalar',
+      tint: RenkTokenlari.magenta,
+    });
+
+    if (OzellikBayragiAktifMi('events_enabled')) {
+      liste.push({
+        key: 'platform',
+        label: 'Etkinlik',
+        icon: 'calendar-outline',
+        href: '/platform',
+        tint: RenkTokenlari.magenta,
+      });
+    }
+
+    if (OzellikBayragiAktifMi('live_enabled')) {
+      liste.push({
+        key: 'canli',
+        label: 'Canlı',
+        icon: 'radio-outline',
+        href: '/canli',
+        tint: RenkTokenlari.live,
+      });
+    }
+
+    return liste;
+  }, []);
+
+  const modeSayaclari = useMemo(() => {
+    const sayac: Partial<Record<RoomMode, number>> = {};
+    for (const r of rooms) {
+      sayac[r.mode] = (sayac[r.mode] ?? 0) + 1;
+    }
+    return sayac;
+  }, [rooms]);
 
   const gorunenler = useMemo(() => {
+    const modlu = mode ? rooms.filter((r) => r.mode === mode) : rooms;
     const q = arama.trim().toLocaleLowerCase('tr');
-    if (!q) return rooms;
-    return rooms.filter((r) => {
+    if (!q) return modlu;
+    return modlu.filter((r) => {
       const metin = [
         r.title,
         r.topic ?? '',
@@ -119,32 +205,46 @@ export default function KesfetEkrani() {
         .toLocaleLowerCase('tr');
       return metin.includes(q);
     });
-  }, [rooms, arama]);
+  }, [rooms, arama, mode]);
 
-  const heroVar = !arama && gorunenler.length >= 3;
+  const trendOdalar = useMemo(() => {
+    if (arama) return [];
+    return [...gorunenler]
+      .sort(
+        (a, b) =>
+          b.listener_count - a.listener_count ||
+          b.total_coins_earned - a.total_coins_earned,
+      )
+      .slice(0, 8);
+  }, [gorunenler, arama]);
+
+  const aramaAktif = arama.trim().length > 0;
+  const heroVar = !aramaAktif && gorunenler.length >= 2;
   const izgara = heroVar ? gorunenler.slice(1) : gorunenler;
   const ilkYukleme = loading && rooms.length === 0;
 
+  const odaAc = useCallback((oda: Room) => {
+    router.push(`/lobi/${oda.id}` as any);
+  }, []);
+
+  const hostAc = useCallback((hostId: string) => {
+    router.push(`/kullanici/${hostId}` as any);
+  }, []);
+
+  const portalAc = useCallback((href: string) => {
+    router.push(href as any);
+  }, []);
+
   return (
     <Screen edges={['top']}>
+      <AnaSayfaAtmosfer />
       <ModulHataSiniri modulAdi="kesfet">
-        <EkranBasligi title="Keşfet" subtitle="Önerilen odalar ve yayınlar" />
-
+        <KesfetMarkaBasligi canliSayisi={rooms.length} />
         <KesfetAramaCubugu deger={arama} onDegisti={setArama} />
 
-        <KesfetFiltreCipleri
-          cipler={filtreCipleri}
-          aktifId={filtre}
-          onSec={(id) => setFiltre(id as KesfetFiltresi)}
-        />
-
-        {kategoriCipleri.length > 0 ? (
-          <KesfetFiltreCipleri
-            cipler={kategoriCipleri}
-            aktifId={kategori}
-            onSec={(id) => setKategori((mevcut) => (mevcut === id ? null : id))}
-          />
-        ) : null}
+        <View style={styles.bannerUst}>
+          <TamusoBanner placement="DISCOVER_TOP" screen="DISCOVER" compact />
+        </View>
 
         {ilkYukleme ? (
           <KesfetIskelet />
@@ -156,6 +256,7 @@ export default function KesfetEkrani() {
             columnWrapperStyle={styles.satir}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
             refreshControl={
               <RefreshControl
                 refreshing={loading}
@@ -165,25 +266,71 @@ export default function KesfetEkrani() {
             }
             ListHeaderComponent={
               <View style={styles.baslikAlani}>
+                {!aramaAktif ? (
+                  <>
+                    <KesfetDunyaPortallari
+                      portallar={portallar}
+                      onSec={portalAc}
+                    />
+                    <KesfetModKartlari
+                      aktifMode={mode}
+                      onSec={setMode}
+                      sayaclar={modeSayaclari}
+                    />
+                    <View style={styles.bannerOrta}>
+                      <TamusoBanner
+                        placement="DISCOVER_MIDDLE"
+                        screen="DISCOVER"
+                        compact
+                      />
+                    </View>
+                    <KesfetTrendSeridi
+                      odalar={trendOdalar}
+                      onSec={odaAc}
+                      onHost={hostAc}
+                    />
+                    <KesfetOnerilenKullanicilar
+                      items={oneriler}
+                      busyId={oneriBusy}
+                      onFollow={(id) => {
+                        void (async () => {
+                          setOneriBusy(id);
+                          const r = await TakipServisi.takipEt(id);
+                          setOneriBusy(null);
+                          if (r.ok) setOneriler((prev) => prev.filter((x) => x.user_id !== id));
+                        })();
+                      }}
+                    />
+                  </>
+                ) : null}
+
                 {heroVar ? (
-                  <Animated.View
-                    entering={FadeInUp.duration(AnimasyonTokenlari.normal).springify().damping(16)}
-                  >
+                  <View style={styles.padYatay}>
                     <KesfetOneCikanKart
                       room={gorunenler[0]}
-                      onPress={() =>
-                        router.push(`/lobi/${gorunenler[0].id}` as any)
-                      }
+                      onPress={() => odaAc(gorunenler[0])}
                     />
-                  </Animated.View>
+                  </View>
                 ) : null}
+
+                <KesfetFiltreCipleri
+                  cipler={filtreCipleri}
+                  aktifId={filtre}
+                  onSec={(id) => setFiltre(id as KesfetFiltresi)}
+                />
+
                 {gorunenler.length > 0 ? (
-                  <View style={styles.bolumSatir}>
-                    <Text style={styles.bolumYazi}>
-                      {arama ? 'Arama sonuçları' : 'Canlı odalar'}
-                    </Text>
-                    <View style={styles.bolumCizgi} />
-                    <Text style={styles.sayacYazi}>{gorunenler.length}</Text>
+                  <View style={styles.padYatay}>
+                    <KesfetBolumBasligi
+                      baslik={
+                        aramaAktif
+                          ? 'Arama sonuçları'
+                          : mode
+                            ? 'Seçili sahne'
+                            : 'Canlı odalar'
+                      }
+                      sayac={gorunenler.length}
+                    />
                   </View>
                 ) : null}
               </View>
@@ -191,15 +338,21 @@ export default function KesfetEkrani() {
             ListEmptyComponent={
               <View style={styles.bosAlan}>
                 <BosDurum
-                  icon={arama ? 'search-outline' : 'compass-outline'}
-                  title={arama ? 'Eşleşen oda yok' : 'Şu an canlı oda yok'}
+                  icon={aramaAktif ? 'search-outline' : 'compass-outline'}
+                  title={
+                    aramaAktif
+                      ? 'Eşleşen oda yok'
+                      : mode
+                        ? 'Bu modda canlı oda yok'
+                        : 'Şu an canlı oda yok'
+                  }
                   body={
-                    arama
+                    aramaAktif
                       ? 'Farklı bir kelime dene veya filtreyi değiştir.'
                       : 'Canlı odalar açıldığında burada görünür — istersen ilk sahneyi sen kur.'
                   }
                 />
-                {!arama ? (
+                {!aramaAktif ? (
                   <View style={styles.bosAksiyonlar}>
                     <Pressable
                       onPress={() => router.navigate('/(tabs)/create')}
@@ -215,29 +368,38 @@ export default function KesfetEkrani() {
                         <Text style={styles.bosBtnYazi}>Ses odası aç</Text>
                       </LinearGradient>
                     </Pressable>
-                    <Pressable
-                      onPress={() => router.navigate('/(tabs)/rooms')}
-                      style={styles.bosBtnIkincil}
-                    >
-                      <Text style={styles.bosBtnIkincilYazi}>Odaları gez</Text>
-                    </Pressable>
+                    {mode ? (
+                      <Pressable
+                        onPress={() => setMode(null)}
+                        style={styles.bosBtnIkincil}
+                      >
+                        <Text style={styles.bosBtnIkincilYazi}>Tüm modlar</Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable
+                        onPress={() => router.navigate('/(tabs)/rooms')}
+                        style={styles.bosBtnIkincil}
+                      >
+                        <Text style={styles.bosBtnIkincilYazi}>Odaları gez</Text>
+                      </Pressable>
+                    )}
                   </View>
                 ) : null}
               </View>
             }
-            renderItem={({ item, index }) => (
-              <Animated.View
-                style={styles.kartWrap}
-                entering={FadeInUp.delay(Math.min(index, 6) * 40)
-                  .duration(AnimasyonTokenlari.normal)
-                  .springify()
-                  .damping(16)}
-              >
-                <RoomCard
-                  room={item}
-                  onPress={() => router.push(`/lobi/${item.id}` as any)}
+            ListFooterComponent={
+              <View style={styles.bannerAlt}>
+                <TamusoBanner
+                  placement="DISCOVER_BOTTOM"
+                  screen="DISCOVER"
+                  compact
                 />
-              </Animated.View>
+              </View>
+            }
+            renderItem={({ item }) => (
+              <View style={styles.kartWrap}>
+                <RoomCard room={item} onPress={() => odaAc(item)} />
+              </View>
             )}
           />
         )}
@@ -250,7 +412,7 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: BoslukTokenlari.lg,
     paddingTop: BoslukTokenlari.xs,
-    paddingBottom: BoslukTokenlari.xl,
+    paddingBottom: BoslukTokenlari.xxl ?? BoslukTokenlari.xl * 2,
     gap: BoslukTokenlari.md,
     flexGrow: 1,
   },
@@ -261,37 +423,25 @@ const styles = StyleSheet.create({
   },
   baslikAlani: {
     gap: BoslukTokenlari.md,
+    marginHorizontal: -BoslukTokenlari.lg,
   },
-  bolumSatir: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: BoslukTokenlari.sm,
+  padYatay: {
+    paddingHorizontal: BoslukTokenlari.lg,
   },
-  bolumYazi: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    fontSize: 11,
+  bannerUst: {
+    paddingHorizontal: BoslukTokenlari.lg,
+    marginBottom: BoslukTokenlari.xs,
   },
-  bolumCizgi: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: RenkTokenlari.border,
+  bannerOrta: {
+    paddingHorizontal: BoslukTokenlari.lg,
   },
-  sayacYazi: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textDim,
-    backgroundColor: RenkTokenlari.bgElevated,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: YaricapTokenlari.pill,
-    overflow: 'hidden',
+  bannerAlt: {
+    paddingTop: BoslukTokenlari.md,
   },
   bosAlan: {
     alignItems: 'center',
     gap: BoslukTokenlari.xs,
+    paddingTop: BoslukTokenlari.lg,
   },
   bosAksiyonlar: {
     flexDirection: 'row',

@@ -17,12 +17,14 @@ import { EkranBasligi } from '../../../src/components/EkranBasligi';
 import { GradientButton } from '../../../src/components/GradientButton';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { AdminYetkisiVarMi } from '../../../src/moduller/admin/yetki/AdminYetkisiVarMi';
-import { AdminKullaniciDosyasiGetir } from '../../../src/moduller/admin/kullanici/okuma/AdminKullaniciOkuma';
+import { AdminKullaniciDosyasiGetir, AdminTakipIstatistikGetir } from '../../../src/moduller/admin/kullanici/okuma/AdminKullaniciOkuma';
+import type { AdminTakipIstatistikleri } from '../../../src/moduller/takip/TakipTipleri';
 import {
   AdminIhtarKaldir,
   AdminIhtarVer,
   AdminKullaniciBanKaldir,
   AdminKullaniciBanla,
+  AdminKullaniciSifreDegistir,
   AdminKullaniciSil,
 } from '../../../src/moduller/admin/kullanici/islemler/AdminKullaniciIslemleri';
 import {
@@ -37,6 +39,11 @@ import {
   BelgePaylasimPaneli,
 } from '../../../src/moduller/belge-paylasim/bilesenler/BelgePaylasimPaneli';
 import { AdminKullaniciCoinPaneli } from '../../../src/moduller/admin/bilesenler/AdminKullaniciCoinPaneli';
+import { AdminKullaniciHesapDegeriPaneli } from '../../../src/moduller/admin/bilesenler/AdminKullaniciHesapDegeriPaneli';
+import {
+  ProfilIstatistikleriniGetir,
+  type KullaniciProfilIstatistikleri,
+} from '../../../src/moduller/kullanici-profili/istatistik/ProfilIstatistikleriniGetir';
 import { LedgerSebepEtiketi } from '../../../src/moduller/cuzdan/okuma/CuzdanLedgeriniGetir';
 import { RenkTokenlari } from '../../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../src/tasarim-sistemi/TipografiTokenlari';
@@ -86,6 +93,11 @@ export default function AdminKullaniciDosyaEkrani() {
   const [yukleniyor, setYukleniyor] = useState(true);
   const [paylasAcik, setPaylasAcik] = useState(false);
   const [ihtar, setIhtar] = useState('');
+  const [yeniSifre, setYeniSifre] = useState('');
+  const [sifreTekrar, setSifreTekrar] = useState('');
+  const [sifreBusy, setSifreBusy] = useState(false);
+  const [takipIstat, setTakipIstat] = useState<AdminTakipIstatistikleri | null>(null);
+  const [stats, setStats] = useState<KullaniciProfilIstatistikleri | null>(null);
 
   const yukle = useCallback(async () => {
     if (!id) return;
@@ -93,8 +105,15 @@ export default function AdminKullaniciDosyaEkrani() {
     try {
       const d = await AdminKullaniciDosyasiGetir(id);
       setDosya(d?.ok === false ? null : d);
+      const [s, st] = await Promise.all([
+        AdminTakipIstatistikGetir(id).catch(() => null),
+        ProfilIstatistikleriniGetir(id).catch(() => null),
+      ]);
+      setTakipIstat(s);
+      setStats(st);
     } catch {
       setDosya(null);
+      setStats(null);
     } finally {
       setYukleniyor(false);
     }
@@ -189,6 +208,32 @@ export default function AdminKullaniciDosyaEkrani() {
     })();
   };
 
+  const sifreDegistir = () => {
+    if (yeniSifre.length < 6) {
+      Alert.alert('Şifre', 'En az 6 karakter olmalı.');
+      return;
+    }
+    if (yeniSifre !== sifreTekrar) {
+      Alert.alert('Şifre', 'Şifreler eşleşmiyor.');
+      return;
+    }
+    void (async () => {
+      setSifreBusy(true);
+      const r = await AdminKullaniciSifreDegistir({
+        userId: id!,
+        password: yeniSifre,
+      });
+      setSifreBusy(false);
+      if (!r.ok) {
+        Alert.alert('Şifre', r.hata);
+        return;
+      }
+      setYeniSifre('');
+      setSifreTekrar('');
+      Alert.alert('Tamam', 'Şifre güncellendi.');
+    })();
+  };
+
   const yaptirimKoy = (kind: 'upload_ban' | 'room_create_ban') => {
     const baslik =
       kind === 'upload_ban' ? 'Yükleme cezası' : 'Ses odası açma yasağı';
@@ -240,7 +285,7 @@ export default function AdminKullaniciDosyaEkrani() {
         <ActivityIndicator color={RenkTokenlari.primarySoft} style={{ marginTop: 40 }} />
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <LinearGradient colors={['#2A1C34', '#16101F']} style={styles.hero}>
+          <LinearGradient colors={[...RenkTokenlari.gradientCard]} style={styles.hero}>
             <View style={styles.heroUst}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.heroAd}>{ad}</Text>
@@ -293,6 +338,19 @@ export default function AdminKullaniciDosyaEkrani() {
             </Pressable>
           </View>
 
+          {takipIstat ? (
+            <Bolum baslik="Sosyal graph">
+              <Satir e="Takipçi" d={String(takipIstat.followers_count)} />
+              <Satir e="Takip" d={String(takipIstat.following_count)} />
+              <Satir e="Bekleyen istek" d={String(takipIstat.pending_requests)} />
+              <Satir e="Gizli hesap" d={takipIstat.is_private ? 'Evet' : 'Hayır'} />
+              <Satir e="Son 1s follow" d={String(takipIstat.follow_last_hour)} />
+              <Satir e="Son 1s unfollow" d={String(takipIstat.unfollow_last_hour)} />
+              <Satir e="Son 1s request" d={String(takipIstat.request_last_hour)} />
+              <Satir e="Şüpheli" d={takipIstat.suspicious ? 'EVET' : 'Hayır'} />
+            </Bolum>
+          ) : null}
+
           <Bolum baslik="Kimlik & durum">
             <Satir e="Durum" d={p.deleted_at ? 'Silinmiş' : p.banned_at ? `Banlı · ${p.ban_reason ?? ''}` : 'Aktif'} />
             <Satir e="Hesap açılışı" d={tr(p.created_at)} />
@@ -308,6 +366,40 @@ export default function AdminKullaniciDosyaEkrani() {
                 .filter(Boolean)
                 .join(', ') || 'Kullanıcı'}
             />
+          </Bolum>
+
+          <Bolum baslik="Şifre değiştir">
+            <Text style={styles.hint}>
+              Yeni şifre en az 6 karakter olmalı. Kullanıcı bir sonraki girişte
+              bunu kullanır.
+            </Text>
+            <View style={styles.ihtarForm}>
+              <TextInput
+                value={yeniSifre}
+                onChangeText={setYeniSifre}
+                placeholder="Yeni şifre"
+                placeholderTextColor={RenkTokenlari.textDim}
+                style={styles.ihtarInput}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TextInput
+                value={sifreTekrar}
+                onChangeText={setSifreTekrar}
+                placeholder="Şifre tekrar"
+                placeholderTextColor={RenkTokenlari.textDim}
+                style={styles.ihtarInput}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <GradientButton
+                title={sifreBusy ? 'Kaydediliyor…' : 'Şifreyi kaydet'}
+                onPress={sifreDegistir}
+                disabled={sifreBusy}
+              />
+            </View>
           </Bolum>
 
           <Bolum baslik="Yükleme & cüzdan">
@@ -337,6 +429,14 @@ export default function AdminKullaniciDosyaEkrani() {
             userRef={id!}
             baslik="Coin yükle / eksilt / ceza"
             alt={`Mevcut: ${dosya.cuzdan.coins.toLocaleString('tr-TR')} coin · Ceza ihtar da yazar`}
+            onBasarili={() => void yukle()}
+          />
+
+          <AdminKullaniciHesapDegeriPaneli
+            userRef={id!}
+            mevcut={stats?.account_value ?? 0}
+            etiket={stats?.account_value_label}
+            override={stats?.account_value_override === true}
             onBasarili={() => void yukle()}
           />
 

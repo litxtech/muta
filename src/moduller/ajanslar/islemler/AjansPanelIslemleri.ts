@@ -34,7 +34,51 @@ export type AjansYonetimOzet = {
   level_code: string | null;
 };
 
+export type AjansUyeOzet = {
+  user_id: string;
+  display_name: string | null;
+  username: string | null;
+  public_user_id: string | null;
+  avatar_url: string | null;
+  status: string;
+  joined_at: string | null;
+  ses_dakika_toplam: number;
+  ses_dakika_ay: number;
+  yayin_dakika_toplam: number;
+  yayin_dakika_ay: number;
+  yukleme_coin_toplam: number;
+  yukleme_coin_ay: number;
+  kazanc_elmas_toplam: number;
+  kazanc_elmas_ay: number;
+  oyun_kazanc_coin?: number;
+  oyun_kayip_coin?: number;
+  oyun_kazanc_coin_ay?: number;
+  oyun_kayip_coin_ay?: number;
+};
+
+export type AjansCiroOzet = {
+  elmas_bakiye: number;
+  ledger_toplam: number;
+  ledger_aylik: number;
+  total_gifts: number;
+  monthly_score: number;
+};
+
+export type AjansHostBasvuru = {
+  id: string;
+  user_id: string;
+  invite_code: string | null;
+  status: string;
+  created_at: string;
+  display_name: string | null;
+  username: string | null;
+  public_user_id: string | null;
+  avatar_url: string | null;
+};
+
 export type AjansPanelDetay = {
+  /** Sunucu: auth.uid() === owner_id (migration 094+) */
+  ben_sahibiyim?: boolean;
   agency: {
     id: string;
     agency_public_id: string;
@@ -49,6 +93,12 @@ export type AjansPanelDetay = {
     invite_code: string | null;
     created_at: string;
     description?: string | null;
+    total_gifts?: number;
+    monthly_score?: number;
+    logo_url?: string | null;
+    banner_url?: string | null;
+    slogan?: string | null;
+    website_url?: string | null;
   };
   owner: {
     id: string;
@@ -62,6 +112,7 @@ export type AjansPanelDetay = {
     diamonds: number;
     updated_at?: string;
   } | null;
+  ciro?: AjansCiroOzet | null;
   limits: AjansLimitler | null;
   rules: AjansKurallar | null;
   payment_template: AjansOdemeSablonu | null;
@@ -69,6 +120,8 @@ export type AjansPanelDetay = {
     gunluk_transfer: number;
     aylik_transfer: number;
   };
+  uyeler?: AjansUyeOzet[];
+  bekleyen_host_basvurulari?: AjansHostBasvuru[];
   son_transferler: Array<{
     id: string;
     to_user_id: string;
@@ -92,7 +145,11 @@ export type AdminAjansOzet = {
   id: string;
   agency_public_id: string;
   name: string;
+  logo_url?: string | null;
+  banner_url?: string | null;
+  slogan?: string | null;
   country: string | null;
+  description?: string | null;
   status: string;
   trust_tier: string;
   level_code: string | null;
@@ -107,6 +164,7 @@ export type AdminAjansOzet = {
     display_name: string | null;
     username: string | null;
     public_user_id: string | null;
+    avatar_url?: string | null;
   } | null;
   limits: AjansLimitler;
 };
@@ -123,6 +181,9 @@ export type AdminAjansBasvuru = {
   applicant_id: string;
   applicant_name: string | null;
   applicant_username: string | null;
+  applicant_avatar_url?: string | null;
+  applicant_public_id?: string | null;
+  logo_url?: string | null;
   expected_hosts: number | null;
   description: string | null;
 };
@@ -318,9 +379,89 @@ export async function AjansCoinTransfer(input: {
   return { ok: true };
 }
 
+export async function AjansHostBasvurusunuOnayla(
+  applicationId: string,
+): Promise<{ ok: boolean; user_id?: string; hata?: string }> {
+  const { data, error } = await supabase.rpc('ajans_host_basvurusunu_onayla', {
+    p_application_id: applicationId,
+  });
+  if (error) return { ok: false, hata: error.message };
+  const d = data as { ok?: boolean; user_id?: string };
+  return { ok: true, user_id: d?.user_id };
+}
+
+export async function AjansHostBasvurusunuReddet(
+  applicationId: string,
+  note?: string,
+): Promise<{ ok: boolean; hata?: string }> {
+  const { error } = await supabase.rpc('ajans_host_basvurusunu_reddet', {
+    p_application_id: applicationId,
+    p_note: note ?? null,
+  });
+  if (error) return { ok: false, hata: error.message };
+  return { ok: true };
+}
+
+export async function AjansUyeOdaKur(input: {
+  agencyId: string;
+  userId: string;
+  title: string;
+  mode?: string;
+  maxSeats?: number;
+}): Promise<{ ok: boolean; room_id?: string; hata?: string; mevcut_oda?: boolean }> {
+  const { data, error } = await supabase.rpc('ajans_uye_oda_kur', {
+    p_agency_id: input.agencyId,
+    p_user_id: input.userId,
+    p_title: input.title,
+    p_mode: input.mode ?? 'party',
+    p_max_seats: input.maxSeats ?? 8,
+  });
+  if (error) return { ok: false, hata: error.message };
+  const d = data as {
+    ok?: boolean;
+    room_id?: string;
+    hata?: string;
+    mevcut_oda?: boolean;
+  } | null;
+  if (!d?.ok) {
+    return {
+      ok: false,
+      room_id: d?.room_id,
+      hata: d?.hata ?? 'Oda açılamadı',
+      mevcut_oda: !!d?.mevcut_oda,
+    };
+  }
+  return { ok: true, room_id: d.room_id };
+}
+
 export function LimitKalan(
   limit: number | null | undefined,
   kullanilan: number | null | undefined,
 ): number {
   return Math.max(0, Number(limit ?? 0) - Number(kullanilan ?? 0));
+}
+
+
+export type AjansUyeOyunOzeti = {
+  user_id: string;
+  oyun_kazanc_coin: number;
+  oyun_kayip_coin: number;
+  oyun_kazanc_coin_ay: number;
+  oyun_kayip_coin_ay: number;
+};
+
+export async function AjansUyeOyunOzetiGetir(
+  agencyId: string,
+): Promise<AjansUyeOyunOzeti[]> {
+  const { data, error } = await supabase.rpc('ajans_uye_oyun_ozeti', {
+    p_agency_id: agencyId,
+  });
+  if (error) throw error;
+  return ((data as AjansUyeOyunOzeti[]) ?? []).map((r) => ({
+    user_id: r.user_id,
+    oyun_kazanc_coin: Number(r.oyun_kazanc_coin) || 0,
+    oyun_kayip_coin: Number(r.oyun_kayip_coin) || 0,
+    oyun_kazanc_coin_ay: Number(r.oyun_kazanc_coin_ay) || 0,
+    oyun_kayip_coin_ay: Number(r.oyun_kayip_coin_ay) || 0,
+  }));
 }

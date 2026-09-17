@@ -75,7 +75,7 @@ export default function PaylasAcilisEkrani() {
         subtitle={davet ? `Davet: ${davet}` : OrtamDegiskenleri.uygulamaAdi}
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={['#2A1C34', '#16101F']} style={styles.hero}>
+        <LinearGradient colors={[...RenkTokenlari.gradientCard]} style={styles.hero}>
           <Text style={styles.heroBaslik}>{OrtamDegiskenleri.uygulamaAdi}</Text>
           <Text style={styles.heroAlt}>
             Ses odaları, sahne ve canlı anlar. Arkadaşın seni davet etti.

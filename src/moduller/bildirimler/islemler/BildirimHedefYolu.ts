@@ -53,7 +53,14 @@ export function BildirimHedefYolu(input: {
     input.actor_id ||
     null;
 
-  if (type === 'follow' && actor) return `/kullanici/${actor}`;
+  if (type === 'follow_request') return '/takip/istekler';
+  if ((type === 'follow' || type === 'new_follower' || type === 'follow_request_accepted') && actor) {
+    return `/kullanici/${actor}`;
+  }
+  if (type === 'agency_host_approved') return '/ajans/uye';
+  const agency = str('agency_id');
+  if (type === 'agency_host_apply' && agency) return `/ajans/${agency}`;
+  if (type === 'agency_host_rejected') return '/ajans';
   if (type === 'coin_purchase' || input.category === 'wallet') {
     return '/(tabs)/wallet';
   }

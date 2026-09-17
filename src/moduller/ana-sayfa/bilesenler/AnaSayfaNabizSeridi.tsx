@@ -56,16 +56,12 @@ export function AnaSayfaNabizSeridi({ odalar, onOdaPress }: Props) {
                 <Image source={{ uri: kapak }} style={StyleSheet.absoluteFill} />
               ) : (
                 <LinearGradient
-                  colors={
-                    index % 2 === 0
-                      ? ['#3A1A38', '#1A1226', '#120E1A']
-                      : ['#2A1840', '#16101F', '#100C18']
-                  }
+                  colors={[...RenkTokenlari.gradientPlaceholder]}
                   style={StyleSheet.absoluteFill}
                 />
               )}
               <LinearGradient
-                colors={['transparent', 'rgba(10,6,16,0.45)', 'rgba(8,4,14,0.95)']}
+                colors={[...RenkTokenlari.overlayGradient]}
                 locations={[0.2, 0.55, 1]}
                 style={StyleSheet.absoluteFill}
               />
@@ -123,7 +119,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(8,4,14,0.55)',
+    backgroundColor: RenkTokenlari.chipFill,
     paddingHorizontal: 7,
     paddingVertical: 4,
     borderRadius: YaricapTokenlari.pill,
@@ -147,7 +143,7 @@ const styles = StyleSheet.create({
   baslik: {
     ...TipografiTokenlari.body,
     fontWeight: '700',
-    color: RenkTokenlari.text,
+    color: RenkTokenlari.textOnOverlay,
     lineHeight: 19,
   },
   meta: {
@@ -157,6 +153,7 @@ const styles = StyleSheet.create({
   },
   metaYazi: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
+    color: RenkTokenlari.textOnOverlay,
+    opacity: 0.8,
   },
 });

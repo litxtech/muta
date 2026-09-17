@@ -3,10 +3,27 @@
  * Supabase Storage bunu reddeder. ArrayBuffer + açık contentType kullan.
  */
 
+const SES_UZANTILARI = [
+  'mp3',
+  'wav',
+  'm4a',
+  'aac',
+  'ogg',
+  'opus',
+  'flac',
+  'webm',
+  'aiff',
+  'aif',
+  'mid',
+  'midi',
+  'caf',
+  'wma',
+] as const;
+
 export function MedyaUzantisiCoz(
   uri: string,
   mime?: string | null,
-  varsayilan: 'jpg' | 'mp4' = 'jpg',
+  varsayilan: 'jpg' | 'mp4' | 'mp3' = 'jpg',
 ): string {
   const m = (mime ?? '').toLowerCase();
   if (m.includes('png')) return 'png';
@@ -14,18 +31,41 @@ export function MedyaUzantisiCoz(
   if (m.includes('heic') || m.includes('heif')) return 'heic';
   if (m.includes('gif')) return 'gif';
   if (m.includes('quicktime')) return 'mov';
+  if (m.includes('mpeg') || m === 'audio/mp3' || m.includes('mp3')) return 'mp3';
+  if (m.includes('wav') || m.includes('wave')) return 'wav';
+  if (m.includes('m4a') || m.includes('x-m4a')) return 'm4a';
+  if (m.includes('aac')) return 'aac';
+  if (m.includes('ogg') || m.includes('opus')) return m.includes('opus') ? 'opus' : 'ogg';
+  if (m.includes('flac')) return 'flac';
+  if (m.includes('aiff') || m.includes('aif')) return 'aiff';
+  if (m.includes('midi') || m.includes('mid')) return 'midi';
+  if (m.includes('mp4') && m.startsWith('audio/')) return 'm4a';
   if (m.includes('mp4')) return 'mp4';
-  if (m.includes('webm')) return 'webm';
+  if (m.includes('webm')) return m.startsWith('audio/') ? 'webm' : 'webm';
   if (m.includes('jpeg') || m.includes('jpg')) return 'jpg';
 
   const fromUri = uri.split('?')[0]?.split('.').pop()?.toLowerCase();
   if (
     fromUri &&
-    ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'gif', 'mp4', 'mov', 'webm'].includes(
-      fromUri,
-    )
+    [
+      'jpg',
+      'jpeg',
+      'png',
+      'webp',
+      'heic',
+      'heif',
+      'gif',
+      'mp4',
+      'mov',
+      'webm',
+      ...SES_UZANTILARI,
+    ].includes(fromUri)
   ) {
-    return fromUri === 'jpeg' || fromUri === 'heif' ? (fromUri === 'heif' ? 'heic' : 'jpg') : fromUri;
+    if (fromUri === 'jpeg') return 'jpg';
+    if (fromUri === 'heif') return 'heic';
+    if (fromUri === 'aif') return 'aiff';
+    if (fromUri === 'mid') return 'midi';
+    return fromUri;
   }
   return varsayilan;
 }
@@ -34,7 +74,7 @@ export function MedyaUzantisiCoz(
 export function GuvenliMimeTipi(
   mime: string | null | undefined,
   ext: string,
-  tur: 'image' | 'video' = 'image',
+  tur: 'image' | 'video' | 'audio' = 'image',
 ): string {
   const m = (mime ?? '').trim().toLowerCase();
   if (
@@ -51,6 +91,33 @@ export function GuvenliMimeTipi(
     if (ext === 'mov') return 'video/quicktime';
     if (ext === 'webm') return 'video/webm';
     return 'video/mp4';
+  }
+
+  if (tur === 'audio') {
+    switch (ext) {
+      case 'wav':
+        return 'audio/wav';
+      case 'm4a':
+        return 'audio/mp4';
+      case 'aac':
+        return 'audio/aac';
+      case 'ogg':
+        return 'audio/ogg';
+      case 'opus':
+        return 'audio/opus';
+      case 'flac':
+        return 'audio/flac';
+      case 'webm':
+        return 'audio/webm';
+      case 'aiff':
+        return 'audio/aiff';
+      case 'midi':
+        return 'audio/midi';
+      case 'mp4':
+        return 'audio/mp4';
+      default:
+        return 'audio/mpeg';
+    }
   }
 
   switch (ext) {
@@ -87,7 +154,7 @@ export type DepoyaYukleGirdi = {
   path: string;
   uri: string;
   mime?: string | null;
-  tur?: 'image' | 'video';
+  tur?: 'image' | 'video' | 'audio';
   upsert?: boolean;
 };
 
@@ -116,7 +183,7 @@ export async function DepoyaMedyaYukle(
   const ext = MedyaUzantisiCoz(
     girdi.uri,
     girdi.mime,
-    tur === 'video' ? 'mp4' : 'jpg',
+    tur === 'video' ? 'mp4' : tur === 'audio' ? 'mp3' : 'jpg',
   );
   const contentType = GuvenliMimeTipi(girdi.mime, ext, tur);
 

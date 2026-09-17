@@ -62,6 +62,16 @@ const OZELLIK_METINLERI: Record<string, AdminOzellikMetni> = {
     baslik: 'Duyurular',
     aciklama: 'Uygulama içi duyuru gösterimini kontrol eder.',
   },
+  auto_promo_banners_enabled: {
+    baslik: 'Otomatik promo bannerlar',
+    aciklama:
+      'Admin kampanyası yokken feed’de otomatik oda, canlı ve oyun tanıtım şeritlerini gösterir.',
+  },
+  auto_event_banners_enabled: {
+    baslik: 'Olay otomatik bannerlar',
+    aciklama:
+      'Coin eşiği, koltuk dolu ve oyun harcamasında oluşan bannerlar. Admin panelinden eşikler ve TTL yönetilir.',
+  },
   policies_enabled: {
     baslik: 'Politikalar',
     aciklama: 'Kullanım şartları ve onay (consent) ekranlarını kontrol eder.',
@@ -102,13 +112,13 @@ const OZELLIK_METINLERI: Record<string, AdminOzellikMetni> = {
     baslik: 'Oyunlar',
     aciklama: 'Tüm oyun platformunu (katalog ve giriş) açar veya kapatır.',
   },
-  match3_enabled: {
-    baslik: 'Kristal Savaşı',
-    aciklama: 'Match-3 (Kristal Savaşı) oyununu açar veya kapatır.',
-  },
   kozmik_kaskad_enabled: {
     baslik: 'Kozmik Kaskad',
     aciklama: 'Kozmik Kaskad cascade oyununu açar veya kapatır.',
+  },
+  zeus_enabled: {
+    baslik: 'ZEUS',
+    aciklama: 'ZEUS Olympus cascade oyununu açar veya kapatır.',
   },
 };
 

@@ -8,6 +8,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import type { CoinPackage } from '../../../types/models';
 import { CanliCoinSimgesi } from './CanliCoinSimgesi';
+import { PaketFiyatTry } from '../katalog/CoinPaketFiyat';
+import { COIN_TRY_ORANI } from '../katalog/CoinTryOrani';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -23,20 +25,28 @@ function formatCoin(n: number): string {
   return n.toLocaleString('tr-TR');
 }
 
-export function PaketFiyatTry(pkg: CoinPackage): number {
-  if (pkg.price_try != null && Number(pkg.price_try) > 0) {
-    return Number(pkg.price_try);
-  }
-  return Math.round(Number(pkg.price_usd) * 35);
+function bonusYuzde(coins: number, bonus: number): number | null {
+  if (!bonus || coins <= 0) return null;
+  return Math.round((bonus / coins) * 100);
 }
+
+/** @deprecated Import `PaketFiyatTry` from `../katalog/CoinPaketFiyat` */
+export { PaketFiyatTry };
 
 type Props = {
   packages: CoinPackage[];
   locked?: boolean;
   onBuy: (pkg: CoinPackage) => void;
+  /** Üst başlık/alt yazı (modal içinde gizlenebilir) */
+  baslikGoster?: boolean;
 };
 
-export function CoinPaketMagaza({ packages, locked, onBuy }: Props) {
+export function CoinPaketMagaza({
+  packages,
+  locked,
+  onBuy,
+  baslikGoster = true,
+}: Props) {
   const sirali = useMemo(
     () =>
       [...packages].sort(
@@ -46,68 +56,116 @@ export function CoinPaketMagaza({ packages, locked, onBuy }: Props) {
   );
 
   const maxFiyat = Math.max(...sirali.map(PaketFiyatTry), 1);
+  const minFiyat = Math.min(...sirali.map(PaketFiyatTry), maxFiyat);
   const nabizPaketId = sirali.find((p) => !!p.badge)?.id ?? null;
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>Coin yükle</Text>
-      <Text style={styles.sub}>
-        {sirali.length} seçenek · 112 ₺ – 32.000 ₺
-      </Text>
+      {baslikGoster ? (
+        <>
+          <Text style={styles.title}>Coin yükle</Text>
+          <Text style={styles.sub}>
+            1 coin = {COIN_TRY_ORANI.toFixed(2).replace('.', ',')} ₺ · büyük
+            pakette daha avantajlı · {sirali.length} seçenek
+          </Text>
+        </>
+      ) : null}
 
       <View style={styles.grid}>
         {sirali.map((pkg) => {
           const fiyat = PaketFiyatTry(pkg);
-          const toplam = pkg.coins + (pkg.bonus_coins || 0);
+          const bonus = pkg.bonus_coins || 0;
+          const toplam = pkg.coins + bonus;
           const seviye = Math.min(1, fiyat / maxFiyat);
           const vurgu = !!pkg.badge;
           const nabizAcik = pkg.id === nabizPaketId;
+          const ekstra = bonusYuzde(pkg.coins, bonus);
 
           return (
             <Pressable
               key={pkg.id}
               disabled={locked}
               onPress={() => onBuy(pkg)}
+              accessibilityRole="button"
+              accessibilityLabel={`${pkg.title}, ${formatCoin(toplam)} coin, ${formatTry(fiyat)} satın al`}
               style={({ pressed }) => [
                 styles.kartWrap,
-                pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-                locked && { opacity: 0.5 },
+                pressed && styles.kartPressed,
+                locked && styles.kartKilitli,
               ]}
             >
               <LinearGradient
                 colors={
                   vurgu
-                    ? ['#3A2448', '#241828', '#1A1220']
-                    : ['#2A2038', '#1A1524']
+                    ? ['#4A1F3A', '#2A1830', '#1A1220']
+                    : ['#2C2438', '#1E1828']
                 }
-                style={[
-                  styles.kart,
-                  vurgu && { borderColor: RenkTokenlari.borderAccent },
-                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.kart, vurgu && styles.kartVurgu]}
               >
-                {pkg.badge ? (
-                  <View style={styles.badge}>
+                {vurgu ? (
+                  <LinearGradient
+                    colors={[...RenkTokenlari.gradientPrimary]}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
+                    style={styles.badge}
+                  >
                     <Text style={styles.badgeText}>{pkg.badge}</Text>
-                  </View>
+                  </LinearGradient>
                 ) : null}
 
-                <CanliCoinSimgesi
-                  size={vurgu ? 48 : 40}
-                  seviye={seviye}
-                  animasyon={nabizAcik}
-                />
-
-                <Text style={styles.pkgTitle} numberOfLines={1}>
-                  {pkg.title}
-                </Text>
-                <Text style={styles.coins}>{formatCoin(toplam)}</Text>
-                <Text style={styles.coinsAlt}>
-                  {formatCoin(pkg.coins)}
-                  {pkg.bonus_coins ? ` +${formatCoin(pkg.bonus_coins)}` : ''} coin
-                </Text>
-                <View style={styles.fiyatKutu}>
-                  <Text style={styles.fiyat}>{formatTry(fiyat)}</Text>
+                <View style={styles.ustSatir}>
+                  <CanliCoinSimgesi
+                    size={vurgu ? 42 : 36}
+                    seviye={seviye}
+                    animasyon={nabizAcik}
+                  />
+                  <View style={styles.ustMetin}>
+                    <Text style={styles.pkgTitle} numberOfLines={1}>
+                      {pkg.title}
+                    </Text>
+                    {ekstra != null ? (
+                      <View style={styles.bonusChip}>
+                        <Text style={styles.bonusChipText}>+%{ekstra} bonus</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.paketEtiket}>Anında yükle</Text>
+                    )}
+                  </View>
                 </View>
+
+                <View style={styles.miktarBlok}>
+                  <Text style={[styles.coins, vurgu && styles.coinsVurgu]}>
+                    {formatCoin(toplam)}
+                  </Text>
+                  <Text style={styles.coinsBirim}>coin</Text>
+                </View>
+
+                {bonus > 0 ? (
+                  <Text style={styles.coinsAlt}>
+                    {formatCoin(pkg.coins)} +{' '}
+                    <Text style={styles.bonusInline}>
+                      {formatCoin(bonus)} bonus
+                    </Text>
+                  </Text>
+                ) : (
+                  <Text style={styles.coinsAlt}>Net bakiye</Text>
+                )}
+
+                <LinearGradient
+                  colors={
+                    vurgu
+                      ? [...RenkTokenlari.gradientPrimary]
+                      : [...RenkTokenlari.gradientGold]
+                  }
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={styles.cta}
+                >
+                  <Text style={styles.ctaFiyat}>{formatTry(fiyat)}</Text>
+                  <Text style={styles.ctaAksiyon}>Satın Al</Text>
+                </LinearGradient>
               </LinearGradient>
             </Pressable>
           );
@@ -128,68 +186,139 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: BoslukTokenlari.sm,
+    gap: BoslukTokenlari.md,
   },
   kartWrap: {
-    width: '48%',
+    width: '47.5%',
     flexGrow: 1,
     minWidth: '46%',
   },
+  kartPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.98 }],
+  },
+  kartKilitli: {
+    opacity: 0.5,
+  },
   kart: {
-    borderRadius: YaricapTokenlari.md,
+    borderRadius: YaricapTokenlari.lg,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
-    padding: BoslukTokenlari.md,
-    alignItems: 'center',
-    gap: 4,
-    minHeight: 168,
+    paddingTop: BoslukTokenlari.lg,
+    paddingHorizontal: BoslukTokenlari.md,
+    paddingBottom: BoslukTokenlari.md,
+    gap: 8,
+    minHeight: 220,
     overflow: 'hidden',
+  },
+  kartVurgu: {
+    borderColor: RenkTokenlari.borderAccent,
+    borderWidth: 1.5,
   },
   badge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(232, 64, 145, 0.28)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: YaricapTokenlari.pill,
+    top: 0,
+    right: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderBottomLeftRadius: YaricapTokenlari.sm,
     zIndex: 2,
   },
   badgeText: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.primarySoft,
-    fontWeight: '800',
+    color: RenkTokenlari.textOnOverlay,
+    fontWeight: '900',
     fontSize: 9,
+    letterSpacing: 0.6,
+  },
+  ustSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingRight: 28,
+  },
+  ustMetin: {
+    flex: 1,
+    gap: 3,
   },
   pkgTitle: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.text,
-    fontWeight: '700',
-    marginTop: 4,
+    fontWeight: '800',
+  },
+  paketEtiket: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    fontSize: 10,
+    letterSpacing: 0.2,
+  },
+  bonusChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(61, 207, 176, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(61, 207, 176, 0.35)',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: YaricapTokenlari.pill,
+  },
+  bonusChipText: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.mint,
+    fontWeight: '800',
+    fontSize: 9,
+    letterSpacing: 0.2,
+  },
+  miktarBlok: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+    marginTop: 2,
   },
   coins: {
-    ...TipografiTokenlari.body,
+    ...TipografiTokenlari.h2,
     color: RenkTokenlari.accent,
     fontWeight: '900',
-    fontSize: 16,
+    fontSize: 26,
+    letterSpacing: -0.4,
+  },
+  coinsVurgu: {
+    color: RenkTokenlari.primarySoft,
+  },
+  coinsBirim: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    fontWeight: '700',
   },
   coinsAlt: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
-    textAlign: 'center',
+    marginBottom: 2,
   },
-  fiyatKutu: {
-    marginTop: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: YaricapTokenlari.pill,
-    backgroundColor: 'rgba(240,180,41,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(240,180,41,0.35)',
-  },
-  fiyat: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.accent,
+  bonusInline: {
+    color: RenkTokenlari.mint,
     fontWeight: '800',
+  },
+  cta: {
+    marginTop: 'auto',
+    borderRadius: YaricapTokenlari.md,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  ctaFiyat: {
+    ...TipografiTokenlari.body,
+    color: '#1A1220',
+    fontWeight: '900',
+    fontSize: 16,
+  },
+  ctaAksiyon: {
+    ...TipografiTokenlari.micro,
+    color: 'rgba(26, 18, 32, 0.72)',
+    fontWeight: '800',
+    fontSize: 10,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
 });

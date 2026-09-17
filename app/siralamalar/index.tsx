@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { BosDurum } from '../../src/components/BosDurum';
@@ -21,6 +21,7 @@ import {
   type SiralamaSatiri,
 } from '../../src/moduller/liderlik-siralamalari/okuma/LiderlikSiralamasiniGetir';
 import { SiralamaKullaniciSatiri } from '../../src/moduller/liderlik-siralamalari/bilesenler/SiralamaKullaniciSatiri';
+import { SiralamaOdaSatiri } from '../../src/moduller/liderlik-siralamalari/bilesenler/SiralamaOdaSatiri';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -32,7 +33,10 @@ const BOARDS: { id: SiralamaBoard; label: string }[] = [
   { id: 'top_recharge', label: 'Yükleme' },
   { id: 'gifter', label: 'Hediye' },
   { id: 'host', label: 'Ev sahibi' },
+  { id: 'room', label: 'Oda' },
 ];
+
+const BOARD_IDS = new Set(BOARDS.map((b) => b.id));
 
 const PERIODS: { id: SiralamaPeriod; label: string }[] = [
   { id: 'weekly', label: 'Haftalık' },
@@ -40,24 +44,42 @@ const PERIODS: { id: SiralamaPeriod; label: string }[] = [
   { id: 'all_time', label: 'Tümü' },
 ];
 
+function boardParam(raw: string | string[] | undefined): SiralamaBoard {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  return v && BOARD_IDS.has(v as SiralamaBoard)
+    ? (v as SiralamaBoard)
+    : 'top_recharge';
+}
+
 /** Top Recharge ≠ Top Gifter — haftalik yukleme on planda */
 export default function SiralamalarEkrani() {
-  const [board, setBoard] = useState<SiralamaBoard>('top_recharge');
+  const params = useLocalSearchParams<{ board?: string }>();
+  const [board, setBoard] = useState<SiralamaBoard>(() =>
+    boardParam(params.board),
+  );
   const [period, setPeriod] = useState<SiralamaPeriod>('weekly');
   const [rows, setRows] = useState<SiralamaSatiri[]>([]);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (!params.board) return;
+    setBoard(boardParam(params.board));
+  }, [params.board]);
+
+  const etkinPeriod: SiralamaPeriod =
+    board === 'room' || board === 'host' ? 'weekly' : period;
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      await LiderlikSiralamasiniYenile(board, period);
-      setRows(await LiderlikSiralamasiniGetir({ board, period }));
+      await LiderlikSiralamasiniYenile(board, etkinPeriod);
+      setRows(await LiderlikSiralamasiniGetir({ board, period: etkinPeriod }));
     } catch {
       setRows([]);
     } finally {
       setLoading(false);
     }
-  }, [board, period]);
+  }, [board, etkinPeriod]);
 
   useFocusEffect(
     useCallback(() => {
@@ -74,6 +96,9 @@ export default function SiralamalarEkrani() {
           : 'Tüm zamanlar yükleme';
     }
     if (board === 'gifter') return 'Hediye gönderenler';
+    if (board === 'room') {
+      return 'Bu hafta odada harcanan hediye + oyun coin · Pazartesi sıfırlanır';
+    }
     return 'Hediye alan ev sahipleri';
   }, [board, period]);
 
@@ -101,7 +126,7 @@ export default function SiralamalarEkrani() {
           ))}
         </View>
 
-        {board !== 'host' ? (
+        {board !== 'host' && board !== 'room' ? (
           <View style={styles.periods}>
             {PERIODS.map((p) => (
               <Pressable
@@ -141,15 +166,23 @@ export default function SiralamalarEkrani() {
                   style={StyleSheet.absoluteFill}
                 />
                 <Text style={styles.podiumTitle}>
-                  {board === 'top_recharge' ? 'Haftanın zirvesi' : 'Zirve'}
+                  {board === 'room'
+                    ? 'Haftanın odaları'
+                    : board === 'top_recharge'
+                      ? 'Haftanın zirvesi'
+                      : 'Zirve'}
                 </Text>
-                {top3.map((item) => (
-                  <SiralamaKullaniciSatiri
-                    key={item.id}
-                    item={item}
-                    birim="coin"
-                  />
-                ))}
+                {top3.map((item) =>
+                  board === 'room' ? (
+                    <SiralamaOdaSatiri key={item.id} item={item} />
+                  ) : (
+                    <SiralamaKullaniciSatiri
+                      key={item.id}
+                      item={item}
+                      birim="coin"
+                    />
+                  ),
+                )}
               </View>
             ) : null
           }
@@ -161,14 +194,20 @@ export default function SiralamalarEkrani() {
                 body={
                   board === 'top_recharge'
                     ? 'Bu dönemde henüz coin yüklemesi yok. Profil → Ayarlar’dan sıralamayı gizleyebilirsin.'
-                    : 'Bu dönem için kayıt yok.'
+                    : board === 'room'
+                      ? 'Bu hafta henüz odada hediye veya oyun coin harcaması yok. Pazartesi sıralama sıfırlanır.'
+                      : 'Bu dönem için kayıt yok.'
                 }
               />
             ) : null
           }
-          renderItem={({ item }) => (
-            <SiralamaKullaniciSatiri item={item} birim="coin" />
-          )}
+          renderItem={({ item }) =>
+            board === 'room' ? (
+              <SiralamaOdaSatiri item={item} />
+            ) : (
+              <SiralamaKullaniciSatiri item={item} birim="coin" />
+            )
+          }
         />
       </ModulHataSiniri>
     </Screen>

@@ -9,13 +9,32 @@ import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler
 import { AdminYetkisiVarMi } from '../../src/moduller/admin/yetki/AdminYetkisiVarMi';
 import { useBildirimler } from '../../src/moduller/bildirimler/baglam/BildirimSaglayici';
 import {
+  PROFIL_GOSTERGE_GIZLILIK,
   GizlilikAyariKaydet,
   GizlilikAyarlariniGetir,
+  type GizlilikAyarlari,
 } from '../../src/moduller/ayarlar/islemler/GizlilikAyarlariniYonet';
-import { useAjansYonetim } from '../../src/moduller/ajanslar/kancalar/useAjansYonetim';
+import { useKullanimSuresi } from '../../src/moduller/kullanim-suresi/baglam/KullanimSuresiSaglayici';
+import { GorunumSecimKartlari } from '../../src/moduller/gorunum/bilesenler/GorunumSecimKartlari';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useTema } from '../../src/tasarim-sistemi/tema/TemaSaglayici';
+
+const EMPTY_PRIVACY: GizlilikAyarlari = {
+  hide_recharge_rank: false,
+  hide_gifter_rank: false,
+  hide_current_room: false,
+  hide_last_seen: false,
+  hide_agency: false,
+  hide_gift_collection: false,
+  hide_top_supporter: false,
+  hide_level: false,
+  hide_topup_coin: false,
+  hide_prestige: false,
+  hide_account_value: false,
+  is_private: false,
+};
 
 /** X / Twitter tarzi: profildeki menuler burada */
 export default function ProfilAyarlarEkrani() {
@@ -28,32 +47,33 @@ export default function ProfilAyarlarEkrani() {
     refreshWallet,
   } = useAuth();
   const isAdmin = AdminYetkisiVarMi(profile);
-  const { yetkili: ajansYetkili, yonetimHref } = useAjansYonetim();
   const { okunmamis, yenile: bildirimYenile } = useBildirimler();
+  const { formatli: kullanimFormatli, yenile: kullanimYenile } =
+    useKullanimSuresi();
+  const { palet } = useTema();
   const [upgradeAcik, setUpgradeAcik] = useState(false);
-  const [yuklemeGizli, setYuklemeGizli] = useState(false);
+  const [privacy, setPrivacy] = useState<GizlilikAyarlari>(EMPTY_PRIVACY);
 
   useFocusEffect(
     useCallback(() => {
       void refreshProfile();
       void bildirimYenile();
+      void kullanimYenile();
       if (!isGuest) {
-        void GizlilikAyarlariniGetir().then((p) =>
-          setYuklemeGizli(p.hide_recharge_rank),
-        );
+        void GizlilikAyarlariniGetir().then(setPrivacy);
       }
-    }, [refreshProfile, isGuest, bildirimYenile]),
+    }, [refreshProfile, isGuest, bildirimYenile, kullanimYenile]),
   );
 
-  const yuklemeGizlilikDegistir = async (v: boolean) => {
+  const privacyDegistir = async (key: keyof GizlilikAyarlari, v: boolean) => {
     if (isGuest) {
       setUpgradeAcik(true);
       return;
     }
-    setYuklemeGizli(v);
-    const r = await GizlilikAyariKaydet('hide_recharge_rank', v);
+    setPrivacy((p) => ({ ...p, [key]: v }));
+    const r = await GizlilikAyariKaydet(key, v);
     if (!r.ok) {
-      setYuklemeGizli(!v);
+      setPrivacy((p) => ({ ...p, [key]: !v }));
       Alert.alert('Gizlilik', r.hata ?? 'Kaydedilemedi');
     }
   };
@@ -83,6 +103,16 @@ export default function ProfilAyarlarEkrani() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
+        <Text style={[styles.sectionLabel, { color: palet.textDim }]}>
+          Görünüm
+        </Text>
+        <Text style={[styles.sectionHint, { color: palet.textMuted }]}>
+          Siyah, beyaz veya premium temalardan birini seç. Seçimin tüm uygulamaya uygulanır.
+        </Text>
+        <View style={styles.gorunumKartlar}>
+          <GorunumSecimKartlari />
+        </View>
+
         <ListeGrubu title="Hesap">
           <ListeSatiri
             icon="create-outline"
@@ -136,16 +166,15 @@ export default function ProfilAyarlarEkrani() {
         <ListeGrubu title="Keşfet">
           <ListeSatiri
             icon="business-outline"
-            label="Ajans"
-            onPress={() => router.push('/ajans' as any)}
+            label="Ajans kur"
+            onPress={() => {
+              if (isGuest) {
+                setUpgradeAcik(true);
+                return;
+              }
+              router.push('/ajans' as any);
+            }}
           />
-          {ajansYetkili ? (
-            <ListeSatiri
-              icon="briefcase-outline"
-              label="Ajans Yönetim"
-              onPress={() => router.push(yonetimHref as any)}
-            />
-          ) : null}
           <ListeSatiri
             icon="mic-outline"
             label="Ev sahibi paneli"
@@ -164,23 +193,48 @@ export default function ProfilAyarlarEkrani() {
           />
         </ListeGrubu>
 
-        <ListeGrubu title="Gizlilik">
-          <View style={styles.privacyRow}>
-            <View style={styles.privacyCopy}>
-              <Text style={styles.privacyLabel}>Yükleme sıralamamı gizle</Text>
-              <Text style={styles.privacyHint}>
-                Haftalık coin yükleme liderliğinde adın ve avatarın görünmez
-              </Text>
+        <ListeGrubu title="Profil göstergeleri">
+          <Text style={[styles.sectionHint, { marginBottom: BoslukTokenlari.xs }]}>
+            Kapalı olanlar profilini ziyaret edenlere görünmez.
+          </Text>
+          {PROFIL_GOSTERGE_GIZLILIK.map((item, index) => (
+            <View
+              key={item.key}
+              style={[
+                styles.privacyRow,
+                index < PROFIL_GOSTERGE_GIZLILIK.length - 1 && styles.privacyBorder,
+              ]}
+            >
+              <View style={styles.privacyCopy}>
+                <Text style={styles.privacyLabel}>{item.label}</Text>
+                {item.aciklama ? (
+                  <Text style={styles.privacyHint}>{item.aciklama}</Text>
+                ) : null}
+              </View>
+              <Switch
+                value={privacy[item.key]}
+                onValueChange={(v) => void privacyDegistir(item.key, v)}
+                trackColor={{
+                  true: RenkTokenlari.primary,
+                  false: RenkTokenlari.border,
+                }}
+                thumbColor={palet.bgElevated}
+              />
             </View>
-            <Switch
-              value={yuklemeGizli}
-              onValueChange={(v) => void yuklemeGizlilikDegistir(v)}
-              trackColor={{
-                true: RenkTokenlari.primary,
-                false: RenkTokenlari.border,
-              }}
-            />
-          </View>
+          ))}
+        </ListeGrubu>
+
+        <ListeGrubu title="Gizlilik">
+          <ListeSatiri
+            icon="lock-closed-outline"
+            label="Gizli hesap"
+            onPress={() => router.push('/ayarlar' as any)}
+          />
+          <ListeSatiri
+            icon="person-add-outline"
+            label="Takip istekleri"
+            onPress={() => router.push('/takip/istekler' as any)}
+          />
           <ListeSatiri
             icon="hand-left-outline"
             label="Engellenen kullanıcılar"
@@ -196,26 +250,32 @@ export default function ProfilAyarlarEkrani() {
 
         <ListeGrubu title="Uygulama">
           <ListeSatiri
+            icon="time-outline"
+            label="Kullanım süresi"
+            value={kullanimFormatli}
+            showChevron={false}
+          />
+          <ListeSatiri
             icon="settings-outline"
             label="Tercihler"
             onPress={() => router.push('/ayarlar' as any)}
           />
-            <ListeSatiri
-              icon="notifications-outline"
-              label="Bildirimler"
-              value={okunmamis > 0 ? `${okunmamis} yeni` : undefined}
-              onPress={() => router.push('/bildirimler' as any)}
-            />
-            <ListeSatiri
-              icon="options-outline"
-              label="Bildirim ayarları"
-              onPress={() => router.push('/bildirim-ayarlari' as any)}
-            />
-            <ListeSatiri
-              icon="megaphone-outline"
-              label="Duyurular"
-              onPress={() => router.push('/duyuru' as any)}
-            />
+          <ListeSatiri
+            icon="notifications-outline"
+            label="Bildirimler"
+            value={okunmamis > 0 ? `${okunmamis} yeni` : undefined}
+            onPress={() => router.push('/bildirimler' as any)}
+          />
+          <ListeSatiri
+            icon="options-outline"
+            label="Bildirim ayarları"
+            onPress={() => router.push('/bildirim-ayarlari' as any)}
+          />
+          <ListeSatiri
+            icon="megaphone-outline"
+            label="Duyurular"
+            onPress={() => router.push('/duyuru' as any)}
+          />
           <ListeSatiri
             icon="document-text-outline"
             label="Politikalar"
@@ -271,6 +331,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: BoslukTokenlari.xl,
     paddingBottom: BoslukTokenlari.xxxl,
   },
+  sectionLabel: {
+    ...TipografiTokenlari.micro,
+    paddingHorizontal: BoslukTokenlari.sm,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  sectionHint: {
+    ...TipografiTokenlari.caption,
+    paddingHorizontal: BoslukTokenlari.sm,
+    marginBottom: BoslukTokenlari.md,
+    lineHeight: 18,
+  },
+  gorunumKartlar: {
+    marginBottom: BoslukTokenlari.lg,
+  },
   privacyRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -278,6 +353,8 @@ const styles = StyleSheet.create({
     paddingVertical: BoslukTokenlari.md,
     paddingHorizontal: BoslukTokenlari.md,
     gap: BoslukTokenlari.md,
+  },
+  privacyBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: RenkTokenlari.border,
   },

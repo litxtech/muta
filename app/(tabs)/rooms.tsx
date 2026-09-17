@@ -17,6 +17,7 @@ import { fetchLiveRooms } from '../../src/services/api';
 import type { Room } from '../../src/types/models';
 import { YUZEN_TAB_ICERIK_BOSLUGU } from '../../src/components/YuzenTabBar';
 import { OdalarMarkaBasligi } from '../../src/moduller/odalar/bilesenler/OdalarMarkaBasligi';
+import { OdaHaftalikSiralamaSeridi } from '../../src/moduller/liderlik-siralamalari/bilesenler/OdaHaftalikSiralamaSeridi';
 import {
   OdalarModFiltresi,
   type OdalarFiltre,
@@ -65,11 +66,12 @@ export default function RoomsScreen() {
       <ModulHataSiniri modulAdi="odalar">
         <OdalarMarkaBasligi canliSayisi={rooms.length} />
         <OdalarModFiltresi secili={filtre} onSec={setFiltre} />
+        <OdaHaftalikSiralamaSeridi />
 
         <FlatList
           data={filtrelenmis}
           keyExtractor={(item) => item.id}
-          numColumns={2}
+          numColumns={3}
           columnWrapperStyle={styles.satir}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
@@ -110,7 +112,7 @@ export default function RoomsScreen() {
                   colors={[...RenkTokenlari.gradientPrimary]}
                   style={styles.bosCtaIc}
                 >
-                  <Ionicons name="add" size={18} color="#12040C" />
+                  <Ionicons name="add" size={16} color="#12040C" />
                   <Text style={styles.bosCtaYazi}>Oda kur</Text>
                 </LinearGradient>
               </Pressable>
@@ -123,7 +125,11 @@ export default function RoomsScreen() {
           }
           renderItem={({ item }) => (
             <View style={styles.kartWrap}>
-              <RoomCard room={item} onPress={() => odaAc(item)} />
+              <RoomCard
+                room={item}
+                variant="avatar"
+                onPress={() => odaAc(item)}
+              />
             </View>
           )}
         />
@@ -135,27 +141,35 @@ export default function RoomsScreen() {
 const styles = StyleSheet.create({
   list: {
     paddingHorizontal: BoslukTokenlari.lg,
+    paddingTop: 0,
     paddingBottom: YUZEN_TAB_ICERIK_BOSLUGU,
-    gap: BoslukTokenlari.md,
+    gap: BoslukTokenlari.xs,
     flexGrow: 1,
+    justifyContent: 'flex-start',
   },
   satir: {
-    gap: BoslukTokenlari.md,
+    gap: BoslukTokenlari.sm,
+    alignItems: 'flex-start',
+    marginTop: 0,
   },
   kartWrap: {
-    flex: 1,
-    maxWidth: '48.5%',
+    width: '31.5%',
+    flexGrow: 0,
+    flexShrink: 0,
+    alignSelf: 'flex-start',
+    justifyContent: 'flex-start',
   },
   listeBaslik: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: BoslukTokenlari.xs,
+    marginBottom: 2,
+    marginTop: 0,
     paddingHorizontal: BoslukTokenlari.xs,
   },
   accent: {
     width: 3,
-    height: 14,
+    height: 12,
     borderRadius: 2,
     backgroundColor: RenkTokenlari.primary,
   },
@@ -163,16 +177,17 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.h2,
     color: RenkTokenlari.text,
     flex: 1,
-    fontSize: 17,
+    fontSize: 15,
   },
   listeSayi: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.primarySoft,
     backgroundColor: 'rgba(232, 64, 145, 0.14)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: YaricapTokenlari.pill,
     overflow: 'hidden',
+    fontSize: 10,
   },
   bosWrap: {
     alignItems: 'center',
@@ -186,12 +201,12 @@ const styles = StyleSheet.create({
   bosCtaIc: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
   },
   bosCtaYazi: {
-    ...TipografiTokenlari.body,
+    ...TipografiTokenlari.caption,
     fontWeight: '800',
     color: '#12040C',
   },

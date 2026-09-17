@@ -1,5 +1,7 @@
 import { supabase } from '../../../../lib/supabase';
 import type { AdminKullaniciDosyasi, AdminKullaniciOzet } from '../tipler';
+import { TakipServisi } from '../../../takip/islemler/TakipServisi';
+import type { AdminTakipIstatistikleri } from '../../../takip/TakipTipleri';
 
 export async function AdminKullaniciAra(
   q?: string,
@@ -21,4 +23,10 @@ export async function AdminKullaniciDosyasiGetir(
   });
   if (error) throw error;
   return data as AdminKullaniciDosyasi;
+}
+
+export async function AdminTakipIstatistikGetir(
+  userId: string,
+): Promise<AdminTakipIstatistikleri | null> {
+  return TakipServisi.adminIstatistik(userId);
 }

@@ -34,3 +34,18 @@ export async function OdaKapasitesiniKontrolEt(oda: {
   }
   return { ok: true };
 }
+
+/** Kullanıcı odadan resmi çıkmamışsa (hala üye) true. */
+export async function OdaUyeligiVarMi(
+  odaId: string,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('room_members')
+    .select('user_id')
+    .eq('room_id', odaId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) return false;
+  return Boolean(data);
+}

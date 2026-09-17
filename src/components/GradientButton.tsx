@@ -8,6 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { RenkTokenlari } from '../tasarim-sistemi/RenkTokenlari';
 import { colors, radii, typography } from '../theme/colors';
 
 type Props = {
@@ -55,9 +56,9 @@ export function GradientButton({
     >
       <LinearGradient colors={[...gradient]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.gradient}>
         {loading ? (
-          <ActivityIndicator color="#0B0614" />
+          <ActivityIndicator color={RenkTokenlari.textOnPrimary} />
         ) : (
-          <Text style={[styles.title, styles.titleDark]}>{title}</Text>
+          <Text style={[styles.title, styles.titleOnPrimary]}>{title}</Text>
         )}
       </LinearGradient>
     </Pressable>
@@ -89,8 +90,8 @@ const styles = StyleSheet.create({
     ...typography.h2,
     color: colors.text,
   },
-  titleDark: {
-    color: '#12040C',
+  titleOnPrimary: {
+    color: RenkTokenlari.textOnPrimary,
   },
   disabled: {
     opacity: 0.45,

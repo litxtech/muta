@@ -26,7 +26,7 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
   const ad =
     seat.profile?.display_name?.trim() ||
     seat.profile?.username?.trim() ||
-    (tahtMi || seat.seat_index === 0 ? 'Ev sahibi' : `Mikrofon ${seat.seat_index + 1}`);
+    (tahtMi || seat.seat_index === 0 ? 'Ev sahibi' : `Koltuk ${seat.seat_index + 1}`);
   const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
   const avatarUrl = seat.profile?.avatar_url;
 
@@ -144,6 +144,7 @@ const styles = StyleSheet.create({
   avatarKutu: {
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
   avatar: {
     backgroundColor: RenkTokenlari.seatEmpty,

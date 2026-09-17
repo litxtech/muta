@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -24,6 +25,10 @@ import {
   AjansSil,
   type AjansPanelDetay,
 } from '../../../src/moduller/ajanslar/islemler/AjansPanelIslemleri';
+import {
+  AjansProfilGetir,
+  type AjansProfil,
+} from '../../../src/moduller/ajanslar/okuma/AjansProfilGetir';
 import { AdminStil, SayiKisa } from '../../../src/moduller/admin/bilesenler/AdminStil';
 import { RenkTokenlari } from '../../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../src/tasarim-sistemi/TipografiTokenlari';
@@ -34,6 +39,50 @@ import {
 
 function sayi(n: number) {
   return new Intl.NumberFormat('tr-TR').format(n);
+}
+
+function AvatarKucuk({
+  url,
+  ad,
+  size = 40,
+}: {
+  url?: string | null;
+  ad: string;
+  size?: number;
+}) {
+  const harf = (ad.trim() || '?').charAt(0).toLocaleUpperCase('tr-TR');
+  if (url) {
+    return (
+      <Image
+        source={{ uri: url }}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: 1,
+          borderColor: RenkTokenlari.borderAccent,
+        }}
+      />
+    );
+  }
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: RenkTokenlari.bgElevated,
+        borderWidth: 1,
+        borderColor: RenkTokenlari.border,
+      }}
+    >
+      <Text style={{ color: RenkTokenlari.text, fontWeight: '800', fontSize: size * 0.34 }}>
+        {harf}
+      </Text>
+    </View>
+  );
 }
 
 const LIMIT_ONSETLER = [
@@ -72,6 +121,7 @@ export default function AdminAjansDetayEkrani() {
   const { profile } = useAuth();
   const admin = AdminYetkisiVarMi(profile);
   const [detay, setDetay] = useState<AjansPanelDetay | null>(null);
+  const [profil, setProfil] = useState<AjansProfil | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [busy, setBusy] = useState(false);
   const [yukleMiktar, setYukleMiktar] = useState('50000');
@@ -85,8 +135,12 @@ export default function AdminAjansDetayEkrani() {
     if (!id) return;
     setYukleniyor(true);
     try {
-      const d = await AjansPanelDetayGetir(id);
+      const [d, p] = await Promise.all([
+        AjansPanelDetayGetir(id),
+        AjansProfilGetir(id).catch(() => null),
+      ]);
       setDetay(d);
+      setProfil(p);
       if (d.limits) {
         setSingle(String(d.limits.single_transfer_limit));
         setDaily(String(d.limits.daily_limit));
@@ -100,6 +154,7 @@ export default function AdminAjansDetayEkrani() {
         e instanceof Error ? e.message : 'Detay yüklenemedi',
       );
       setDetay(null);
+      setProfil(null);
     } finally {
       setYukleniyor(false);
     }
@@ -217,23 +272,46 @@ export default function AdminAjansDetayEkrani() {
   const distributorToggle = () => {
     if (!id || !detay) return;
     const next = !detay.agency.is_coin_distributor;
-    void (async () => {
-      setBusy(true);
-      const r = await AdminAjansDistributorAyarla({
-        agencyId: id,
-        enabled: next,
-      });
-      setBusy(false);
-      if (!r.ok) Alert.alert('Dağıtıcı', r.hata);
-      else await yukle();
-    })();
+    Alert.alert(
+      next ? 'Coin yükleme yetkisi ver' : 'Coin yükleme yetkisini kaldır',
+      next
+        ? 'Bu ajans, yönetim ekranından kullanıcılara coin gönderebilecek. Onaylıyor musun?'
+        : 'Ajansın kullanıcıya coin yükleme yetkisi kapatılacak.',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: next ? 'Yetki ver' : 'Kaldır',
+          style: next ? 'default' : 'destructive',
+          onPress: () => {
+            void (async () => {
+              setBusy(true);
+              const r = await AdminAjansDistributorAyarla({
+                agencyId: id,
+                enabled: next,
+              });
+              setBusy(false);
+              if (!r.ok) Alert.alert('Yetki', r.hata);
+              else {
+                Alert.alert(
+                  'Tamam',
+                  next
+                    ? 'Coin yükleme yetkisi verildi.'
+                    : 'Coin yükleme yetkisi kaldırıldı.',
+                );
+                await yukle();
+              }
+            })();
+          },
+        },
+      ],
+    );
   };
 
   return (
     <Screen edges={['top']}>
       <EkranBasligi
         title={detay?.agency.name ?? 'Ajans'}
-        subtitle="Coin · limit yükselt / indir"
+        subtitle="Profil · coin · limit"
         fallbackHref={"/admin/ajanslar" as any}
       />
       {yukleniyor && !detay ? (
@@ -255,16 +333,183 @@ export default function AdminAjansDetayEkrani() {
           }
           keyboardShouldPersistTaps="handled"
         >
-          <LinearGradient colors={['#241A36', '#121018']} style={styles.hero}>
-            <Text style={styles.eyebrow}>
-              {detay.agency.agency_public_id} · {detay.agency.trust_tier}
-            </Text>
+          <View style={styles.profilKart}>
+            {profil?.agency.banner_url || detay.agency.banner_url ? (
+              <Image
+                source={{
+                  uri: (profil?.agency.banner_url ||
+                    detay.agency.banner_url) as string,
+                }}
+                style={styles.banner}
+              />
+            ) : (
+              <LinearGradient
+                colors={[...RenkTokenlari.gradientCard]}
+                style={styles.banner}
+              />
+            )}
+            <View style={styles.profilGovde}>
+              <AvatarKucuk
+                url={profil?.agency.logo_url || detay.agency.logo_url}
+                ad={detay.agency.name}
+                size={64}
+              />
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={styles.eyebrow}>
+                  {detay.agency.agency_public_id} · {detay.agency.trust_tier}
+                  {detay.agency.level_code
+                    ? ` · ${detay.agency.level_code}`
+                    : ''}
+                </Text>
+                <Text style={AdminStil.kartBaslik}>{detay.agency.name}</Text>
+                {(profil?.agency.slogan || detay.agency.slogan) ? (
+                  <Text style={styles.alt}>
+                    {profil?.agency.slogan || detay.agency.slogan}
+                  </Text>
+                ) : null}
+                <Text style={styles.alt}>
+                  {detay.agency.country ?? '—'} · {detay.agency.status} ·{' '}
+                  {detay.agency.host_count} üye
+                </Text>
+              </View>
+            </View>
+            {(profil?.agency.description || detay.agency.description) ? (
+              <Text style={styles.aciklama}>
+                {profil?.agency.description || detay.agency.description}
+              </Text>
+            ) : null}
+            {(profil?.agency.website_url || detay.agency.website_url) ? (
+              <Text
+                style={[
+                  styles.alt,
+                  {
+                    color: RenkTokenlari.primarySoft,
+                    paddingHorizontal: BoslukTokenlari.lg,
+                  },
+                ]}
+              >
+                {profil?.agency.website_url || detay.agency.website_url}
+              </Text>
+            ) : null}
+            <View style={styles.sahipSatir}>
+              <AvatarKucuk
+                url={
+                  profil?.owner?.avatar_url || detay.owner?.avatar_url
+                }
+                ad={
+                  detay.owner?.display_name ||
+                  detay.owner?.username ||
+                  'Sahip'
+                }
+                size={36}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={AdminStil.kartBaslik}>
+                  {detay.owner?.display_name ||
+                    detay.owner?.username ||
+                    '—'}
+                </Text>
+                <Text style={AdminStil.kartAlt}>
+                  Sahip
+                  {detay.owner?.username
+                    ? ` · @${detay.owner.username}`
+                    : ''}
+                  {detay.owner?.public_user_id
+                    ? ` · ${detay.owner.public_user_id}`
+                    : ''}
+                </Text>
+              </View>
+              {detay.owner?.id ? (
+                <Pressable
+                  onPress={() =>
+                    router.push(`/admin/kullanicilar/${detay.owner!.id}` as any)
+                  }
+                >
+                  <Text
+                    style={[
+                      AdminStil.aksiyonYazi,
+                      { color: RenkTokenlari.primarySoft },
+                    ]}
+                  >
+                    Profil →
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
             <Text style={styles.bakiye}>{sayi(bakiye)}</Text>
-            <Text style={styles.alt}>Dağıtım bakiyesi</Text>
-            <Text style={styles.alt}>
-              Sahip: {detay.owner?.display_name || detay.owner?.username || '—'}
-            </Text>
-          </LinearGradient>
+            <Text style={styles.bakiyeAlt}>Dağıtım bakiyesi</Text>
+            {profil?.istatistik ? (
+              <View style={styles.kpiSatir}>
+                <Text style={AdminStil.kartAlt}>
+                  Üye {sayi(profil.istatistik.uye_sayisi)}
+                </Text>
+                <Text style={AdminStil.kartAlt}>
+                  Haftalık coin {SayiKisa(profil.istatistik.haftalik_coin)}
+                </Text>
+                <Text style={AdminStil.kartAlt}>
+                  Toplam coin {SayiKisa(profil.istatistik.toplam_coin)}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          <Text style={AdminStil.sectionLabel}>
+            Üyeler ({(detay.uyeler ?? profil?.yayincilar ?? []).length})
+          </Text>
+          {(detay.uyeler?.length ?? 0) === 0 &&
+          (profil?.yayincilar?.length ?? 0) === 0 ? (
+            <Text style={AdminStil.bos}>Üye yok</Text>
+          ) : (
+            (detay.uyeler?.length
+              ? detay.uyeler
+              : (profil?.yayincilar ?? []).map((y) => ({
+                  user_id: y.user_id,
+                  display_name: y.display_name,
+                  username: y.username,
+                  public_user_id: y.public_user_id,
+                  avatar_url: y.avatar_url,
+                  status: 'agency',
+                  joined_at: y.joined_at,
+                  ses_dakika_toplam: y.ses_dakika,
+                  ses_dakika_ay: 0,
+                  yayin_dakika_toplam: y.yayin_dakika,
+                  yayin_dakika_ay: 0,
+                  yukleme_coin_toplam: 0,
+                  yukleme_coin_ay: 0,
+                  kazanc_elmas_toplam: y.kazanc_elmas,
+                  kazanc_elmas_ay: 0,
+                }))
+            ).map((u) => {
+              const ad = u.display_name || u.username || u.user_id.slice(0, 8);
+              return (
+                <Pressable
+                  key={u.user_id}
+                  style={AdminStil.kart}
+                  onPress={() =>
+                    router.push(`/admin/kullanicilar/${u.user_id}` as any)
+                  }
+                >
+                  <View style={styles.sahipSatir}>
+                    <AvatarKucuk url={u.avatar_url} ad={ad} size={40} />
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={AdminStil.kartBaslik}>{ad}</Text>
+                      <Text style={AdminStil.kartAlt}>
+                        {u.username ? `@${u.username}` : u.public_user_id ?? '—'}
+                        {u.joined_at
+                          ? ` · ${new Date(u.joined_at).toLocaleDateString('tr-TR')}`
+                          : ''}
+                      </Text>
+                      <Text style={AdminStil.kartAlt}>
+                        Yayın {sayi(u.yayin_dakika_toplam)} dk · Ses{' '}
+                        {sayi(u.ses_dakika_toplam)} dk · Elmas{' '}
+                        {SayiKisa(u.kazanc_elmas_toplam)}
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
 
           <Text style={AdminStil.sectionLabel}>Ajansa coin yükle / indir</Text>
           <View style={AdminStil.kart}>
@@ -311,16 +556,45 @@ export default function AdminAjansDetayEkrani() {
             </View>
           </View>
 
-          <Text style={AdminStil.sectionLabel}>Dağıtıcı yetkisi</Text>
-          <Pressable style={AdminStil.kart} onPress={distributorToggle}>
-            <Text style={AdminStil.kartBaslik}>
-              {detay.agency.is_coin_distributor
-                ? 'Dağıtıcı açık — dokunarak kapat'
-                : 'Dağıtıcı kapalı — dokunarak aç'}
-            </Text>
-            <Text style={AdminStil.kartAlt}>
-              Kapalıyken ajans kullanıcıya coin yükleyemez
-            </Text>
+          <Text style={AdminStil.sectionLabel}>Coin yükleme yetkisi</Text>
+          <Pressable
+            style={[
+              AdminStil.kart,
+              detay.agency.is_coin_distributor && styles.yetkiAcik,
+            ]}
+            onPress={distributorToggle}
+            disabled={busy}
+          >
+            <View style={styles.yetkiSatir}>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={AdminStil.kartBaslik}>
+                  {detay.agency.is_coin_distributor
+                    ? 'Yetki açık'
+                    : 'Yetki kapalı'}
+                </Text>
+                <Text style={AdminStil.kartAlt}>
+                  {detay.agency.is_coin_distributor
+                    ? 'Ajans sahibi, Ajansım ekranından istediği kullanıcıya coin gönderebilir. Dokunarak kaldır.'
+                    : 'Platform bu ajansa yetki verince ajans yönetim ekranında coin sistemi açılır. Dokunarak ver.'}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.yetkiSwitch,
+                  detay.agency.is_coin_distributor && styles.yetkiSwitchAcik,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.yetkiSwitchYazi,
+                    detay.agency.is_coin_distributor &&
+                      styles.yetkiSwitchYaziAcik,
+                  ]}
+                >
+                  {detay.agency.is_coin_distributor ? 'AÇIK' : 'KAPALI'}
+                </Text>
+              </View>
+            </View>
           </Pressable>
 
           <Text style={AdminStil.sectionLabel}>Limit yükselt / indir</Text>
@@ -491,6 +765,44 @@ export default function AdminAjansDetayEkrani() {
 }
 
 const styles = StyleSheet.create({
+  profilKart: {
+    borderRadius: YaricapTokenlari.lg,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.borderAccent,
+    backgroundColor: RenkTokenlari.bgCard,
+    overflow: 'hidden',
+    gap: BoslukTokenlari.sm,
+    paddingBottom: BoslukTokenlari.lg,
+  },
+  banner: {
+    width: '100%',
+    height: 110,
+  },
+  profilGovde: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: BoslukTokenlari.md,
+    paddingHorizontal: BoslukTokenlari.lg,
+    marginTop: -28,
+  },
+  sahipSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: BoslukTokenlari.lg,
+  },
+  aciklama: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    lineHeight: 20,
+    paddingHorizontal: BoslukTokenlari.lg,
+  },
+  kpiSatir: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingHorizontal: BoslukTokenlari.lg,
+  },
   hero: {
     borderRadius: YaricapTokenlari.lg,
     padding: BoslukTokenlari.xl,
@@ -509,10 +821,17 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.title,
     fontSize: 36,
     color: RenkTokenlari.text,
+    paddingHorizontal: BoslukTokenlari.lg,
+    marginTop: BoslukTokenlari.sm,
   },
   alt: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textMuted,
+  },
+  bakiyeAlt: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    paddingHorizontal: BoslukTokenlari.lg,
   },
   yesil: { borderColor: 'rgba(80,200,160,0.4)' },
   kirmizi: { borderColor: 'rgba(232,64,64,0.35)' },
@@ -521,5 +840,35 @@ const styles = StyleSheet.create({
     borderColor: RenkTokenlari.primary,
     alignItems: 'center',
     paddingVertical: 14,
+  },
+  yetkiAcik: {
+    borderColor: 'rgba(110, 231, 183, 0.35)',
+    backgroundColor: 'rgba(110, 231, 183, 0.06)',
+  },
+  yetkiSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  yetkiSwitch: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: RenkTokenlari.surface,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+  },
+  yetkiSwitchAcik: {
+    backgroundColor: 'rgba(110, 231, 183, 0.2)',
+    borderColor: RenkTokenlari.mint,
+  },
+  yetkiSwitchYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  yetkiSwitchYaziAcik: {
+    color: RenkTokenlari.mint,
   },
 });

@@ -1,6 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { OrtamDegiskenleri } from '../../../yapilandirma/OrtamDegiskenleri';
-import { ImagePickerModuluYukle } from '../../../ortak/medya/ImagePickerHazirMi';
+import { GaleriAc } from '../../../ortak/medya/ImagePickerHazirMi';
 import {
   DepoyaMedyaYukle,
   MedyaUzantisiCoz,
@@ -11,30 +11,21 @@ export type DurumMedyaTuru = 'image' | 'video';
 /** Galeri → status-media bucket (hızlı public URL) */
 export async function DurumMedyasiSecVeYukle(
   tur: DurumMedyaTuru,
+  opts?: { onYuklemeBasladi?: () => void },
 ): Promise<
   | { ok: true; url: string; mediaType: DurumMedyaTuru }
   | { ok: false; hata: string; iptal?: boolean }
 > {
-  const mod = await ImagePickerModuluYukle();
-  if (!mod.ok) return { ok: false, hata: mod.hata };
-
-  const { ImagePicker } = mod;
-
   try {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) return { ok: false, hata: 'Galeri izni gerekli.' };
-
-    const result = await ImagePicker.launchImageLibraryAsync({
+    const secim = await GaleriAc({
       mediaTypes: tur === 'video' ? ['videos'] : ['images'],
-      quality: 0.85,
       videoMaxDuration: 90,
     });
+    if (!secim.ok) return secim;
 
-    if (result.canceled || !result.assets?.[0]) {
-      return { ok: false, hata: 'İptal', iptal: true };
-    }
+    opts?.onYuklemeBasladi?.();
 
-    const asset = result.assets[0];
+    const asset = secim.asset;
     const uid = (await supabase.auth.getUser()).data.user?.id;
     if (!uid) return { ok: false, hata: 'Oturum yok' };
 

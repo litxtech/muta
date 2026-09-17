@@ -11,6 +11,10 @@ export type SiralamaSatiri = {
   display_name?: string | null;
   username?: string | null;
   avatar_url?: string | null;
+  room_id?: string | null;
+  room_title?: string | null;
+  room_cover_url?: string | null;
+  room_is_live?: boolean | null;
 };
 
 export type SiralamaBoard =
@@ -41,6 +45,7 @@ export async function LiderlikSiralamasiniGetir(input: {
   return ((data as SiralamaSatiri[]) ?? []).map((r) => ({
     ...r,
     score: Number(r.score) || 0,
+    room_is_live: Boolean(r.room_is_live),
   }));
 }
 

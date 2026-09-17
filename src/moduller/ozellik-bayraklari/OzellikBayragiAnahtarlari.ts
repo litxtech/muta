@@ -17,6 +17,7 @@ export const OzellikBayragiAnahtarlari = [
   'events_enabled',
   'missions_enabled',
   'announcements_enabled',
+  'auto_promo_banners_enabled',
   'policies_enabled',
   'moderation_enabled',
   'analytics_enabled',
@@ -27,8 +28,8 @@ export const OzellikBayragiAnahtarlari = [
   'iap_enabled',
   'stripe_enabled',
   'games_enabled',
-  'match3_enabled',
   'kozmik_kaskad_enabled',
+  'zeus_enabled',
 ] as const;
 
 export type OzellikBayragiAnahtari = (typeof OzellikBayragiAnahtarlari)[number];

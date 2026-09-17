@@ -340,6 +340,12 @@ export default function AdminOyunlarEkrani() {
         >
           <Text style={styles.btnText}>Odasız oyun testi aç</Text>
         </Pressable>
+        <Pressable
+          style={[styles.btn, styles.btnSecondary]}
+          onPress={() => router.push('/admin/kaskad-yonetim' as any)}
+        >
+          <Text style={styles.btnText}>Realm of Storms yönetimi (RTP · math · refund)</Text>
+        </Pressable>
       </ScrollView>
     </Screen>
   );

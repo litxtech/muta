@@ -5,6 +5,7 @@ import { RenkTokenlari } from '../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
+  GolgeTokenlari,
   YaricapTokenlari,
 } from '../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
@@ -78,6 +79,7 @@ const styles = StyleSheet.create({
   group: {
     gap: BoslukTokenlari.sm,
     marginBottom: BoslukTokenlari.md,
+    ...GolgeTokenlari.card,
   },
   groupTitle: {
     ...TipografiTokenlari.micro,

@@ -63,8 +63,8 @@ export default function DogrulaKodEkrani() {
 
   const alt =
     amac === 'recovery'
-      ? `${email || 'E-postana'} gelen 6 haneli kodu yaz, sonra yeni şifreni belirle.`
-      : `${email || 'E-postana'} gelen 6 haneli doğrulama kodunu yaz.`;
+      ? `${email || 'E-postana'} gelen 6 haneli kodu yaz, sonra yeni şifreni belirle. Gelen kutusu ve spam klasörünü kontrol et.`
+      : `${email || 'E-postana'} gelen 6 haneli doğrulama kodunu yaz. Gelen kutusu ve spam klasörünü kontrol et.`;
 
   const dogrula = useCallback(async () => {
     if (!email) {

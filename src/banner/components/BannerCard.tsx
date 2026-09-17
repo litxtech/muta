@@ -12,6 +12,7 @@ import {
   BANNER_BG,
   BANNER_BORDER,
   BANNER_BORDER_RADIUS,
+  BANNER_COMPACT_MAX_HEIGHT,
   BANNER_TAP_MAX_MOVE_PX,
   resolveBannerAspect,
 } from '../core/BannerConstants';
@@ -61,11 +62,11 @@ export function BannerCard({
 
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const heightRef = useRef(0);
+  const overlay = !!compact;
 
   const onLayout = useCallback(
     (e: LayoutChangeEvent) => {
       heightRef.current = e.nativeEvent.layout.height;
-      // Layout anında kısmi görünürlük varsay — parent ScrollView offset yoksa
       onVisibilityChange(0.6);
     },
     [onVisibilityChange],
@@ -149,45 +150,68 @@ export function BannerCard({
           onCardPress();
         }}
       >
-        {showGradient && (
-          <LinearGradient
-            colors={
-              (banner.gradient_json?.colors as [string, string]) ??
-              ([RenkTokenlari.deepPlum, RenkTokenlari.primary] as [
-                string,
-                string,
-              ])
-            }
-            style={[styles.gradient, { aspectRatio: aspect }]}
-          />
-        )}
-        {showVideo && (
-          <BannerVideo
-            uri={banner.media_url}
-            thumbnailUrl={banner.thumbnail_url}
-            alt={banner.media_alt}
-            aspectRatio={aspect}
-            autoplay={banner.autoplay_video}
-            loop={banner.loop_video}
-            isActive={isVideoActive}
-            onStart={() => trackEvent('video_start')}
-            onComplete={() => trackEvent('video_complete')}
-          />
-        )}
-        {showImage && (
-          <BannerImage
-            uri={banner.media_url}
-            alt={banner.media_alt}
-            aspectRatio={aspect}
-          />
-        )}
-        {!showVideo && !showImage && !showGradient && (
-          <View style={[styles.gradient, { aspectRatio: aspect, backgroundColor: RenkTokenlari.surface }]} />
-        )}
+        <View>
+          {showGradient && (
+            <LinearGradient
+              colors={
+                (banner.gradient_json?.colors as [string, string]) ??
+                ([RenkTokenlari.deepPlum, RenkTokenlari.primary] as [
+                  string,
+                  string,
+                ])
+              }
+              style={[styles.gradient, { aspectRatio: aspect }]}
+            />
+          )}
+          {showVideo && (
+            <BannerVideo
+              uri={banner.media_url}
+              thumbnailUrl={banner.thumbnail_url}
+              alt={banner.media_alt}
+              aspectRatio={aspect}
+              autoplay={banner.autoplay_video}
+              loop={banner.loop_video}
+              isActive={isVideoActive}
+              onStart={() => trackEvent('video_start')}
+              onComplete={() => trackEvent('video_complete')}
+            />
+          )}
+          {showImage && (
+            <BannerImage
+              uri={banner.media_url}
+              alt={banner.media_alt}
+              aspectRatio={aspect}
+              flush={overlay}
+            />
+          )}
+          {!showVideo && !showImage && !showGradient && (
+            <View
+              style={[
+                styles.gradient,
+                { aspectRatio: aspect, backgroundColor: RenkTokenlari.surface },
+              ]}
+            />
+          )}
+
+          {overlay && showText && (
+            <>
+              <LinearGradient
+                colors={['transparent', 'rgba(8,4,16,0.88)']}
+                style={styles.overlayFade}
+                pointerEvents="none"
+              />
+              <View style={styles.overlayContent} pointerEvents="box-none">
+                <BannerContent banner={banner} compact overlay />
+              </View>
+            </>
+          )}
+        </View>
       </Pressable>
 
-      {showText && <BannerContent banner={banner} compact={compact} />}
-      <BannerCTA actions={actions} onPress={(a) => void runAction(a)} />
+      {!overlay && showText && <BannerContent banner={banner} compact={compact} />}
+      {!overlay && (
+        <BannerCTA actions={actions} onPress={(a) => void runAction(a)} />
+      )}
 
       {banner.dismissible && (
         <Pressable
@@ -202,9 +226,7 @@ export function BannerCard({
       )}
 
       {debug && (
-        <View style={styles.debug} pointerEvents="none">
-          {/* production'da kapalı */}
-        </View>
+        <View style={styles.debug} pointerEvents="none" />
       )}
     </Animated.View>
   );
@@ -220,7 +242,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   compact: {
-    maxHeight: 160,
+    maxHeight: BANNER_COMPACT_MAX_HEIGHT,
   },
   shadowIos: {
     shadowColor: '#000',
@@ -234,16 +256,32 @@ const styles = StyleSheet.create({
   gradient: {
     width: '100%',
   },
+  overlayFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: '35%',
+  },
+  overlayContent: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'flex-end',
+  },
   dismiss: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    top: 8,
+    right: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.45)',
+    zIndex: 2,
   },
   debug: {
     position: 'absolute',

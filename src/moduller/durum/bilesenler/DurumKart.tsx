@@ -7,10 +7,12 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { VideoView, useVideoPlayer } from 'expo-video';
 import { ProfilAvatarKucuk } from '../../canli-sohbet/bilesenler/ProfilAvatarKucuk';
 import type { DurumOggesi } from '../islemler/DurumIslemleri';
+import { DurumOyunKazanciPayloadAl } from '../islemler/DurumIslemleri';
 import { DurumZamanMetni } from '../islemler/DurumZaman';
+import { DurumOyunKazanciKart } from './DurumOyunKazanciKart';
+import { DurumVideoOnizleme } from './DurumVideoOnizleme';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -24,23 +26,6 @@ type Props = {
   onProfil: () => void;
   onMenu?: () => void;
 };
-
-function VideoOnizleme({ uri }: { uri: string }) {
-  const player = useVideoPlayer(uri, (p) => {
-    p.loop = true;
-    p.muted = true;
-    p.play();
-  });
-  return (
-    <VideoView
-      player={player}
-      style={styles.medya}
-      contentFit="cover"
-      nativeControls={false}
-      pointerEvents="none"
-    />
-  );
-}
 
 function formatSayi(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}Mn`;
@@ -59,6 +44,7 @@ export function DurumKart({
   onMenu,
 }: Props) {
   const handle = oge.username ? `@${oge.username}` : null;
+  const kazanc = DurumOyunKazanciPayloadAl(oge);
 
   return (
     <Pressable style={styles.kart} onPress={onPress}>
@@ -110,12 +96,17 @@ export function DurumKart({
 
         <Pressable
           onPress={onPress}
-          style={styles.medyaHit}
+          style={[styles.medyaHit, !!kazanc && styles.medyaHitKart]}
           accessibilityRole="imagebutton"
         >
-          {oge.media_type === 'video' ? (
-            <View pointerEvents="box-none">
-              <VideoOnizleme uri={oge.media_url} />
+          {kazanc ? (
+            <DurumOyunKazanciKart payload={kazanc} />
+          ) : oge.media_type === 'video' ? (
+            <View style={styles.medya} pointerEvents="box-none">
+              <DurumVideoOnizleme
+                uri={oge.media_url}
+                style={StyleSheet.absoluteFill}
+              />
               <View style={styles.videoBadge} pointerEvents="none">
                 <Ionicons name="play" size={13} color="#fff" />
               </View>
@@ -273,6 +264,10 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: RenkTokenlari.border,
     backgroundColor: RenkTokenlari.bgElevated,
+  },
+  medyaHitKart: {
+    borderWidth: 0,
+    backgroundColor: 'transparent',
   },
   medya: {
     width: '100%',

@@ -9,9 +9,10 @@ import type { BannerCampaign } from '../core/BannerTypes';
 type Props = {
   banner: BannerCampaign;
   compact?: boolean;
+  overlay?: boolean;
 };
 
-export function BannerContent({ banner, compact }: Props) {
+export function BannerContent({ banner, compact, overlay }: Props) {
   const hasText =
     banner.title ||
     banner.subtitle ||
@@ -22,19 +23,29 @@ export function BannerContent({ banner, compact }: Props) {
   if (!hasText) return null;
 
   return (
-    <View style={[styles.wrap, compact && styles.compact]} pointerEvents="box-none">
+    <View
+      style={[
+        styles.wrap,
+        compact && styles.compact,
+        overlay && styles.overlay,
+      ]}
+      pointerEvents="box-none"
+    >
       <BannerBadge text={banner.badge ?? banner.label} tags={banner.tags} />
       {!!banner.title && (
-        <Text style={styles.title} numberOfLines={2}>
+        <Text style={[styles.title, overlay && styles.titleOverlay]} numberOfLines={1}>
           {banner.title}
         </Text>
       )}
-      {!!banner.subtitle && !compact && (
-        <Text style={styles.subtitle} numberOfLines={2}>
+      {!!banner.subtitle && (overlay || !compact) && (
+        <Text
+          style={[styles.subtitle, overlay && styles.subtitleOverlay]}
+          numberOfLines={1}
+        >
           {banner.subtitle}
         </Text>
       )}
-      {!!banner.description && !compact && (
+      {!!banner.description && !compact && !overlay && (
         <Text style={styles.desc} numberOfLines={3}>
           {banner.description}
         </Text>
@@ -51,6 +62,12 @@ const styles = StyleSheet.create({
   },
   compact: {
     paddingBottom: 4,
+    gap: 2,
+  },
+  overlay: {
+    paddingHorizontal: BoslukTokenlari.md,
+    paddingBottom: 10,
+    paddingTop: 8,
   },
   title: {
     ...TipografiTokenlari.body,
@@ -58,9 +75,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
+  titleOverlay: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
   subtitle: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textMuted,
+  },
+  subtitleOverlay: {
+    color: 'rgba(255,255,255,0.78)',
+    fontSize: 11,
   },
   desc: {
     ...TipografiTokenlari.caption,

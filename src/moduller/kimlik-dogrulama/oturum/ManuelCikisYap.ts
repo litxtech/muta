@@ -3,6 +3,7 @@ import { GuvenlikOlayiKaydet } from '../../guvenlik/olaylar/GuvenlikOlayiKaydet'
 import { CihazKimliginiGetir } from './CihazKimliginiGetir';
 import { TumCihazOturumlariniKapat } from './CihazOturumlariniYonet';
 import { CikisCanliIcerikleriKapat } from './CikisCanliIcerikleriKapat';
+import { OturumGecmisindenKaldir } from '../oturum-gecmisi/OturumGecmisiDepolama';
 
 export type CikisNedeni = 'manual' | 'ban' | 'account_deleted' | 'device_revoke';
 
@@ -13,6 +14,16 @@ export type CikisNedeni = 'manual' | 'ban' | 'account_deleted' | 'device_revoke'
  */
 export async function ManuelCikisYap(neden: CikisNedeni = 'manual'): Promise<void> {
   GuvenlikOlayiKaydet('logout', { reason: neden });
+
+  if (neden === 'ban' || neden === 'account_deleted') {
+    try {
+      const { data } = await supabase.auth.getSession();
+      const uid = data.session?.user?.id;
+      if (uid) await OturumGecmisindenKaldir(uid);
+    } catch {
+      /* gecmis temizligi zorunlu degil */
+    }
+  }
 
   // Auth bitmeden once: ses odasi + canli yayin + LiveKit
   await CikisCanliIcerikleriKapat();

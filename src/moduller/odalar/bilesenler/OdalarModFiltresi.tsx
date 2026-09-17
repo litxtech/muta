@@ -3,10 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
-import {
-  BoslukTokenlari,
-  YaricapTokenlari,
-} from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { RoomMode } from '../../../types/models';
 
 export type OdalarFiltre = 'all' | RoomMode;
@@ -69,12 +66,13 @@ type Props = {
   onSec: (filtre: OdalarFiltre) => void;
 };
 
-/** Kompakt, renkli mod chip’leri */
+/** Küçük, yuvarlak (avatar tarzı) mod filtreleri */
 export function OdalarModFiltresi({ secili, onSec }: Props) {
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.scroll}
       contentContainerStyle={styles.serit}
     >
       {SECENEKLER.map((secenek) => {
@@ -83,33 +81,33 @@ export function OdalarModFiltresi({ secili, onSec }: Props) {
           <Pressable
             key={secenek.id}
             onPress={() => onSec(secenek.id)}
-            style={({ pressed }) => [
-              styles.chip,
-              {
-                backgroundColor: aktif ? `${secenek.tint}28` : RenkTokenlari.bgCard,
-                borderColor: aktif ? `${secenek.tint}88` : RenkTokenlari.border,
-              },
-              pressed && styles.pressed,
-            ]}
+            style={({ pressed }) => [styles.item, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: aktif }}
+            accessibilityLabel={secenek.label}
           >
             <View
               style={[
-                styles.ikon,
-                { backgroundColor: aktif ? `${secenek.tint}33` : `${secenek.tint}14` },
+                styles.avatar,
+                {
+                  backgroundColor: aktif ? `${secenek.tint}30` : RenkTokenlari.bgCard,
+                  borderColor: aktif ? secenek.tint : RenkTokenlari.border,
+                },
               ]}
             >
               <Ionicons
                 name={aktif ? secenek.iconAktif : secenek.icon}
-                size={12}
-                color={secenek.tint}
+                size={16}
+                color={aktif ? secenek.tint : RenkTokenlari.textMuted}
               />
             </View>
             <Text
               style={[
-                styles.yazi,
+                styles.etiket,
                 { color: aktif ? secenek.tint : RenkTokenlari.textMuted },
-                aktif && styles.yaziAktif,
+                aktif && styles.etiketAktif,
               ]}
+              numberOfLines={1}
             >
               {secenek.label}
             </Text>
@@ -121,36 +119,40 @@ export function OdalarModFiltresi({ secili, onSec }: Props) {
 }
 
 const styles = StyleSheet.create({
+  /** Yatay ScrollView flex:1 almasın — oda avatarları aşağı kaymasın */
+  scroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   serit: {
     paddingHorizontal: BoslukTokenlari.xl,
-    gap: 6,
-    paddingBottom: BoslukTokenlari.md,
+    gap: BoslukTokenlari.md,
+    paddingTop: 0,
+    paddingBottom: 2,
+    alignItems: 'flex-start',
   },
-  chip: {
-    flexDirection: 'row',
+  item: {
+    width: 52,
     alignItems: 'center',
     gap: 5,
-    paddingLeft: 5,
-    paddingRight: 9,
-    paddingVertical: 4,
-    borderRadius: YaricapTokenlari.pill,
-    borderWidth: 1,
   },
-  pressed: { opacity: 0.85 },
-  ikon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  pressed: { opacity: 0.85, transform: [{ scale: 0.94 }] },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1.5,
   },
-  yazi: {
+  etiket: {
     ...TipografiTokenlari.micro,
-    fontSize: 11,
+    fontSize: 10,
     letterSpacing: 0.1,
     fontWeight: '600',
+    textAlign: 'center',
   },
-  yaziAktif: {
+  etiketAktif: {
     fontWeight: '800',
   },
 });
