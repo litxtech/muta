@@ -11,6 +11,7 @@ export type OdaSohbetMesaji = {
     display_name: string | null;
     username: string | null;
     avatar_url: string | null;
+    level?: number | null;
   } | null;
 };
 
@@ -21,7 +22,7 @@ export async function OdaSohbetMesajlariniGetir(
   const { data, error } = await supabase
     .from('room_chat_messages')
     .select(
-      '*, profile:profiles!room_chat_messages_user_id_fkey(id, display_name, username, avatar_url)',
+      '*, profile:profiles!room_chat_messages_user_id_fkey(id, display_name, username, avatar_url, level)',
     )
     .eq('room_id', roomId)
     .order('created_at', { ascending: false })

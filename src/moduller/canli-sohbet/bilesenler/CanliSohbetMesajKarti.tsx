@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ProfilAvatarKucuk } from './ProfilAvatarKucuk';
+import { SeviyeTaci } from '../../ses-odalari/bilesenler/SeviyeTaci';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 
@@ -13,30 +14,49 @@ export type CanliSohbetMesajGorunum = {
   display_name?: string | null;
   username?: string | null;
   avatar_url?: string | null;
+  level?: number | null;
 };
 
 type Props = {
   item: CanliSohbetMesajGorunum;
   mine?: boolean;
   onLongPress?: () => void;
+  /** Avatar / isme kısa tık — profil sheet */
+  onProfilPress?: (item: CanliSohbetMesajGorunum) => void;
   /** live: TikTok/Twitch/YouTube — kompakt, okunabilir overlay */
   varyant?: 'kart' | 'live';
 };
 
+function yorumZamani(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '';
+  const sn = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (sn < 45) return 'şimdi';
+  if (sn < 3600) return `${Math.floor(sn / 60)} dk`;
+  if (sn < 86400) return `${Math.floor(sn / 3600)} sa`;
+  const d = new Date(t);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
 /**
  * Canli yorum satiri.
- * live: isim renkli + mesaj tek akista (Twitch/YT), hafif arka plan.
+ * live: avatar + seviye tacı + isim + zaman + mesaj.
  */
 export function CanliSohbetMesajKarti({
   item,
   mine,
   onLongPress,
+  onProfilPress,
   varyant = 'kart',
 }: Props) {
   const ad =
     item.display_name?.trim() ||
     item.username?.trim() ||
     'Kullanıcı';
+  const seviye = typeof item.level === 'number' ? item.level : 0;
+  const zaman = useMemo(() => yorumZamani(item.created_at), [item.created_at]);
 
   if (varyant === 'live') {
     return (
@@ -45,16 +65,45 @@ export function CanliSohbetMesajKarti({
         delayLongPress={350}
         style={[styles.liveRow, mine && styles.liveRowMine]}
       >
-        <ProfilAvatarKucuk
-          size={22}
-          displayName={item.display_name}
-          username={item.username}
-          avatarUrl={item.avatar_url}
-        />
-        <Text style={styles.liveText}>
-          <Text style={[styles.liveAd, mine && styles.liveAdMine]}>{ad} </Text>
+        <Pressable
+          onPress={onProfilPress ? () => onProfilPress(item) : undefined}
+          onLongPress={onLongPress}
+          delayLongPress={350}
+          style={styles.liveAvatarWrap}
+          accessibilityRole="button"
+          accessibilityLabel={`${ad} profili`}
+        >
+          {seviye >= 1 ? (
+            <SeviyeTaci level={seviye} size="sm" animasyonluMu />
+          ) : null}
+          <ProfilAvatarKucuk
+            size={32}
+            displayName={item.display_name}
+            username={item.username}
+            avatarUrl={item.avatar_url}
+          />
+        </Pressable>
+        <View style={styles.liveGovde}>
+          <View style={styles.liveUst}>
+            <Pressable
+              onPress={onProfilPress ? () => onProfilPress(item) : undefined}
+              onLongPress={onLongPress}
+              delayLongPress={350}
+              hitSlop={4}
+              accessibilityRole="button"
+              accessibilityLabel={`${ad} profili`}
+            >
+              <Text
+                style={[styles.liveAd, mine && styles.liveAdMine]}
+                numberOfLines={1}
+              >
+                {ad}
+              </Text>
+            </Pressable>
+            {zaman ? <Text style={styles.liveZaman}>{zaman}</Text> : null}
+          </View>
           <Text style={styles.liveBody}>{item.body}</Text>
-        </Text>
+        </View>
       </Pressable>
     );
   }
@@ -65,28 +114,50 @@ export function CanliSohbetMesajKarti({
       delayLongPress={350}
       style={[styles.kart, mine && styles.kartMine]}
     >
-      <ProfilAvatarKucuk
-        size={34}
-        displayName={item.display_name}
-        username={item.username}
-        avatarUrl={item.avatar_url}
-      />
+      <Pressable
+        onPress={onProfilPress ? () => onProfilPress(item) : undefined}
+        onLongPress={onLongPress}
+        delayLongPress={350}
+        style={styles.kartAvatarWrap}
+        accessibilityRole="button"
+        accessibilityLabel={`${ad} profili`}
+      >
+        {seviye >= 1 ? (
+          <SeviyeTaci level={seviye} size="sm" animasyonluMu />
+        ) : null}
+        <ProfilAvatarKucuk
+          size={34}
+          displayName={item.display_name}
+          username={item.username}
+          avatarUrl={item.avatar_url}
+        />
+      </Pressable>
       <View style={styles.body}>
-        <Text style={[styles.ad, mine && styles.adMine]} numberOfLines={1}>
-          {ad}
-        </Text>
+        <View style={styles.liveUst}>
+          <Pressable
+            onPress={onProfilPress ? () => onProfilPress(item) : undefined}
+            onLongPress={onLongPress}
+            delayLongPress={350}
+            hitSlop={4}
+          >
+            <Text style={[styles.ad, mine && styles.adMine]} numberOfLines={1}>
+              {ad}
+            </Text>
+          </Pressable>
+          {zaman ? <Text style={styles.liveZaman}>{zaman}</Text> : null}
+        </View>
         <Text style={styles.mesaj}>{item.body}</Text>
       </View>
     </Pressable>
   );
 }
 
-/** Ustten soft fade — yorumlar sahne uzerinde kaybolmasin */
+/** Ustten soft fade — yorumlar panel icinde kaybolmasin */
 export function CanliSohbetListeFade() {
   return (
     <LinearGradient
       pointerEvents="none"
-      colors={['rgba(18,16,24,0.85)', 'rgba(18,16,24,0)']}
+      colors={['rgba(12,10,18,0.95)', 'rgba(12,10,18,0)']}
       style={styles.fade}
     />
   );
@@ -97,38 +168,60 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 14,
-    backgroundColor: 'rgba(8, 6, 14, 0.72)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.08)',
-    maxWidth: '92%',
+    gap: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 2,
+    maxWidth: '96%',
   },
   liveRowMine: {
-    backgroundColor: 'rgba(232, 64, 145, 0.22)',
-    borderColor: 'rgba(232, 64, 145, 0.32)',
+    opacity: 1,
   },
-  liveText: {
+  liveAvatarWrap: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  kartAvatarWrap: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  liveGovde: {
     flexShrink: 1,
-    ...TipografiTokenlari.body,
-    fontSize: 13,
-    lineHeight: 18,
+    minWidth: 0,
+    gap: 2,
+  },
+  liveUst: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    maxWidth: '100%',
   },
   liveAd: {
+    ...TipografiTokenlari.caption,
     color: RenkTokenlari.mint,
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 14,
+    flexShrink: 1,
   },
   liveAdMine: {
     color: RenkTokenlari.primarySoft,
   },
+  liveZaman: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    fontWeight: '600',
+    fontSize: 11,
+  },
   liveBody: {
+    ...TipografiTokenlari.body,
     color: RenkTokenlari.text,
     fontWeight: '500',
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 19,
   },
   kart: {
     flexDirection: 'row',
@@ -151,6 +244,7 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.mint,
     fontWeight: '800',
+    flexShrink: 1,
   },
   adMine: { color: RenkTokenlari.primarySoft },
   mesaj: {

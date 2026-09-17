@@ -1,66 +1,151 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { KonusmaciAktiflikEfekti } from './KonusmaciAktiflikEfekti';
+import { SeviyeTaci } from './SeviyeTaci';
 import type { RoomSeat } from '../../../types/models';
 
 type Props = {
   seat: RoomSeat;
-  onPress?: () => void;
+  hostId?: string | null;
+  tahtMi?: boolean;
+  onPress?: (seat: RoomSeat) => void;
 };
 
-export function KonusmaciKarti({ seat, onPress }: Props) {
+function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
+  const dolu = !!seat.user_id;
+  const hostMu = !!seat.user_id && !!hostId && seat.user_id === hostId;
+  const yardimciMu = !hostMu && !!seat.is_cohost;
+  const seviye = seat.profile?.level ?? 0;
+  const avatarBoy = tahtMi ? 92 : 62;
+  const efektBoy = tahtMi ? 100 : 68;
+  const muted = !!seat.is_muted;
+
   const ad =
     seat.profile?.display_name?.trim() ||
     seat.profile?.username?.trim() ||
-    (seat.seat_index === 0 ? 'Ev sahibi' : `Mikrofon ${seat.seat_index + 1}`);
+    (tahtMi || seat.seat_index === 0 ? 'Ev sahibi' : `Mikrofon ${seat.seat_index + 1}`);
   const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
   const avatarUrl = seat.profile?.avatar_url;
-  const dolu = !!seat.user_id;
 
   return (
-    <Pressable onPress={onPress} style={styles.wrap}>
-      <KonusmaciAktiflikEfekti userId={seat.user_id} size={68}>
-        {dolu && avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
-        ) : dolu ? (
-          <LinearGradient
-            colors={[RenkTokenlari.primary, RenkTokenlari.deepPlum]}
-            style={[styles.avatar, styles.filled]}
-          >
-            <Text style={styles.harf}>{harf}</Text>
-          </LinearGradient>
-        ) : (
-          <View style={styles.avatar}>
-            <LinearGradient
-              colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.02)']}
-              style={StyleSheet.absoluteFill}
+    <Pressable
+      onPress={onPress ? () => onPress(seat) : undefined}
+      style={[styles.wrap, tahtMi && styles.wrapTaht]}
+    >
+      <View style={styles.avatarKutu}>
+        {dolu ? <SeviyeTaci level={seviye} size={tahtMi ? 'lg' : 'sm'} /> : null}
+        <KonusmaciAktiflikEfekti
+          userId={seat.user_id}
+          size={efektBoy}
+          hostMu={hostMu || tahtMi}
+        >
+          {dolu && avatarUrl ? (
+            <Image
+              source={{ uri: avatarUrl }}
+              style={[
+                styles.avatarImg,
+                { width: avatarBoy, height: avatarBoy, borderRadius: avatarBoy / 2 },
+                (tahtMi || hostMu) && styles.avatarHost,
+              ]}
             />
-            <Ionicons name="mic-outline" size={20} color={RenkTokenlari.textDim} />
+          ) : dolu ? (
+            <View
+              style={[
+                styles.avatar,
+                styles.filled,
+                { width: avatarBoy, height: avatarBoy, borderRadius: avatarBoy / 2 },
+                (tahtMi || hostMu) && styles.avatarHost,
+                {
+                  backgroundColor:
+                    tahtMi || hostMu
+                      ? RenkTokenlari.accent
+                      : RenkTokenlari.primary,
+                },
+              ]}
+            >
+              <Text style={[styles.harf, tahtMi && styles.harfTaht]}>{harf}</Text>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.avatar,
+                tahtMi && styles.avatarTahtBos,
+                { width: avatarBoy, height: avatarBoy, borderRadius: avatarBoy / 2 },
+              ]}
+            >
+              <Ionicons
+                name={tahtMi ? 'ribbon-outline' : 'add'}
+                size={tahtMi ? 26 : 18}
+                color={tahtMi ? RenkTokenlari.accent : RenkTokenlari.textMuted}
+              />
+            </View>
+          )}
+        </KonusmaciAktiflikEfekti>
+        {dolu && muted ? (
+          <View style={styles.micBadge} pointerEvents="none">
+            <Ionicons name="mic-off" size={10} color="#fff" />
           </View>
-        )}
-      </KonusmaciAktiflikEfekti>
-      <Text style={[styles.name, dolu && styles.nameDolu]} numberOfLines={1}>
-        {ad}
-      </Text>
-      {seat.seat_index === 0 && dolu ? (
+        ) : null}
+      </View>
+      {/* Taht: isim altın profil çubuğunda; burada sadece rozet */}
+      {!tahtMi ? (
+        <Text
+          style={[styles.name, dolu && styles.nameDolu]}
+          numberOfLines={1}
+        >
+          {ad}
+        </Text>
+      ) : null}
+      {hostMu ? (
         <View style={styles.hostRozet}>
-          <Text style={styles.hostYazi}>HOST</Text>
+          <Ionicons name="ribbon" size={9} color={RenkTokenlari.accent} />
+          <Text style={styles.hostYazi}>LİDER</Text>
+        </View>
+      ) : yardimciMu ? (
+        <View style={styles.cohostRozet}>
+          <Ionicons name="shield-checkmark" size={9} color="#8ec8ff" />
+          <Text style={styles.cohostYazi}>YARDIMCI</Text>
         </View>
       ) : null}
     </Pressable>
   );
 }
 
+function ayniKart(a: Props, b: Props) {
+  return (
+    a.tahtMi === b.tahtMi &&
+    a.hostId === b.hostId &&
+    a.onPress === b.onPress &&
+    a.seat.id === b.seat.id &&
+    a.seat.user_id === b.seat.user_id &&
+    a.seat.is_muted === b.seat.is_muted &&
+    a.seat.is_cohost === b.seat.is_cohost &&
+    a.seat.seat_index === b.seat.seat_index &&
+    a.seat.profile?.avatar_url === b.seat.profile?.avatar_url &&
+    a.seat.profile?.display_name === b.seat.profile?.display_name &&
+    a.seat.profile?.username === b.seat.profile?.username &&
+    a.seat.profile?.level === b.seat.profile?.level
+  );
+}
+
+export const KonusmaciKarti = memo(KonusmaciKartiIc, ayniKart);
+
 const styles = StyleSheet.create({
-  wrap: { width: '21%', alignItems: 'center', gap: 6 },
+  wrap: { width: '100%', alignItems: 'center', gap: 6 },
+  wrapTaht: {
+    width: '100%',
+    maxWidth: 168,
+    alignSelf: 'center',
+    marginBottom: 4,
+  },
+  avatarKutu: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
     backgroundColor: RenkTokenlari.seatEmpty,
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.12)',
@@ -68,36 +153,55 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  avatarTahtBos: {
+    borderColor: 'rgba(240,180,41,0.45)',
+    borderWidth: 2,
+  },
   avatarImg: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
     borderWidth: 2,
     borderColor: RenkTokenlari.primarySoft,
+  },
+  avatarHost: {
+    borderColor: RenkTokenlari.accent,
+    borderWidth: 2.5,
   },
   filled: {
     borderColor: RenkTokenlari.primarySoft,
     borderWidth: 2,
   },
   harf: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: '#fff',
+  },
+  harfTaht: {
+    fontSize: 28,
   },
   name: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
     textAlign: 'center',
+    maxWidth: 88,
   },
   nameDolu: {
     color: RenkTokenlari.text,
     fontWeight: '700',
   },
+  nameTaht: {
+    fontSize: 13,
+    fontWeight: '800',
+    maxWidth: 140,
+  },
   hostRozet: {
-    paddingHorizontal: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 6,
-    backgroundColor: 'rgba(240,180,41,0.2)',
+    borderRadius: 8,
+    backgroundColor: 'rgba(240,180,41,0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(240,180,41,0.35)',
   },
   hostYazi: {
     ...TipografiTokenlari.micro,
@@ -105,5 +209,37 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '800',
     letterSpacing: 0.6,
+  },
+  cohostRozet: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: 'rgba(100,180,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(100,180,255,0.35)',
+  },
+  cohostYazi: {
+    ...TipografiTokenlari.micro,
+    color: '#8ec8ff',
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
+  micBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: 2,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(18,16,24,0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 5,
   },
 });

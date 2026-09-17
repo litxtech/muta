@@ -6,6 +6,7 @@ type ProfilJoin = {
   display_name: string | null;
   username: string | null;
   avatar_url: string | null;
+  level?: number | null;
 };
 
 function mapla(
@@ -25,6 +26,8 @@ function mapla(
     display_name: r.profile?.display_name ?? null,
     username: r.profile?.username ?? null,
     avatar_url: r.profile?.avatar_url ?? null,
+    level:
+      typeof r.profile?.level === 'number' ? r.profile.level : null,
   }));
 }
 
@@ -46,6 +49,7 @@ export async function OdaSohbetMesajlariniGetir(
         display_name: r.display_name,
         username: r.username,
         avatar_url: r.avatar_url,
+        level: typeof r.level === 'number' ? r.level : null,
       }))
       .reverse();
   }
@@ -53,7 +57,7 @@ export async function OdaSohbetMesajlariniGetir(
   const fb = await supabase
     .from('room_chat_messages')
     .select(
-      'id, user_id, body, created_at, profile:profiles!room_chat_messages_user_id_fkey(id, display_name, username, avatar_url)',
+      'id, user_id, body, created_at, profile:profiles!room_chat_messages_user_id_fkey(id, display_name, username, avatar_url, level)',
     )
     .eq('room_id', roomId)
     .order('created_at', { ascending: false })

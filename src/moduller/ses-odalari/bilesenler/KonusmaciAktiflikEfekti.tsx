@@ -2,10 +2,11 @@ import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  interpolate,
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
@@ -14,61 +15,74 @@ import { KonusmaciSesSeviyesi } from '../../livekit/ses/KonusmaciSesSeviyesi';
 type Props = {
   userId: string | null;
   size?: number;
+  hostMu?: boolean;
   children: React.ReactNode;
 };
 
-/** Ses seviyesine tepki veren modern çift halka + soft glow */
-export function KonusmaciAktiflikEfekti({ userId, size = 72, children }: Props) {
-  const level = useSharedValue(0);
-  const pulse = useSharedValue(0);
+const FADE = { duration: 160, easing: Easing.out(Easing.quad) };
+const ESIK = 0.1;
 
-  useEffect(() => {
-    pulse.value = withRepeat(
-      withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
-      -1,
-      true,
-    );
-  }, [pulse]);
+/**
+ * Konuşurken halka + hafif nabız; sustuğunda tamamen durur.
+ */
+export function KonusmaciAktiflikEfekti({
+  userId,
+  size = 72,
+  hostMu = false,
+  children,
+}: Props) {
+  const level = useSharedValue(0);
+  const pulse = useSharedValue(1);
 
   useEffect(() => {
     if (!userId) {
-      level.value = withTiming(0, { duration: 200 });
+      level.value = withTiming(0, FADE);
+      cancelAnimation(pulse);
+      pulse.value = withTiming(1, FADE);
       return;
     }
-    const unsub = KonusmaciSesSeviyesi.dinle((id, lvl) => {
-      if (id === userId) {
-        level.value = withTiming(Math.min(1, Math.max(0, lvl)), {
-          duration: 80,
-        });
+    level.value = KonusmaciSesSeviyesi.seviyeGetir(userId);
+    return KonusmaciSesSeviyesi.dinleKullanici(userId, (lvl) => {
+      const onceki = level.value;
+      level.value = withTiming(lvl, FADE);
+      if (lvl > ESIK && onceki <= ESIK) {
+        pulse.value = withRepeat(
+          withSequence(
+            withTiming(1.08, { duration: 280, easing: Easing.out(Easing.quad) }),
+            withTiming(1, { duration: 280, easing: Easing.in(Easing.quad) }),
+          ),
+          -1,
+          false,
+        );
+      } else if (lvl <= ESIK && onceki > ESIK) {
+        cancelAnimation(pulse);
+        pulse.value = withTiming(1, FADE);
       }
     });
-    return () => {
-      unsub();
-    };
-  }, [userId, level]);
+  }, [userId, level, pulse]);
 
-  const halka1 = useAnimatedStyle(() => {
-    const s = 1 + level.value * 0.22 + pulse.value * 0.03;
+  const halka = useAnimatedStyle(() => {
+    const aktif = level.value > ESIK;
     return {
-      opacity: 0.2 + level.value * 0.55,
-      transform: [{ scale: s }],
-      borderColor:
-        level.value > 0.15 ? RenkTokenlari.mint : RenkTokenlari.primarySoft,
+      opacity: aktif ? 0.4 + level.value * 0.55 : 0,
+      transform: [
+        {
+          scale: aktif ? pulse.value * (1 + level.value * 0.04) : 1,
+        },
+      ],
     };
   });
 
-  const halka2 = useAnimatedStyle(() => {
-    const s = 1 + level.value * 0.38 + pulse.value * 0.05;
+  const glow = useAnimatedStyle(() => {
+    const aktif = level.value > ESIK;
     return {
-      opacity: interpolate(level.value, [0, 0.2, 1], [0, 0.25, 0.5]),
-      transform: [{ scale: s }],
+      opacity: aktif ? 0.12 + level.value * 0.28 : 0,
+      transform: [{ scale: aktif ? pulse.value : 1 }],
     };
   });
 
-  const glow = useAnimatedStyle(() => ({
-    opacity: level.value * 0.35,
-    transform: [{ scale: 1 + level.value * 0.2 }],
-  }));
+  const halkaBoy = size + 12;
+  const glowBoy = size + 22;
 
   return (
     <View
@@ -82,36 +96,33 @@ export function KonusmaciAktiflikEfekti({ userId, size = 72, children }: Props) 
       {userId ? (
         <>
           <Animated.View
+            pointerEvents="none"
             style={[
               styles.glow,
               {
-                width: size + 28,
-                height: size + 28,
-                borderRadius: (size + 28) / 2,
+                width: glowBoy,
+                height: glowBoy,
+                borderRadius: glowBoy / 2,
+                backgroundColor: hostMu
+                  ? RenkTokenlari.accent
+                  : RenkTokenlari.mint,
               },
               glow,
             ]}
           />
           <Animated.View
+            pointerEvents="none"
             style={[
               styles.halo,
               {
-                width: size + 22,
-                height: size + 22,
-                borderRadius: (size + 22) / 2,
+                width: halkaBoy,
+                height: halkaBoy,
+                borderRadius: halkaBoy / 2,
+                borderColor: hostMu
+                  ? RenkTokenlari.accent
+                  : RenkTokenlari.mint,
               },
-              halka2,
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.halo,
-              {
-                width: size + 12,
-                height: size + 12,
-                borderRadius: (size + 12) / 2,
-              },
-              halka1,
+              halka,
             ]}
           />
         </>
@@ -124,11 +135,9 @@ export function KonusmaciAktiflikEfekti({ userId, size = 72, children }: Props) 
 const styles = StyleSheet.create({
   halo: {
     position: 'absolute',
-    borderWidth: 2,
-    borderColor: RenkTokenlari.primarySoft,
+    borderWidth: 2.5,
   },
   glow: {
     position: 'absolute',
-    backgroundColor: RenkTokenlari.primary,
   },
 });

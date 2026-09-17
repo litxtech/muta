@@ -23,6 +23,8 @@ type Props = {
   canSend: boolean;
   onNeedUpgrade?: () => void;
   onSent?: () => void;
+  /** Composer odaklanınca (yorum paneli açmak için) */
+  onFocus?: () => void;
 };
 
 export function OdaCanliYorumComposer({
@@ -30,6 +32,7 @@ export function OdaCanliYorumComposer({
   canSend,
   onNeedUpgrade,
   onSent,
+  onFocus,
 }: Props) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -95,13 +98,14 @@ export function OdaCanliYorumComposer({
         ref={inputRef}
         value={text}
         onChangeText={setText}
-        placeholder="Yorum yaz…"
+        placeholder="Bir şeyler yaz…"
         placeholderTextColor={RenkTokenlari.textDim}
         style={styles.input}
         maxLength={500}
         editable
         multiline
         blurOnSubmit={false}
+        onFocus={onFocus}
         onSubmitEditing={() => void gonder()}
         returnKeyType="send"
         textAlignVertical="center"
@@ -114,7 +118,7 @@ export function OdaCanliYorumComposer({
       >
         <Ionicons
           name="send"
-          size={18}
+          size={16}
           color={
             busy || !text.trim() ? RenkTokenlari.textDim : RenkTokenlari.text
           }
@@ -129,32 +133,36 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 6,
     minWidth: 0,
   },
   input: {
     flex: 1,
-    minHeight: 44,
-    maxHeight: 96,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    backgroundColor: 'rgba(12, 10, 18, 0.88)',
+    minWidth: 0,
+    minHeight: Platform.OS === 'android' ? 40 : 38,
+    maxHeight: 80,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     color: RenkTokenlari.text,
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 11 : 9,
-    paddingBottom: Platform.OS === 'ios' ? 11 : 9,
+    paddingHorizontal: 14,
+    paddingTop: Platform.OS === 'android' ? 10 : 9,
+    paddingBottom: Platform.OS === 'android' ? 10 : 9,
     ...TipografiTokenlari.body,
-    fontSize: 15,
+    fontSize: 14,
+    lineHeight: 18,
+    ...(Platform.OS === 'android' ? { includeFontPadding: false } : {}),
   },
   upgradeHit: {
     flex: 1,
-    minHeight: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(232, 64, 145, 0.35)',
-    backgroundColor: 'rgba(232, 64, 145, 0.12)',
-    paddingHorizontal: 14,
+    minWidth: 0,
+    minHeight: Platform.OS === 'android' ? 40 : 38,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(232, 64, 145, 0.28)',
+    backgroundColor: 'rgba(232, 64, 145, 0.1)',
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -164,16 +172,21 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.primarySoft,
     flex: 1,
     fontWeight: '600',
+    fontSize: 12,
   },
   send: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: RenkTokenlari.primary,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.1)',
+    flexShrink: 0,
   },
   sendDisabled: {
-    backgroundColor: RenkTokenlari.surface,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.05)',
   },
 });

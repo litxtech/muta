@@ -1,6 +1,5 @@
 /**
- * Canlı oda yorum akışı — sadece mesaj listesi (TikTok/YT overlay).
- * Composer sahne altında ayrı tutulur; klavye input'u ezmez.
+ * Canlı oda yorum akışı — mesaj listesi (alt panelde composer üstünde).
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -25,30 +24,41 @@ import {
   OdaSohbetMesajlariniGetir,
   OdaSohbetMesajiSil,
 } from '../../canli-sohbet/islemler/CanliSohbetIslemleri';
+import { OdaModerasyonUygula } from '../../moderasyon/islemler/ModerasyonIslemleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 
 type Props = {
   roomId: string;
   currentUserId?: string | null;
-  /** Host ise başkalarının yorumunu da silebilir */
+  /** Host ise başkalarının yorumunu silebilir / kullanıcıyı yasaklayabilir */
   hostId?: string | null;
+  /** Host veya cohost */
+  moderatorMu?: boolean;
   /** Composer gönderince artırılır — remount etmeden yeniler */
   yenileSinyali?: number;
+  /** true: üst başlık gizlenir (çekilebilir kart kendi başlığını gösterir) */
+  baslikGizle?: boolean;
   onClose?: () => void;
+  /** Avatar / isme tık — profil sheet */
+  onProfil?: (item: CanliSohbetMesajGorunum) => void;
 };
 
 export function OdaCanliYorumAkisi({
   roomId,
   currentUserId,
   hostId,
+  moderatorMu = false,
   yenileSinyali = 0,
+  baslikGizle = false,
   onClose,
+  onProfil,
 }: Props) {
   const [messages, setMessages] = useState<CanliSohbetMesajGorunum[]>([]);
   const [hedef, setHedef] = useState<CanliSohbetMesajGorunum | null>(null);
   const listRef = useRef<FlatList<CanliSohbetMesajGorunum>>(null);
   const isHost = !!currentUserId && !!hostId && currentUserId === hostId;
+  const canModerate = isHost || moderatorMu;
 
   const load = useCallback(async () => {
     try {
@@ -72,8 +82,16 @@ export function OdaCanliYorumAkisi({
   }, [yenileSinyali, load]);
 
   useEffect(() => {
+    const imza = `oda-yorum-${roomId}`;
+    for (const ch of supabase.getChannels()) {
+      const topic = ch.topic ?? '';
+      if (topic === imza || topic === `realtime:${imza}` || topic.includes(imza)) {
+        void supabase.removeChannel(ch);
+      }
+    }
+
     const channel = supabase
-      .channel(`oda-yorum-${roomId}`)
+      .channel(`${imza}-${Date.now().toString(36)}`)
       .on(
         'postgres_changes',
         {
@@ -116,6 +134,39 @@ export function OdaCanliYorumAkisi({
     ]);
   };
 
+  const kullaniciyiYasakla = (item: CanliSohbetMesajGorunum) => {
+    const ad =
+      item.display_name?.trim() || item.username?.trim() || 'Bu kullanıcı';
+    Alert.alert(
+      'Yorum yazmayı engelle',
+      `${ad} odadan yasaklanacak; bir daha yorum yazamaz ve odaya giremez.`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Engelle',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              const r = await OdaModerasyonUygula({
+                roomId,
+                targetUserId: item.user_id,
+                action: 'ban',
+                reason: 'oda_sohbet',
+              });
+              if (!r.ok) {
+                Alert.alert('Engelleme', r.hata ?? 'Uygulanamadı');
+                return;
+              }
+              await OdaSohbetMesajiSil(item.id).catch(() => undefined);
+              Alert.alert('Tamam', 'Kullanıcı odadan yasaklandı.');
+              void load();
+            })();
+          },
+        },
+      ],
+    );
+  };
+
   const uzunBas = (item: CanliSohbetMesajGorunum) => {
     if (!currentUserId) return;
     const mine = item.user_id === currentUserId;
@@ -123,7 +174,7 @@ export function OdaCanliYorumAkisi({
       yorumSil(item);
       return;
     }
-    if (isHost) {
+    if (canModerate) {
       Alert.alert(
         item.display_name || item.username || 'Kullanıcı',
         'Ne yapmak istersin?',
@@ -133,7 +184,12 @@ export function OdaCanliYorumAkisi({
             style: 'destructive',
             onPress: () => yorumSil(item),
           },
-          { text: 'Bildir / engelle…', onPress: () => setHedef(item) },
+          {
+            text: 'Yorum yazmayı engelle',
+            style: 'destructive',
+            onPress: () => kullaniciyiYasakla(item),
+          },
+          { text: 'Bildir…', onPress: () => setHedef(item) },
           { text: 'Vazgeç', style: 'cancel' },
         ],
       );
@@ -144,14 +200,16 @@ export function OdaCanliYorumAkisi({
 
   return (
     <View style={styles.root} pointerEvents="box-none">
-      <View style={styles.header} pointerEvents="box-none">
-        <Text style={styles.title}>Yorumlar</Text>
-        {onClose ? (
-          <Pressable onPress={onClose} hitSlop={12} style={styles.close}>
-            <Ionicons name="chevron-down" size={16} color={RenkTokenlari.textMuted} />
-          </Pressable>
-        ) : null}
-      </View>
+      {!baslikGizle ? (
+        <View style={styles.header} pointerEvents="box-none">
+          <Text style={styles.title}>Yorumlar</Text>
+          {onClose ? (
+            <Pressable onPress={onClose} hitSlop={12} style={styles.close}>
+              <Ionicons name="chevron-down" size={16} color={RenkTokenlari.textMuted} />
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={styles.listWrap}>
         <CanliSohbetListeFade />
@@ -162,7 +220,8 @@ export function OdaCanliYorumAkisi({
           style={styles.list}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="none"
           ListEmptyComponent={
             <Text style={styles.empty}>İlk yorumu yaz — herkes görsün.</Text>
           }
@@ -172,6 +231,7 @@ export function OdaCanliYorumAkisi({
               mine={!!currentUserId && item.user_id === currentUserId}
               varyant="live"
               onLongPress={currentUserId ? () => uzunBas(item) : undefined}
+              onProfilPress={onProfil}
             />
           )}
         />
@@ -206,14 +266,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
-    marginBottom: 4,
+    paddingHorizontal: 2,
+    marginBottom: 6,
   },
   title: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textMuted,
     fontWeight: '700',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   close: {
@@ -222,7 +282,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   listWrap: {
     flex: 1,
@@ -231,8 +291,8 @@ const styles = StyleSheet.create({
   },
   list: { flex: 1 },
   listContent: {
-    gap: 8,
-    paddingBottom: 8,
+    gap: 4,
+    paddingBottom: 2,
     paddingHorizontal: 0,
     flexGrow: 1,
     justifyContent: 'flex-end',
