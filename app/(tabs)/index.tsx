@@ -349,7 +349,7 @@ export default function HomeScreen() {
         : { eyebrow: 'SAHNE', baslik: 'Sahne sessiz', alt: 'Canlı içerik yok — ilk odayı sen aç veya yayına çık.' };
 
   return (
-    <Screen edges={['top']} tabSayfaKaydir>
+    <Screen edges={[]} tabSayfaKaydir>
       <ModulHataSiniri modulAdi="ana-sayfa">
         <AnaSayfaCekmeceMenu
           acik={menuAcik}
@@ -441,7 +441,7 @@ export default function HomeScreen() {
                             <Ionicons
                               name={filtre === 'canli' ? 'videocam' : 'mic'}
                               size={15}
-                              color="#12040C"
+                              color={RenkTokenlari.textOnPrimary}
                             />
                             <Text style={styles.bosBtnYazi}>
                               {filtre === 'canli' ? 'Yayına çık' : 'Ses odası aç'}
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
   },
   bosBtnYazi: {
     ...TipografiTokenlari.caption,
-    color: '#12040C',
+    color: RenkTokenlari.textOnPrimary,
     fontWeight: '800',
   },
   bosBtnIkincil: {

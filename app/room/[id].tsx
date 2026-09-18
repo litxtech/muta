@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -83,10 +84,6 @@ import {
 } from '../../src/moduller/ses-odalari/bilesenler/OdaButonOlculeri';
 import { OdaKapakDuzenlePaneli } from '../../src/moduller/ses-odalari/bilesenler/OdaKapakDuzenlePaneli';
 import { OdaOyunDockButonu } from '../../src/moduller/ses-odalari/bilesenler/OdaOyunDockButonu';
-import {
-  KillSwitchAktifMi,
-  OzellikBayragiAktifMi,
-} from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import { OdaCanliYorumAkisi } from '../../src/moduller/oda-sohbeti/bilesenler/OdaCanliYorumAkisi';
 import { OdaCanliYorumComposer } from '../../src/moduller/oda-sohbeti/bilesenler/OdaCanliYorumComposer';
 import { CanliYorumCekilebilirKart } from '../../src/moduller/canli-sohbet/bilesenler/CanliYorumCekilebilirKart';
@@ -161,8 +158,6 @@ export default function RoomScreen() {
   >(null);
   const [cikiyor, setCikiyor] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
-  /** Hediye → coin geçişinde nested Modal kırılmasın; coin kapanınca hediye geri açılsın */
-  const giftYenidenAcRef = useRef(false);
   const [gameOpen, setGameOpen] = useState(false);
   const [odaKartAcik, setOdaKartAcik] = useState(false);
   const [profilKart, setProfilKart] = useState<{
@@ -228,34 +223,21 @@ export default function RoomScreen() {
     self: seviyeGirisSelf,
   });
 
-  const oyunPlatformAcik =
-    OzellikBayragiAktifMi('games_enabled') && !KillSwitchAktifMi('kill_games');
   const {
     codes: gorunurOyunKodlari,
     anyVisible: herhangiOyunGorunur,
+    platformAcik: oyunPlatformAcik,
     yenile: gorunurOyunlariYenile,
   } = useGorunurOyunKodlari({
-    enabled: oyunPlatformAcik && !isDemo,
+    enabled: !isDemo,
   });
   const oyunlarAcik = oyunPlatformAcik && herhangiOyunGorunur;
 
   useFocusEffect(
     useCallback(() => {
-      if (oyunPlatformAcik && !isDemo) void gorunurOyunlariYenile();
-    }, [oyunPlatformAcik, isDemo, gorunurOyunlariYenile]),
+      if (!isDemo) void gorunurOyunlariYenile();
+    }, [isDemo, gorunurOyunlariYenile]),
   );
-
-  // Coin paneli kapanınca (satın alma dahil) hediyeyi geri aç
-  React.useEffect(() => {
-    if (coinYukle.acik) return;
-    if (!giftYenidenAcRef.current) return;
-    giftYenidenAcRef.current = false;
-    const t = setTimeout(
-      () => setGiftOpen(true),
-      Platform.OS === 'android' ? 140 : 90,
-    );
-    return () => clearTimeout(t);
-  }, [coinYukle.acik]);
 
   React.useEffect(() => {
     const kod = Array.isArray(oyunParam) ? oyunParam[0] : oyunParam;
@@ -295,11 +277,39 @@ export default function RoomScreen() {
             max_seats?: number;
             microphone_capacity?: number | null;
             capacity_tier_code?: string | null;
+            cover_url?: string | null;
+            theme_code?: string | null;
+            title?: string;
+            topic?: string | null;
           } | null;
           if (next?.host_id) {
             setRoom((prev) =>
               prev ? { ...prev, host_id: next.host_id as string } : prev,
             );
+          }
+          if (
+            next &&
+            (next.cover_url !== undefined ||
+              next.theme_code !== undefined ||
+              next.title !== undefined ||
+              next.topic !== undefined)
+          ) {
+            setRoom((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    ...(next.cover_url !== undefined
+                      ? { cover_url: next.cover_url }
+                      : null),
+                    ...(next.theme_code !== undefined
+                      ? { theme_code: next.theme_code }
+                      : null),
+                    ...(next.title !== undefined ? { title: next.title } : null),
+                    ...(next.topic !== undefined ? { topic: next.topic } : null),
+                  }
+                : prev,
+            );
+            if (next.title) AktifSesOdasiGuncelle({ title: next.title });
           }
           if (
             next &&
@@ -950,6 +960,7 @@ export default function RoomScreen() {
         total_coins_earned: 900,
         created_at: new Date().toISOString(),
         layout_code: 'floating_glass',
+        theme_code: 'midnight_plum',
       });
       setSeats(
         Array.from({ length: 8 }, (_, seat_index) => ({
@@ -1194,9 +1205,8 @@ export default function RoomScreen() {
     const adet = Math.max(1, quantity);
     const maliyet = gift.coin_cost * adet;
     if (maliyet > (wallet?.coins ?? 0)) {
-      giftYenidenAcRef.current = true;
-      setGiftOpen(false);
-      setTimeout(() => coinYukle.ac(), Platform.OS === 'android' ? 140 : 90);
+      // Panel içi coin modu — HediyeMagazaPaneli yetmezken coinAc çağırır
+      coinYukle.paketleriYenile();
       return;
     }
     islemiDene('hediye_gonder', async () => {
@@ -1228,9 +1238,8 @@ export default function RoomScreen() {
       if (!sonuc.ok) {
         const yetersiz = /insufficient|yetersiz/i.test(sonuc.hata ?? '');
         if (yetersiz) {
-          giftYenidenAcRef.current = true;
-          setGiftOpen(false);
-          setTimeout(() => coinYukle.ac(), Platform.OS === 'android' ? 140 : 90);
+          coinYukle.paketleriYenile();
+          Alert.alert('Yetersiz coin', 'Hediye kartında Coin yükle’ye bas.');
           return;
         }
         Alert.alert('Hediye', sonuc.hata ?? 'Gönderilemedi');
@@ -1298,7 +1307,7 @@ export default function RoomScreen() {
 
   return (
     <Screen koyuSahne edges={['top']}>
-      <OdaSahneArkaPlan url={room.cover_url} />
+      <OdaSahneArkaPlan url={room.cover_url} themeCode={room.theme_code} />
 
       <SahipGirisAnimasyonu
         gorunur={!!sahipGiris}
@@ -1322,6 +1331,7 @@ export default function RoomScreen() {
           title={room.title}
           topic={room.topic}
           coverUrl={room.cover_url}
+          themeCode={room.theme_code}
           maxSeats={room.max_seats ?? (seats.length || 8)}
           doluKoltuk={seats.filter((s) => !!s.user_id).length}
           onClose={() => setOdaKartAcik(false)}
@@ -1333,6 +1343,7 @@ export default function RoomScreen() {
                     title: next.title,
                     topic: next.topic,
                     cover_url: next.cover_url,
+                    theme_code: next.theme_code,
                     ...(next.max_seats != null
                       ? { max_seats: next.max_seats }
                       : null),
@@ -1465,14 +1476,23 @@ export default function RoomScreen() {
 
           <TamusoBanner placement="VOICE_ROOM_TOP" screen="VOICE_ROOM" compact />
 
-          <View style={styles.seatsWrap} pointerEvents="box-none">
+          <ScrollView
+            style={styles.seatsWrap}
+            contentContainerStyle={styles.seatsContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+            bounces
+            overScrollMode="always"
+            scrollEventThrottle={16}
+          >
             <SesOdasiMikrofonDuzeni
               seats={seats}
               hostId={room.host_id}
               layoutCode={room.layout_code}
               onSeatPress={koltukMenusu}
             />
-          </View>
+          </ScrollView>
 
           {oyunlarAcik && !isDemo && !klavyeAcik ? (
             <View style={styles.oyunFab} pointerEvents="box-none">
@@ -1673,11 +1693,10 @@ export default function RoomScreen() {
           }
           onSend={onSendGift}
           onClose={() => setGiftOpen(false)}
-          onCoinYukle={() => {
-            giftYenidenAcRef.current = true;
-            setGiftOpen(false);
-            setTimeout(() => coinYukle.ac(), Platform.OS === 'android' ? 140 : 90);
-          }}
+          coinPackages={coinYukle.packages}
+          coinLocked={coinYukle.purchaseLocked}
+          onCoinBuy={coinYukle.satinAl}
+          onCoinPaketHazirla={coinYukle.paketleriYenile}
         />
       </ModulHataSiniri>
 
@@ -1730,11 +1749,12 @@ const styles = StyleSheet.create({
   seatsWrap: {
     flex: 1,
     minHeight: 0,
-    justifyContent: 'flex-start',
+    zIndex: 2,
+  },
+  seatsContent: {
     paddingTop: 4,
-    paddingBottom: 8,
-    position: 'relative',
-    overflow: 'visible',
+    paddingBottom: 28,
+    flexGrow: 1,
   },
   topBar: {
     flexDirection: 'row',
@@ -1818,6 +1838,9 @@ const styles = StyleSheet.create({
     right: Platform.OS === 'android' ? 10 : 14,
     bottom: 10,
     zIndex: 12,
+    elevation: 12,
+    // Kaydırmayı engellemesin — sadece buton alanı
+    pointerEvents: 'box-none',
   },
   oyunOverlay: {
     ...StyleSheet.absoluteFill,

@@ -31,10 +31,10 @@ import {
 } from '../../src/moduller/politikalar/bilesenler/PolitikaOnayKutulari';
 import { PolitikaOkumaPaneli } from '../../src/moduller/politikalar/bilesenler/PolitikaOkumaPaneli';
 import {
-  POLITIKA_METINLERI,
-  type PolitikaKodu,
-} from '../../src/moduller/politikalar/icerik/PolitikaMetinleri';
-import { KayitPolitikaKabulKaydet } from '../../src/moduller/politikalar/islemler/PolitikaIslemleri';
+  KayitPolitikaKabulKaydet,
+  PolitikalariListele,
+} from '../../src/moduller/politikalar/islemler/PolitikaIslemleri';
+import type { PolitikaGorunum } from '../../src/moduller/politikalar/tipler/PolitikaTipleri';
 import { ProfilSecimAlani } from '../../src/moduller/kullanici-profili/bilesenler/ProfilSecimAlani';
 import {
   DOGUM_AYLARI,
@@ -68,12 +68,6 @@ const GENDERS = [
   { id: 'other', label: 'Diğer' },
 ] as const;
 
-const BOS_ONAY: Record<PolitikaKodu, boolean> = {
-  tos: false,
-  privacy: false,
-  child_safety: false,
-};
-
 const YIL_OPTS = DogumYilSecenekleri(18);
 const SPOTIFY_GREEN = '#1DB954';
 
@@ -98,13 +92,25 @@ export default function RegisterScreen() {
   const [avatar, setAvatar] = useState<SecilenProfilMedya | null>(null);
   const [loading, setLoading] = useState(false);
   const [spotifyLoading, setSpotifyLoading] = useState(false);
-  const [onaylar, setOnaylar] = useState(BOS_ONAY);
-  const [okunan, setOkunan] = useState<PolitikaKodu | null>(null);
+  const [kayitPolitikalari, setKayitPolitikalari] = useState<PolitikaGorunum[]>(
+    [],
+  );
+  const [onaylar, setOnaylar] = useState<Record<string, boolean>>({});
+  const [okunan, setOkunan] = useState<PolitikaGorunum | null>(null);
 
   const ayarlariYukle = useCallback(async () => {
     setAyarYukleniyor(true);
-    const d = await KayitAlanAyarlariPublicGet();
+    const [d, pol] = await Promise.all([
+      KayitAlanAyarlariPublicGet(),
+      PolitikalariListele('register').catch(() => [] as PolitikaGorunum[]),
+    ]);
     setAyar(d);
+    setKayitPolitikalari(pol);
+    setOnaylar((prev) => {
+      const next: Record<string, boolean> = {};
+      for (const p of pol) next[p.kod] = prev[p.kod] ?? false;
+      return next;
+    });
     setAyarYukleniyor(false);
   }, []);
 
@@ -123,10 +129,10 @@ export default function RegisterScreen() {
   };
 
   const onSpotify = async () => {
-    if (!TumPolitikaOnaylariVerildi(onaylar)) {
+    if (!TumPolitikaOnaylariVerildi(kayitPolitikalari, onaylar)) {
       Alert.alert(
         'Yasal onay',
-        'Spotify ile kayıt için Kullanım Şartları, Gizlilik ve Çocuk Koruma politikalarını okuyup onaylamalısın.',
+        'Spotify ile kayıt için yasal politikaları okuyup onaylamalısın.',
       );
       return;
     }
@@ -138,7 +144,7 @@ export default function RegisterScreen() {
       Alert.alert('Spotify kaydı', error);
       return;
     }
-    void KayitPolitikaKabulKaydet();
+    void KayitPolitikaKabulKaydet(kayitPolitikalari.map((p) => p.kod));
     router.replace('/(tabs)');
   };
 
@@ -160,10 +166,10 @@ export default function RegisterScreen() {
       Alert.alert('Eksik bilgi', dogrulama.hata);
       return;
     }
-    if (!TumPolitikaOnaylariVerildi(onaylar)) {
+    if (!TumPolitikaOnaylariVerildi(kayitPolitikalari, onaylar)) {
       Alert.alert(
         'Yasal onay',
-        'Kayıt olmak için Kullanım Şartları, Gizlilik ve Çocuk Koruma politikalarını okuyup onaylamalısın.',
+        'Kayıt olmak için yasal politikaları okuyup onaylamalısın.',
       );
       return;
     }
@@ -179,7 +185,7 @@ export default function RegisterScreen() {
       customFields: dogrulama.customFields,
     });
     if (!result.error) {
-      void KayitPolitikaKabulKaydet();
+      void KayitPolitikaKabulKaydet(kayitPolitikalari.map((p) => p.kod));
     }
     if (result.error) {
       setLoading(false);
@@ -308,13 +314,11 @@ export default function RegisterScreen() {
               autoCapitalize="none"
               value={username}
               onChangeText={setUsername}
-              placeholder="muta_star"
             />
             <TextField
               label="Görünen ad"
               value={displayName}
               onChangeText={setDisplayName}
-              placeholder="Tamuso Yıldızı"
             />
 
             {birthGorunur ? (
@@ -395,7 +399,6 @@ export default function RegisterScreen() {
                 autoComplete="tel"
                 value={phone}
                 onChangeText={setPhone}
-                placeholder="05xx xxx xx xx"
               />
             ) : null}
             {emailGorunur ? (
@@ -408,7 +411,6 @@ export default function RegisterScreen() {
                 keyboardType="email-address"
                 value={email}
                 onChangeText={setEmail}
-                placeholder="sen@mail.com"
               />
             ) : null}
             <TextField
@@ -416,7 +418,6 @@ export default function RegisterScreen() {
               secureTextEntry
               value={password}
               onChangeText={setPassword}
-              placeholder="En az 6 karakter"
             />
 
             {ayar.ozel_alanlar.map((alan) => {
@@ -475,17 +476,19 @@ export default function RegisterScreen() {
                       [alan.anahtar]: t,
                     }))
                   }
-                  placeholder={alan.etiket}
                 />
               );
             })}
 
             <PolitikaOnayKutulari
+              politikalar={kayitPolitikalari}
               onaylar={onaylar}
               onDegisti={(kod, deger) =>
                 setOnaylar((prev) => ({ ...prev, [kod]: deger }))
               }
-              onOku={setOkunan}
+              onOku={(kod) =>
+                setOkunan(kayitPolitikalari.find((p) => p.kod === kod) ?? null)
+              }
             />
 
             <GradientButton
@@ -523,7 +526,7 @@ export default function RegisterScreen() {
       </KlavyeGuvenliAlan>
 
       <PolitikaOkumaPaneli
-        politika={okunan ? POLITIKA_METINLERI[okunan] : null}
+        politika={okunan}
         onKapat={() => setOkunan(null)}
       />
     </Screen>

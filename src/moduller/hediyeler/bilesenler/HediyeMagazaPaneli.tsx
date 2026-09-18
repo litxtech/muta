@@ -21,7 +21,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { CamArkaplan } from '../../../bilesenler/yuzey/CamArkaplan';
 import { CanliHediyeSimgesi } from '../../cuzdan/bilesenler/CanliCoinSimgesi';
-import type { Gift, GiftRarity } from '../../../types/models';
+import { CoinPaketMagaza } from '../../cuzdan/bilesenler/CoinPaketMagaza';
+import type { CoinPackage, Gift, GiftRarity } from '../../../types/models';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -63,7 +64,13 @@ type Props = {
   onPkAliciSec?: (id: string) => void;
   onSend: (gift: Gift, quantity: number) => void;
   onClose: () => void;
+  /** Eski: ayrı Modal. coinPackages verilirse panel içi moda geçilir (iOS güvenli). */
   onCoinYukle?: () => void;
+  /** Panel içi coin yükleme — ikinci Modal açılmaz */
+  coinPackages?: CoinPackage[];
+  coinLocked?: boolean;
+  onCoinBuy?: (pkg: CoinPackage) => void;
+  onCoinPaketHazirla?: () => void;
   /** Gönderim sürerken buton kilidi */
   gonderiyor?: boolean;
 };
@@ -119,12 +126,19 @@ export function HediyeMagazaPaneli({
   onSend,
   onClose,
   onCoinYukle,
+  coinPackages,
+  coinLocked,
+  onCoinBuy,
+  onCoinPaketHazirla,
   gonderiyor = false,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [sekme, setSekme] = useState<(typeof SEKMELER)[number]['id']>('populer');
   const [secili, setSecili] = useState<Gift | null>(null);
   const [adet, setAdet] = useState(1);
+  /** Aynı Modal içinde coin paketleri — iOS ikinci Modal açmaz */
+  const [coinModu, setCoinModu] = useState(false);
+  const icindeCoin = coinPackages != null && !!onCoinBuy;
 
   /** Android nav / gesture çubuğu — kartı yukarı, Gönder tıklanabilir */
   const sheetLift = ANDROID
@@ -160,6 +174,7 @@ export function HediyeMagazaPaneli({
   useEffect(() => {
     if (!visible) {
       setAdet(1);
+      setCoinModu(false);
       return;
     }
     if (!secili && liste[0]) setSecili(liste[0]);
@@ -174,6 +189,15 @@ export function HediyeMagazaPaneli({
   const toplam = secili != null ? secili.coin_cost * adet : 0;
   const yetmez = coins != null && toplam > coins;
 
+  const coinAc = useCallback(() => {
+    if (icindeCoin) {
+      setCoinModu(true);
+      onCoinPaketHazirla?.();
+      return;
+    }
+    onCoinYukle?.();
+  }, [icindeCoin, onCoinPaketHazirla, onCoinYukle]);
+
   const onSec = useCallback((g: Gift) => setSecili(g), []);
   const onHizliGonder = useCallback(
     (g: Gift) => {
@@ -181,22 +205,22 @@ export function HediyeMagazaPaneli({
       setSecili(g);
       setAdet(1);
       if (coins != null && g.coin_cost > coins) {
-        onCoinYukle?.();
+        coinAc();
         return;
       }
       onSend(g, 1);
     },
-    [coins, gonderiyor, onCoinYukle, onSend],
+    [coins, coinAc, gonderiyor, onSend],
   );
 
   const gonder = useCallback(() => {
     if (!secili || gonderiyor) return;
     if (yetmez) {
-      onCoinYukle?.();
+      coinAc();
       return;
     }
     onSend(secili, adet);
-  }, [adet, gonderiyor, onCoinYukle, onSend, secili, yetmez]);
+  }, [adet, coinAc, gonderiyor, onSend, secili, yetmez]);
 
   const renderItem = useCallback(
     ({ item }: { item: Gift }) => (
@@ -225,12 +249,28 @@ export function HediyeMagazaPaneli({
       visible={visible}
       transparent
       animationType={ANDROID ? 'fade' : 'none'}
-      onRequestClose={onClose}
+      onRequestClose={() => {
+        if (coinModu) {
+          setCoinModu(false);
+          return;
+        }
+        onClose();
+      }}
       statusBarTranslucent
       hardwareAccelerated
+      presentationStyle="overFullScreen"
     >
       <View style={[styles.root, { paddingBottom: sheetLift }]}>
-        <Pressable style={styles.perde} onPress={onClose}>
+        <Pressable
+          style={styles.perde}
+          onPress={() => {
+            if (coinModu) {
+              setCoinModu(false);
+              return;
+            }
+            onClose();
+          }}
+        >
           {PERDE_GIRIS ? (
             <Animated.View
               entering={PERDE_GIRIS}
@@ -245,7 +285,7 @@ export function HediyeMagazaPaneli({
         <Animated.View
           entering={SHEET_GIRIS}
           exiting={SHEET_CIKIS}
-          style={styles.sheet}
+          style={[styles.sheet, coinModu && styles.sheetCoin]}
         >
           <CamArkaplan
             intensity={ANDROID ? 0 : 36}
@@ -259,166 +299,211 @@ export function HediyeMagazaPaneli({
 
             <View style={styles.ust}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.baslik}>Hediye gönder</Text>
+                <Text style={styles.baslik}>
+                  {coinModu ? 'Coin yükle' : 'Hediye gönder'}
+                </Text>
                 <Text style={styles.alt}>
-                  {aliciAdi ? `Alıcı: ${aliciAdi}` : 'Canlı hediyeler'}
-                  {` · ${sirali.length}`}
+                  {coinModu
+                    ? '1 coin = 0,10 ₺ · anında yükle'
+                    : aliciAdi
+                      ? `Alıcı: ${aliciAdi}`
+                      : 'Canlı hediyeler'}
+                  {coinModu ? '' : ` · ${sirali.length}`}
                 </Text>
               </View>
-              <Pressable onPress={onClose} style={styles.kapatBtn} hitSlop={8}>
-                <Ionicons
-                  name="close"
-                  size={20}
-                  color={RenkTokenlari.textMuted}
-                />
-              </Pressable>
+              {coinModu ? (
+                <Pressable
+                  onPress={() => setCoinModu(false)}
+                  style={styles.kapatBtn}
+                  hitSlop={8}
+                  accessibilityLabel="Hediyeye dön"
+                >
+                  <Ionicons
+                    name="arrow-back"
+                    size={20}
+                    color={RenkTokenlari.textMuted}
+                  />
+                </Pressable>
+              ) : (
+                <Pressable onPress={onClose} style={styles.kapatBtn} hitSlop={8}>
+                  <Ionicons
+                    name="close"
+                    size={20}
+                    color={RenkTokenlari.textMuted}
+                  />
+                </Pressable>
+              )}
             </View>
 
-            {pkAlicilar && pkAlicilar.length > 1 ? (
-              <View style={styles.pkAlicilar}>
-                <Text style={styles.pkBaslik}>PK — kime?</Text>
-                <View style={styles.pkSatir}>
-                  {pkAlicilar.map((a) => {
-                    const aktif = seciliPkAliciId === a.id;
+            {coinModu && coinPackages && onCoinBuy ? (
+              <ScrollView
+                style={styles.coinScroll}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.coinScrollIc}
+                keyboardShouldPersistTaps="handled"
+              >
+                <CoinPaketMagaza
+                  packages={coinPackages}
+                  locked={coinLocked}
+                  onBuy={onCoinBuy}
+                  baslikGoster={false}
+                />
+              </ScrollView>
+            ) : (
+              <>
+                {pkAlicilar && pkAlicilar.length > 1 ? (
+                  <View style={styles.pkAlicilar}>
+                    <Text style={styles.pkBaslik}>PK — kime?</Text>
+                    <View style={styles.pkSatir}>
+                      {pkAlicilar.map((a) => {
+                        const aktif = seciliPkAliciId === a.id;
+                        return (
+                          <Pressable
+                            key={a.id}
+                            onPress={() => onPkAliciSec?.(a.id)}
+                            style={[styles.pkChip, aktif && styles.pkChipAktif]}
+                          >
+                            <Text
+                              style={[
+                                styles.pkChipYazi,
+                                aktif && styles.pkChipYaziAktif,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {a.side === 'a' ? '🔵 ' : a.side === 'b' ? '🩷 ' : ''}
+                              {a.ad}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : null}
+
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.sekmeler}
+                >
+                  {SEKMELER.map((s) => {
+                    const aktif = sekme === s.id;
                     return (
                       <Pressable
-                        key={a.id}
-                        onPress={() => onPkAliciSec?.(a.id)}
-                        style={[styles.pkChip, aktif && styles.pkChipAktif]}
+                        key={s.id}
+                        onPress={() => setSekme(s.id)}
+                        style={[styles.sekme, aktif && styles.sekmeAktif]}
                       >
                         <Text
                           style={[
-                            styles.pkChipYazi,
-                            aktif && styles.pkChipYaziAktif,
+                            styles.sekmeYazi,
+                            aktif && styles.sekmeYaziAktif,
                           ]}
-                          numberOfLines={1}
                         >
-                          {a.side === 'a' ? '🔵 ' : a.side === 'b' ? '🩷 ' : ''}
-                          {a.ad}
+                          {s.label}
                         </Text>
                       </Pressable>
                     );
                   })}
-                </View>
-              </View>
-            ) : null}
+                </ScrollView>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.sekmeler}
-            >
-              {SEKMELER.map((s) => {
-                const aktif = sekme === s.id;
-                return (
-                  <Pressable
-                    key={s.id}
-                    onPress={() => setSekme(s.id)}
-                    style={[styles.sekme, aktif && styles.sekmeAktif]}
-                  >
-                    <Text
-                      style={[styles.sekmeYazi, aktif && styles.sekmeYaziAktif]}
-                    >
-                      {s.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            <View style={styles.gridWrap}>
-              <FlashList
-                data={liste}
-                keyExtractor={keyExtractor}
-                renderItem={renderItem}
-                numColumns={SUTUN}
-                extraData={extraData}
-                showsVerticalScrollIndicator={false}
-                drawDistance={ANDROID ? 180 : 250}
-                contentContainerStyle={styles.grid}
-              />
-            </View>
-
-            <View style={styles.adetBar}>
-              <Text style={styles.adetEtiket}>Adet</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.adetList}
-              >
-                {ADET_SECENEKLERI.map((n) => (
-                  <Pressable
-                    key={n}
-                    onPress={() => setAdet(n)}
-                    style={[styles.adetChip, adet === n && styles.adetChipAktif]}
-                  >
-                    <Text
-                      style={[
-                        styles.adetChipYazi,
-                        adet === n && styles.adetChipYaziAktif,
-                      ]}
-                    >
-                      ×{n}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-
-            <View style={styles.altBar}>
-              <Pressable
-                style={styles.bakiye}
-                onPress={onCoinYukle}
-                disabled={!onCoinYukle}
-              >
-                <Text style={styles.bakiyeIcon}>🪙</Text>
-                <Text style={styles.bakiyeYazi}>
-                  {(coins ?? 0).toLocaleString('tr-TR')}
-                </Text>
-                {onCoinYukle ? (
-                  <Ionicons
-                    name="add-circle"
-                    size={18}
-                    color={RenkTokenlari.accent}
+                <View style={styles.gridWrap}>
+                  <FlashList
+                    data={liste}
+                    keyExtractor={keyExtractor}
+                    renderItem={renderItem}
+                    numColumns={SUTUN}
+                    extraData={extraData}
+                    showsVerticalScrollIndicator={false}
+                    drawDistance={ANDROID ? 180 : 250}
+                    contentContainerStyle={styles.grid}
                   />
-                ) : null}
-              </Pressable>
+                </View>
 
-              <Pressable
-                onPress={gonder}
-                disabled={!secili || gonderiyor}
-                hitSlop={{ top: 10, bottom: 14, left: 8, right: 8 }}
-                style={({ pressed }) => [
-                  styles.gonderWrap,
-                  (!secili || gonderiyor) && { opacity: 0.45 },
-                  pressed && { opacity: 0.9 },
-                ]}
-              >
-                <LinearGradient
-                  colors={
-                    yetmez
-                      ? ['#F5C462', '#E8A838']
-                      : [...RenkTokenlari.gradientPrimary]
-                  }
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={styles.gonder}
-                >
-                  <Text
-                    style={[
-                      styles.gonderYazi,
-                      yetmez && { color: '#1A1208' },
+                <View style={styles.adetBar}>
+                  <Text style={styles.adetEtiket}>Adet</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.adetList}
+                  >
+                    {ADET_SECENEKLERI.map((n) => (
+                      <Pressable
+                        key={n}
+                        onPress={() => setAdet(n)}
+                        style={[
+                          styles.adetChip,
+                          adet === n && styles.adetChipAktif,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.adetChipYazi,
+                            adet === n && styles.adetChipYaziAktif,
+                          ]}
+                        >
+                          ×{n}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <View style={styles.altBar}>
+                  <Pressable
+                    style={styles.bakiye}
+                    onPress={coinAc}
+                    disabled={!icindeCoin && !onCoinYukle}
+                  >
+                    <Text style={styles.bakiyeIcon}>🪙</Text>
+                    <Text style={styles.bakiyeYazi}>
+                      {(coins ?? 0).toLocaleString('tr-TR')}
+                    </Text>
+                    {icindeCoin || onCoinYukle ? (
+                      <Ionicons
+                        name="add-circle"
+                        size={18}
+                        color={RenkTokenlari.accent}
+                      />
+                    ) : null}
+                  </Pressable>
+
+                  <Pressable
+                    onPress={gonder}
+                    disabled={!secili || gonderiyor}
+                    hitSlop={{ top: 10, bottom: 14, left: 8, right: 8 }}
+                    style={({ pressed }) => [
+                      styles.gonderWrap,
+                      (!secili || gonderiyor) && { opacity: 0.45 },
+                      pressed && { opacity: 0.9 },
                     ]}
                   >
-                    {gonderiyor
-                      ? 'Gönderiliyor…'
-                      : yetmez
-                        ? 'Coin yükle'
-                        : `Gönder${secili ? ` · ${toplam.toLocaleString('tr-TR')}` : ''}`}
-                  </Text>
-                </LinearGradient>
-              </Pressable>
-            </View>
+                    <LinearGradient
+                      colors={
+                        yetmez
+                          ? ['#F5C462', '#E8A838']
+                          : [...RenkTokenlari.gradientPrimary]
+                      }
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0.5 }}
+                      style={styles.gonder}
+                    >
+                      <Text
+                        style={[
+                          styles.gonderYazi,
+                          yetmez && { color: '#1A1208' },
+                        ]}
+                      >
+                        {gonderiyor
+                          ? 'Gönderiliyor…'
+                          : yetmez
+                            ? 'Coin yükle'
+                            : `Gönder${secili ? ` · ${toplam.toLocaleString('tr-TR')}` : ''}`}
+                      </Text>
+                    </LinearGradient>
+                  </Pressable>
+                </View>
+              </>
+            )}
           </View>
         </Animated.View>
       </View>
@@ -444,6 +529,18 @@ const styles = StyleSheet.create({
     backgroundColor: RenkTokenlari.bgElevated,
     zIndex: 2,
     elevation: ANDROID ? 16 : 24,
+  },
+  sheetCoin: {
+    maxHeight: '88%',
+    minHeight: '70%',
+  },
+  coinScroll: {
+    flex: 1,
+    paddingHorizontal: BoslukTokenlari.lg,
+  },
+  coinScrollIc: {
+    paddingBottom: BoslukTokenlari.lg,
+    gap: BoslukTokenlari.md,
   },
   sheetIc: {
     flex: 1,

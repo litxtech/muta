@@ -51,11 +51,15 @@ const SES_ODA_PUBLISH = {
   stopMicTrackOnMute: true,
 } as const;
 
-/** Canlı izleyici (yalnız dinleme) — STREAM_MUSIC */
-const ANDROID_SES_ODASI_DINLEME = {
+/**
+ * Ses odası misafir + canlı izleyici — STREAM_MUSIC.
+ * gainTransientMayDuck: Spotify/YouTube Music kesilmez, oda konuşması varken kısılır.
+ * Exclusive `gain` + inCommunication müzik uygulamalarını durdurur.
+ */
+const ANDROID_SES_ODASI_MISAFIR = {
   manageAudioFocus: true,
   audioMode: 'normal' as const,
-  audioFocusMode: 'gain' as const,
+  audioFocusMode: 'gainTransientMayDuck' as const,
   audioStreamType: 'music' as const,
   audioAttributesUsageType: 'media' as const,
   audioAttributesContentType: 'speech' as const,
@@ -63,9 +67,9 @@ const ANDROID_SES_ODASI_DINLEME = {
 };
 
 /**
- * Ses odası + 1:1 + yayıncı — voiceCommunication (Android→iOS şart).
+ * Konuşmacı / host / 1:1 — voiceCommunication (Android→iOS şart).
  * Media tipi Android yayın → iPhone'da sık sessiz kalır.
- * Ses odasında dinleyici de communication kullanır.
+ * Yalnız yayıncılarda; misafir ANDROID_SES_ODASI_MISAFIR kullanır.
  */
 const ANDROID_ILETISIM_AUDIO = {
   manageAudioFocus: true,
@@ -168,7 +172,7 @@ class LiveKitBaglantiYoneticisiImpl {
   /** user = ön kamera, environment = arka */
   private kameraFacing: 'user' | 'environment' = 'user';
   private gorusmeModu = false;
-  /** Ses odası (video yayını yok) — herkes communication profili */
+  /** Ses odası (video yayını yok) — misafir duck, konuşmacı communication */
   private sesOdasiModu = false;
   private speakerTimer: ReturnType<typeof setTimeout> | null = null;
   private speakerBekleyen: Participant[] | null = null;
@@ -708,24 +712,25 @@ class LiveKitBaglantiYoneticisiImpl {
 
   /**
    * Ses oturumu — connect ÖNCESİ bir kez (aynı profilde tekrar YOK).
-   * Ses odası / 1:1: Android herkes communication (Android↔iOS şart).
-   * Canlı izleyici: media.
+   * Konuşmacı / 1:1: exclusive communication (Android↔iOS Opus).
+   * Ses odası misafir: media + duck — harici müzik devam eder.
    * iOS: setupIOSAudioManagement otomatik; manuel setApple YOK (sıfır sample bug).
    */
   private async sesOturumuHazirla(
     native: LiveKitNative,
     zorla = false,
   ): Promise<void> {
-    const iletisim =
-      this.gorusmeModu || this.asPublisher || this.sesOdasiModu;
-    const imza = `${Platform.OS}:${iletisim ? 'com' : 'media'}:${this.asPublisher ? 1 : 0}`;
+    // Misafir (dinleyici) exclusive focus almaz — Spotify vb. kesilmez
+    const iletisim = this.gorusmeModu || this.asPublisher;
+    const profil = iletisim ? 'com' : 'duck';
+    const imza = `${Platform.OS}:${profil}:${this.asPublisher ? 1 : 0}`;
     if (!zorla && this.audioSessionAcik && this.sonSesImza === imza) {
       await native.AudioSession.startAudioSession().catch(() => undefined);
       return;
     }
 
     if (Platform.OS === 'android') {
-      // Preset + forceHandle — communication Android→iOS Opus için zorunlu
+      // Yayıncı: communication. Misafir: media + duck (müzik karışır).
       const androidOpts = iletisim
         ? {
             ...(native.AndroidAudioTypePresets.communication as object),
@@ -733,7 +738,7 @@ class LiveKitBaglantiYoneticisiImpl {
           }
         : {
             ...(native.AndroidAudioTypePresets.media as object),
-            ...ANDROID_SES_ODASI_DINLEME,
+            ...ANDROID_SES_ODASI_MISAFIR,
           };
 
       await native.AudioSession.configureAudio({

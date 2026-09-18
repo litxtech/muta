@@ -2,7 +2,6 @@ import React from 'react';
 import { HediyeMagazaPaneli } from './HediyeMagazaPaneli';
 import { HediyeAnimasyonKatmani } from './HediyeAnimasyonKatmani';
 import { HesabiTamamlaKarti } from '../../misafir-hesabi/bilesenler/HesabiTamamlaKarti';
-import { CoinYuklePaneli } from '../../cuzdan/bilesenler/CoinYuklePaneli';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { HediyeMagazaDurumu } from '../islemler/HediyeMagazaTipleri';
 
@@ -36,25 +35,20 @@ export function HediyeMagazaBaglamasi({
         onSend={magaza.gonder}
         onClose={magaza.kapat}
         onCoinYukle={magaza.coinYukle}
+        coinPackages={yukle.packages}
+        coinLocked={yukle.purchaseLocked}
+        onCoinBuy={yukle.satinAl}
+        onCoinPaketHazirla={yukle.paketleriYenile}
         gonderiyor={magaza.gonderiyor}
       />
-      {yukle ? (
-        <CoinYuklePaneli
-          visible={yukle.acik}
-          packages={yukle.packages}
-          locked={yukle.purchaseLocked}
-          coins={magaza.coins}
-          onBuy={yukle.satinAl}
-          onClose={yukle.kapat}
-          upgradeAcik={yukle.upgradeAcik}
-          upgradeKapat={yukle.upgradeKapat}
-        />
-      ) : null}
       {animasyon ? <HediyeAnimasyonKatmani /> : null}
       {misafirKart ? (
         <HesabiTamamlaKarti
-          visible={magaza.upgradeAcik}
-          onClose={magaza.upgradeKapat}
+          visible={magaza.upgradeAcik || yukle.upgradeAcik}
+          onClose={() => {
+            magaza.upgradeKapat();
+            yukle.upgradeKapat();
+          }}
           onCompleted={() => {
             void refreshProfile();
             void refreshWallet();

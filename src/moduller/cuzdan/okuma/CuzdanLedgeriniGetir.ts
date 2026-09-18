@@ -25,6 +25,7 @@ const SEBEP_ETIKET: Record<string, string> = {
   withdrawal_hold: 'Çekim blokesi',
   withdrawal_refund: 'Çekim iadesi',
   agency_commission: 'Ajans komisyonu',
+  agency_distribution: 'Ajans coin yükleme',
   host_earning: 'Ev sahibi kazancı',
   refund: 'İade',
   bonus: 'Bonus',
@@ -56,6 +57,7 @@ const REF_ETIKET: Record<string, string> = {
   kaskad_round: 'Kozmik Kaskad turu',
   admin: 'Yönetim',
   agency: 'Ajans',
+  agency_transfer: 'Ajans transferi',
   host: 'Ev sahibi',
   live: 'Canlı yayın',
   room: 'Oda',
@@ -91,6 +93,8 @@ export function LedgerBirimEtiketi(currency: string): string {
 /** Satırın kullanıcıya gösterilecek kısa Türkçe özeti */
 export function LedgerAnlasilirOzet(row: LedgerSatiri): string {
   const sebep = LedgerSebepEtiketi(row.reason);
+  const kok = sebepKok(row.reason);
+  if (kok === 'agency_distribution') return sebep;
   const ref = LedgerRefEtiketi(row.ref_type);
   if (!row.ref_type || ref === '—' || sebep.includes(ref)) return sebep;
   return `${sebep} · ${ref}`;

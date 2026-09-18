@@ -682,12 +682,13 @@ const styles = StyleSheet.create({
     zIndex: 2,
     backgroundColor: RenkTokenlari.bg,
     overflow: 'hidden',
-    // elevation düşük tut — YuzenTabBar (200) altında kalsın, tab dokunuşunu ezmesin
+    // elevation YOK — Android’de tab bar (elevation 200) üstüne çizilip
+    // butonları yutmasın. Gölge yalnızca iOS shadow ile.
     shadowColor: '#000',
     shadowOffset: { width: -4, height: 4 },
     shadowRadius: 20,
     shadowOpacity: 0.25,
-    elevation: 8,
+    elevation: 0,
   },
   kenarIsik: {
     position: 'absolute',
@@ -704,9 +705,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     backgroundColor: RenkTokenlari.scrim,
-    // Tab bar (200) altında; açıkken feed’i örter, tab’ı yutmaz
+    // Feed’i örter; tab bar (200) altında kalır
     zIndex: 40,
-    elevation: 40,
+    elevation: 0,
   },
   hamBtn: {
     width: 42,

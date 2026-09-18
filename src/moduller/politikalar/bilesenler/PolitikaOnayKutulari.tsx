@@ -1,8 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import type { PolitikaKodu } from '../icerik/PolitikaMetinleri';
-import { POLITIKA_METINLERI } from '../icerik/PolitikaMetinleri';
+import type { PolitikaGorunum } from '../tipler/PolitikaTipleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -11,25 +10,30 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 type Props = {
-  onaylar: Record<PolitikaKodu, boolean>;
-  onDegisti: (kod: PolitikaKodu, deger: boolean) => void;
-  onOku: (kod: PolitikaKodu) => void;
+  politikalar: PolitikaGorunum[];
+  onaylar: Record<string, boolean>;
+  onDegisti: (kod: string, deger: boolean) => void;
+  onOku: (kod: string) => void;
 };
 
-const SIRALAMA: PolitikaKodu[] = ['tos', 'privacy', 'child_safety'];
+/** Kayıt — dinamik zorunlu politika onay kutuları */
+export function PolitikaOnayKutulari({
+  politikalar,
+  onaylar,
+  onDegisti,
+  onOku,
+}: Props) {
+  if (!politikalar.length) return null;
 
-/** Kayıt — zorunlu politika onay kutuları */
-export function PolitikaOnayKutulari({ onaylar, onDegisti, onOku }: Props) {
   return (
     <View style={styles.wrap}>
       <Text style={styles.baslik}>Yasal onaylar</Text>
-      {SIRALAMA.map((kod) => {
-        const p = POLITIKA_METINLERI[kod];
-        const secili = onaylar[kod];
+      {politikalar.map((p) => {
+        const secili = !!onaylar[p.kod];
         return (
-          <View key={kod} style={styles.satir}>
+          <View key={p.kod} style={styles.satir}>
             <Pressable
-              onPress={() => onDegisti(kod, !secili)}
+              onPress={() => onDegisti(p.kod, !secili)}
               style={styles.kutuHit}
               hitSlop={4}
               accessibilityRole="checkbox"
@@ -41,10 +45,9 @@ export function PolitikaOnayKutulari({ onaylar, onDegisti, onOku }: Props) {
                 ) : null}
               </View>
             </Pressable>
-            <Pressable style={styles.metinHit} onPress={() => onOku(kod)}>
+            <Pressable style={styles.metinHit} onPress={() => onOku(p.kod)}>
               <Text style={styles.etiket}>
-                {p.onayEtiketi}{' '}
-                <Text style={styles.link}>Oku</Text>
+                {p.onayEtiketi} <Text style={styles.link}>Oku</Text>
               </Text>
             </Pressable>
           </View>
@@ -55,9 +58,11 @@ export function PolitikaOnayKutulari({ onaylar, onDegisti, onOku }: Props) {
 }
 
 export function TumPolitikaOnaylariVerildi(
-  onaylar: Record<PolitikaKodu, boolean>,
+  politikalar: PolitikaGorunum[],
+  onaylar: Record<string, boolean>,
 ): boolean {
-  return SIRALAMA.every((k) => onaylar[k]);
+  if (!politikalar.length) return true;
+  return politikalar.every((p) => onaylar[p.kod]);
 }
 
 const styles = StyleSheet.create({

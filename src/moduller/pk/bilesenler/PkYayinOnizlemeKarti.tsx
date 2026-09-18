@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   },
   vsText: {
     ...TipografiTokenlari.micro,
-    color: '#12040C',
+    color: RenkTokenlari.textOnPrimary,
     fontWeight: '900',
   },
   gecikmeRozet: {

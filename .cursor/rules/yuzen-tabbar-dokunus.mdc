@@ -1,24 +1,30 @@
 ---
-description: YuzenTabBar dokunuş mimarisi — BlurView/jest tab’ı bozmasın
-globs: src/components/YuzenTabBar.tsx,src/bilesenler/yuzey/CamArkaplan.tsx,app/(tabs)/_layout.tsx,src/moduller/ana-sayfa/bilesenler/AnaSayfaCekmeceMenu.tsx
+description: YuzenTabBar root chrome — oda modalından bağımsız
+globs: src/components/YuzenTabBar.tsx,src/components/YuzenTabBosluk.ts,src/components/tab-navigasyon/**,app/(tabs)/_layout.tsx,app/_layout.tsx
 alwaysApply: false
 ---
 
-# YuzenTabBar — kalıcı dokunuş kuralları
+# YuzenTabBar — root chrome (zorunlu)
 
-Tab menü tekrar tekrar bozuluyordu. Aşağıdakiler **zorunlu**:
+## Mimari
 
-## Yapı
-1. **Dekor katmanı** (CamArkaplan / BlurView / overlay): `pointerEvents="none"`, absolute, Pressable’ı **sarmamaz**.
-2. **Hit katmanı**: düz `react-native` `Pressable` (RNGH Pressable / GestureDetector **yok**).
-3. Tab bar `zIndex` + `elevation` ≥ **200** — feed drawer elevation tab’ı ezmesin.
-4. Sıra sabit: Ana · Durum | + | Mesaj · Profil.
+- Tab bar **root** `app/_layout.tsx` içinde (`<YuzenTabBar />`), Stack’ten **sonra**.
+- `(tabs)/_layout` içinde `tabBar={() => null}` — navigator bar **YOK**.
+- Ses odası `fullScreenModal` Tabs’ı freeze eder; root bar etkilenmez.
 
-## Yasak
-- BlurView / CamArkaplan ile tab butonlarını sarmak
-- Tab bar’a GestureDetector / long-press pan eklemek
-- Tab bar `zIndex`/`elevation` değerini 200’ün altına düşürmek
-- `AnaSayfaCekmeceMenu` içeriğine tab bar’dan yüksek elevation vermek
+## Yapma
 
-## Değiştirirken
-Önce `YuzenTabBar.tsx` üstündeki mimari yorumunu oku; dokunuş sırasını bozmadan stil güncelle.
+- Custom `tabBar` prop ile YuzenTabBar’ı Tabs’a geri gömmek
+- Oda için tab unmount / height:0
+- BlurView ile Pressable sarmak
+
+## Görünürlük
+
+- Yalnızca `segments[0] === '(tabs)'` ve oturum varken
+- Oda / auth / diğer stack ekranlarında `null`
+
+## Android sistem navigasyonu
+
+- `guvenliTabAltInset` Android’de minimum `ANDROID_NAV_MIN_INSET` kullanır
+- `YUZEN_TAB_ICERIK_BOSLUGU` Android’de daha yüksek (shell + 56)
+- Tab bar `paddingBottom` = sistem nav inset — ikonlar 3-tuş / gesture çubuğuyla çakışmaz

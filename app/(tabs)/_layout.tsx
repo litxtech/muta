@@ -1,37 +1,33 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Tabs, router } from 'expo-router';
-import type { BottomTabBarProps } from 'expo-router/build/react-navigation/bottom-tabs';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
-import { YuzenTabBar } from '../../src/components/YuzenTabBar';
-import { yuzenTabBarToplamYukseklik } from '../../src/components/YuzenTabBosluk';
 import { useAuth } from '../../src/contexts/AuthContext';
+import {
+  TabsBirKezMountMu,
+  TabsMountIsaretle,
+} from '../../src/components/tab-navigasyon/TabBarGuvenlik';
 
 /**
- * Sekmeler: Ana · Durum · Oluştur · Mesaj · Profil
- * YuzenTabBar in-flow (absolute değil) — iOS çıkış/geri dönüşte bozulmaz.
+ * Sekme ekranları — tab BAR burada YOK.
+ * Bar root’ta (YuzenTabBar) — oda modal’ı Tabs’ı dondursa bile bozulmaz.
  */
 export default function TabsLayout() {
   const { session, loading } = useAuth();
-  const insets = useSafeAreaInsets();
-  const tabBarHeight = yuzenTabBarToplamYukseklik(insets.bottom);
 
-  const renderTabBar = useCallback(
-    (props: BottomTabBarProps) => <YuzenTabBar {...props} />,
-    [],
-  );
+  useEffect(() => {
+    if (session) TabsMountIsaretle();
+  }, [session]);
 
   useEffect(() => {
     if (loading) return;
-    if (!session) {
-      router.replace('/(auth)/login');
-    }
+    if (!session) router.replace('/(auth)/login');
   }, [loading, session]);
 
-  // Oturum varken loading spinner Tabs’ı UNMOUNT ETMESİN — remount iOS layout bozar
-  if (!session) {
+  const tabsKoruma = TabsBirKezMountMu() || !!session;
+
+  if (!tabsKoruma) {
     if (loading) {
       return (
         <View
@@ -46,9 +42,7 @@ export default function TabsLayout() {
         </View>
       );
     }
-    return (
-      <View style={{ flex: 1, backgroundColor: RenkTokenlari.bg }} />
-    );
+    return <View style={{ flex: 1, backgroundColor: RenkTokenlari.bg }} />;
   }
 
   return (
@@ -59,28 +53,31 @@ export default function TabsLayout() {
     >
       <Tabs
         backBehavior="none"
-        tabBar={renderTabBar}
+        detachInactiveScreens={false}
+        tabBar={() => null}
         screenOptions={{
           headerShown: false,
           animation: 'none',
-          tabBarShowLabel: false,
-          tabBarActiveTintColor: RenkTokenlari.primarySoft,
-          tabBarInactiveTintColor: RenkTokenlari.textDim,
+          lazy: false,
+          freezeOnBlur: false,
           tabBarStyle: {
-            height: tabBarHeight,
-            backgroundColor: 'transparent',
+            display: 'none',
+            height: 0,
+            overflow: 'hidden',
             borderTopWidth: 0,
             elevation: 0,
-            position: 'relative',
           },
-          tabBarBackground: () => null,
+          tabBarShowLabel: false,
         }}
       >
-        <Tabs.Screen name="index" options={{ title: 'Ana Sayfa' }} />
-        <Tabs.Screen name="durum" options={{ title: 'Durum' }} />
-        <Tabs.Screen name="create" options={{ title: 'Oluştur' }} />
-        <Tabs.Screen name="messages" options={{ title: 'Mesajlar' }} />
-        <Tabs.Screen name="profile" options={{ title: 'Profil' }} />
+        <Tabs.Screen name="index" options={{ title: 'Ana Sayfa', lazy: false }} />
+        <Tabs.Screen name="durum" options={{ title: 'Durum', lazy: false }} />
+        <Tabs.Screen name="create" options={{ title: 'Oluştur', lazy: false }} />
+        <Tabs.Screen
+          name="messages"
+          options={{ title: 'Mesajlar', lazy: false }}
+        />
+        <Tabs.Screen name="profile" options={{ title: 'Profil', lazy: false }} />
         <Tabs.Screen name="rooms" options={{ href: null, title: 'Odalar' }} />
         <Tabs.Screen name="wallet" options={{ href: null, title: 'Cüzdan' }} />
         <Tabs.Screen

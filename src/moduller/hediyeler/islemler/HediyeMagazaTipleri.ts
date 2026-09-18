@@ -9,6 +9,7 @@ export type CoinYuklePaneliDurumu = {
   packages: CoinPackage[];
   purchaseLocked: boolean;
   satinAl: (pkg: CoinPackage) => void;
+  paketleriYenile?: () => void;
   upgradeAcik: boolean;
   upgradeKapat: () => void;
   upgradeAc: () => void;
@@ -48,8 +49,6 @@ export type HediyeMagazaDurumu = {
   setSeciliPkAliciId: (id: string) => void;
   coinYukle: () => void;
   coinYuklePaneli: CoinYuklePaneliDurumu;
-  /** Coin paneli kapanınca hediye sheet’ini geri aç (hedef varsa) */
-  hediyeyiGeriAc?: () => void;
   upgradeAcik: boolean;
   upgradeKapat: () => void;
   upgradeAc: () => void;

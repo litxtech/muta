@@ -33,7 +33,7 @@ export function MesajMarkaBasligi({ altYazi, sohbetSayisi, onYeniSohbet }: Props
             colors={[...RenkTokenlari.gradientPrimary]}
             style={styles.compose}
           >
-            <Ionicons name="create-outline" size={20} color="#12040C" />
+            <Ionicons name="create-outline" size={20} color={RenkTokenlari.textOnPrimary} />
           </LinearGradient>
         </Pressable>
       </View>

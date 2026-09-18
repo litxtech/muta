@@ -27,6 +27,10 @@ import {
   OdaKapakSec,
   OdaKapakUriIleYukle,
 } from '../islemler/OdaKapakMedyasiYukle';
+import { OdaArkaPlanTemaSeridi } from './OdaArkaPlanTemaSeridi';
+import {
+  OdaTemasiniCoz,
+} from '../../oda-olusturma/katalog/OdaTemaKatalogu';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -40,6 +44,7 @@ type Props = {
   title: string;
   topic: string | null;
   coverUrl: string | null;
+  themeCode?: string | null;
   maxSeats: number;
   /** Dolu mikrofon koltuğu sayısı (azaltmada uyarı için) */
   doluKoltuk: number;
@@ -48,18 +53,20 @@ type Props = {
     title: string;
     topic: string | null;
     cover_url: string | null;
+    theme_code: string | null;
     max_seats?: number;
     capacity_tier_code?: string | null;
   }) => void;
 };
 
-/** Lider: oda kapak + başlık + açıklama + koltuk sayısı düzenler */
+/** Lider: oda kapak + tema + başlık + açıklama + koltuk sayısı düzenler */
 export function OdaKapakDuzenlePaneli({
   visible,
   roomId,
   title: baslikIlk,
   topic: topicIlk,
   coverUrl: kapakIlk,
+  themeCode: temaIlk,
   maxSeats: maxSeatsIlk,
   doluKoltuk,
   onClose,
@@ -71,6 +78,9 @@ export function OdaKapakDuzenlePaneli({
   const [title, setTitle] = useState(baslikIlk);
   const [topic, setTopic] = useState(topicIlk ?? '');
   const [kapakUrl, setKapakUrl] = useState<string | null>(kapakIlk);
+  const [temaKod, setTemaKod] = useState(
+    () => OdaTemasiniCoz(temaIlk).kod,
+  );
   const [maxSeats, setMaxSeats] = useState(
     Math.min(ODA_KOLTUK_MAX, Math.max(ODA_KOLTUK_MIN, maxSeatsIlk || 8)),
   );
@@ -84,12 +94,13 @@ export function OdaKapakDuzenlePaneli({
     setTitle(baslikIlk);
     setTopic(topicIlk ?? '');
     setKapakUrl(kapakIlk);
+    setTemaKod(OdaTemasiniCoz(temaIlk).kod);
     setMaxSeats(
       Math.min(ODA_KOLTUK_MAX, Math.max(ODA_KOLTUK_MIN, maxSeatsIlk || 8)),
     );
     setYerelUri(null);
     setYerelMime(null);
-  }, [visible, baslikIlk, topicIlk, kapakIlk, maxSeatsIlk]);
+  }, [visible, baslikIlk, topicIlk, kapakIlk, temaIlk, maxSeatsIlk]);
   useEffect(() => {
     if (!visible || !klavyeAcik) return;
     const t = setTimeout(() => {
@@ -99,6 +110,7 @@ export function OdaKapakDuzenlePaneli({
   }, [visible, klavyeAcik, klavyeH]);
 
   const onizlemeUri = yerelUri ?? kapakUrl;
+  const onizlemeTema = OdaTemasiniCoz(temaKod);
   const onizlemeBaslik = title.trim() || 'Oda adı';
   const onizlemeKonu = topic.trim();
 
@@ -107,7 +119,7 @@ export function OdaKapakDuzenlePaneli({
     try {
       const sec = await OdaKapakSec();
       if (!sec.ok) {
-        if (!sec.iptal) Alert.alert('Kapak', sec.hata);
+        if (!sec.iptal) Alert.alert('Arka plan', sec.hata);
         return;
       }
       setYerelUri(sec.uri);
@@ -115,6 +127,12 @@ export function OdaKapakDuzenlePaneli({
     } finally {
       setKapakBusy(false);
     }
+  };
+
+  const kapakKaldir = () => {
+    setYerelUri(null);
+    setYerelMime(null);
+    setKapakUrl(null);
   };
 
   const koltukUygula = async (
@@ -172,6 +190,7 @@ export function OdaKapakDuzenlePaneli({
           title: baslik,
           topic: topic.trim() || null,
           coverUrl: cover,
+          themeCode: temaKod,
         });
         if (!r.ok) {
           Alert.alert('Oda', r.hata);
@@ -193,6 +212,7 @@ export function OdaKapakDuzenlePaneli({
           title: baslik,
           topic: topic.trim() || null,
           cover_url: cover,
+          theme_code: temaKod,
           ...koltukPatch,
         });
         onClose();
@@ -249,7 +269,7 @@ export function OdaKapakDuzenlePaneli({
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.baslik}>Oda kartı & arka plan</Text>
               <Text style={styles.alt}>
-                Kapak resmi keşfette ve odada tam ekran arka plan olarak görünür
+                Modern tema seç veya kendi fotoğrafını yükle — odada tam ekran görünür
               </Text>
             </View>
             <Pressable
@@ -281,7 +301,7 @@ export function OdaKapakDuzenlePaneli({
                   onPress={() => void kapakSec()}
                   disabled={kapakBusy || busy}
                   style={styles.kartOnizleme}
-                  accessibilityLabel="Kapak seç"
+                  accessibilityLabel="Arka plan seç"
                 >
                   {onizlemeUri ? (
                     <Image
@@ -291,7 +311,9 @@ export function OdaKapakDuzenlePaneli({
                     />
                   ) : (
                     <LinearGradient
-                      colors={['#2A1A32', '#16101E']}
+                      colors={[...onizlemeTema.renkler]}
+                      start={{ x: 0.1, y: 0 }}
+                      end={{ x: 0.9, y: 1 }}
                       style={styles.kapak}
                     />
                   )}
@@ -313,7 +335,13 @@ export function OdaKapakDuzenlePaneli({
                       <Text style={styles.kartKonu} numberOfLines={1}>
                         {onizlemeKonu}
                       </Text>
-                    ) : null}
+                    ) : (
+                      <Text style={styles.kartKonu} numberOfLines={1}>
+                        {onizlemeUri
+                          ? 'Özel fotoğraf'
+                          : `${onizlemeTema.ad} teması`}
+                      </Text>
+                    )}
                   </View>
                   <View style={styles.kapakAksiyon} pointerEvents="none">
                     {kapakBusy ? (
@@ -328,14 +356,41 @@ export function OdaKapakDuzenlePaneli({
                         <Text style={styles.kapakChipYazi}>
                           {onizlemeUri
                             ? yerelUri
-                              ? 'Yeni arka plan'
+                              ? 'Yeni foto'
                               : 'Değiştir'
-                            : 'Arka plan ekle'}
+                            : 'Foto yükle'}
                         </Text>
                       </View>
                     )}
                   </View>
                 </Pressable>
+
+                {onizlemeUri ? (
+                  <Pressable
+                    onPress={kapakKaldir}
+                    disabled={busy}
+                    style={styles.kaldirBtn}
+                    accessibilityLabel="Özel arka planı kaldır"
+                  >
+                    <Ionicons
+                      name="trash-outline"
+                      size={14}
+                      color={RenkTokenlari.textMuted}
+                    />
+                    <Text style={styles.kaldirYazi}>
+                      Özel fotoğrafı kaldır · temaya dön
+                    </Text>
+                  </Pressable>
+                ) : null}
+
+                <Text style={styles.onizlemeEtiket}>Modern temalar</Text>
+                <Text style={styles.temaAlt}>
+                  Foto yokken oda bu temayı arka plan olarak kullanır
+                </Text>
+                <OdaArkaPlanTemaSeridi
+                  seciliKod={temaKod}
+                  onSec={(t) => setTemaKod(t.kod)}
+                />
               </>
             ) : (
               <Pressable
@@ -351,20 +406,17 @@ export function OdaKapakDuzenlePaneli({
                     resizeMode="cover"
                   />
                 ) : (
-                  <View style={[styles.miniKapak, styles.miniKapakBos]}>
-                    <Ionicons
-                      name="image-outline"
-                      size={16}
-                      color={RenkTokenlari.textMuted}
-                    />
-                  </View>
+                  <LinearGradient
+                    colors={[...onizlemeTema.renkler]}
+                    style={[styles.miniKapak, styles.miniKapakBos]}
+                  />
                 )}
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={styles.miniBaslik} numberOfLines={1}>
                     {onizlemeBaslik}
                   </Text>
                   <Text style={styles.miniAlt} numberOfLines={1}>
-                    {onizlemeKonu || 'Açıklama yok'}
+                    {onizlemeKonu || onizlemeTema.ad}
                   </Text>
                 </View>
                 <Ionicons
@@ -636,6 +688,25 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.micro,
     color: '#fff',
     fontWeight: '700',
+  },
+  kaldirBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    marginTop: -4,
+  },
+  kaldirYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+    fontWeight: '600',
+  },
+  temaAlt: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+    marginTop: -6,
+    marginBottom: 2,
   },
   koltukEtiket: {
     ...TipografiTokenlari.caption,

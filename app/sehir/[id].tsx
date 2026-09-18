@@ -4,7 +4,6 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -28,6 +27,7 @@ import { SehirDuyuruYayinla } from '../../src/moduller/sehirler/islemler/SehirMo
 import { SehirStil } from '../../src/moduller/sehirler/bilesenler/SehirStil';
 import { OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import { TextField } from '../../src/components/TextField';
+import { KlavyeScrollView } from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -131,7 +131,7 @@ export default function SehirDetayEkrani() {
           subtitle="Detay · oda · lig · savaş"
           fallbackHref="/sehir"
         />
-        <ScrollView
+        <KlavyeScrollView
           contentContainerStyle={styles.content}
           refreshControl={
             <RefreshControl refreshing={yukleniyor} onRefresh={() => void load()} />
@@ -402,7 +402,7 @@ export default function SehirDetayEkrani() {
               </View>
             </>
           ) : null}
-        </ScrollView>
+        </KlavyeScrollView>
 
         <HesabiTamamlaKarti
           visible={upgradeAcik}

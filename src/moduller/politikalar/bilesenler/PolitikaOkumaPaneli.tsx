@@ -8,7 +8,8 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import type { PolitikaTanimi } from '../icerik/PolitikaMetinleri';
+import type { PolitikaGorunum } from '../tipler/PolitikaTipleri';
+import { PolitikaZenginGovde } from './PolitikaZenginGovde';
 import { CamArkaplan } from '../../../bilesenler/yuzey/CamArkaplan';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
@@ -18,11 +19,11 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 type Props = {
-  politika: PolitikaTanimi | null;
+  politika: PolitikaGorunum | null;
   onKapat: () => void;
 };
 
-/** Kayıt / lobi — politika metnini tam ekran okutur */
+/** Kayıt / giriş — politika metnini modern temiz arka plan üzerinde okutur */
 export function PolitikaOkumaPaneli({ politika, onKapat }: Props) {
   if (!politika) return null;
 
@@ -38,11 +39,11 @@ export function PolitikaOkumaPaneli({ politika, onKapat }: Props) {
         <View style={styles.kart}>
           <View style={styles.ust}>
             <View style={{ flex: 1, paddingRight: 8 }}>
-              <Text style={styles.fisilti}>YASAL METİN</Text>
+              <Text style={styles.fisilti}>POLİTİKA</Text>
               <Text style={styles.baslik}>{politika.baslik}</Text>
             </View>
             <Pressable onPress={onKapat} style={styles.kapat} hitSlop={8}>
-              <Ionicons name="close" size={20} color={RenkTokenlari.text} />
+              <Ionicons name="close" size={20} color="#fff" />
             </Pressable>
           </View>
           <ScrollView
@@ -50,7 +51,10 @@ export function PolitikaOkumaPaneli({ politika, onKapat }: Props) {
             contentContainerStyle={styles.scrollPad}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.govde}>{politika.govde}</Text>
+            <PolitikaZenginGovde
+              govde={politika.govde}
+              tema={{ metin: '#ffffff', link: '#93c5fd' }}
+            />
           </ScrollView>
           <Pressable onPress={onKapat} style={styles.tamam}>
             <Text style={styles.tamamYazi}>Anladım</Text>
@@ -68,11 +72,11 @@ const styles = StyleSheet.create({
   },
   kart: {
     maxHeight: '92%',
-    backgroundColor: RenkTokenlari.bgElevated ?? RenkTokenlari.bgCard,
+    backgroundColor: '#0c0c0c',
     borderTopLeftRadius: YaricapTokenlari.lg + 4,
     borderTopRightRadius: YaricapTokenlari.lg + 4,
     borderWidth: 1,
-    borderColor: RenkTokenlari.borderAccent,
+    borderColor: 'rgba(255,255,255,0.08)',
     paddingTop: BoslukTokenlari.lg,
     paddingBottom: BoslukTokenlari.xl,
     zIndex: 3,
@@ -86,13 +90,14 @@ const styles = StyleSheet.create({
   },
   fisilti: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.primarySoft,
+    color: 'rgba(255,255,255,0.45)',
     letterSpacing: 1.2,
     marginBottom: 4,
+    fontWeight: '700',
   },
   baslik: {
     ...TipografiTokenlari.h1,
-    color: RenkTokenlari.text,
+    color: '#ffffff',
   },
   kapat: {
     width: 36,
@@ -107,22 +112,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: BoslukTokenlari.xl,
     paddingBottom: BoslukTokenlari.lg,
   },
-  govde: {
-    ...TipografiTokenlari.body,
-    color: RenkTokenlari.textMuted,
-    lineHeight: 22,
-  },
   tamam: {
     marginHorizontal: BoslukTokenlari.xl,
     marginTop: BoslukTokenlari.sm,
     paddingVertical: 14,
     borderRadius: YaricapTokenlari.pill,
-    backgroundColor: RenkTokenlari.primary,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
   },
   tamamYazi: {
     ...TipografiTokenlari.body,
-    color: '#fff',
+    color: '#0a0a0a',
     fontWeight: '700',
   },
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { CanliCoinSimgesi } from './CanliCoinSimgesi';
@@ -21,6 +21,8 @@ type Props = {
   sahipAdi?: string | null;
   yuklenen?: number;
   harcanan?: number;
+  /** QR okutma (kamera) — opsiyonel */
+  onQrOku?: () => void;
 };
 
 function formatBakiye(n: number): string {
@@ -36,6 +38,16 @@ function maskeHesap(kod?: string | null): string {
   return `${pad.slice(0, 4)}  ${pad.slice(4)}`;
 }
 
+async function panoyaKopyala(metin: string, baslik: string) {
+  try {
+    const Clipboard = await import('expo-clipboard');
+    await Clipboard.setStringAsync(metin);
+    Alert.alert('Kopyalandı', `${baslik}\n${metin}`);
+  } catch {
+    Alert.alert('Kopyala', 'Panoya yazılamadı.');
+  }
+}
+
 /** Premium banka kartı — MUTA PAY cüzdan yüzü */
 export function CuzdanBankaKarti({
   coins,
@@ -46,7 +58,12 @@ export function CuzdanBankaKarti({
   sahipAdi,
   yuklenen = 0,
   harcanan = 0,
+  onQrOku,
 }: Props) {
+  const hamNo = (cuzdanNo ?? '').replace(/\D/g, '');
+  const gosterilen = maskeHesap(cuzdanNo || hesapKodu);
+  const kopyalanabilir = hamNo.length >= 18;
+
   return (
     <View style={styles.wrap}>
       <LinearGradient
@@ -82,9 +99,39 @@ export function CuzdanBankaKarti({
           </View>
         </View>
 
-        <Text style={styles.hesapNo}>
-          {maskeHesap(cuzdanNo || hesapKodu)}
-        </Text>
+        <View style={styles.hesapSatir}>
+          <Text style={styles.hesapNo} numberOfLines={1}>
+            {gosterilen}
+          </Text>
+          {kopyalanabilir ? (
+            <Pressable
+              style={styles.ikonBtn}
+              onPress={() => void panoyaKopyala(hamNo, 'Cüzdan no')}
+              hitSlop={8}
+              accessibilityLabel="Cüzdan numarasını kopyala"
+            >
+              <Ionicons
+                name="copy-outline"
+                size={18}
+                color={RenkTokenlari.accent}
+              />
+            </Pressable>
+          ) : null}
+          {onQrOku ? (
+            <Pressable
+              style={styles.ikonBtn}
+              onPress={onQrOku}
+              hitSlop={8}
+              accessibilityLabel="QR oku"
+            >
+              <Ionicons
+                name="camera-outline"
+                size={18}
+                color={RenkTokenlari.accent}
+              />
+            </Pressable>
+          ) : null}
+        </View>
 
         <View style={styles.bakiyeSatir}>
           <View style={styles.bakiyeKart}>
@@ -102,7 +149,7 @@ export function CuzdanBankaKarti({
                 colors={[...RenkTokenlari.gradientDiamond]}
                 style={styles.elmasIkon}
               >
-                <Ionicons name="diamond" size={11} color="#12040C" />
+                <Ionicons name="diamond" size={11} color={RenkTokenlari.textOnPrimary} />
               </LinearGradient>
               <Text style={styles.etiket}>Elmas</Text>
             </View>
@@ -207,6 +254,11 @@ const styles = StyleSheet.create({
   nfc: {
     transform: [{ rotate: '90deg' }],
   },
+  hesapSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   hesapNo: {
     ...TipografiTokenlari.body,
     color: RenkTokenlari.text,
@@ -214,6 +266,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
     opacity: 0.92,
+    flex: 1,
+    minWidth: 0,
+  },
+  ikonBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: RenkTokenlari.pressFill,
+    borderWidth: 1,
+    borderColor: 'rgba(240, 180, 41, 0.35)',
   },
   bakiyeSatir: {
     flexDirection: 'row',

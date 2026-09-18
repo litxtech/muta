@@ -173,7 +173,8 @@ const styles = StyleSheet.create({
   },
   host: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
+    color: RenkTokenlari.textOnOverlay,
+    opacity: 0.86,
     flex: 1,
   },
   dinleyici: {
@@ -183,7 +184,8 @@ const styles = StyleSheet.create({
   },
   dinleyiciYazi: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.text,
+    color: RenkTokenlari.textOnOverlay,
     fontSize: 10,
+    fontWeight: '700',
   },
 });

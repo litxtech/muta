@@ -15,6 +15,7 @@ import { GradientButton } from '../../../src/components/GradientButton';
 import { TextField } from '../../../src/components/TextField';
 import { EkranBasligi } from '../../../src/components/EkranBasligi';
 import { BosDurum } from '../../../src/components/BosDurum';
+import { KlavyeGuvenliAlan } from '../../../src/bilesenler/klavye/KlavyeGuvenliAlan';
 import { ModulHataSiniri } from '../../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
@@ -180,6 +181,7 @@ export default function SehirSecimDetayEkrani() {
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="sehir-secim-detay">
+        <KlavyeGuvenliAlan style={{ flex: 1 }}>
         <EkranBasligi
           title={data?.election.title ?? 'Seçim'}
           subtitle={
@@ -288,6 +290,8 @@ export default function SehirSecimDetayEkrani() {
             );
           }}
         />
+
+        </KlavyeGuvenliAlan>
 
         <HesabiTamamlaKarti
           visible={upgradeAcik}

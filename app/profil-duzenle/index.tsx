@@ -4,7 +4,6 @@ import {
   Alert,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -16,6 +15,7 @@ import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { TextField } from '../../src/components/TextField';
 import { GradientButton } from '../../src/components/GradientButton';
+import { KlavyeScrollView } from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
 import { ProfilMedyaBuyutucu } from '../../src/moduller/kullanici-profili/bilesenler/ProfilMedyaBuyutucu';
@@ -407,10 +407,8 @@ export default function ProfilDuzenleEkrani() {
         subtitle="Kimlik · Konum · Medya · Banka"
         fallbackHref="/(tabs)/profile"
       />
-      <ScrollView
+      <KlavyeScrollView
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
         contentContainerStyle={styles.scroll}
       >
         <Text style={styles.section}>Fotoğraflar</Text>
@@ -701,7 +699,7 @@ export default function ProfilDuzenleEkrani() {
             />
           </>
         )}
-      </ScrollView>
+      </KlavyeScrollView>
 
       <HesabiTamamlaKarti
         visible={upgradeAcik}

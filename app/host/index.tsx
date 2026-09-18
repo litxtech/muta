@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
@@ -7,6 +7,7 @@ import { BosDurum } from '../../src/components/BosDurum';
 import { TextField } from '../../src/components/TextField';
 import { GradientButton } from '../../src/components/GradientButton';
 import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
+import { KlavyeScrollView } from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
@@ -140,11 +141,9 @@ export default function HostEkrani() {
           title="Ev sahibi ol"
           subtitle="Bağımsız veya ajans yoluyla başvur"
         />
-        <ScrollView
+        <KlavyeScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
         >
           <KlavyeKapatan style={styles.formWrap}>
           <View style={styles.card}>
@@ -215,7 +214,7 @@ export default function HostEkrani() {
             ))
           )}
           </KlavyeKapatan>
-        </ScrollView>
+        </KlavyeScrollView>
         <HesabiTamamlaKarti
           visible={upgradeAcik}
           onClose={upgradeKapat}

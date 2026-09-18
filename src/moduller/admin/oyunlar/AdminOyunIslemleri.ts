@@ -1,10 +1,22 @@
 import { supabase } from '../../../lib/supabase';
 import type { GameControlConfig } from '../../oyunlar/ortak/tipler/OyunTipleri';
+import {
+  AdminKillSwitchAyarla,
+  AdminOzellikBayragiAyarla,
+  AdminBayraklariGetir,
+} from '../platform/AdminPlatformIslemleri';
 
 export type AdminOyunKatalogSatiri = {
   game_code: string;
   name: string;
   is_active: boolean;
+};
+
+/** Oyun kodu → özellik bayrağı (senkron tutmak için). */
+export const OYUN_BAYRAK_ANAHTARI: Record<string, string> = {
+  kozmik_kaskad: 'kozmik_kaskad_enabled',
+  zeus: 'zeus_enabled',
+  nox_reels: 'nox_reels_enabled',
 };
 
 export async function AdminOyunKontrolGetir(
@@ -52,10 +64,68 @@ export async function AdminOyunKontrolGuncelle(params: {
   return data as GameControlConfig;
 }
 
+/** Tek oyunu uygulamada göster / gizle (+ eşleşen feature flag). */
+export async function AdminOyunGorunurlukAyarla(
+  gameCode: string,
+  acik: boolean,
+): Promise<GameControlConfig> {
+  const patch = acik
+    ? { is_enabled: true, mode: 'NORMAL' }
+    : { is_enabled: false, mode: 'MAINTENANCE' };
+
+  const next = await AdminOyunKontrolGuncelle({
+    gameCode,
+    patch,
+    reason: acik ? 'admin: oyun açıldı' : 'admin: oyun kapatıldı',
+  });
+
+  const bayrak = OYUN_BAYRAK_ANAHTARI[gameCode];
+  if (bayrak) {
+    try {
+      await AdminOzellikBayragiAyarla(bayrak, acik);
+    } catch {
+      // bayrak yoksa sessiz — asıl kontrol game_control_configs
+    }
+  }
+
+  return next;
+}
+
+/** Tüm oyun butonlarını platform seviyesinde aç/kapa. */
+export async function AdminOyunPlatformAyarla(acik: boolean): Promise<void> {
+  await AdminOzellikBayragiAyarla('games_enabled', acik);
+  if (!acik) {
+    await AdminKillSwitchAyarla(
+      'kill_games',
+      true,
+      'admin panel: tüm oyunlar kapalı',
+    );
+  } else {
+    await AdminKillSwitchAyarla(
+      'kill_games',
+      false,
+      'admin panel: oyunlar açıldı',
+    );
+  }
+}
+
+export async function AdminOyunPlatformDurumu(): Promise<{
+  gamesEnabled: boolean;
+  killGames: boolean;
+}> {
+  const { flags, kills } = await AdminBayraklariGetir();
+  const gamesEnabled =
+    flags.find((f) => f.key === 'games_enabled')?.enabled ?? true;
+  const killGames = kills.find((k) => k.key === 'kill_games')?.active ?? false;
+  return { gamesEnabled, killGames };
+}
+
 export async function AdminAktifOyunOturumlari(limit = 20) {
   const { data, error } = await supabase
     .from('game_sessions')
-    .select('id, game_code, room_id, status, created_at, started_at, ends_at, max_players')
+    .select(
+      'id, game_code, room_id, status, created_at, started_at, ends_at, max_players',
+    )
     .in('status', ['waiting', 'countdown', 'playing'])
     .order('created_at', { ascending: false })
     .limit(limit);

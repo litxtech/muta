@@ -5,10 +5,11 @@ export type OdaBilgiGuncelleGirdi = {
   title?: string;
   topic?: string | null;
   coverUrl?: string | null;
+  themeCode?: string | null;
 };
 
 /**
- * Oda sahibi: başlık / açıklama / kapak günceller.
+ * Oda sahibi: başlık / açıklama / kapak / tema günceller.
  * RLS: Hosts update own rooms.
  */
 export async function OdaBilgileriniGuncelle(
@@ -30,6 +31,13 @@ export async function OdaBilgileriniGuncelle(
   }
   if (girdi.coverUrl !== undefined) {
     patch.cover_url = girdi.coverUrl;
+  }
+  if (girdi.themeCode !== undefined) {
+    const kod = girdi.themeCode?.trim() || null;
+    if (kod && kod.length > 40) {
+      return { ok: false, hata: 'Tema kodu geçersiz' };
+    }
+    patch.theme_code = kod;
   }
 
   if (Object.keys(patch).length === 0) {

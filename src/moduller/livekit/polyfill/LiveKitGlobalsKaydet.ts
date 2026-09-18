@@ -20,15 +20,34 @@ const IOS_MEDYA_SECENEK = [
   'defaultToSpeaker',
 ] as const;
 
+/** Misafir playout — müzik devam + oda konuşurken kısılır (duck). */
+const IOS_MISAFIR_SECENEK = [
+  'mixWithOthers',
+  'duckOthers',
+  'allowBluetooth',
+  'allowBluetoothA2DP',
+  'defaultToSpeaker',
+] as const;
+
 /**
- * Ses odası duplex — playAndRecord + voiceChat.
- * Android→iOS: playout'ta `playback` kategorisi uzak Opus'u sessiz bırakır;
- * dinleyici dahil herkes playAndRecord kullanmalı.
+ * Konuşmacı / mic açık — playAndRecord + voiceChat (AEC).
+ * Exclusive çağrı hissi; müzik genelde durur (beklenen).
  */
 export const IOS_SES_ODA_AYAR = {
   audioCategory: 'playAndRecord' as const,
   audioCategoryOptions: [...IOS_KAYIT_SECENEK],
   audioMode: 'voiceChat' as const,
+};
+
+/**
+ * Ses odası misafir playout — playAndRecord zorunlu (playback Android Opus'u keser).
+ * duckOthers: Spotify vb. kesilmez, oda sesi varken kısılır.
+ * videoChat: voiceChat kadar agresif interrupt yapmaz.
+ */
+export const IOS_SES_ODA_MISAFIR = {
+  audioCategory: 'playAndRecord' as const,
+  audioCategoryOptions: [...IOS_MISAFIR_SECENEK],
+  audioMode: 'videoChat' as const,
 };
 
 const IOS_KAYIT_VPIO_KAPALI = {
@@ -43,7 +62,7 @@ const IOS_KAYIT_VPIO_KAPALI = {
  */
 const IOS_YAYIN_DINLEME = {
   audioCategory: 'playback' as const,
-  audioCategoryOptions: ['mixWithOthers'] as const,
+  audioCategoryOptions: ['mixWithOthers', 'duckOthers'] as const,
   audioMode: 'spokenAudio' as const,
 };
 
@@ -56,7 +75,10 @@ type LiveKitNativeMod = {
     policy?: {
       recording?: typeof IOS_SES_ODA_AYAR;
       recordingWithoutVoiceProcessing?: typeof IOS_KAYIT_VPIO_KAPALI;
-      playout?: typeof IOS_SES_ODA_AYAR | typeof IOS_YAYIN_DINLEME;
+      playout?:
+        | typeof IOS_SES_ODA_AYAR
+        | typeof IOS_SES_ODA_MISAFIR
+        | typeof IOS_YAYIN_DINLEME;
       deactivateOnStop?: boolean;
     },
   ) => () => void;
@@ -83,10 +105,11 @@ export function LiveKitGlobalsKaydet(): boolean {
     if (Platform.OS === 'ios' && typeof native.setupIOSAudioManagement === 'function') {
       try {
         native.setupIOSAudioManagement(true, {
+          // Mic açık (konuşmacı): AEC + exclusive call profili
           recording: IOS_SES_ODA_AYAR,
           recordingWithoutVoiceProcessing: IOS_KAYIT_VPIO_KAPALI,
-          // Ses odası: playout da playAndRecord — Android Opus için şart
-          playout: IOS_SES_ODA_AYAR,
+          // Mic kapalı (misafir): playAndRecord + duck — müzik kesilmez
+          playout: IOS_SES_ODA_MISAFIR,
           deactivateOnStop: false,
         });
       } catch {

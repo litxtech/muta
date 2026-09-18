@@ -120,6 +120,10 @@ const OZELLIK_METINLERI: Record<string, AdminOzellikMetni> = {
     baslik: 'ZEUS',
     aciklama: 'ZEUS Olympus cascade oyununu açar veya kapatır.',
   },
+  nox_reels_enabled: {
+    baslik: 'NOX REELS',
+    aciklama: 'NOX REELS slot oyununu açar veya kapatır.',
+  },
 };
 
 const KILL_METINLERI: Record<string, AdminOzellikMetni> = {

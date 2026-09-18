@@ -2,6 +2,7 @@ import React, { type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnaSayfaCanliNokta } from './AnaSayfaCanliNokta';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
@@ -25,6 +26,7 @@ export function AnaSayfaFeedBasligi({
   solAksiyon,
   sagAksiyon,
 }: Props) {
+  const insets = useSafeAreaInsets();
   const toplam = sesSayisi + yayinSayisi;
   const parcalar = [
     yayinSayisi > 0 ? `${yayinSayisi} yayın` : null,
@@ -37,7 +39,7 @@ export function AnaSayfaFeedBasligi({
       entering={FadeInDown.duration(AnimasyonTokenlari.yavas)
         .springify()
         .damping(18)}
-      style={styles.wrap}
+      style={[styles.wrap, { paddingTop: insets.top + BoslukTokenlari.sm }]}
     >
       <View style={styles.sol}>
         {solAksiyon}
@@ -75,11 +77,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: BoslukTokenlari.lg,
-    paddingTop: BoslukTokenlari.sm,
     paddingBottom: BoslukTokenlari.sm,
     gap: BoslukTokenlari.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: RenkTokenlari.divider,
   },
   sol: {
     flexDirection: 'row',

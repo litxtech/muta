@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   },
   etiketAktif: {
     ...TipografiTokenlari.caption,
-    color: '#12040C',
+    color: RenkTokenlari.textOnPrimary,
     fontWeight: '800',
   },
 });

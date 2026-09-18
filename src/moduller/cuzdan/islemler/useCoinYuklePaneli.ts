@@ -32,6 +32,11 @@ export function useCoinYuklePaneli() {
   }, []);
 
   useEffect(() => {
+    // Panel içi kullanım + ayrı Modal — paketler her zaman hazır olsun
+    paketleriYenile();
+  }, [paketleriYenile]);
+
+  useEffect(() => {
     if (!acik) return;
     paketleriYenile();
   }, [acik, paketleriYenile]);
@@ -101,6 +106,7 @@ export function useCoinYuklePaneli() {
     packages,
     purchaseLocked,
     satinAl,
+    paketleriYenile,
     upgradeAcik,
     upgradeKapat,
     upgradeAc,

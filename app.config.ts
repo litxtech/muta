@@ -22,7 +22,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
-  userInterfaceStyle: 'automatic',
+  userInterfaceStyle: 'dark',
   scheme: SCHEME,
   ios: {
     supportsTablet: false,
@@ -52,6 +52,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     label: displayName,
+    userInterfaceStyle: 'dark',
     softwareKeyboardLayoutMode: 'resize',
     adaptiveIcon: {
       backgroundColor: '#0B0614',
@@ -125,10 +126,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-camera',
       {
         cameraPermission:
-          'Allow $(PRODUCT_NAME) to access your camera for live video.',
+          'Allow $(PRODUCT_NAME) to access your camera for live video, KYC and wallet QR scan.',
         microphonePermission:
           'Allow $(PRODUCT_NAME) to access your microphone for voice rooms and live.',
         recordAudioAndroid: true,
+        barcodeScannerEnabled: true,
       },
     ],
     [

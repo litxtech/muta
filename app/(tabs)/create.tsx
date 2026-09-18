@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type ScrollView as ScrollViewType,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -15,6 +16,10 @@ import { Screen } from '../../src/components/Screen';
 import { TextField } from '../../src/components/TextField';
 import { GradientButton } from '../../src/components/GradientButton';
 import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
+import {
+  KlavyeAlanaKaydir,
+  KlavyeScrollView,
+} from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { createRoom } from '../../src/services/api';
 import type { Room } from '../../src/types/models';
@@ -38,6 +43,8 @@ import {
   OdaKapakSec,
   OdaKapakUriIleYukle,
 } from '../../src/moduller/ses-odalari/islemler/OdaKapakMedyasiYukle';
+import { OdaArkaPlanTemaSeridi } from '../../src/moduller/ses-odalari/bilesenler/OdaArkaPlanTemaSeridi';
+import { OdaTemasiniCoz } from '../../src/moduller/oda-olusturma/katalog/OdaTemaKatalogu';
 import { MedyaIzinleriniIste } from '../../src/moduller/livekit/izin/MedyaIzinleriniIste';
 import { ImagePickerOnIsit } from '../../src/ortak/medya/ImagePickerHazirMi';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
@@ -109,6 +116,7 @@ export default function CreateRoomScreen() {
 
   const { user, isGuest, refreshProfile, refreshWallet, profile } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
+  const scrollRef = useRef<ScrollViewType>(null);
 
   const [adim, setAdim] = useState<AcilisAdim>('hub');
   const [title, setTitle] = useState('');
@@ -116,11 +124,18 @@ export default function CreateRoomScreen() {
   const [kapakUri, setKapakUri] = useState<string | null>(null);
   const [kapakMime, setKapakMime] = useState<string | null>(null);
   const [mode, setMode] = useState<Room['mode']>('dating');
+  const [temaKod, setTemaKod] = useState(() => MOD_VARSAYILAN.dating.tema);
   const [kapasiteKod, setKapasiteKod] = useState('social');
   const [loading, setLoading] = useState(false);
 
   const kapasite = OdaKapasitesiniCoz(kapasiteKod);
   const varsayilan = MOD_VARSAYILAN[mode];
+  const seciliTema = OdaTemasiniCoz(temaKod);
+
+  const modeSec = (kod: Room['mode']) => {
+    setMode(kod);
+    setTemaKod(MOD_VARSAYILAN[kod].tema);
+  };
 
   const baslikOnerisi = useMemo(() => {
     const ad = profile?.display_name?.trim() || profile?.username?.trim();
@@ -187,7 +202,7 @@ export default function CreateRoomScreen() {
           mode,
           maxSeats: kapasite.mikrofon,
           layoutCode: varsayilan.duzen,
-          themeCode: varsayilan.tema,
+          themeCode: temaKod,
           capacityTierCode: kapasite.kod,
           audienceCapacity: kapasite.dinleyici,
           microphoneCapacity: kapasite.mikrofon,
@@ -267,11 +282,10 @@ export default function CreateRoomScreen() {
   return (
     <Screen edges={['top']} tabSayfaKaydir>
       <ModulHataSiniri modulAdi="oda-olusturma">
-        <ScrollView
+        <KlavyeScrollView
+          ref={scrollRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
         >
           {adim === 'hub' ? (
             <>
@@ -334,11 +348,7 @@ export default function CreateRoomScreen() {
                       <Image source={{ uri: kapakUri }} style={styles.kapakImg} />
                     ) : (
                       <LinearGradient
-                        colors={[
-                          'rgba(232,64,145,0.2)',
-                          'rgba(80,40,120,0.15)',
-                          'rgba(0,0,0,0.4)',
-                        ]}
+                        colors={[...seciliTema.renkler]}
                         start={{ x: 0.2, y: 0 }}
                         end={{ x: 0.8, y: 1 }}
                         style={styles.kapakBos}
@@ -347,11 +357,13 @@ export default function CreateRoomScreen() {
                           <Ionicons
                             name="image-outline"
                             size={24}
-                            color={RenkTokenlari.primarySoft}
+                            color={seciliTema.vurgu}
                           />
                         </View>
-                        <Text style={styles.kapakHint}>Kapak resmi ekle</Text>
-                        <Text style={styles.kapakAlt}>Kartta ve lobide görünür</Text>
+                        <Text style={styles.kapakHint}>Kapak fotoğrafı ekle</Text>
+                        <Text style={styles.kapakAlt}>
+                          Yoksa {seciliTema.ad} teması kullanılır
+                        </Text>
                       </LinearGradient>
                     )}
                     <View style={styles.kapakBadge}>
@@ -366,23 +378,25 @@ export default function CreateRoomScreen() {
                     </View>
                   </Pressable>
 
-                  <TextField
-                    label="Oda başlığı"
-                    value={title}
-                    onChangeText={setTitle}
-                    placeholder={baslikOnerisi || 'Gece sohbeti...'}
-                    maxLength={40}
-                    autoFocus
-                  />
-                  <TextField
-                    label="Açıklama"
-                    value={topic}
-                    onChangeText={setTopic}
-                    placeholder="Kısa konu — kartta görünür"
-                    maxLength={120}
-                    multiline
-                    numberOfLines={2}
-                  />
+                <TextField
+                  label="Oda başlığı"
+                  value={title}
+                  onChangeText={setTitle}
+                  placeholder={baslikOnerisi || 'Gece sohbeti...'}
+                  maxLength={40}
+                  autoFocus
+                  onFocus={() => KlavyeAlanaKaydir(scrollRef.current, { delayMs: 50 })}
+                />
+                <TextField
+                  label="Açıklama"
+                  value={topic}
+                  onChangeText={setTopic}
+                  placeholder="Kısa konu — kartta görünür"
+                  maxLength={120}
+                  multiline
+                  numberOfLines={2}
+                  onFocus={() => KlavyeAlanaKaydir(scrollRef.current)}
+                />
                 </LinearGradient>
 
                 <View style={styles.bolumBlok}>
@@ -394,10 +408,23 @@ export default function CreateRoomScreen() {
                         key={m.kod}
                         mod={m}
                         secili={mode === m.kod}
-                        onPress={() => setMode(m.kod)}
+                        onPress={() => modeSec(m.kod)}
                       />
                     ))}
                   </View>
+                </View>
+
+                <View style={styles.bolumBlok}>
+                  <Text style={styles.bolum}>Arka plan teması</Text>
+                  <Text style={styles.bolumAlt}>
+                    {kapakUri
+                      ? `Foto yüklü — tema yedek (${seciliTema.ad})`
+                      : `${seciliTema.ad} · odada tam ekran sahne`}
+                  </Text>
+                  <OdaArkaPlanTemaSeridi
+                    seciliKod={temaKod}
+                    onSec={(t) => setTemaKod(t.kod)}
+                  />
                 </View>
 
                 <View style={styles.bolumBlok}>
@@ -457,7 +484,7 @@ export default function CreateRoomScreen() {
               </KlavyeKapatan>
             </>
           )}
-        </ScrollView>
+        </KlavyeScrollView>
 
         <HesabiTamamlaKarti
           visible={upgradeAcik}

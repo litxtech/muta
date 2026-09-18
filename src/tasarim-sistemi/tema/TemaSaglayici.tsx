@@ -43,17 +43,22 @@ export function TemaSaglayici({ children }: { children: React.ReactNode }) {
     let iptal = false;
     void (async () => {
       try {
-        const [kayit, onay] = await Promise.all([
-          AsyncStorage.getItem(GORUNUM_DEPO_ANAHTAR),
-          AsyncStorage.getItem(GORUNUM_SECILDI_ANAHTAR),
-        ]);
+        const kayit = await AsyncStorage.getItem(GORUNUM_DEPO_ANAHTAR);
         if (iptal) return;
         if (temaKoduMu(kayit)) {
           temayiKur(kayit);
+        } else {
+          // İlk açılış: zorunlu seçim yok — varsayılan koyu
+          temayiKur('koyu');
+          await Promise.all([
+            AsyncStorage.setItem(GORUNUM_DEPO_ANAHTAR, 'koyu'),
+            AsyncStorage.setItem(GORUNUM_SECILDI_ANAHTAR, '1'),
+          ]);
         }
-        setSecimGerekli(onay !== '1' && !temaKoduMu(kayit));
+        setSecimGerekli(false);
       } catch {
-        /* varsayilan koyu */
+        temayiKur('koyu');
+        setSecimGerekli(false);
       } finally {
         if (!iptal) setHazir(true);
       }

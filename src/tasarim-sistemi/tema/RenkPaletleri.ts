@@ -78,11 +78,16 @@ export const RenkTokenlariAcik = {
   text: '#14101C',
   textMuted: 'rgba(20, 16, 28, 0.72)',
   textDim: 'rgba(20, 16, 28, 0.5)',
-  /** Degrade CTA / chip üstü — koyu mürekkep (pembe/altın üzerinde okunur) */
-  textOnPrimary: '#12040C',
+  /**
+   * Marka dolgu / degrade / aktif çip üstü.
+   * Açık temada primary/violet/mint koyulaştırıldığı için açık mürekkep şart;
+   * koyu mürekkep mor/pembe dolgularda harfleri yutuyordu.
+   */
+  textOnPrimary: '#FFFFFF',
   /** Medya overlay (koyu scrim) üstü — her temada açık */
   textOnOverlay: '#F7F2F8',
 
+  /** Dolgular + beyaz zemin üstü metin — koyu, yutulmaz */
   primary: '#D62E82',
   primarySoft: '#B8246E',
   magenta: '#7A1AB8',
@@ -95,7 +100,8 @@ export const RenkTokenlariAcik = {
   success: '#0F7A62',
   warning: '#8F640E',
 
-  gradientPrimary: ['#E84091', '#C43BFF'] as const,
+  /** CTA degrade — beyaz textOnPrimary ile okunur */
+  gradientPrimary: ['#D62E82', '#7A1AB8'] as const,
   gradientNight: ['#F5F3F8', '#FFFFFF', '#F0ECF5'] as const,
   gradientRoom: ['#FFFFFF', '#F5F3F8', '#EDE8F3'] as const,
   gradientGold: ['#C99214', '#C45E24'] as const,

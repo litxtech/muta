@@ -30,7 +30,7 @@ export async function MedyaOdasiBaglan(input: {
     input.role === 'publisher' ||
     input.role === 'speaker';
   const publishVideo = !!input.video && asPublisher;
-  /** Ses odası: dinleyici de OS mic izni — playAndRecord / inCommunication uzak ses için */
+  /** Ses odası: dinleyici de OS mic izni — iOS playAndRecord (uzak Opus) için */
   const sesOdasi = !input.gorusmeModu && !input.video;
 
   // Ses odası dinleyici: izin var, yayın yok. Canlı video izleyici: izin yok.
@@ -55,7 +55,7 @@ export async function MedyaOdasiBaglan(input: {
     asPublisher,
     publishVideo,
     gorusmeModu: !!input.gorusmeModu,
-    /** video bayrağı yoksa ses odası — Android↔iOS communication profili */
+    /** video yoksa ses odası — misafir duck, konuşmacı communication */
     sesOdasi,
     zorla: input.zorla,
   });

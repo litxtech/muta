@@ -15,7 +15,16 @@ import { UygulamaHataSiniri } from '../src/ortak/hata-sinirlari/UygulamaHataSini
 import { ModulHataSiniri } from '../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { ImagePickerOnIsit } from '../src/ortak/medya/ImagePickerHazirMi';
 import { TemaSaglayici, useTema } from '../src/tasarim-sistemi/tema/TemaSaglayici';
+import { TabBarGuvenlikKur } from '../src/components/tab-navigasyon/TabBarGuvenlik';
+import { YuzenTabBar } from '../src/components/YuzenTabBar';
 import '../src/moduller/livekit/polyfill/AbortReasonPolyfill';
+
+// Tab bar AppState/Dimensions kilidi — en erken
+try {
+  TabBarGuvenlikKur();
+} catch {
+  /* ignore */
+}
 
 // LiveKit bilincli disconnect sonrasi WS 1001; LogBox kirmizi hata gostermesin
 LogBox.ignoreLogs([
@@ -115,6 +124,7 @@ function KokIcerik() {
           <Stack.Screen name="ajans/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/yonetim/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/uye/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/teklifler" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/profil/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
@@ -174,6 +184,10 @@ function KokIcerik() {
           <Stack.Screen name="admin/finans" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
             name="admin/kyc/index"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="admin/kyc/[id]"
             options={{ animation: 'slide_from_right' }}
           />
           <Stack.Screen
@@ -249,6 +263,7 @@ function KokIcerik() {
             options={{ animation: 'slide_from_right' }}
           />
               </Stack>
+              <YuzenTabBar />
               <AktifSesOdasiMiniBar />
               <OyunKazancBalonuSaglayici />
             </GorusmeGelenSaglayici>

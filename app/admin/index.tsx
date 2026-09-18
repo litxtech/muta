@@ -75,7 +75,7 @@ const MODULLER: Modul[] = [
   {
     icon: 'swap-horizontal-outline',
     label: 'Coin takas',
-    alt: 'P2P · ajans · platform onayı',
+    alt: 'Takas · transfer · aylık limit · onay',
     href: '/admin/takas',
     tint: RenkTokenlari.accent,
     bolum: 'İnsanlar',
@@ -146,18 +146,10 @@ const MODULLER: Modul[] = [
   },
   {
     icon: 'game-controller-outline',
-    label: 'Oyunlar',
-    alt: 'Kontrol · çarpan · aktif maç',
+    label: 'Oyun yönetimi',
+    alt: 'Aç/kapa · test · Kaskad RTP',
     href: '/admin/oyunlar',
     tint: RenkTokenlari.accent,
-    bolum: 'Ürün',
-  },
-  {
-    icon: 'flask-outline',
-    label: 'Oyun testi',
-    alt: 'Odasız · coin’siz denetim',
-    href: '/admin/oyun-test',
-    tint: RenkTokenlari.violet,
     bolum: 'Ürün',
   },
   {
@@ -198,6 +190,14 @@ const MODULLER: Modul[] = [
     alt: 'Zorunlu · gizli · özel alan',
     href: '/admin/kayit-alanlari',
     tint: RenkTokenlari.mint,
+    bolum: 'Büyüme',
+  },
+  {
+    icon: 'document-text-outline',
+    label: 'Politikalar',
+    alt: 'Yaz · güncelle · kayıt/giriş linki',
+    href: '/admin/politikalar',
+    tint: RenkTokenlari.primarySoft,
     bolum: 'Büyüme',
   },
   {

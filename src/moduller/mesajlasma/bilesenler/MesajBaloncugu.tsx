@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   },
   davetBaslikMine: {
     ...TipografiTokenlari.body,
-    color: '#12040C',
+    color: RenkTokenlari.textOnPrimary,
     fontWeight: '700',
     flex: 1,
   },

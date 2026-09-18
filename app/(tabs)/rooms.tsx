@@ -112,7 +112,7 @@ export default function RoomsScreen() {
                   colors={[...RenkTokenlari.gradientPrimary]}
                   style={styles.bosCtaIc}
                 >
-                  <Ionicons name="add" size={16} color="#12040C" />
+                  <Ionicons name="add" size={16} color={RenkTokenlari.textOnPrimary} />
                   <Text style={styles.bosCtaYazi}>Oda kur</Text>
                 </LinearGradient>
               </Pressable>
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   bosCtaYazi: {
     ...TipografiTokenlari.caption,
     fontWeight: '800',
-    color: '#12040C',
+    color: RenkTokenlari.textOnPrimary,
   },
   tumuneDon: {
     ...TipografiTokenlari.caption,

@@ -4,7 +4,6 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   Text,
   View,
 } from 'react-native';
@@ -12,6 +11,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../../src/components/Screen';
 import { EkranBasligi } from '../../../src/components/EkranBasligi';
 import { TextField } from '../../../src/components/TextField';
+import { KlavyeScrollView } from '../../../src/bilesenler/klavye/KlavyeScrollView';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { AdminYetkisiVarMi } from '../../../src/moduller/admin/yetki/AdminYetkisiVarMi';
 import { AdminStil } from '../../../src/moduller/admin/bilesenler/AdminStil';
@@ -192,7 +192,7 @@ export default function AdminDestekEkrani() {
         subtitle="Oturumlar · temsilci Toprak"
         fallbackHref="/admin"
       />
-      <ScrollView
+      <KlavyeScrollView
         contentContainerStyle={AdminStil.content}
         refreshControl={
           <RefreshControl
@@ -201,7 +201,6 @@ export default function AdminDestekEkrani() {
             tintColor={RenkTokenlari.primarySoft}
           />
         }
-        keyboardShouldPersistTaps="handled"
       >
         {admin ? (
           <>
@@ -301,7 +300,7 @@ export default function AdminDestekEkrani() {
             </View>
           ))
         )}
-      </ScrollView>
+      </KlavyeScrollView>
     </Screen>
   );
 }

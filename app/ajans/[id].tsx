@@ -51,6 +51,7 @@ import {
   CoinTryKarsiligi,
   TryYazi,
 } from '../../src/moduller/cuzdan/katalog/CoinTryOrani';
+import { AjansNoQrPayload } from '../../src/moduller/cuzdan/takas/CuzdanTakasIslemleri';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -601,6 +602,23 @@ export default function AjansPanelEkrani() {
     })();
   };
 
+  const ajansNoKopyala = () => {
+    const kod = detay?.agency.agency_public_id?.trim();
+    if (!kod) {
+      Alert.alert('Ajans', 'Ajans no yok.');
+      return;
+    }
+    void (async () => {
+      try {
+        const Clipboard = await import('expo-clipboard');
+        await Clipboard.setStringAsync(kod);
+        Alert.alert('Kopyalandı', `Ajans no\n${kod}`);
+      } catch {
+        Alert.alert('Ajans no', kod);
+      }
+    })();
+  };
+
   const davetKoduPaylas = () => {
     if (!davetKodu) {
       Alert.alert('Davet', 'Davet kodu yok.');
@@ -824,10 +842,37 @@ export default function AjansPanelEkrani() {
               colors={[...RenkTokenlari.gradientPlaceholder]}
               style={styles.hero}
             >
-              <Text style={styles.heroEyebrow}>
-                {detay.agency.agency_public_id} · {detay.agency.level_code} ·{' '}
-                {uyeler.length} üye
-              </Text>
+              <View style={styles.ajansNoSatir}>
+                <Text style={styles.heroEyebrow} numberOfLines={1}>
+                  {detay.agency.agency_public_id} · {detay.agency.level_code} ·{' '}
+                  {uyeler.length} üye
+                </Text>
+                {detay.agency.agency_public_id ? (
+                  <Pressable
+                    style={styles.davetIcon}
+                    onPress={ajansNoKopyala}
+                    hitSlop={8}
+                    accessibilityLabel="Ajans no kopyala"
+                  >
+                    <Ionicons
+                      name="copy-outline"
+                      size={16}
+                      color={RenkTokenlari.primarySoft}
+                    />
+                  </Pressable>
+                ) : null}
+              </View>
+              {detay.agency.agency_public_id ? (
+                <View style={styles.ajansQrBlok}>
+                  <Image
+                    source={{
+                      uri: `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(AjansNoQrPayload(detay.agency.agency_public_id))}`,
+                    }}
+                    style={styles.ajansQr}
+                  />
+                  <Text style={styles.heroAlt}>Ajans QR — kamerayla okutulsun</Text>
+                </View>
+              ) : null}
               <Text style={styles.heroBakiye}>
                 {sayi(ciro?.elmas_bakiye ?? detay.wallet?.diamonds ?? 0)}
               </Text>
@@ -890,6 +935,19 @@ export default function AjansPanelEkrani() {
 
             {sahibi ? (
               <>
+                <Pressable
+                  style={styles.profilLink}
+                  onPress={() => router.push('/ajans/teklifler' as any)}
+                >
+                  <Ionicons
+                    name="swap-horizontal-outline"
+                    size={16}
+                    color={RenkTokenlari.primarySoft}
+                  />
+                  <Text style={styles.profilLinkYazi}>
+                    Coin teklifleri · dekont
+                  </Text>
+                </Pressable>
                 <Pressable
                   style={styles.profilLink}
                   onPress={() => router.push(`/ajans/profil/${id}` as any)}
@@ -1405,6 +1463,24 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
     fontWeight: '700',
+    flex: 1,
+    minWidth: 0,
+  },
+  ajansNoSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  ajansQrBlok: {
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  ajansQr: {
+    width: 110,
+    height: 110,
+    borderRadius: 8,
+    backgroundColor: '#fff',
   },
   heroBakiye: {
     ...TipografiTokenlari.title,

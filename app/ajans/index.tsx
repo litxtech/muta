@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -15,6 +16,8 @@ import { GradientButton } from '../../src/components/GradientButton';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { BosDurum } from '../../src/components/BosDurum';
 import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
+import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan';
+import { useKlavyeYuksekligi } from '../../src/bilesenler/klavye/useKlavyeYuksekligi';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
@@ -98,6 +101,7 @@ export default function AjansEkrani() {
   const [loading, setLoading] = useState(false);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [basvuruAcik, setBasvuruAcik] = useState(false);
+  const { yukseklik: klavyeH, acik: klavyeAcik } = useKlavyeYuksekligi(24);
 
   const setAlan = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((onceki) => ({ ...onceki, [key]: value }));
@@ -195,12 +199,20 @@ export default function AjansEkrani() {
           subtitle="Keşfet · profil · başvuru"
           fallbackHref={"/(tabs)" as any}
         />
+        <KlavyeGuvenliAlan style={{ flex: 1 }}>
         <KlavyeKapatan style={{ flex: 1 }}>
           <FlatList
             data={liste}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[
+              styles.list,
+              Platform.OS === 'android' && klavyeAcik
+                ? { paddingBottom: 40 + klavyeH }
+                : null,
+            ]}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            automaticallyAdjustKeyboardInsets
             ListHeaderComponent={
               <View style={styles.headerBlock}>
                 <Pressable
@@ -328,6 +340,7 @@ export default function AjansEkrani() {
             )}
           />
         </KlavyeKapatan>
+        </KlavyeGuvenliAlan>
         <HesabiTamamlaKarti
           visible={upgradeAcik}
           onClose={upgradeKapat}

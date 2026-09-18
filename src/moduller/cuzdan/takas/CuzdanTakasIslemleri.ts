@@ -40,6 +40,66 @@ export async function CuzdanNoIleTransfer(input: {
   return { ok: true };
 }
 
+/** QR / yazım sonrası: 18 haneli no → KYC adı soyadı */
+export async function CuzdanNoIleAliciGetir(
+  walletNumber: string,
+): Promise<
+  | {
+      ok: true;
+      walletNumber: string;
+      firstName: string | null;
+      lastName: string | null;
+      kycStatus: string;
+    }
+  | { ok: false; hata: string }
+> {
+  const num = walletNumber.replace(/\D/g, '');
+  if (num.length !== 18) {
+    return { ok: false, hata: 'Cüzdan numarası 18 haneli olmalı.' };
+  }
+  const { data, error } = await supabase.rpc('cuzdan_no_ile_alici_getir', {
+    p_wallet_number: num,
+  });
+  if (error) return { ok: false, hata: error.message };
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return { ok: false, hata: 'Cüzdan bulunamadı.' };
+  return {
+    ok: true,
+    walletNumber: String(row.wallet_number),
+    firstName: row.first_name ?? null,
+    lastName: row.last_name ?? null,
+    kycStatus: String(row.kyc_status ?? 'none'),
+  };
+}
+
+/** QR içeriğinden 18 haneli cüzdan no çıkar */
+export function CuzdanNoQrdenCoz(data: string): string | null {
+  const raw = (data ?? '').trim();
+  const digitsOnly = raw.replace(/\D/g, '');
+  if (digitsOnly.length === 18) return digitsOnly;
+  const m = /(?:mutapay|muta)[:\/]+w[\/:]?(\d{18})/i.exec(raw);
+  if (m) return m[1];
+  const m2 = /(\d{18})/.exec(raw);
+  return m2 ? m2[1] : null;
+}
+
+export function CuzdanNoQrPayload(walletNumber: string): string {
+  const n = walletNumber.replace(/\D/g, '');
+  return `mutapay://w/${n}`;
+}
+
+/** Ajans public ID QR */
+export function AjansNoQrPayload(agencyPublicId: string): string {
+  return `mutapay://a/${agencyPublicId.trim()}`;
+}
+
+export function AjansNoQrdenCoz(data: string): string | null {
+  const raw = (data ?? '').trim();
+  const m = /(?:mutapay|muta)[:\/]+a[\/:]?([A-Za-z0-9_-]+)/i.exec(raw);
+  if (m?.[1]) return m[1];
+  return null;
+}
+
 export async function TakasAjansAra(q?: string) {
   const { data, error } = await supabase.rpc('takas_ajans_ara', {
     p_q: q ?? null,
@@ -109,15 +169,58 @@ export async function TakasAliciYanit(
   return { ok: true };
 }
 
+export async function TakasOdemeBilgisiKaydet(input: {
+  offerId: string;
+  coinsBought: number;
+  paymentSource: string;
+}): Promise<{ ok: true } | { ok: false; hata: string }> {
+  const { error } = await supabase.rpc('coin_takas_odeme_bilgisi_kaydet', {
+    p_offer_id: input.offerId,
+    p_coins_bought: Math.floor(input.coinsBought),
+    p_payment_source: input.paymentSource.trim(),
+  });
+  if (error) return { ok: false, hata: error.message };
+  return { ok: true };
+}
+
+export async function TakasDekontYukle(input: {
+  offerId: string;
+  receiptPath: string;
+}): Promise<{ ok: true } | { ok: false; hata: string }> {
+  const { error } = await supabase.rpc('coin_takas_dekont_yukle', {
+    p_offer_id: input.offerId,
+    p_receipt_path: input.receiptPath,
+  });
+  if (error) return { ok: false, hata: error.message };
+  return { ok: true };
+}
+
 export async function TakasTekliflerimiGetir(): Promise<CoinTradeOffer[]> {
-  const { data: session } = await supabase.auth.getSession();
-  const uid = session.session?.user?.id;
-  if (!uid) return [];
-  const { data } = await supabase
-    .from('coin_trade_offers')
-    .select('*')
-    .or(`seller_id.eq.${uid},buyer_user_id.eq.${uid}`)
-    .order('created_at', { ascending: false })
-    .limit(40);
+  const { data, error } = await supabase.rpc('takas_tekliflerimi_listele', {
+    p_limit: 50,
+  });
+  if (error) {
+    // Eski fallback
+    const { data: session } = await supabase.auth.getSession();
+    const uid = session.session?.user?.id;
+    if (!uid) return [];
+    const fb = await supabase
+      .from('coin_trade_offers')
+      .select('*')
+      .or(`seller_id.eq.${uid},buyer_user_id.eq.${uid}`)
+      .order('created_at', { ascending: false })
+      .limit(40);
+    return (fb.data as CoinTradeOffer[]) ?? [];
+  }
   return (data as CoinTradeOffer[]) ?? [];
+}
+
+export async function TakasDekontUrl(
+  path: string,
+): Promise<string | null> {
+  const { data, error } = await supabase.storage
+    .from('trade-receipts')
+    .createSignedUrl(path, 3600);
+  if (error || !data?.signedUrl) return null;
+  return data.signedUrl;
 }

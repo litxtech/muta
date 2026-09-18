@@ -1,6 +1,15 @@
 import { supabase } from '../../../lib/supabase';
 import { OzellikBayragiAktifMiSunucu } from '../../ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
-import type { PolitikaKodu } from '../icerik/PolitikaMetinleri';
+import {
+  PolitikaKayittanGorunum,
+  type PolitikaGorunum,
+  type PolitikaKayit,
+} from '../tipler/PolitikaTipleri';
+import {
+  POLITIKA_METINLERI,
+  PolitikaKodundanGetir,
+  type PolitikaKodu,
+} from '../icerik/PolitikaMetinleri';
 
 export type PolitikaSurumu = {
   id: string;
@@ -10,6 +19,68 @@ export type PolitikaSurumu = {
   published_at: string;
   policies?: { title: string; is_required: boolean } | null;
 };
+
+function yereldenDoldur(p: PolitikaKayit): PolitikaGorunum {
+  const yerel = PolitikaKodundanGetir(p.code);
+  const g = PolitikaKayittanGorunum(p);
+  const dbGovde = (p.body_md ?? '').trim();
+  const placeholder =
+    !dbGovde ||
+    dbGovde.startsWith('# ') ||
+    dbGovde.includes('Placeholder') ||
+    dbGovde.length < 80;
+  if (yerel && placeholder) {
+    return {
+      ...g,
+      baslik: g.baslik || yerel.baslik,
+      kisa: g.kisa || yerel.kisa,
+      onayEtiketi: g.onayEtiketi || yerel.onayEtiketi,
+      linkEtiketi: g.linkEtiketi || yerel.baslik,
+      govde: yerel.govde,
+    };
+  }
+  return g;
+}
+
+export async function PolitikalariListele(
+  yer: 'all' | 'register' | 'login' = 'all',
+): Promise<PolitikaGorunum[]> {
+  const { data, error } = await supabase.rpc('politikalari_listele', {
+    p_yer: yer,
+  });
+  if (error) throw new Error(error.message);
+  const rows = (data as PolitikaKayit[]) ?? [];
+  if (!rows.length && yer !== 'all') {
+    // DB boşsa eski sabitler (kayıt/giriş kırılmasın)
+    return Object.values(POLITIKA_METINLERI).map((p) => ({
+      kod: p.kod,
+      baslik: p.baslik,
+      kisa: p.kisa,
+      onayEtiketi: p.onayEtiketi,
+      linkEtiketi: p.baslik,
+      govde: p.govde,
+    }));
+  }
+  return rows.map(yereldenDoldur);
+}
+
+export async function PolitikaGetir(kod: string): Promise<PolitikaGorunum | null> {
+  const { data, error } = await supabase.rpc('politika_getir', {
+    p_code: kod,
+  });
+  if (error) throw new Error(error.message);
+  if (data) return yereldenDoldur(data as PolitikaKayit);
+  const yerel = PolitikaKodundanGetir(kod);
+  if (!yerel) return null;
+  return {
+    kod: yerel.kod,
+    baslik: yerel.baslik,
+    kisa: yerel.kisa,
+    onayEtiketi: yerel.onayEtiketi,
+    linkEtiketi: yerel.baslik,
+    govde: yerel.govde,
+  };
+}
 
 export async function GuncelPolitikalariGetir(): Promise<PolitikaSurumu[]> {
   const { data, error } = await supabase
@@ -37,13 +108,16 @@ export async function PolitikaKabulEt(policyVersionId: string) {
   return { ok: true as const };
 }
 
-/** Kayıt sonrası güncel zorunlu politikaları kabul kaydı */
+/** Kayıt sonrası gösterilen zorunlu politikaları kabul kaydı */
 export async function KayitPolitikaKabulKaydet(
-  kodlar: PolitikaKodu[] = ['tos', 'privacy', 'child_safety'],
+  kodlar?: string[],
 ): Promise<void> {
   try {
+    const liste =
+      kodlar ??
+      (await PolitikalariListele('register')).map((p) => p.kod);
     const guncel = await GuncelPolitikalariGetir();
-    for (const kod of kodlar) {
+    for (const kod of liste) {
       const satir = guncel.find((g) => g.policy_code === kod);
       if (satir?.id) await PolitikaKabulEt(satir.id);
     }
@@ -51,3 +125,6 @@ export async function KayitPolitikaKabulKaydet(
     // Sessiz — kayit engellenmesin
   }
 }
+
+/** @deprecated tip — string kod kullan */
+export type { PolitikaKodu };

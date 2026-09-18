@@ -1,14 +1,12 @@
 /**
- * Lobi altı — politika kısayolları (ToS / gizlilik / çocuk koruma).
+ * Lobi altı — politika kısayolları (dinamik CMS).
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  POLITIKA_LISTESI,
-  type PolitikaTanimi,
-} from '../../politikalar/icerik/PolitikaMetinleri';
+import { PolitikalariListele } from '../../politikalar/islemler/PolitikaIslemleri';
+import type { PolitikaGorunum } from '../../politikalar/tipler/PolitikaTipleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -17,19 +15,28 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 type Props = {
-  onSec: (p: PolitikaTanimi) => void;
+  onSec: (p: PolitikaGorunum) => void;
 };
 
 export function LobiPolitikaLinkleri({ onSec }: Props) {
+  const [liste, setListe] = useState<PolitikaGorunum[]>([]);
+
+  useEffect(() => {
+    void PolitikalariListele('all')
+      .then(setListe)
+      .catch(() => setListe([]));
+  }, []);
+
+  if (!liste.length) return null;
+
   return (
     <View style={styles.wrap}>
       <Text style={styles.baslik}>Platform politikaları</Text>
       <Text style={styles.alt}>
-        Odaya girmeden önce kullanım, gizlilik ve çocuk koruma kurallarını
-        okuyabilirsin. Çocuk korumada af yoktur; ihlalde hesaplar kapatılır.
+        Odaya girmeden önce platform kurallarını okuyabilirsin.
       </Text>
       <View style={styles.row}>
-        {POLITIKA_LISTESI.map((p) => (
+        {liste.map((p) => (
           <Pressable
             key={p.kod}
             style={[
@@ -60,11 +67,7 @@ export function LobiPolitikaLinkleri({ onSec }: Props) {
               ]}
               numberOfLines={1}
             >
-              {p.kod === 'tos'
-                ? 'Kullanım'
-                : p.kod === 'privacy'
-                  ? 'Gizlilik'
-                  : 'Çocuk koruma'}
+              {p.linkEtiketi}
             </Text>
           </Pressable>
         ))}

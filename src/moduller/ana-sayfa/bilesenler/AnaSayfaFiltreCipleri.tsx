@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   },
   sayiAktifYazi: {
     ...TipografiTokenlari.micro,
-    color: '#FFFFFF',
+    color: RenkTokenlari.textOnOverlay,
     fontWeight: '800',
     fontSize: 10,
   },

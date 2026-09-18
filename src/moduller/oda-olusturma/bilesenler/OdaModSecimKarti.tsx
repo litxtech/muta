@@ -55,7 +55,7 @@ export function OdaModSecimKarti({ mod, secili, onPress }: Props) {
 
         {secili ? (
           <View style={[styles.seciliRozet, { backgroundColor: mod.tint }]}>
-            <Ionicons name="checkmark" size={14} color="#12040C" />
+            <Ionicons name="checkmark" size={14} color={RenkTokenlari.textOnPrimary} />
           </View>
         ) : null}
       </LinearGradient>

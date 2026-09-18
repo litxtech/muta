@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { KonusmaciAktiflikEfekti } from './KonusmaciAktiflikEfekti';
+import { KoltukTahti } from './KoltukTahti';
 import { SeviyeTaci } from './SeviyeTaci';
 import type { RoomSeat } from '../../../types/models';
 
@@ -19,14 +20,15 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
   const hostMu = !!seat.user_id && !!hostId && seat.user_id === hostId;
   const yardimciMu = !hostMu && !!seat.is_cohost;
   const seviye = seat.profile?.level ?? 0;
-  const avatarBoy = tahtMi ? 92 : 62;
-  const efektBoy = tahtMi ? 100 : 68;
+  const avatarBoy = tahtMi ? 58 : 40;
+  const efektBoy = tahtMi ? 66 : 46;
   const muted = !!seat.is_muted;
+  const koltukNo = seat.seat_index + 1;
 
   const ad =
     seat.profile?.display_name?.trim() ||
     seat.profile?.username?.trim() ||
-    (tahtMi || seat.seat_index === 0 ? 'Ev sahibi' : `Koltuk ${seat.seat_index + 1}`);
+    (tahtMi || seat.seat_index === 0 ? 'Ev sahibi' : `Koltuk ${koltukNo}`);
   const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
   const avatarUrl = seat.profile?.avatar_url;
 
@@ -36,7 +38,7 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
       style={[styles.wrap, tahtMi && styles.wrapTaht]}
     >
       <View style={styles.avatarKutu}>
-        {dolu ? <SeviyeTaci level={seviye} size={tahtMi ? 'lg' : 'sm'} /> : null}
+        {dolu ? <SeviyeTaci level={seviye} size={tahtMi ? 'md' : 'sm'} /> : null}
         <KonusmaciAktiflikEfekti
           userId={seat.user_id}
           size={efektBoy}
@@ -47,7 +49,11 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
               source={{ uri: avatarUrl }}
               style={[
                 styles.avatarImg,
-                { width: avatarBoy, height: avatarBoy, borderRadius: avatarBoy / 2 },
+                {
+                  width: avatarBoy,
+                  height: avatarBoy,
+                  borderRadius: avatarBoy / 2,
+                },
                 (tahtMi || hostMu) && styles.avatarHost,
               ]}
             />
@@ -56,7 +62,11 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
               style={[
                 styles.avatar,
                 styles.filled,
-                { width: avatarBoy, height: avatarBoy, borderRadius: avatarBoy / 2 },
+                {
+                  width: avatarBoy,
+                  height: avatarBoy,
+                  borderRadius: avatarBoy / 2,
+                },
                 (tahtMi || hostMu) && styles.avatarHost,
                 {
                   backgroundColor:
@@ -73,12 +83,16 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
               style={[
                 styles.avatar,
                 tahtMi && styles.avatarTahtBos,
-                { width: avatarBoy, height: avatarBoy, borderRadius: avatarBoy / 2 },
+                {
+                  width: avatarBoy,
+                  height: avatarBoy,
+                  borderRadius: avatarBoy / 2,
+                },
               ]}
             >
               <Ionicons
                 name={tahtMi ? 'ribbon-outline' : 'add'}
-                size={tahtMi ? 26 : 18}
+                size={tahtMi ? 20 : 14}
                 color={tahtMi ? RenkTokenlari.accent : RenkTokenlari.textMuted}
               />
             </View>
@@ -86,27 +100,39 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
         </KonusmaciAktiflikEfekti>
         {dolu && muted ? (
           <View style={styles.micBadge} pointerEvents="none">
-            <Ionicons name="mic-off" size={10} color="#fff" />
+            <Ionicons name="mic-off" size={9} color="#fff" />
           </View>
         ) : null}
       </View>
-      {/* Taht: isim altın profil çubuğunda; burada sadece rozet */}
-      {!tahtMi ? (
+
+      <KoltukTahti
+        numara={tahtMi ? null : koltukNo}
+        tahtMi={tahtMi}
+        doluMu={dolu}
+        hostMu={hostMu}
+        yardimciMu={yardimciMu}
+      />
+
+      {tahtMi ? (
+        <Text style={[styles.name, styles.nameTaht]} numberOfLines={1}>
+          {ad}
+        </Text>
+      ) : (
         <Text
           style={[styles.name, dolu && styles.nameDolu]}
           numberOfLines={1}
         >
           {ad}
         </Text>
-      ) : null}
+      )}
       {hostMu ? (
         <View style={styles.hostRozet}>
-          <Ionicons name="ribbon" size={9} color={RenkTokenlari.accent} />
+          <Ionicons name="ribbon" size={8} color={RenkTokenlari.accent} />
           <Text style={styles.hostYazi}>LİDER</Text>
         </View>
       ) : yardimciMu ? (
         <View style={styles.cohostRozet}>
-          <Ionicons name="shield-checkmark" size={9} color="#8ec8ff" />
+          <Ionicons name="shield-checkmark" size={8} color="#8ec8ff" />
           <Text style={styles.cohostYazi}>YARDIMCI</Text>
         </View>
       ) : null}
@@ -134,17 +160,19 @@ function ayniKart(a: Props, b: Props) {
 export const KonusmaciKarti = memo(KonusmaciKartiIc, ayniKart);
 
 const styles = StyleSheet.create({
-  wrap: { width: '100%', alignItems: 'center', gap: 6 },
+  wrap: { width: '100%', alignItems: 'center', gap: 2 },
   wrapTaht: {
     width: '100%',
-    maxWidth: 168,
+    maxWidth: 130,
     alignSelf: 'center',
     marginBottom: 4,
+    gap: 0,
   },
   avatarKutu: {
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'visible',
+    zIndex: 4,
   },
   avatar: {
     backgroundColor: RenkTokenlari.seatEmpty,
@@ -155,51 +183,54 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarTahtBos: {
-    borderColor: 'rgba(240,180,41,0.45)',
+    borderColor: 'rgba(240,180,41,0.55)',
     borderWidth: 2,
   },
   avatarImg: {
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: RenkTokenlari.primarySoft,
   },
   avatarHost: {
     borderColor: RenkTokenlari.accent,
-    borderWidth: 2.5,
+    borderWidth: 2,
   },
   filled: {
     borderColor: RenkTokenlari.primarySoft,
-    borderWidth: 2,
+    borderWidth: 1.5,
   },
   harf: {
-    fontSize: 20,
+    fontSize: 14,
     fontWeight: '800',
     color: '#fff',
   },
   harfTaht: {
-    fontSize: 28,
+    fontSize: 20,
   },
   name: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
     textAlign: 'center',
-    maxWidth: 88,
+    maxWidth: 68,
+    marginTop: 1,
+    fontSize: 10,
   },
   nameDolu: {
     color: RenkTokenlari.text,
     fontWeight: '700',
   },
   nameTaht: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '800',
-    maxWidth: 140,
+    maxWidth: 110,
+    color: RenkTokenlari.accent,
   },
   hostRozet: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
+    gap: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 6,
     backgroundColor: 'rgba(240,180,41,0.22)',
     borderWidth: 1,
     borderColor: 'rgba(240,180,41,0.35)',
@@ -207,17 +238,17 @@ const styles = StyleSheet.create({
   hostYazi: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.accent,
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   cohostRozet: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
+    gap: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 6,
     backgroundColor: 'rgba(100,180,255,0.18)',
     borderWidth: 1,
     borderColor: 'rgba(100,180,255,0.35)',
@@ -225,17 +256,17 @@ const styles = StyleSheet.create({
   cohostYazi: {
     ...TipografiTokenlari.micro,
     color: '#8ec8ff',
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   micBadge: {
     position: 'absolute',
     right: -2,
-    bottom: 2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    bottom: 0,
+    width: 15,
+    height: 15,
+    borderRadius: 8,
     backgroundColor: 'rgba(18,16,24,0.88)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',

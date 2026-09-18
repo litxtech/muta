@@ -143,7 +143,7 @@ export function CanliYayinKarti({ item, onPress, index = 0 }: Props) {
                 colors={[...RenkTokenlari.gradientPrimary]}
                 style={styles.avatar}
               >
-                <Ionicons name="person" size={10} color="#12040C" />
+                <Ionicons name="person" size={10} color={RenkTokenlari.textOnPrimary} />
               </LinearGradient>
               <Text style={styles.host} numberOfLines={1}>
                 {ad}
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   },
   viewerText: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.text,
+    color: RenkTokenlari.textOnOverlay,
     fontWeight: '700',
   },
   catChip: {
@@ -265,7 +265,8 @@ const styles = StyleSheet.create({
   },
   host: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
+    color: RenkTokenlari.textOnOverlay,
+    opacity: 0.86,
     flex: 1,
   },
   stats: {
@@ -276,7 +277,8 @@ const styles = StyleSheet.create({
   },
   stat: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
+    color: RenkTokenlari.textOnOverlay,
+    opacity: 0.86,
     fontWeight: '600',
   },
 });

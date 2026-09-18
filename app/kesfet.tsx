@@ -364,7 +364,7 @@ export default function KesfetEkrani() {
                         end={{ x: 1, y: 0 }}
                         style={styles.bosBtnIc}
                       >
-                        <Ionicons name="mic" size={15} color="#12040C" />
+                        <Ionicons name="mic" size={15} color={RenkTokenlari.textOnPrimary} />
                         <Text style={styles.bosBtnYazi}>Ses odası aç</Text>
                       </LinearGradient>
                     </Pressable>
@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
   },
   bosBtnYazi: {
     ...TipografiTokenlari.caption,
-    color: '#12040C',
+    color: RenkTokenlari.textOnPrimary,
     fontWeight: '800',
   },
   bosBtnIkincil: {

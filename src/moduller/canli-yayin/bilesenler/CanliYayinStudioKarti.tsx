@@ -38,7 +38,11 @@ export function CanliYayinStudioKarti({
         .damping(18)}
     >
       <LinearGradient
-        colors={['rgba(232,64,145,0.18)', 'rgba(33,28,46,0.96)', 'rgba(18,14,28,0.98)']}
+        colors={[
+          `${RenkTokenlari.primary}2E`,
+          RenkTokenlari.bgElevated,
+          RenkTokenlari.bgCard,
+        ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.kart}
@@ -56,7 +60,11 @@ export function CanliYayinStudioKarti({
 
         <View style={styles.sahne}>
           <LinearGradient
-            colors={['rgba(232,64,145,0.22)', 'rgba(80,40,120,0.18)', 'rgba(0,0,0,0.35)']}
+            colors={[
+              `${RenkTokenlari.primary}38`,
+              `${RenkTokenlari.violet}2E`,
+              RenkTokenlari.pressFill,
+            ]}
             start={{ x: 0.2, y: 0 }}
             end={{ x: 0.8, y: 1 }}
             style={styles.sahneIc}
@@ -115,10 +123,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(232,64,145,0.18)',
+    backgroundColor: RenkTokenlari.pressFill,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: YaricapTokenlari.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: RenkTokenlari.borderAccent,
   },
   liveYazi: {
     ...TipografiTokenlari.micro,
@@ -139,7 +149,7 @@ const styles = StyleSheet.create({
     borderRadius: YaricapTokenlari.md,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(232,64,145,0.22)',
+    borderColor: RenkTokenlari.borderAccent,
   },
   sahneIc: {
     aspectRatio: 16 / 9,
@@ -154,9 +164,9 @@ const styles = StyleSheet.create({
     borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(232,64,145,0.16)',
+    backgroundColor: RenkTokenlari.pressFill,
     borderWidth: 1,
-    borderColor: 'rgba(232,64,145,0.35)',
+    borderColor: RenkTokenlari.borderAccent,
     marginBottom: 2,
   },
   sahneBaslik: {

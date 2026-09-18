@@ -125,7 +125,7 @@ export default function AyarlarEkrani() {
             Görünüm
           </Text>
           <Text style={[styles.sectionHint, { color: palet.textMuted }]}>
-            Siyah, beyaz veya premium temalardan birini seç. Seçimin tüm uygulamaya uygulanır.
+            Temayı sekmeden seç. Varsayılan koyu; seçimin tüm uygulamaya uygulanır.
           </Text>
           <GorunumSecimKartlari />
           <View style={{ height: BoslukTokenlari.lg }} />

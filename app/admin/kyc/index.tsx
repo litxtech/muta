@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -15,8 +14,6 @@ import { EkranBasligi } from '../../../src/components/EkranBasligi';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { AdminYetkisiVarMi } from '../../../src/moduller/admin/yetki/AdminYetkisiVarMi';
 import {
-  AdminKycBelgeUrl,
-  AdminKycDurumGuncelle,
   AdminKycListesi,
   type AdminKycBasvuru,
 } from '../../../src/moduller/admin/kyc/AdminKycIslemleri';
@@ -30,12 +27,18 @@ const DOC_LABEL: Record<string, string> = {
   temporary_id: 'Geçici kimlik',
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  pending: 'Bekliyor',
+  approved: 'Onaylı',
+  rejected: 'Reddedildi',
+  draft: 'Taslak',
+};
+
 export default function AdminKycEkrani() {
   const { profile } = useAuth();
   const admin = AdminYetkisiVarMi(profile);
   const [liste, setListe] = useState<AdminKycBasvuru[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
 
   const yukle = useCallback(async () => {
     setYukleniyor(true);
@@ -61,49 +64,13 @@ export default function AdminKycEkrani() {
 
   if (!admin) return null;
 
-  const belgeAc = async (path: string | null | undefined) => {
-    if (!path) return;
-    const url = await AdminKycBelgeUrl(path);
-    if (!url) {
-      Alert.alert('Belge', 'URL alınamadı');
-      return;
-    }
-    await Linking.openURL(url);
-  };
-
-  const karar = (row: AdminKycBasvuru, status: 'approved' | 'rejected') => {
-    Alert.alert(
-      status === 'approved' ? 'Onayla' : 'Reddet',
-      `${row.first_name} ${row.last_name}`,
-      [
-        { text: 'Vazgeç', style: 'cancel' },
-        {
-          text: 'Onayla',
-          style: status === 'rejected' ? 'destructive' : 'default',
-          onPress: async () => {
-            setBusyId(row.id);
-            try {
-              await AdminKycDurumGuncelle(row.id, status);
-              await yukle();
-            } catch (e) {
-              Alert.alert(
-                'Hata',
-                e instanceof Error ? e.message : 'İşlem başarısız',
-              );
-            } finally {
-              setBusyId(null);
-            }
-          },
-        },
-      ],
-    );
-  };
+  const pendingSayisi = liste.filter((r) => r.status === 'pending').length;
 
   return (
     <Screen edges={['top']}>
       <EkranBasligi
         title="Kimlik onayı"
-        subtitle="KYC kuyruğu · belge · canlılık"
+        subtitle={`${liste.length} başvuru · ${pendingSayisi} bekleyen · detay için dokun`}
         fallbackHref="/admin"
       />
       <ScrollView
@@ -124,79 +91,49 @@ export default function AdminKycEkrani() {
           liste.map((r) => {
             const kisi =
               r.profiles?.display_name ||
-              (r.profiles?.username ? `@${r.profiles.username}` : r.user_id.slice(0, 8));
-            const pending = r.status === 'pending';
+              (r.profiles?.username
+                ? `@${r.profiles.username}`
+                : r.user_id.slice(0, 8));
             return (
-              <View key={r.id} style={AdminStil.kart}>
+              <Pressable
+                key={r.id}
+                style={({ pressed }) => [
+                  AdminStil.kart,
+                  pressed && { opacity: 0.88 },
+                ]}
+                onPress={() => router.push(`/admin/kyc/${r.id}` as any)}
+              >
                 <View style={AdminStil.satir}>
-                  <Text style={AdminStil.kartBaslik} numberOfLines={1}>
-                    {r.first_name} {r.last_name}
-                  </Text>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={AdminStil.kartBaslik} numberOfLines={1}>
+                      {r.first_name} {r.last_name}
+                    </Text>
+                    <Text style={AdminStil.kartAlt} numberOfLines={1}>
+                      {kisi}
+                      {r.profiles?.public_user_id
+                        ? ` · ID ${r.profiles.public_user_id}`
+                        : ''}
+                    </Text>
+                  </View>
                   <View style={AdminStil.chip}>
-                    <Text style={AdminStil.chipYazi}>{r.status}</Text>
+                    <Text style={AdminStil.chipYazi}>
+                      {STATUS_LABEL[r.status] ?? r.status}
+                    </Text>
                   </View>
                 </View>
                 <Text style={AdminStil.kartAlt}>
-                  {kisi} · {DOC_LABEL[r.doc_type] ?? r.doc_type}
-                </Text>
-                <Text style={AdminStil.kartAlt}>
-                  Doğum: {r.birth_date}
-                  {r.hometown ? ` · ${r.hometown}` : ''}
-                </Text>
-                <Text style={AdminStil.kartAlt}>
-                  {r.phone_e164 ?? '—'} · {r.email ?? '—'} · {r.country ?? '—'}
-                </Text>
-                <Text style={AdminStil.kartAlt}>
-                  Canlılık: {r.liveness_passed ? 'geçti' : 'yok'}
-                </Text>
-                <View style={[AdminStil.satir, { marginTop: 8, gap: 8 }]}>
-                  <Pressable onPress={() => void belgeAc(r.doc_front_path)}>
-                    <Text style={AdminStil.aksiyonYazi}>Ön yüz</Text>
-                  </Pressable>
-                  {r.doc_back_path ? (
-                    <Pressable onPress={() => void belgeAc(r.doc_back_path)}>
-                      <Text style={AdminStil.aksiyonYazi}>Arka yüz</Text>
-                    </Pressable>
-                  ) : null}
-                  <Pressable onPress={() => void belgeAc(r.selfie_path)}>
-                    <Text style={AdminStil.aksiyonYazi}>Selfie</Text>
-                  </Pressable>
-                </View>
-                {pending ? (
-                  <View style={[AdminStil.satir, { marginTop: 10 }]}>
-                    <Pressable
-                      disabled={busyId === r.id}
-                      onPress={() => karar(r, 'approved')}
-                      style={{ opacity: busyId === r.id ? 0.5 : 1 }}
-                    >
-                      <Text
-                        style={[
-                          AdminStil.aksiyonYazi,
-                          { color: RenkTokenlari.mint },
-                        ]}
-                      >
-                        Onayla
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      disabled={busyId === r.id}
-                      onPress={() => karar(r, 'rejected')}
-                    >
-                      <Text
-                        style={[
-                          AdminStil.aksiyonYazi,
-                          { color: RenkTokenlari.danger },
-                        ]}
-                      >
-                        Reddet
-                      </Text>
-                    </Pressable>
-                  </View>
-                ) : null}
-                <Text style={AdminStil.kartAlt}>
+                  {DOC_LABEL[r.doc_type] ?? r.doc_type} ·{' '}
                   {new Date(r.created_at).toLocaleString('tr-TR')}
                 </Text>
-              </View>
+                <Text
+                  style={[
+                    AdminStil.aksiyonYazi,
+                    { marginTop: 6, color: RenkTokenlari.primarySoft },
+                  ]}
+                >
+                  Tüm detay · belgeler · hesap aktivitesi →
+                </Text>
+              </Pressable>
             );
           })
         )}

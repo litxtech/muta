@@ -283,7 +283,7 @@ function Kontrol({
         <Ionicons
           name={icon}
           size={22}
-          color={aktif ? '#12040C' : RenkTokenlari.text}
+          color={aktif ? RenkTokenlari.textOnPrimary : RenkTokenlari.text}
         />
       </View>
       <Text style={styles.kontrolYazi}>{label}</Text>
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 1,
   },
-  harfBuyuk: { fontSize: 56, fontWeight: '800', color: '#12040C' },
+  harfBuyuk: { fontSize: 56, fontWeight: '800', color: RenkTokenlari.textOnPrimary },
   gelenPulse: {
     position: 'absolute',
     width: 180,

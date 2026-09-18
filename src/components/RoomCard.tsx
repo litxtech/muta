@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   },
   avatarDinleyiciYazi: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.text,
+    color: RenkTokenlari.textOnOverlay,
     fontSize: 9,
     fontWeight: '700',
   },

@@ -35,6 +35,7 @@ const yerelBayraklar: Record<OzellikBayragiAnahtari, boolean> = {
   games_enabled: true,
   kozmik_kaskad_enabled: true,
   zeus_enabled: true,
+  nox_reels_enabled: true,
 };
 
 const yerelKillSwitch: Record<KillSwitchAnahtari, boolean> = {

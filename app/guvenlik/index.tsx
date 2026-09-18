@@ -3,7 +3,6 @@ import {
   Alert,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -15,6 +14,7 @@ import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { BosDurum } from '../../src/components/BosDurum';
 import { TextField } from '../../src/components/TextField';
+import { KlavyeScrollView } from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useMisafirIslemKapisi } from '../../src/moduller/misafir-hesabi/islemler/useMisafirIslemKapisi';
@@ -176,7 +176,7 @@ export default function GuvenlikMerkeziEkrani() {
           subtitle="Koruma · bildir · engelle · olaylar"
           fallbackHref={adminMi ? '/admin' : undefined}
         />
-        <ScrollView
+        <KlavyeScrollView
           contentContainerStyle={AdminStil.content}
           refreshControl={
             <RefreshControl refreshing={yukleniyor} onRefresh={() => void load()} />
@@ -311,7 +311,7 @@ export default function GuvenlikMerkeziEkrani() {
               );
             })
           )}
-        </ScrollView>
+        </KlavyeScrollView>
 
         <HesabiTamamlaKarti
           visible={upgradeAcik}

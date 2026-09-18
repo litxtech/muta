@@ -40,6 +40,35 @@ const CANLILIK_ADIMLARI = [
   'Gülümse',
 ] as const;
 
+/** GG.AA.YYYY — rakam yazıldıkça nokta ekler */
+function dogumTarihiFormatla(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
+}
+
+/** GG.AA.YYYY → YYYY-MM-DD (API) */
+function dogumTarihiIso(tr: string): string | null {
+  const m = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(tr.trim());
+  if (!m) return null;
+  const dd = Number(m[1]);
+  const mm = Number(m[2]);
+  const yyyy = Number(m[3]);
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31 || yyyy < 1900) return null;
+  const iso = `${String(yyyy).padStart(4, '0')}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
+  const dt = new Date(`${iso}T12:00:00`);
+  if (
+    Number.isNaN(dt.getTime()) ||
+    dt.getFullYear() !== yyyy ||
+    dt.getMonth() + 1 !== mm ||
+    dt.getDate() !== dd
+  ) {
+    return null;
+  }
+  return iso;
+}
+
 export default function KycEkrani() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -53,8 +82,8 @@ export default function KycEkrani() {
   const [hometown, setHometown] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [country, setCountry] = useState('TR');
-  const [nationality, setNationality] = useState('TR');
+  const [country, setCountry] = useState('Türkiye');
+  const [nationality, setNationality] = useState('Türkiye');
   const [frontUri, setFrontUri] = useState<string | null>(null);
   const [backUri, setBackUri] = useState<string | null>(null);
   const [selfieUri, setSelfieUri] = useState<string | null>(null);
@@ -135,12 +164,16 @@ export default function KycEkrani() {
       Alert.alert('Eksik', 'Telefon ve e-posta zorunlu.');
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
-      Alert.alert('Doğum tarihi', 'YYYY-AA-GG formatında gir (ör. 1998-05-12).');
+    const birthIso = dogumTarihiIso(birthDate);
+    if (!birthIso) {
+      Alert.alert(
+        'Doğum tarihi',
+        'GG.AA.YYYY formatında gir (ör. 01.05.1997).',
+      );
       return;
     }
     const yas =
-      new Date().getFullYear() - Number(birthDate.slice(0, 4));
+      new Date().getFullYear() - Number(birthIso.slice(0, 4));
     if (yas < 18) {
       Alert.alert('Yaş', '18 yaşından küçükler başvuramaz.');
       return;
@@ -150,7 +183,7 @@ export default function KycEkrani() {
       docType,
       firstName,
       lastName,
-      birthDate,
+      birthDate: birthIso,
       hometown,
       phone,
       email,
@@ -238,10 +271,12 @@ export default function KycEkrani() {
         />
         <TextInput
           style={styles.input}
-          placeholder="Doğum tarihi (YYYY-AA-GG)"
+          placeholder="Doğum tarihi (örn. 01.05.1997)"
           placeholderTextColor={RenkTokenlari.textDim}
           value={birthDate}
-          onChangeText={setBirthDate}
+          onChangeText={(t) => setBirthDate(dogumTarihiFormatla(t))}
+          keyboardType="number-pad"
+          maxLength={10}
         />
         <TextInput
           style={styles.input}
@@ -269,18 +304,24 @@ export default function KycEkrani() {
         />
         <TextInput
           style={styles.input}
-          placeholder="Ülke"
+          placeholder="Yaşadığı ülke"
           placeholderTextColor={RenkTokenlari.textDim}
           value={country}
           onChangeText={setCountry}
         />
+        <Text style={styles.alanIpucu}>
+          Şu an ikamet ettiğin ülke (örn. Türkiye)
+        </Text>
         <TextInput
           style={styles.input}
-          placeholder="Uyruk"
+          placeholder="Uyruk / vatandaşlık"
           placeholderTextColor={RenkTokenlari.textDim}
           value={nationality}
           onChangeText={setNationality}
         />
+        <Text style={styles.alanIpucu}>
+          Pasaport/kimlikte yazan vatandaşlık (örn. Türkiye)
+        </Text>
 
         <Text style={styles.bolum}>Belge fotoğrafları</Text>
         <Pressable style={styles.btnIkincil} onPress={() => void fotoSec('front')}>
@@ -371,6 +412,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: RenkTokenlari.text,
+  },
+  alanIpucu: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    marginTop: -4,
+    marginBottom: 2,
   },
   btn: {
     marginTop: 8,

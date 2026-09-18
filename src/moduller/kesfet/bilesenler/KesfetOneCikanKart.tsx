@@ -138,20 +138,22 @@ const styles = StyleSheet.create({
   },
   host: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
+    color: RenkTokenlari.textOnOverlay,
+    opacity: 0.86,
     flex: 1,
   },
   dinleyici: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: RenkTokenlari.pressFill,
+    backgroundColor: RenkTokenlari.chipFill,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: YaricapTokenlari.pill,
   },
   dinleyiciYazi: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.text,
+    color: RenkTokenlari.textOnOverlay,
+    fontWeight: '700',
   },
 });

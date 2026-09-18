@@ -32,7 +32,7 @@ export function OdaTemaSecimKarti({ tema, secili, onPress }: Props) {
           <View style={[styles.vurguLeke, { backgroundColor: `${tema.vurgu}55` }]} />
           {secili ? (
             <View style={[styles.secili, { backgroundColor: tema.vurgu }]}>
-              <Ionicons name="checkmark" size={14} color="#12040C" />
+              <Ionicons name="checkmark" size={14} color={RenkTokenlari.textOnPrimary} />
             </View>
           ) : null}
         </LinearGradient>

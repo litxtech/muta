@@ -177,11 +177,40 @@ export default function AjansProfilEkrani() {
                 {a.slogan ? (
                   <Text style={styles.slogan}>{a.slogan}</Text>
                 ) : null}
-                <Text style={styles.meta}>
-                  {a.agency_public_id}
-                  {a.level_code ? ` · ${a.level_code}` : ''}
-                  {a.country ? ` · ${a.country}` : ''}
-                </Text>
+                <View style={styles.ajansNoSatir}>
+                  <Text style={styles.meta} numberOfLines={1}>
+                    {a.agency_public_id}
+                    {a.level_code ? ` · ${a.level_code}` : ''}
+                    {a.country ? ` · ${a.country}` : ''}
+                  </Text>
+                  {a.agency_public_id ? (
+                    <Pressable
+                      style={styles.kopyaBtn}
+                      hitSlop={8}
+                      accessibilityLabel="Ajans no kopyala"
+                      onPress={() => {
+                        void (async () => {
+                          try {
+                            const Clipboard = await import('expo-clipboard');
+                            await Clipboard.setStringAsync(a.agency_public_id!);
+                            Alert.alert(
+                              'Kopyalandı',
+                              `Ajans no\n${a.agency_public_id}`,
+                            );
+                          } catch {
+                            Alert.alert('Ajans no', a.agency_public_id!);
+                          }
+                        })();
+                      }}
+                    >
+                      <Ionicons
+                        name="copy-outline"
+                        size={16}
+                        color={RenkTokenlari.primarySoft}
+                      />
+                    </Pressable>
+                  ) : null}
+                </View>
                 {a.description ? (
                   <Text style={styles.desc}>{a.description}</Text>
                 ) : null}
@@ -393,6 +422,25 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textDim,
     textAlign: 'center',
+    flex: 1,
+    minWidth: 0,
+  },
+  ajansNoSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    maxWidth: '100%',
+    paddingHorizontal: 8,
+  },
+  kopyaBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: RenkTokenlari.pressFill,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
   },
   desc: {
     ...TipografiTokenlari.caption,

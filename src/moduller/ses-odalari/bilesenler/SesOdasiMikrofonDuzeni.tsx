@@ -1,5 +1,5 @@
 /**
- * SesOdasiMikrofonDuzeni — taht + mikrofon ızgarası.
+ * SesOdasiMikrofonDuzeni — taht + mikrofon ızgarası (kaydırılabilir).
  */
 
 import React, { memo } from 'react';
@@ -15,7 +15,7 @@ type Props = {
   onSeatPress?: (seat: RoomSeat) => void;
 };
 
-/** Room Layout Engine — üstte sahip tahtı, altta mikrofon ızgarası */
+/** Üstte sahip tahtı, altta kompakt mikrofon ızgarası */
 function SesOdasiMikrofonDuzeniIc({
   seats,
   hostId,
@@ -23,16 +23,15 @@ function SesOdasiMikrofonDuzeniIc({
   onSeatPress,
 }: Props) {
   const duzen = OdaDuzeniniCoz(layoutCode);
+  const kolon = Math.min(Math.max(duzen.kolon, 4), 5);
   const seat0 = seats.find((s) => s.seat_index === 0) ?? null;
   const hostSeat =
     hostId != null ? seats.find((s) => s.user_id === hostId) ?? null : null;
-  // seat 0 boş ama host başka koltuktaysa tahtta host göster (boş taht bug'ı)
   const taht = (seat0?.user_id ? seat0 : null) ?? hostSeat ?? seat0;
   const diger = seats
     .filter((s) => s.seat_index !== 0 && s.id !== taht?.id)
-    .sort((a, b) => a.seat_index - b.seat_index)
-    .slice(0, Math.max(seats.length - 1, duzen.kolon * 2));
-  const hucre = `${Math.floor(100 / duzen.kolon)}%` as `${number}%`;
+    .sort((a, b) => a.seat_index - b.seat_index);
+  const hucre = `${Math.floor(100 / kolon)}%` as `${number}%`;
 
   return (
     <View style={[styles.root, duzen.sahneOdakli && styles.stage]}>
@@ -51,18 +50,16 @@ function SesOdasiMikrofonDuzeniIc({
         </View>
       </View>
 
-      <View style={styles.gridWrap}>
-        <View style={styles.grid}>
-          {diger.map((seat) => (
-            <View key={seat.id} style={[styles.hucre, { width: hucre }]}>
-              <KonusmaciKarti
-                seat={seat}
-                hostId={hostId}
-                onPress={onSeatPress}
-              />
-            </View>
-          ))}
-        </View>
+      <View style={styles.grid}>
+        {diger.map((seat) => (
+          <View key={seat.id} style={[styles.hucre, { width: hucre }]}>
+            <KonusmaciKarti
+              seat={seat}
+              hostId={hostId}
+              onPress={onSeatPress}
+            />
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -72,9 +69,9 @@ export const SesOdasiMikrofonDuzeni = memo(SesOdasiMikrofonDuzeniIc);
 
 const styles = StyleSheet.create({
   root: {
-    flex: 1,
-    minHeight: 0,
-    gap: 8,
+    width: '100%',
+    gap: 6,
+    paddingBottom: 12,
   },
   stage: {
     paddingTop: 2,
@@ -82,35 +79,29 @@ const styles = StyleSheet.create({
   tahtBolum: {
     alignItems: 'center',
     paddingTop: 2,
-    paddingBottom: 2,
+    paddingBottom: 4,
   },
   tahtKartWrap: {
     position: 'relative',
     alignItems: 'center',
-    minWidth: 140,
+    minWidth: 120,
+    overflow: 'visible',
   },
   tahtBosPlaceholder: {
-    height: 118,
-    width: 120,
-  },
-  gridWrap: {
-    flex: 1,
-    minHeight: 0,
-    position: 'relative',
+    height: 130,
+    width: 110,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
     alignContent: 'flex-start',
-    paddingHorizontal: 6,
-    flex: 1,
-    minHeight: 0,
+    paddingHorizontal: 4,
   },
   hucre: {
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 2,
+    paddingVertical: 4,
+    paddingHorizontal: 1,
     overflow: 'visible',
   },
 });

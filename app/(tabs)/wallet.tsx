@@ -405,6 +405,9 @@ export default function WalletScreen() {
                 }
                 yuklenen={stats?.total_topup_coin ?? 0}
                 harcanan={stats?.total_spent_coin ?? 0}
+                onQrOku={() =>
+                  islemiDene('takas', () => router.push('/cuzdan/takas' as any))
+                }
               />
 
               <View style={styles.hizliAksiyonlar}>
@@ -505,7 +508,11 @@ export default function WalletScreen() {
                         <Ionicons
                           name={s.icon}
                           size={18}
-                          color={aktif ? '#12040C' : RenkTokenlari.textMuted}
+                          color={
+                            aktif
+                              ? RenkTokenlari.textOnPrimary
+                              : RenkTokenlari.textMuted
+                          }
                         />
                       </View>
                       <Text

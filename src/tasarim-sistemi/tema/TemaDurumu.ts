@@ -27,6 +27,13 @@ type TemaGlobal = typeof globalThis & {
 
 const dinleyiciler = new Set<Dinleyici>();
 
+/** Soğuk açılış — AsyncStorage gelene kadar koyu */
+try {
+  Appearance.setColorScheme('dark');
+} catch {
+  /* eski native */
+}
+
 /** Kod → palet. Yeni temalar buraya eklenir. */
 export function paletiKoddanAl(kod: TemaKodu): RenkPaleti {
   switch (kod) {

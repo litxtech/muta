@@ -98,7 +98,7 @@ export function AnaSayfaCanliOdakSeridi({ ogeler, onPress }: Props) {
                         <Ionicons
                           name="eye-outline"
                           size={11}
-                          color={RenkTokenlari.textMuted}
+                          color={RenkTokenlari.textOnOverlay}
                         />
                         <Text style={styles.izleyiciYazi}>
                           {oge.listener_count}

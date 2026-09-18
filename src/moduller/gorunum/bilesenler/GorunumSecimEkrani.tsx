@@ -8,8 +8,8 @@ import { useTema } from '../../../tasarim-sistemi/tema/TemaSaglayici';
 import { GorunumSecimKartlari } from './GorunumSecimKartlari';
 
 /**
- * İlk açılış görünüm seçimi.
- * Kart seçilince `temayiSec` kaydeder; giriş kapısı yönlendirir.
+ * Görünüm seçimi (opsiyonel ekran).
+ * İlk açılış artık zorunlu değil — varsayılan koyu.
  */
 export function GorunumSecimEkrani() {
   const { palet } = useTema();
@@ -24,7 +24,7 @@ export function GorunumSecimEkrani() {
           Görünümünü seç
         </Text>
         <Text style={[styles.alt, { color: palet.textMuted }]}>
-          Siyah, beyaz veya premium temalardan birini seç. Seçimin tüm uygulamaya uygulanır.
+          Temayı sekmeden seç. İstediğin zaman ayarlardan değiştirebilirsin.
         </Text>
         <GorunumSecimKartlari />
       </View>

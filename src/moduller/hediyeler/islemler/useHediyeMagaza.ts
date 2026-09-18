@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useMisafirIslemKapisi } from '../../misafir-hesabi/islemler/useMisafirIslemKapisi';
 import { useCoinYuklePaneli } from '../../cuzdan/islemler/useCoinYuklePaneli';
@@ -9,9 +9,6 @@ import { HEDIYE_FALLBACK_50 } from '../katalog/HediyeFallback50';
 import { HediyeGonder } from './HediyeGonder';
 import { HediyeAnimasyonuKuyrugu } from '../animasyon/HediyeAnimasyonuKuyrugu';
 import type { HediyePkAlici } from './HediyeMagazaTipleri';
-
-/** Nested Modal (hediye → coin) Android/iOS'ta açılmaz — önce kapat, sonra aç */
-const MODAL_GECIS_MS = Platform.OS === 'android' ? 140 : 90;
 
 type GonderBaglam = {
   receiverId: string;
@@ -26,6 +23,7 @@ type GonderBaglam = {
 /**
  * Sesli oda / canlı / mesaj / profil / durum — ortak hediye mağazası.
  * Panel açık kalır; peş peşe gönderim (TikTok) — başarı Alert yok.
+ * Coin yükleme hediye Modal içinde (ikinci Modal yok — iOS).
  */
 export function useHediyeMagaza() {
   const { wallet, adjustWallet, refreshWallet, isGuest, user, profile } =
@@ -33,7 +31,7 @@ export function useHediyeMagaza() {
   const { upgradeAcik, upgradeKapat, upgradeAc, islemiDene } =
     useMisafirIslemKapisi(isGuest);
   const coinYuklePaneli = useCoinYuklePaneli();
-  const coinYukleAc = coinYuklePaneli.ac;
+  const paketleriYenile = coinYuklePaneli.paketleriYenile;
   const [acik, setAcik] = useState(false);
   const [gonderiyor, setGonderiyor] = useState(false);
   const gonderKilit = useRef(false);
@@ -49,8 +47,6 @@ export function useHediyeMagaza() {
     onBasarili?: (gift: Gift, adet: number) => void;
   } | null>(null);
   const [seciliPkAliciId, setSeciliPkAliciId] = useState<string | null>(null);
-  /** Coin paneli kapanınca hediyeyi geri aç */
-  const hediyeGeriAcRef = useRef(false);
 
   useEffect(() => {
     void HediyeKatalogunuGetir()
@@ -101,9 +97,10 @@ export function useHediyeMagaza() {
           onBasarili: opts.onBasarili,
         });
         setAcik(true);
+        paketleriYenile?.();
       });
     },
-    [islemiDene, user?.id],
+    [islemiDene, user?.id, paketleriYenile],
   );
 
   const kapat = useCallback(() => {
@@ -138,9 +135,8 @@ export function useHediyeMagaza() {
       }
 
       if (maliyet > bakiye) {
-        hediyeGeriAcRef.current = true;
-        setAcik(false);
-        setTimeout(() => coinYukleAc(), MODAL_GECIS_MS);
+        // Panel içi coin modu — ikinci Modal açma
+        paketleriYenile?.();
         return;
       }
 
@@ -184,9 +180,8 @@ export function useHediyeMagaza() {
             if (!sonuc.ok) {
               const yetersiz = /insufficient|yetersiz/i.test(sonuc.hata);
               if (yetersiz) {
-                hediyeGeriAcRef.current = true;
-                setAcik(false);
-                setTimeout(() => coinYukleAc(), MODAL_GECIS_MS);
+                paketleriYenile?.();
+                Alert.alert('Yetersiz coin', 'Coin yükle ile bakiye ekle.');
                 return;
               }
               Alert.alert('Hediye gönderilemedi', sonuc.hata);
@@ -212,32 +207,15 @@ export function useHediyeMagaza() {
       refreshWallet,
       profile,
       wallet?.coins,
-      coinYukleAc,
+      paketleriYenile,
       user?.id,
     ],
   );
 
+  /** Panel içi coin modu — paketleri yenile (ayrı Modal yok) */
   const coinYukle = useCallback(() => {
-    // Hediye Modal açıkken ikinci Modal açılmaz — önce kapat
-    hediyeGeriAcRef.current = true;
-    setAcik(false);
-    setTimeout(() => coinYukleAc(), MODAL_GECIS_MS);
-  }, [coinYukleAc]);
-
-  const hediyeyiGeriAc = useCallback(() => {
-    if (!hediyeGeriAcRef.current || !hedef) {
-      hediyeGeriAcRef.current = false;
-      return;
-    }
-    hediyeGeriAcRef.current = false;
-    setTimeout(() => setAcik(true), MODAL_GECIS_MS);
-  }, [hedef]);
-
-  // Satın alma sonrası da (onClose tetiklenmez) hediyeyi geri aç
-  useEffect(() => {
-    if (coinYuklePaneli.acik) return;
-    hediyeyiGeriAc();
-  }, [coinYuklePaneli.acik, hediyeyiGeriAc]);
+    paketleriYenile?.();
+  }, [paketleriYenile]);
 
   const seciliPk =
     hedef?.pkAlicilar?.find((a) => a.id === seciliPkAliciId) ??
@@ -257,7 +235,6 @@ export function useHediyeMagaza() {
     setSeciliPkAliciId,
     coinYukle,
     coinYuklePaneli,
-    hediyeyiGeriAc,
     upgradeAcik,
     upgradeKapat,
     upgradeAc,

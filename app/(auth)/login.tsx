@@ -40,6 +40,9 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { env } from '../../src/lib/env';
+import { PolitikaOkumaPaneli } from '../../src/moduller/politikalar/bilesenler/PolitikaOkumaPaneli';
+import { PolitikalariListele } from '../../src/moduller/politikalar/islemler/PolitikaIslemleri';
+import type { PolitikaGorunum } from '../../src/moduller/politikalar/tipler/PolitikaTipleri';
 
 const SPOTIFY_GREEN = '#1DB954';
 
@@ -73,6 +76,12 @@ export default function LoginScreen() {
   );
   /** Modal native katmanda stack üstünde kalır; blur'da kapatılmazsa kayıt formunu engeller. */
   const [lobiOdakli, setLobiOdakli] = useState(true);
+  const [girisPolitikalari, setGirisPolitikalari] = useState<PolitikaGorunum[]>(
+    [],
+  );
+  const [okunanPolitika, setOkunanPolitika] = useState<PolitikaGorunum | null>(
+    null,
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -87,10 +96,14 @@ export default function LoginScreen() {
           setAyar(disk.ayar);
           setMedya(disk.medya);
         }
-        const d = await GirisLobisiPublicGet();
+        const [d, pol] = await Promise.all([
+          GirisLobisiPublicGet(),
+          PolitikalariListele('login').catch(() => [] as PolitikaGorunum[]),
+        ]);
         if (iptal) return;
         setAyar(d.ayar);
         setMedya(d.medya);
+        setGirisPolitikalari(pol);
       })();
 
       return () => {
@@ -343,11 +356,42 @@ export default function LoginScreen() {
                     </Pressable>
                   </Link>
                 </View>
+
+                <View style={styles.politikaAlt}>
+                  {girisPolitikalari.map((p, i) => (
+                    <React.Fragment key={p.kod}>
+                      {i > 0 ? (
+                        <Text style={styles.politikaAyir}>·</Text>
+                      ) : null}
+                      <Pressable
+                        onPress={() => setOkunanPolitika(p)}
+                        hitSlop={6}
+                        accessibilityRole="link"
+                        accessibilityLabel={p.linkEtiketi}
+                      >
+                        <Text
+                          style={[
+                            styles.politikaLink,
+                            p.kod === 'child_safety' &&
+                              styles.politikaLinkCocuk,
+                          ]}
+                        >
+                          {p.linkEtiketi}
+                        </Text>
+                      </Pressable>
+                    </React.Fragment>
+                  ))}
+                </View>
               </ScrollView>
             </KlavyeKapatan>
           </KlavyeGuvenliAlan>
         </View>
       ) : null}
+
+      <PolitikaOkumaPaneli
+        politika={okunanPolitika}
+        onKapat={() => setOkunanPolitika(null)}
+      />
     </View>
   );
 }
@@ -482,5 +526,27 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.body,
     color: RenkTokenlari.primarySoft,
     fontWeight: '700',
+  },
+  politikaAlt: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: BoslukTokenlari.sm,
+    paddingBottom: BoslukTokenlari.sm,
+  },
+  politikaAyir: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textDim,
+  },
+  politikaLink: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    textDecorationLine: 'underline',
+  },
+  politikaLinkCocuk: {
+    color: RenkTokenlari.primarySoft,
+    fontWeight: '600',
   },
 });

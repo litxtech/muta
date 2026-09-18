@@ -30,6 +30,7 @@ export const OzellikBayragiAnahtarlari = [
   'games_enabled',
   'kozmik_kaskad_enabled',
   'zeus_enabled',
+  'nox_reels_enabled',
 ] as const;
 
 export type OzellikBayragiAnahtari = (typeof OzellikBayragiAnahtarlari)[number];
