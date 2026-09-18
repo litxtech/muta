@@ -9,6 +9,7 @@ let yuklemeSoz: Promise<
 > | null = null;
 /** true = granted biliniyor; false = reddedildi; null = henüz bilinmiyor */
 let galeriIzni: boolean | null = null;
+let kameraIzni: boolean | null = null;
 
 /**
  * Expo Modules (SDK 50+) NativeModules'a yazmaz.
@@ -155,6 +156,68 @@ function assetDonustur(a: {
  *   picker’dan önce gelmesin). Isıtma (ImagePickerOnIsit) izin cache’ler.
  * - quality:1 + allowsEditing:false → iOS fast-path (decode/re-encode yok).
  */
+export async function ImagePickerKameraIzniAl(
+  ImagePicker: ImagePickerModul,
+): Promise<boolean> {
+  if (kameraIzni === true) return true;
+  try {
+    const mevcut = await ImagePicker.getCameraPermissionsAsync();
+    if (mevcut.granted) {
+      kameraIzni = true;
+      return true;
+    }
+    if (mevcut.canAskAgain === false) {
+      kameraIzni = false;
+      return false;
+    }
+    const istenen = await ImagePicker.requestCameraPermissionsAsync();
+    kameraIzni = istenen.granted;
+    return istenen.granted;
+  } catch {
+    return false;
+  }
+}
+
+/** Kamera ile foto / video çek → asset */
+export async function KameraAc(opts: {
+  mediaTypes: GaleriMedyaTipi[];
+  quality?: number;
+  videoMaxDuration?: number;
+}): Promise<GaleriSecimSonucu> {
+  const mod = await ImagePickerModuluYukle();
+  if (!mod.ok) return { ok: false, hata: mod.hata };
+
+  const { ImagePicker } = mod;
+  const izinVar = await ImagePickerKameraIzniAl(ImagePicker);
+  if (!izinVar) {
+    return { ok: false, hata: 'Kamera izni gerekli.' };
+  }
+
+  const videoVar = opts.mediaTypes.includes('videos');
+  try {
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: opts.mediaTypes,
+      allowsEditing: false,
+      quality: opts.quality ?? 1,
+      videoMaxDuration: opts.videoMaxDuration ?? (videoVar ? 120 : undefined),
+      cameraType: ImagePicker.CameraType.back,
+    });
+    if (result.canceled || !result.assets?.[0]) {
+      return { ok: false, hata: 'İptal', iptal: true };
+    }
+    return { ok: true, asset: assetDonustur(result.assets[0]) };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes('ExponentImagePicker') || msg.includes('native module')) {
+      return {
+        ok: false,
+        hata: 'Kamera bu build’de yok. Yeni development build kur.',
+      };
+    }
+    return { ok: false, hata: msg };
+  }
+}
+
 export async function GaleriAc(opts: {
   mediaTypes: GaleriMedyaTipi[];
   quality?: number;
