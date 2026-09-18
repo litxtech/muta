@@ -2,6 +2,9 @@ import { supabase } from '../../../lib/supabase';
 import { OzellikBayragiAktifMiSunucu } from '../../ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
 import type { DirektMesaj } from '../okuma/MesajlariGetir';
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function MesajGonder(input: {
   threadId: string;
   body?: string;
@@ -16,12 +19,15 @@ export async function MesajGonder(input: {
     return { ok: false, hata: 'Mesajlaşma kapalı.' };
   }
 
+  const clientId =
+    input.clientId && UUID_RE.test(input.clientId) ? input.clientId : null;
+
   const { data, error } = await supabase.rpc('mesaj_gonder', {
     p_thread_id: input.threadId,
     p_body: input.body ?? '',
     p_message_type: input.messageType ?? 'text',
     p_media_url: input.mediaUrl ?? null,
-    p_client_id: input.clientId ?? null,
+    p_client_id: clientId,
   });
 
   if (error) return { ok: false, hata: error.message };
@@ -38,8 +44,30 @@ export async function OzelSohbetAcVeyaGetir(
   return { ok: true, threadId: data as string };
 }
 
+/** Ajans adına sohbet — karşı tarafta ajans adı görünür (sahip adı değil) */
+export async function AjansSohbetAcVeyaGetir(
+  agencyId: string,
+): Promise<{ ok: true; threadId: string } | { ok: false; hata: string }> {
+  const { data, error } = await supabase.rpc('ajans_sohbet_ac_veya_getir', {
+    p_agency_id: agencyId,
+  });
+  if (error) return { ok: false, hata: error.message };
+  return { ok: true, threadId: data as string };
+}
+
 export async function MesajThreadOkundu(threadId: string): Promise<void> {
   await supabase.rpc('mesaj_thread_okundu', { p_thread_id: threadId });
+}
+
+/** Karsi tarafin last_read_at — gonderenin "goruldu" tikleri */
+export async function MesajPeerLastReadGet(
+  threadId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc('mesaj_peer_last_read_get', {
+    p_thread_id: threadId,
+  });
+  if (error) return null;
+  return (data as string | null) ?? null;
 }
 
 export async function MesajThreadArsivle(

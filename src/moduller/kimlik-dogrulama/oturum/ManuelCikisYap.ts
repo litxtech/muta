@@ -4,6 +4,10 @@ import { CihazKimliginiGetir } from './CihazKimliginiGetir';
 import { TumCihazOturumlariniKapat } from './CihazOturumlariniYonet';
 import { CikisCanliIcerikleriKapat } from './CikisCanliIcerikleriKapat';
 import { OturumGecmisindenKaldir } from '../oturum-gecmisi/OturumGecmisiDepolama';
+import {
+  MisafirCihazOturumuKaydet,
+  MisafirCihazOturumuTemizle,
+} from '../../misafir-hesabi/islemler/MisafirCihazOturumDepolama';
 
 export type CikisNedeni = 'manual' | 'ban' | 'account_deleted' | 'device_revoke';
 
@@ -22,6 +26,31 @@ export async function ManuelCikisYap(neden: CikisNedeni = 'manual'): Promise<voi
       if (uid) await OturumGecmisindenKaldir(uid);
     } catch {
       /* gecmis temizligi zorunlu degil */
+    }
+    await MisafirCihazOturumuTemizle();
+  }
+
+  // Misafir manuel çıkış: token sakla (aynı cihazdan reuse)
+  if (neden === 'manual') {
+    try {
+      const { data } = await supabase.auth.getSession();
+      const s = data.session;
+      const u = s?.user;
+      const misafirMi =
+        u?.is_anonymous === true ||
+        u?.app_metadata?.provider === 'anonymous' ||
+        u?.user_metadata?.is_guest === true;
+      if (misafirMi && s?.access_token && s.refresh_token && u?.id) {
+        const deviceId = await CihazKimliginiGetir();
+        await MisafirCihazOturumuKaydet({
+          access_token: s.access_token,
+          refresh_token: s.refresh_token,
+          user_id: u.id,
+          device_id: deviceId,
+        });
+      }
+    } catch {
+      /* saklama zorunlu değil */
     }
   }
 

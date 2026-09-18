@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Dimensions, Keyboard, Platform } from 'react-native';
+import { KlavyeKonumunuKaydet } from './KlavyeKonum';
 
 /**
  * Klavye yüksekliği + açık mı?
@@ -19,7 +20,6 @@ export function useKlavyeYuksekligi(ekstraPad = 0): {
     const hideEvt =
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
-    /** Klavye kapalıyken screen−window (status/nav) — resize kıyası için */
     const baselineGap = Math.max(
       0,
       Dimensions.get('screen').height - Dimensions.get('window').height,
@@ -31,12 +31,10 @@ export function useKlavyeYuksekligi(ekstraPad = 0): {
       const gap = Math.max(0, screenH - windowH);
       const resizeMiktari = Math.max(0, gap - baselineGap);
 
-      // Sistem klavye kadar (veya çoğunu) pencereyi küçülttüyse ekstra pad yok
       if (resizeMiktari >= keyboardH * 0.45) {
-        return Math.max(0, ekstraPad);
+        return Math.max(ekstraPad, Math.round(keyboardH * 0.55));
       }
 
-      // Edge-to-edge / resize yok: klavyenin pencereye bindiği miktar
       const overlap = Math.max(0, Math.ceil(windowH - screenY));
       if (overlap > 24) {
         return Math.max(0, overlap + ekstraPad);
@@ -46,6 +44,7 @@ export function useKlavyeYuksekligi(ekstraPad = 0): {
     };
 
     const uygula = (keyboardH: number, screenY: number) => {
+      KlavyeKonumunuKaydet(screenY, keyboardH);
       if (keyboardH <= 0) {
         setYukseklik(0);
         return;
@@ -62,7 +61,6 @@ export function useKlavyeYuksekligi(ekstraPad = 0): {
       const screenY = e.endCoordinates?.screenY ?? 0;
       setAcik(true);
       uygula(keyboardH, screenY);
-      // Android: Dimensions resize event'ten geç gelebilir — yeniden ölç
       if (Platform.OS === 'android' && keyboardH > 0) {
         requestAnimationFrame(() => uygula(keyboardH, screenY));
         setTimeout(() => uygula(keyboardH, screenY), 60);
@@ -73,6 +71,7 @@ export function useKlavyeYuksekligi(ekstraPad = 0): {
     const onHide = Keyboard.addListener(hideEvt, () => {
       setAcik(false);
       setYukseklik(0);
+      KlavyeKonumunuKaydet(Dimensions.get('window').height, 0);
     });
 
     return () => {

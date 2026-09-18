@@ -6,6 +6,7 @@ import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '../src/contexts/AuthContext';
 import { BildirimSaglayici } from '../src/moduller/bildirimler/baglam/BildirimSaglayici';
+import { MesajOkunmamisSaglayici } from '../src/moduller/mesajlasma/baglam/MesajOkunmamisSaglayici';
 import { GorusmeGelenSaglayici } from '../src/moduller/gorusme/bilesenler/GorusmeGelenSaglayici';
 import { KullanimSuresiSaglayici } from '../src/moduller/kullanim-suresi/baglam/KullanimSuresiSaglayici';
 import { AktifSesOdasiMiniBar } from '../src/moduller/ses-odalari/bilesenler/AktifSesOdasiMiniBar';
@@ -82,6 +83,7 @@ function KokIcerik() {
         <AuthProvider>
           <KullanimSuresiSaglayici>
           <BildirimSaglayici>
+          <MesajOkunmamisSaglayici>
           <ModulHataSiniri
             modulAdi="uygulama"
             varyant="ekran"
@@ -262,12 +264,17 @@ function KokIcerik() {
             name="admin/gorusme-guvenlik"
             options={{ animation: 'slide_from_right' }}
           />
+          <Stack.Screen
+            name="admin/platform-guvenlik"
+            options={{ animation: 'slide_from_right' }}
+          />
               </Stack>
               <YuzenTabBar />
               <AktifSesOdasiMiniBar />
               <OyunKazancBalonuSaglayici />
             </GorusmeGelenSaglayici>
           </ModulHataSiniri>
+          </MesajOkunmamisSaglayici>
           </BildirimSaglayici>
           </KullanimSuresiSaglayici>
         </AuthProvider>

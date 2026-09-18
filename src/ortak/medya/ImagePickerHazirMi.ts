@@ -148,14 +148,6 @@ function assetDonustur(a: {
   };
 }
 
-/**
- * Sistem galerisini mümkün olan en hızlı şekilde açar.
- *
- * - Foto: izin beklemez (PHPicker / Android Photo Picker).
- * - Video: önce açmayı dene; yalnızca native hata verirse izin iste (dialog
- *   picker’dan önce gelmesin). Isıtma (ImagePickerOnIsit) izin cache’ler.
- * - quality:1 + allowsEditing:false → iOS fast-path (decode/re-encode yok).
- */
 export async function ImagePickerKameraIzniAl(
   ImagePicker: ImagePickerModul,
 ): Promise<boolean> {
@@ -218,6 +210,14 @@ export async function KameraAc(opts: {
   }
 }
 
+/**
+ * Sistem galerisini mümkün olan en hızlı şekilde açar.
+ *
+ * - Foto: izin beklemez (PHPicker / Android Photo Picker).
+ * - Video: önce açmayı dene; yalnızca native hata verirse izin iste (dialog
+ *   picker’dan önce gelmesin). Isıtma (ImagePickerOnIsit) izin cache’ler.
+ * - quality:1 + allowsEditing:false → iOS fast-path (decode/re-encode yok).
+ */
 export async function GaleriAc(opts: {
   mediaTypes: GaleriMedyaTipi[];
   quality?: number;

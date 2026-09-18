@@ -121,6 +121,14 @@ const MODULLER: Modul[] = [
     bolum: 'Güvenlik',
   },
   {
+    icon: 'shield-checkmark-outline',
+    label: 'Platform güvenliği',
+    alt: 'Cihaz · silinen dönüş · benzer mail',
+    href: '/admin/platform-guvenlik',
+    tint: RenkTokenlari.danger,
+    bolum: 'Güvenlik',
+  },
+  {
     icon: 'headset-outline',
     label: 'Canlı destek',
     alt: 'Toprak · oturum · temsilci ata',

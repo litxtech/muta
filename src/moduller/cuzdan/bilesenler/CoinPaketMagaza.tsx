@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import {
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -8,6 +9,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import type { CoinPackage } from '../../../types/models';
 import { CanliCoinSimgesi } from './CanliCoinSimgesi';
+import { YetkiliAjansYukleSeridi } from './YetkiliAjansYukleSeridi';
 import { PaketFiyatTry } from '../katalog/CoinPaketFiyat';
 import { COIN_TRY_ORANI } from '../katalog/CoinTryOrani';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
@@ -39,6 +41,8 @@ type Props = {
   onBuy: (pkg: CoinPackage) => void;
   /** Üst başlık/alt yazı (modal içinde gizlenebilir) */
   baslikGoster?: boolean;
+  /** Altında yetkili ajans listesi (varsayılan açık) */
+  yetkiliAjansGoster?: boolean;
 };
 
 export function CoinPaketMagaza({
@@ -46,6 +50,7 @@ export function CoinPaketMagaza({
   locked,
   onBuy,
   baslikGoster = true,
+  yetkiliAjansGoster = true,
 }: Props) {
   const sirali = useMemo(
     () =>
@@ -56,8 +61,13 @@ export function CoinPaketMagaza({
   );
 
   const maxFiyat = Math.max(...sirali.map(PaketFiyatTry), 1);
-  const minFiyat = Math.min(...sirali.map(PaketFiyatTry), maxFiyat);
   const nabizPaketId = sirali.find((p) => !!p.badge)?.id ?? null;
+  const odemeKanal =
+    Platform.OS === 'ios'
+      ? 'Apple'
+      : Platform.OS === 'android'
+        ? 'Google'
+        : 'Mağaza';
 
   return (
     <View style={styles.wrap}>
@@ -65,8 +75,9 @@ export function CoinPaketMagaza({
         <>
           <Text style={styles.title}>Coin yükle</Text>
           <Text style={styles.sub}>
-            1 coin = {COIN_TRY_ORANI.toFixed(2).replace('.', ',')} ₺ · büyük
-            pakette daha avantajlı · {sirali.length} seçenek
+            {odemeKanal} ile güvenli ödeme · 1 coin ={' '}
+            {COIN_TRY_ORANI.toFixed(2).replace('.', ',')} ₺ · büyük pakette daha
+            avantajlı
           </Text>
         </>
       ) : null}
@@ -171,6 +182,10 @@ export function CoinPaketMagaza({
           );
         })}
       </View>
+
+      {yetkiliAjansGoster ? (
+        <YetkiliAjansYukleSeridi locked={locked} />
+      ) : null}
     </View>
   );
 }

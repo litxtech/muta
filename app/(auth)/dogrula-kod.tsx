@@ -21,6 +21,7 @@ import { AltiHaneliKodAlani } from '../../src/moduller/kimlik-dogrulama/bilesenl
 import { KayitBekleyenAvatarAlVeTemizle } from '../../src/moduller/kimlik-dogrulama/depolama/KayitBekleyenAvatar';
 import type { EmailOtpAmaci } from '../../src/moduller/kimlik-dogrulama/dogrulama/EmailOtpDogrula';
 import { ProfilMedyasiUriIleYukle } from '../../src/moduller/kullanici-profili/islemler/ProfilMedyasiYukle';
+import { MisafirCihazUpgradeOnayla } from '../../src/moduller/misafir-hesabi/islemler/MisafirCihazUpgradeOnayla';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -101,6 +102,7 @@ export default function DogrulaKodEkrani() {
     }
     if (amac === 'email_change') {
       misafirBayraginiKaldir();
+      await MisafirCihazUpgradeOnayla();
     }
     router.replace('/(tabs)');
   }, [amac, email, kod, misafirBayraginiKaldir, refreshProfile, verifyEmailOtp]);

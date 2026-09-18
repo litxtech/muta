@@ -35,6 +35,8 @@ import {
   type AjansUyeOzet,
 } from '../../src/moduller/ajanslar/islemler/AjansPanelIslemleri';
 import { AjansCoinYukleKarti } from '../../src/moduller/ajanslar/bilesenler/AjansCoinYukleKarti';
+import { AjansCoinAutoMesajAyarla } from '../../src/moduller/cuzdan/okuma/YetkiliAjanslariGetir';
+import { supabase } from '../../src/lib/supabase';
 import {
   AjansMedyaYukle,
   AjansProfilGuncelle,
@@ -234,6 +236,7 @@ export default function AjansPanelEkrani() {
   const [yukleniyor, setYukleniyor] = useState(true);
   const [busy, setBusy] = useState(false);
   const [coin, setCoin] = useState('');
+  const [autoMesaj, setAutoMesaj] = useState('');
   const [arama, setArama] = useState('');
   const [sonuclar, setSonuclar] = useState<ArananKullanici[]>([]);
   const [secili, setSecili] = useState<ArananKullanici | null>(null);
@@ -293,6 +296,15 @@ export default function AjansPanelEkrani() {
       setProfilAciklama(d.agency.description ?? '');
       setLogoUrl(d.agency.logo_url ?? null);
       setBannerUrl(d.agency.banner_url ?? null);
+      const { data: autoRow } = await supabase
+        .from('agencies')
+        .select('coin_auto_message')
+        .eq('id', id)
+        .maybeSingle();
+      setAutoMesaj(
+        (autoRow as { coin_auto_message?: string | null } | null)
+          ?.coin_auto_message ?? '',
+      );
     } catch (e) {
       Alert.alert(
         'Ajans',
@@ -1064,6 +1076,43 @@ export default function AjansPanelEkrani() {
                   onHizliUye={hizliUyeSec}
                   onYukle={yukleCoin}
                 />
+                {coinYetkili ? (
+                  <View style={{ gap: 8, marginTop: 12 }}>
+                    <Text style={styles.bolum}>Otomatik karşılama mesajı</Text>
+                    <Text style={styles.hint}>
+                      Kullanıcı cüzdandan “Yetkili ajans ile yükle → Mesaj”
+                      açınca bu metin otomatik gider (boşsa varsayılan metin).
+                    </Text>
+                    <TextInput
+                      value={autoMesaj}
+                      onChangeText={setAutoMesaj}
+                      placeholder="Örn: Merhaba, coin yükleme için yazın…"
+                      placeholderTextColor={RenkTokenlari.textDim}
+                      style={[styles.input, styles.area]}
+                      multiline
+                      textAlignVertical="top"
+                    />
+                    <Pressable
+                      style={[styles.ctaGhost, busy && styles.ctaDisabled]}
+                      disabled={busy}
+                      onPress={() => {
+                        void (async () => {
+                          if (!id) return;
+                          setBusy(true);
+                          const r = await AjansCoinAutoMesajAyarla(
+                            id,
+                            autoMesaj.trim() || null,
+                          );
+                          setBusy(false);
+                          if (!r.ok) Alert.alert('Mesaj', r.hata);
+                          else Alert.alert('Kaydedildi', 'Otomatik mesaj güncellendi.');
+                        })();
+                      }}
+                    >
+                      <Text style={styles.ctaGhostYazi}>Mesajı kaydet</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
               </>
             ) : null}
 

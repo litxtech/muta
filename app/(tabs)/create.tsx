@@ -3,11 +3,9 @@ import {
   Alert,
   Image,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
-  type ScrollView as ScrollViewType,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -19,6 +17,7 @@ import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
 import {
   KlavyeAlanaKaydir,
   KlavyeScrollView,
+  type KlavyeScrollHandle,
 } from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { createRoom } from '../../src/services/api';
@@ -116,7 +115,7 @@ export default function CreateRoomScreen() {
 
   const { user, isGuest, refreshProfile, refreshWallet, profile } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
-  const scrollRef = useRef<ScrollViewType>(null);
+  const scrollRef = useRef<KlavyeScrollHandle>(null);
 
   const [adim, setAdim] = useState<AcilisAdim>('hub');
   const [title, setTitle] = useState('');

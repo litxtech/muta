@@ -133,6 +133,16 @@ export default function HesapSilEkrani() {
           </Text>
         </View>
 
+        <View style={[styles.warn, styles.warnIade]}>
+          <Ionicons name="card-outline" size={22} color={RenkTokenlari.danger} />
+          <Text style={styles.warnText}>
+            Mağaza iadesi, chargeback veya sahte dekont durumunda açık takas
+            anlaşmaları iptal edilir, bakiye geri alınır ve hesap askıya
+            alınabilir / kapatılabilir. İade geçmişi olan hesaplarda takas
+            kapalıdır.
+          </Text>
+        </View>
+
         <Text style={styles.label}>Hesap</Text>
         <Text style={styles.meta}>{user?.email ?? 'Kayıtlı hesap'}</Text>
 
@@ -171,6 +181,7 @@ export default function HesapSilEkrani() {
             'Açık odalar ve yayınlar kapatılır; oturumlar sonlanır',
             'Push bildirimleri ve banka bilgilerin temizlenir',
             'Mümkünse giriş kimliği de silinir (Apple/Google gereksinimi)',
+            'Açık takas anlaşmaları iptal edilebilir; iade/chargeback riski hesap kapatma sebebidir',
             'Bu işlem geri alınamaz',
           ].map((t) => (
             <View key={t} style={styles.listeSatir}>
@@ -226,6 +237,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(232, 64, 100, 0.35)',
     marginBottom: BoslukTokenlari.md,
+  },
+  warnIade: {
+    backgroundColor: 'rgba(232, 64, 100, 0.08)',
   },
   warnText: {
     ...TipografiTokenlari.body,

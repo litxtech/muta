@@ -32,6 +32,11 @@ export type CoinTradeOffer = {
   escalated_to_admin_at?: string | null;
   platform_approved_at?: string | null;
   completed_at?: string | null;
+  /** Teklif anında kilitlenen katalog TL */
+  katalog_tl?: number | string | null;
+  satici_net_tl?: number | string | null;
+  platform_pay_tl?: number | string | null;
+  odeme_pencere?: string | null;
 };
 
 export const TAKAS_DURUM_ETIKET: Record<string, string> = {

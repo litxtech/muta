@@ -61,6 +61,13 @@ export function BildirimHedefYolu(input: {
   const agency = str('agency_id');
   if (type === 'agency_host_apply' && agency) return `/ajans/${agency}`;
   if (type === 'agency_host_rejected') return '/ajans';
+  if (
+    type === 'trade_offer_new' ||
+    type === 'trade_offer_accepted' ||
+    type === 'trade_offer_rejected'
+  ) {
+    return str('agency_id') ? '/ajans/teklifler' : '/cuzdan/takas?sekme=teklifler';
+  }
   if (type === 'coin_purchase' || input.category === 'wallet') {
     return '/(tabs)/wallet';
   }

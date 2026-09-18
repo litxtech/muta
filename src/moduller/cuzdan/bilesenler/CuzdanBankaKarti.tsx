@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { CanliCoinSimgesi } from './CanliCoinSimgesi';
+import { CoinDegerOzetiPaneli } from './CoinDegerOzetiPaneli';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -10,6 +11,7 @@ import {
   GolgeTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+
 
 type Props = {
   coins: number;
@@ -23,6 +25,10 @@ type Props = {
   harcanan?: number;
   /** QR okutma (kamera) — opsiyonel */
   onQrOku?: () => void;
+  /** Uygulama içi cüzdan kartı paylaş */
+  onPaylas?: () => void;
+  /** WhatsApp ile QR’lı paylaş */
+  onWhatsAppPaylas?: () => void;
 };
 
 function formatBakiye(n: number): string {
@@ -59,10 +65,13 @@ export function CuzdanBankaKarti({
   yuklenen = 0,
   harcanan = 0,
   onQrOku,
+  onPaylas,
+  onWhatsAppPaylas,
 }: Props) {
   const hamNo = (cuzdanNo ?? '').replace(/\D/g, '');
   const gosterilen = maskeHesap(cuzdanNo || hesapKodu);
   const kopyalanabilir = hamNo.length >= 18;
+  const paylasilabilir = kopyalanabilir && (!!onPaylas || !!onWhatsAppPaylas);
 
   return (
     <View style={styles.wrap}>
@@ -159,6 +168,8 @@ export function CuzdanBankaKarti({
           </View>
         </View>
 
+        {coins > 0 ? <CoinDegerOzetiPaneli coins={coins} kompakt /> : null}
+
         <View style={styles.alt}>
           <View style={styles.altSol}>
             <Text style={styles.altEtiket}>Hesap sahibi</Text>
@@ -173,6 +184,37 @@ export function CuzdanBankaKarti({
             </Text>
           </View>
         </View>
+
+        {paylasilabilir ? (
+          <View style={styles.paylasSatir}>
+            {onPaylas ? (
+              <Pressable
+                style={styles.paylasBtn}
+                onPress={onPaylas}
+                accessibilityLabel="Cüzdan kartını uygulama içi paylaş"
+              >
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={16}
+                  color={RenkTokenlari.accent}
+                />
+                <Text style={styles.paylasYazi}>Kartı paylaş</Text>
+              </Pressable>
+            ) : null}
+            {onWhatsAppPaylas ? (
+              <Pressable
+                style={[styles.paylasBtn, styles.paylasWa]}
+                onPress={onWhatsAppPaylas}
+                accessibilityLabel="WhatsApp ile QR paylaş"
+              >
+                <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
+                <Text style={[styles.paylasYazi, styles.paylasWaYazi]}>
+                  WhatsApp
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </LinearGradient>
     </View>
   );
@@ -349,5 +391,34 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.textMuted,
     fontWeight: '600',
     fontSize: 11,
+  },
+  paylasSatir: {
+    flexDirection: 'row',
+    gap: BoslukTokenlari.sm,
+    marginTop: -4,
+  },
+  paylasBtn: {
+    flex: 1,
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: YaricapTokenlari.md,
+    borderWidth: 1,
+    borderColor: 'rgba(240, 180, 41, 0.35)',
+    backgroundColor: RenkTokenlari.pressFill,
+    paddingHorizontal: BoslukTokenlari.sm,
+  },
+  paylasWa: {
+    borderColor: 'rgba(37, 211, 102, 0.45)',
+  },
+  paylasYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.accent,
+    fontWeight: '700',
+  },
+  paylasWaYazi: {
+    color: '#25D366',
   },
 });

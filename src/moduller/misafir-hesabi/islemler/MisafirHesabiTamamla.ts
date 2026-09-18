@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { OrtamDegiskenleri } from '../../../yapilandirma/OrtamDegiskenleri';
+import { MisafirCihazUpgradeOnayla } from './MisafirCihazUpgradeOnayla';
 
 /** Görünmez karakter / boşluk temizliği — Auth "invalid format" önler */
 export function EmailiTemizle(raw: string): string {
@@ -205,9 +206,12 @@ export async function MisafirHesabiTamamla(input: {
     });
     if (!profil.ok) return { ok: false, hata: profil.hata };
 
+    const needsConfirm = !data.user?.email_confirmed_at;
+    if (!needsConfirm) await MisafirCihazUpgradeOnayla();
+
     return {
       ok: true,
-      needsConfirm: !data.user?.email_confirmed_at,
+      needsConfirm,
     };
   }
 
@@ -240,9 +244,12 @@ export async function MisafirHesabiTamamla(input: {
   });
   if (!profil.ok) return { ok: false, hata: profil.hata };
 
+  const needsConfirm = !mevcut.email_confirmed_at;
+  if (!needsConfirm) await MisafirCihazUpgradeOnayla();
+
   return {
     ok: true,
-    needsConfirm: !mevcut.email_confirmed_at,
+    needsConfirm,
   };
 }
 

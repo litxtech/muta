@@ -24,3 +24,6 @@ verify_jwt = false
 [functions.admin-gunluk-ozet]
 verify_jwt = false
 
+[functions.misafir-cihaz-oturum]
+verify_jwt = false
+

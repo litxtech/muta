@@ -24,6 +24,7 @@ import {
   type AdminCuzdanTransfer,
   type AdminTakasTeklif,
 } from '../../../src/moduller/admin/takas/AdminTakasIslemleri';
+import { supabase } from '../../../src/lib/supabase';
 import { TakasDekontUrl } from '../../../src/moduller/cuzdan/takas/CuzdanTakasIslemleri';
 import { TAKAS_DURUM_ETIKET } from '../../../src/moduller/cuzdan/takas/CuzdanTakasTipleri';
 import { ProfilMedyaBuyutucu } from '../../../src/moduller/kullanici-profili/bilesenler/ProfilMedyaBuyutucu';
@@ -103,7 +104,10 @@ export default function AdminTakasEkrani() {
   const karar = (row: AdminTakasTeklif, accept: boolean) => {
     Alert.alert(
       accept ? 'Platform onayı' : 'Reddet',
-      `${sayi(row.coins)} coin`,
+      `${sayi(row.coins)} coin` +
+        (row.satici_net_tl != null
+          ? `\nSatıcı net: ${sayi(Number(row.satici_net_tl))} ₺\nPlatform: ${sayi(Number(row.platform_pay_tl ?? 0))} ₺`
+          : ''),
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -245,6 +249,42 @@ export default function AdminTakasEkrani() {
                 {kaydediyor ? 'Kaydediliyor…' : 'Limitleri kaydet'}
               </Text>
             </Pressable>
+            <Pressable
+              style={{ marginTop: 16 }}
+              onPress={() => {
+                Alert.alert(
+                  'Yargıç ata',
+                  'Bu admin hesabını platform yargıcı (mavi tik) yapmak ister misin? Mahkemelere bu hesap katılır.',
+                  [
+                    { text: 'Vazgeç', style: 'cancel' },
+                    {
+                      text: 'Beni yargıç yap',
+                      onPress: () => {
+                        void (async () => {
+                          if (!profile?.id) return;
+                          const { error } = await supabase.rpc(
+                            'admin_platform_yargic_ata',
+                            { p_user_id: profile.id },
+                          );
+                          if (error) {
+                            Alert.alert('Yargıç', error.message);
+                            return;
+                          }
+                          Alert.alert(
+                            'Yargıç atandı',
+                            'Hesabın mavi tikli platform yargıcı olarak işaretlendi.',
+                          );
+                        })();
+                      },
+                    },
+                  ],
+                );
+              }}
+            >
+              <Text style={[AdminStil.aksiyonYazi, { color: '#4DA3FF' }]}>
+                Platform yargıcı ata (bu hesap)
+              </Text>
+            </Pressable>
           </View>
         ) : null}
 
@@ -320,6 +360,55 @@ export default function AdminTakasEkrani() {
                   <Text style={AdminStil.kartAlt}>
                     Alıcı ({r.buyer_type}): {alici}
                   </Text>
+                  {r.katalog_tl != null || r.satici_net_tl != null ? (
+                    <Text style={AdminStil.kartAlt}>
+                      Katalog: {sayi(Number(r.katalog_tl ?? 0))} ₺ · Satıcı net:{' '}
+                      {sayi(Number(r.satici_net_tl ?? 0))} ₺ · Platform:{' '}
+                      {sayi(Number(r.platform_pay_tl ?? 0))} ₺
+                      {r.odeme_pencere ? ` · ${r.odeme_pencere}` : ''}
+                    </Text>
+                  ) : null}
+                  <Pressable
+                    onPress={() => {
+                      Alert.alert(
+                        'Mahkeme kur',
+                        'Platform olarak mahkeme açılıp yargıç gruba katılır.',
+                        [
+                          { text: 'Vazgeç', style: 'cancel' },
+                          {
+                            text: 'Kur',
+                            onPress: () => {
+                              void (async () => {
+                                const { data, error } = await supabase.rpc(
+                                  'takas_mahkeme_kur',
+                                  {
+                                    p_offer_id: r.id,
+                                    p_reason:
+                                      'Admin incelemesi: usulsüzlük / dolandırıcılık şüphesi',
+                                  },
+                                );
+                                if (error) {
+                                  Alert.alert('Mahkeme', error.message);
+                                  return;
+                                }
+                                const threadId = (data as { thread_id?: string })
+                                  ?.thread_id;
+                                if (threadId) {
+                                  router.push(`/mesaj/${threadId}` as any);
+                                }
+                              })();
+                            },
+                          },
+                        ],
+                      );
+                    }}
+                  >
+                    <Text
+                      style={[AdminStil.aksiyonYazi, { color: '#4DA3FF' }]}
+                    >
+                      Mahkeme kur
+                    </Text>
+                  </Pressable>
                   <Text style={AdminStil.kartAlt}>
                     Oluşturma: {tarih(r.created_at)}
                   </Text>

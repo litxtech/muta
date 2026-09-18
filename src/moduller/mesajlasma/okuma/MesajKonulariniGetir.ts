@@ -11,6 +11,12 @@ export type MesajKonusu = {
   peer_avatar_url?: string | null;
   unread_count?: number;
   archived_at?: string | null;
+  thread_kind?: string | null;
+  thread_title?: string | null;
+  peer_is_verified?: boolean | null;
+  peer_is_platform_official?: boolean | null;
+  closed_at?: string | null;
+  peer_agency_id?: string | null;
 };
 
 export async function MesajKonulariniGetir(

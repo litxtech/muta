@@ -1,10 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  Image,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,28 +10,59 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import {
+  KlavyeFocusKaydir,
+  KlavyeRefIleKaydir,
+  KlavyeScrollView,
+  type KlavyeScrollHandle,
+} from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { supabase } from '../../src/lib/supabase';
 import { CuzdanHesabiGarantile } from '../../src/moduller/cuzdan/takas/CuzdanHesabi';
 import {
   CuzdanNoIleAliciGetir,
   CuzdanNoIleTransfer,
   CuzdanNoQrdenCoz,
-  CuzdanNoQrPayload,
   AjansNoQrdenCoz,
   TakasAjansAra,
   TakasKullaniciAra,
+  TakasKullaniciGorunenAd,
   TakasTeklifOlustur,
   TakasTekliflerimiGetir,
   TakasAliciYanit,
+  type TakasAjansSatir,
+  type TakasKullaniciSatir,
 } from '../../src/moduller/cuzdan/takas/CuzdanTakasIslemleri';
+import {
+  CuzdanAdSoyadMaskele,
+  CuzdanKartiniWhatsAppPaylas,
+} from '../../src/moduller/cuzdan/islemler/CuzdanKartPaylasimi';
+import { CuzdanQrKarti } from '../../src/moduller/cuzdan/bilesenler/CuzdanQrKarti';
 import {
   CUZDAN_MARKA_ADI,
   TAKAS_DURUM_ETIKET,
 } from '../../src/moduller/cuzdan/takas/CuzdanTakasTipleri';
+import {
+  TAKAS_IADE_UYARISI,
+  TAKAS_ODEME_BILGISI,
+} from '../../src/moduller/cuzdan/takas/TakasOdemeBilgisi';
+import { TeklifMesajiOlustur } from '../../src/moduller/cuzdan/takas/TeklifMesaji';
+import { CoinDegerOzetiPaneli } from '../../src/moduller/cuzdan/bilesenler/CoinDegerOzetiPaneli';
+import { TakasProfilKarti } from '../../src/moduller/cuzdan/bilesenler/TakasProfilKarti';
+import {
+  CoinDegerOzeti,
+  TryYazi,
+} from '../../src/moduller/cuzdan/katalog/CoinTakasPaylasimi';
+import {
+  AjansSohbetAcVeyaGetir,
+  MesajGonder,
+  OzelSohbetAcVeyaGetir,
+} from '../../src/moduller/mesajlasma/islemler/MesajGonder';
+import { TakasMahkemeKur } from '../../src/moduller/cuzdan/takas/TakasMahkemeIslemleri';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -43,6 +72,12 @@ import {
 
 type Mod = 'menu' | 'transfer' | 'ajans' | 'kullanici' | 'teklifler';
 
+type PeerOzet = {
+  id: string;
+  ad: string;
+  avatar: string | null;
+};
+
 function formatCuzdanNo(raw: string): string {
   const d = raw.replace(/\D/g, '').slice(0, 18);
   return d.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
@@ -50,6 +85,7 @@ function formatCuzdanNo(raw: string): string {
 
 export default function CuzdanTakasEkrani() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ sekme?: string }>();
   const insets = useSafeAreaInsets();
   const { wallet, refreshWallet, adjustWallet, user } = useAuth();
   const [camIzin, camIzinIste] = useCameraPermissions();
@@ -67,18 +103,33 @@ export default function CuzdanTakasEkrani() {
   const aliciIstek = useRef(0);
 
   const [q, setQ] = useState('');
-  const [ajanslar, setAjanslar] = useState<
-    Awaited<ReturnType<typeof TakasAjansAra>>
-  >([]);
-  const [kullanicilar, setKullanicilar] = useState<
-    Awaited<ReturnType<typeof TakasKullaniciAra>>
-  >([]);
-  const [seciliId, setSeciliId] = useState<string | null>(null);
+  const [ajanslar, setAjanslar] = useState<TakasAjansSatir[]>([]);
+  const [kullanicilar, setKullanicilar] = useState<TakasKullaniciSatir[]>([]);
+  const [seciliIds, setSeciliIds] = useState<string[]>([]);
   const [teklifCoin, setTeklifCoin] = useState('');
   const [teklifler, setTeklifler] = useState<
     Awaited<ReturnType<typeof TakasTekliflerimiGetir>>
   >([]);
+  const [peerMap, setPeerMap] = useState<Record<string, PeerOzet>>({});
   const [busy, setBusy] = useState(false);
+  const scrollRef = useRef<KlavyeScrollHandle>(null);
+  const tCoinRef = useRef<TextInput>(null);
+  const teklifCoinRef = useRef<TextInput>(null);
+
+  const klavyeKaydir = useCallback(
+    (e?: Parameters<typeof KlavyeFocusKaydir>[1]) => {
+      KlavyeFocusKaydir(scrollRef.current, e, { ustBosluk: 48 });
+    },
+    [],
+  );
+
+  const coinAlaniKaydir = useCallback((hangi: 'transfer' | 'teklif') => {
+    KlavyeRefIleKaydir(
+      scrollRef.current,
+      hangi === 'transfer' ? tCoinRef : teklifCoinRef,
+      { ustBosluk: 64, delayMs: 80 },
+    );
+  }, []);
 
   const yenileHesap = useCallback(async () => {
     const r = await CuzdanHesabiGarantile();
@@ -91,6 +142,120 @@ export default function CuzdanTakasEkrani() {
   useEffect(() => {
     void yenileHesap();
   }, [yenileHesap]);
+
+  const mahkemeKurGonder = useCallback(
+    async (offerId: string, reason: string) => {
+      const gerekce = reason.trim();
+      if (gerekce.length < 10) {
+        Alert.alert(
+          'Mahkeme',
+          'Anlaşmazlık gerekçesi en az 10 karakter olmalı.',
+        );
+        return;
+      }
+      setBusy(true);
+      const r = await TakasMahkemeKur({ offerId, reason: gerekce });
+      setBusy(false);
+      if (!r.ok) {
+        Alert.alert('Mahkeme', r.hata);
+        return;
+      }
+      Alert.alert(
+        r.already ? 'Mahkeme zaten açık' : 'Mahkeme kuruldu',
+        'Satıcı, alıcı ve platform yargıcı aynı gruba alındı. Satış detayı otomatik eklendi.',
+        [
+          {
+            text: 'Gruba git',
+            onPress: () => router.push(`/mesaj/${r.threadId}` as any),
+          },
+          { text: 'Tamam' },
+        ],
+      );
+    },
+    [router],
+  );
+
+  const secimToggle = useCallback((id: string) => {
+    setSeciliIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }, []);
+
+  const sohbetAc = useCallback(
+    async (
+      otherUserId: string,
+      ilkMesaj?: string,
+      sohbeteGit = true,
+      agencyId?: string | null,
+    ) => {
+      if (!otherUserId && !agencyId) return;
+      const ac = agencyId
+        ? await AjansSohbetAcVeyaGetir(agencyId)
+        : await OzelSohbetAcVeyaGetir(otherUserId);
+      if (!ac.ok) {
+        Alert.alert('Mesaj', ac.hata);
+        return;
+      }
+      if (ilkMesaj?.trim()) {
+        await MesajGonder({ threadId: ac.threadId, body: ilkMesaj.trim() });
+      }
+      if (sohbeteGit) {
+        router.push(`/mesaj/${ac.threadId}` as any);
+      }
+    },
+    [router],
+  );
+
+  const teklifleriAc = useCallback(async () => {
+    const list = await TakasTekliflerimiGetir();
+    setTeklifler(list);
+    setMod('teklifler');
+
+    const userIds = new Set<string>();
+    const agencyIds = new Set<string>();
+    for (const t of list) {
+      if (t.seller_id) userIds.add(t.seller_id);
+      if (t.buyer_user_id) userIds.add(t.buyer_user_id);
+      if (t.buyer_agency_id) agencyIds.add(t.buyer_agency_id);
+    }
+    const next: Record<string, PeerOzet> = {};
+    const uidList = [...userIds];
+    if (uidList.length) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, display_name, username, avatar_url')
+        .in('id', uidList);
+      for (const p of data ?? []) {
+        next[p.id] = {
+          id: p.id,
+          ad: (p.display_name ?? p.username ?? 'Kullanıcı') as string,
+          avatar: (p.avatar_url as string | null) ?? null,
+        };
+      }
+    }
+    const aidList = [...agencyIds];
+    if (aidList.length) {
+      const { data } = await supabase
+        .from('agencies')
+        .select('id, name, logo_url, owner_id')
+        .in('id', aidList);
+      for (const a of data ?? []) {
+        next[`agency:${a.id}`] = {
+          id: (a.owner_id as string) || a.id,
+          ad: (a.name as string) || 'Ajans',
+          avatar: (a.logo_url as string | null) ?? null,
+        };
+      }
+    }
+    setPeerMap(next);
+  }, []);
+
+  useEffect(() => {
+    const sekme = String(params.sekme ?? '');
+    if (sekme === 'teklifler') {
+      void teklifleriAc();
+    }
+  }, [params.sekme, teklifleriAc]);
 
   const aliciDoldur = useCallback(async (no: string, kaynaktan?: 'qr' | 'yaz') => {
     const digits = no.replace(/\D/g, '');
@@ -119,12 +284,13 @@ export default function CuzdanTakasEkrani() {
     }
     setTAd(r.firstName);
     setTSoyad(r.lastName);
-    const ozet = `${r.firstName} ${r.lastName} · KYC onaylı`;
+    const maskeli = CuzdanAdSoyadMaskele(r.firstName, r.lastName);
+    const ozet = `${maskeli} · KYC onaylı`;
     setAliciDurum(ozet);
     if (kaynaktan === 'qr') {
       Alert.alert(
         'QR okundu',
-        `Cüzdan: ${formatCuzdanNo(digits)}\n${r.firstName} ${r.lastName}`,
+        `Cüzdan: ${formatCuzdanNo(digits)}\n${maskeli}`,
       );
     }
   }, []);
@@ -265,49 +431,112 @@ export default function CuzdanTakasEkrani() {
       return;
     }
     const coins = Math.floor(Number(teklifCoin));
-    if (!seciliId || !coins) {
-      Alert.alert('Eksik', 'Alıcı ve coin miktarı seç.');
+    if (!seciliIds.length || !coins) {
+      Alert.alert('Eksik', 'En az bir alıcı ve coin miktarı seç.');
       return;
     }
-    setBusy(true);
-    const r = await TakasTeklifOlustur({
-      buyerType: tip,
-      buyerUserId: tip === 'user' ? seciliId : null,
-      buyerAgencyId: tip === 'agency' ? seciliId : null,
-      coins,
-    });
-    setBusy(false);
-    if (!r.ok) {
-      Alert.alert('Teklif', r.hata);
-      return;
-    }
-    void refreshWallet();
+    const mesaj = TeklifMesajiOlustur(coins);
+    const ozet = CoinDegerOzeti(coins);
+    const seciliAdlar =
+      tip === 'agency'
+        ? ajanslar
+            .filter((a) => seciliIds.includes(a.id))
+            .map((a) => a.name)
+            .join(', ')
+        : kullanicilar
+            .filter((k) => seciliIds.includes(k.id))
+            .map((k) => TakasKullaniciGorunenAd(k))
+            .join(', ');
+
     Alert.alert(
-      'Teklif gönderildi',
-      'Coin bakiyeniz şimdilik düşmez. Alıcı onayladığında coinler geçici olarak kilitlenir; işlem tamamlanınca karşı tarafa geçer.',
+      'Anlaşma özeti',
+      `${seciliIds.length} alıcı: ${seciliAdlar}\n\n${mesaj}\n\nKatalog: ${TryYazi(ozet.katalogTl)}\nSize kalan (tahmini): ${TryYazi(ozet.saticiNetTl)}\n\n${TAKAS_IADE_UYARISI}`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Teklif gönder',
+          onPress: () => {
+            void (async () => {
+              setBusy(true);
+              let okSay = 0;
+              const hatalar: string[] = [];
+              let sonThreadAgency: string | null = null;
+              let sonThreadUser: string | null = null;
+              for (const id of seciliIds) {
+                const r = await TakasTeklifOlustur({
+                  buyerType: tip,
+                  buyerUserId: tip === 'user' ? id : null,
+                  buyerAgencyId: tip === 'agency' ? id : null,
+                  coins,
+                  note: mesaj,
+                });
+                if (!r.ok) {
+                  hatalar.push(r.hata);
+                  continue;
+                }
+                okSay += 1;
+                if (tip === 'user') {
+                  await sohbetAc(id, mesaj, false);
+                  sonThreadUser = id;
+                } else {
+                  await sohbetAc('', mesaj, false, id);
+                  sonThreadAgency = id;
+                }
+              }
+              setBusy(false);
+              void refreshWallet();
+              if (okSay === 0) {
+                Alert.alert('Teklif', hatalar[0] ?? 'Gönderilemedi');
+                return;
+              }
+              Alert.alert(
+                'Teklif gönderildi',
+                `${okSay} teklif iletildi.${hatalar.length ? ` ${hatalar.length} hata.` : ''} Onay/red Teklifler sekmesinden yapılır.`,
+                [
+                  {
+                    text: 'Sohbete git',
+                    onPress: () => {
+                      if (sonThreadAgency) {
+                        void sohbetAc('', undefined, true, sonThreadAgency);
+                      } else if (sonThreadUser) {
+                        void sohbetAc(sonThreadUser, undefined, true);
+                      }
+                    },
+                  },
+                  {
+                    text: 'Tekliflerim',
+                    onPress: () => void teklifleriAc(),
+                  },
+                  {
+                    text: 'Tamam',
+                    onPress: () => {
+                      setSeciliIds([]);
+                      setMod('menu');
+                    },
+                  },
+                ],
+              );
+            })();
+          },
+        },
+      ],
     );
-    setMod('menu');
   };
-
-  const teklifleriAc = async () => {
-    setTeklifler(await TakasTekliflerimiGetir());
-    setMod('teklifler');
-  };
-
-  const qrUri = walletNo
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(CuzdanNoQrPayload(walletNo))}`
-    : null;
 
   return (
     <Screen>
       <Stack.Screen options={{ headerShown: false }} />
-      <EkranBasligi title="Coin takas" subtitle="MUTA PAY · transfer · teklif" />
-      <ScrollView
+      <EkranBasligi
+        title="Coin takas"
+        subtitle="MUTA PAY · anlaşma · transfer"
+      />
+      <KlavyeScrollView
+        ref={scrollRef}
         contentContainerStyle={[
           styles.pad,
-          { paddingBottom: insets.bottom + 24 },
+          { paddingBottom: insets.bottom + 48 },
         ]}
-        keyboardShouldPersistTaps="handled"
+        ekstraPad={72}
       >
         <View style={styles.kart}>
           <Text style={styles.marka}>{CUZDAN_MARKA_ADI}</Text>
@@ -352,13 +581,23 @@ export default function CuzdanTakasEkrani() {
                 ? 'İncelemede'
                 : 'Yok'}
           </Text>
-          {qrUri ? (
-            <View style={styles.qrBlok}>
-              <Image source={{ uri: qrUri }} style={styles.qr} />
-              <Text style={styles.meta}>
-                Karşı taraf bu QR’ı kamerayla okusun · sen de kamera ile oku
-              </Text>
+          {(wallet?.coins ?? 0) > 0 ? (
+            <View style={{ marginTop: 10 }}>
+              <CoinDegerOzetiPaneli coins={wallet?.coins ?? 0} kompakt />
             </View>
+          ) : null}
+          {walletNo.replace(/\D/g, '').length === 18 ? (
+            <CuzdanQrKarti
+              walletNumber={walletNo}
+              marka={CUZDAN_MARKA_ADI}
+              onKameraOku={() => void kameraAc()}
+              onWhatsAppPaylas={() => {
+                void (async () => {
+                  const r = await CuzdanKartiniWhatsAppPaylas(walletNo);
+                  if (!r.ok) Alert.alert('WhatsApp', r.hata);
+                })();
+              }}
+            />
           ) : null}
           {kyc !== 'approved' ? (
             <Pressable
@@ -372,6 +611,8 @@ export default function CuzdanTakasEkrani() {
 
         {mod === 'menu' ? (
           <>
+            <Text style={styles.odemeNot}>{TAKAS_ODEME_BILGISI}</Text>
+            <Text style={styles.iadeNot}>{TAKAS_IADE_UYARISI}</Text>
             <Pressable style={styles.btn} onPress={() => void kameraAc()}>
               <Text style={styles.btnYazi}>QR oku (kamera)</Text>
             </Pressable>
@@ -381,13 +622,20 @@ export default function CuzdanTakasEkrani() {
             <Pressable
               style={styles.btn}
               onPress={() => {
+                setSeciliIds([]);
                 setMod('ajans');
                 void araAjans('');
               }}
             >
               <Text style={styles.btnYazi}>Ajansa teklif gönder</Text>
             </Pressable>
-            <Pressable style={styles.btn} onPress={() => setMod('kullanici')}>
+            <Pressable
+              style={styles.btn}
+              onPress={() => {
+                setSeciliIds([]);
+                setMod('kullanici');
+              }}
+            >
               <Text style={styles.btnYazi}>Kullanıcıya teklif gönder</Text>
             </Pressable>
             <Pressable
@@ -411,6 +659,7 @@ export default function CuzdanTakasEkrani() {
                 maxLength={22}
                 placeholder="XXXX XXXX XXXX XXXX XX"
                 placeholderTextColor={RenkTokenlari.textDim}
+                onFocus={klavyeKaydir}
               />
               <Pressable
                 style={styles.kameraBtn}
@@ -432,25 +681,29 @@ export default function CuzdanTakasEkrani() {
             ) : null}
             <TextInput
               style={[styles.input, styles.readonly]}
-              value={tAd}
+              value={tAd ? `${tAd.charAt(0).toLocaleUpperCase('tr-TR')}.` : ''}
               editable={false}
-              placeholder="Alıcı adı (otomatik)"
+              placeholder="Alıcı adı (gizli)"
               placeholderTextColor={RenkTokenlari.textDim}
             />
             <TextInput
               style={[styles.input, styles.readonly]}
-              value={tSoyad}
+              value={
+                tSoyad ? `${tSoyad.charAt(0).toLocaleUpperCase('tr-TR')}.` : ''
+              }
               editable={false}
-              placeholder="Alıcı soyadı (otomatik)"
+              placeholder="Alıcı soyadı (gizli)"
               placeholderTextColor={RenkTokenlari.textDim}
             />
             <TextInput
+              ref={tCoinRef}
               style={styles.input}
               value={tCoin}
               onChangeText={setTCoin}
               keyboardType="number-pad"
               placeholder="Coin miktarı"
               placeholderTextColor={RenkTokenlari.textDim}
+              onFocus={() => coinAlaniKaydir('transfer')}
             />
             <Text style={styles.uyari}>
               No yazılınca veya QR okutulunca ad soyad otomatik dolar. Eşleşmezse
@@ -483,36 +736,76 @@ export default function CuzdanTakasEkrani() {
                   : 'Kullanıcı / cüzdan no ara'
               }
               placeholderTextColor={RenkTokenlari.textDim}
+              onFocus={klavyeKaydir}
             />
-            {(mod === 'ajans' ? ajanslar : kullanicilar).map((item) => {
-              const id = item.id;
-              const baslik =
-                mod === 'ajans'
-                  ? `${(item as { name: string }).name} · ${(item as { agency_public_id: string | null }).agency_public_id ?? id.slice(0, 8)}`
-                  : `${(item as { display_name: string | null }).display_name ?? (item as { username: string | null }).username} · ${(item as { wallet_number: string }).wallet_number}`;
-              return (
-                <Pressable
-                  key={id}
-                  onPress={() => setSeciliId(id)}
-                  style={[
-                    styles.listeSatir,
-                    seciliId === id && styles.listeAktif,
-                  ]}
-                >
-                  <Text style={styles.listeYazi} numberOfLines={2}>
-                    {baslik}
-                  </Text>
-                </Pressable>
-              );
-            })}
+            {mod === 'ajans'
+              ? ajanslar.map((item) => (
+                  <TakasProfilKarti
+                    key={item.id}
+                    baslik={item.name}
+                    altYazi={item.agency_public_id ?? item.id.slice(0, 8)}
+                    avatarUrl={item.logo_url}
+                    secili={seciliIds.includes(item.id)}
+                    onPress={() => secimToggle(item.id)}
+                    onProfil={() =>
+                      router.push(`/ajans/profil/${item.id}` as any)
+                    }
+                    onMesaj={() =>
+                      void sohbetAc('', undefined, true, item.id)
+                    }
+                  />
+                ))
+              : kullanicilar.map((item) => (
+                  <TakasProfilKarti
+                    key={item.id}
+                    baslik={TakasKullaniciGorunenAd(item)}
+                    altYazi={
+                      item.wallet_number
+                        ? item.wallet_number.replace(
+                            /(\d{4})(?=\d)/g,
+                            '$1 ',
+                          )
+                        : item.username
+                    }
+                    avatarUrl={item.avatar_url}
+                    secili={seciliIds.includes(item.id)}
+                    onPress={() => secimToggle(item.id)}
+                    onProfil={() =>
+                      router.push(`/kullanici/${item.id}` as any)
+                    }
+                    onMesaj={() => void sohbetAc(item.id, undefined, true)}
+                  />
+                ))}
+            {seciliIds.length > 0 ? (
+              <Text style={styles.meta}>
+                {seciliIds.length} seçili · yeşil tik = teklif alıcısı
+              </Text>
+            ) : (
+              <Text style={styles.meta}>
+                Birden fazla ajans / kullanıcı seçebilirsin
+              </Text>
+            )}
             <TextInput
+              ref={teklifCoinRef}
               style={styles.input}
               value={teklifCoin}
               onChangeText={setTeklifCoin}
               keyboardType="number-pad"
               placeholder="Teklif coin miktarı"
               placeholderTextColor={RenkTokenlari.textDim}
+              onFocus={() => coinAlaniKaydir('teklif')}
             />
+            {Math.floor(Number(teklifCoin)) > 0 ? (
+              <>
+                <CoinDegerOzetiPaneli
+                  coins={Math.floor(Number(teklifCoin))}
+                  iadeUyari
+                />
+                <Text style={styles.teklifOnizleme}>
+                  {TeklifMesajiOlustur(Math.floor(Number(teklifCoin)))}
+                </Text>
+              </>
+            ) : null}
             <Pressable
               style={[styles.btn, busy && { opacity: 0.5 }]}
               disabled={busy}
@@ -520,7 +813,10 @@ export default function CuzdanTakasEkrani() {
                 void teklifGonder(mod === 'ajans' ? 'agency' : 'user')
               }
             >
-              <Text style={styles.btnYazi}>Teklif gönder</Text>
+              <Text style={styles.btnYazi}>
+                Teklif gönder
+                {seciliIds.length > 1 ? ` (${seciliIds.length})` : ''}
+              </Text>
             </Pressable>
             <Pressable onPress={() => setMod('menu')}>
               <Text style={styles.geri}>← Geri</Text>
@@ -530,6 +826,7 @@ export default function CuzdanTakasEkrani() {
 
         {mod === 'teklifler' ? (
           <View style={styles.form}>
+            <Text style={styles.bolum}>Gelen / giden teklifler</Text>
             <Pressable
               style={styles.btnIkincil}
               onPress={() => router.push('/ajans/teklifler' as any)}
@@ -540,40 +837,144 @@ export default function CuzdanTakasEkrani() {
               <Text style={styles.meta}>Teklif yok</Text>
             ) : (
               teklifler.map((t) => {
+                const benAliciyim =
+                  t.buyer_user_id === user?.id && t.seller_id !== user?.id;
                 const aliciBekliyor =
                   t.status === 'pending_buyer' &&
-                  t.seller_id !== user?.id &&
-                  (t.buyer_user_id === user?.id || t.buyer_type === 'agency');
+                  (benAliciyim ||
+                    (t.buyer_type === 'agency' && t.seller_id !== user?.id));
+                const net =
+                  t.satici_net_tl != null
+                    ? Number(t.satici_net_tl)
+                    : CoinDegerOzeti(t.coins).saticiNetTl;
+                const benSaticiyim = t.seller_id === user?.id;
+                const peer = benSaticiyim
+                  ? t.buyer_type === 'agency' && t.buyer_agency_id
+                    ? peerMap[`agency:${t.buyer_agency_id}`]
+                    : t.buyer_user_id
+                      ? peerMap[t.buyer_user_id]
+                      : undefined
+                  : peerMap[t.seller_id];
+                const teklifMetni =
+                  t.note?.trim() || TeklifMesajiOlustur(t.coins);
+                const mesajUserId = benSaticiyim
+                  ? t.buyer_type === 'agency'
+                    ? peer?.id
+                    : t.buyer_user_id
+                  : t.seller_id;
+                const mesajAgencyId =
+                  benSaticiyim && t.buyer_type === 'agency'
+                    ? t.buyer_agency_id
+                    : null;
+                const ajansMesajAc = () => {
+                  if (mesajAgencyId) {
+                    void sohbetAc('', undefined, true, mesajAgencyId);
+                  } else if (mesajUserId) {
+                    void sohbetAc(mesajUserId, undefined, true);
+                  }
+                };
+                const profilYolu = benSaticiyim
+                  ? t.buyer_type === 'agency' && t.buyer_agency_id
+                    ? `/ajans/profil/${t.buyer_agency_id}`
+                    : t.buyer_user_id
+                      ? `/kullanici/${t.buyer_user_id}`
+                      : null
+                  : `/kullanici/${t.seller_id}`;
+
+                const mahkemeAcilabilir =
+                  t.status !== 'cancelled' &&
+                  t.status !== 'rejected' &&
+                  t.status !== 'expired';
+
+                const mahkemeKur = () => {
+                  Alert.alert(
+                    'Mahkeme kur',
+                    'Satıcı, alıcı ve platform yargıcı aynı gruba alınır. Tüm satış detayı otomatik eklenir. Usulsüzlük / dolandırıcılık için savunma buradan alınır.',
+                    [
+                      { text: 'Vazgeç', style: 'cancel' },
+                      {
+                        text: 'Kur',
+                        onPress: () =>
+                          void mahkemeKurGonder(
+                            t.id,
+                            'Takas anlaşmazlığı: usulsüzlük / dolandırıcılık şüphesi — platform incelemesi talep ediyorum.',
+                          ),
+                      },
+                    ],
+                  );
+                };
+
                 return (
                   <View key={t.id} style={styles.listeSatir}>
+                    {peer ? (
+                      <TakasProfilKarti
+                        baslik={peer.ad}
+                        altYazi={
+                          benSaticiyim && t.buyer_type === 'agency'
+                            ? 'Ajans'
+                            : 'Kullanıcı'
+                        }
+                        avatarUrl={peer.avatar}
+                        onPress={() => {
+                          if (profilYolu) router.push(profilYolu as any);
+                        }}
+                        onMesaj={
+                          mesajAgencyId || mesajUserId
+                            ? () => ajansMesajAc()
+                            : undefined
+                        }
+                      />
+                    ) : null}
                     <Text style={styles.listeYazi}>
                       {t.coins.toLocaleString('tr-TR')} coin ·{' '}
                       {TAKAS_DURUM_ETIKET[t.status] ?? t.status}
                       {t.buyer_type === 'agency' ? ' · ajans' : ' · kullanıcı'}
+                    </Text>
+                    <Text style={styles.teklifOnizleme}>{teklifMetni}</Text>
+                    <Text style={styles.meta}>
+                      Anlaşma tutarı (tahmini): {TryYazi(net)}
                     </Text>
                     {aliciBekliyor ? (
                       <View style={styles.yanitSatir}>
                         <Pressable
                           onPress={async () => {
                             const r = await TakasAliciYanit(t.id, true);
-                            if (!r.ok) Alert.alert('Hata', r.hata);
-                            else {
-                              if (t.buyer_type === 'agency') {
-                                Alert.alert(
-                                  'Kabul edildi',
-                                  'Ödeme formunu ajans teklif panelinden doldurun.',
-                                  [
-                                    {
-                                      text: 'Panele git',
-                                      onPress: () =>
-                                        router.push('/ajans/teklifler' as any),
-                                    },
-                                    { text: 'Tamam' },
-                                  ],
-                                );
-                              }
-                              void teklifleriAc();
+                            if (!r.ok) {
+                              Alert.alert('Hata', r.hata);
+                              return;
                             }
+                            if (t.buyer_type === 'agency') {
+                              Alert.alert(
+                                'Kabul edildi',
+                                'Ödeme formunu ajans teklif panelinden doldurun.',
+                                [
+                                  {
+                                    text: 'Panele git',
+                                    onPress: () =>
+                                      router.push('/ajans/teklifler' as any),
+                                  },
+                                  { text: 'Tamam' },
+                                ],
+                              );
+                            } else if (t.seller_id) {
+                              Alert.alert(
+                                'Kabul edildi',
+                                'İşlemler için sohbet açılıyor.',
+                                [
+                                  {
+                                    text: 'Mesaja git',
+                                    onPress: () =>
+                                      void sohbetAc(
+                                        t.seller_id,
+                                        'Teklifi kabul ettim — işlemleri başlatalım.',
+                                        true,
+                                      ),
+                                  },
+                                  { text: 'Tamam' },
+                                ],
+                              );
+                            }
+                            void teklifleriAc();
                           }}
                         >
                           <Text style={styles.linkYazi}>Kabul</Text>
@@ -597,8 +998,45 @@ export default function CuzdanTakasEkrani() {
                             Red
                           </Text>
                         </Pressable>
+                        {mesajAgencyId || mesajUserId ? (
+                          <Pressable onPress={ajansMesajAc}>
+                            <Text style={styles.linkYazi}>Mesaj</Text>
+                          </Pressable>
+                        ) : null}
+                        {mahkemeAcilabilir ? (
+                          <Pressable onPress={mahkemeKur}>
+                            <Text
+                              style={[
+                                styles.linkYazi,
+                                { color: '#4DA3FF' },
+                              ]}
+                            >
+                              Mahkeme kur
+                            </Text>
+                          </Pressable>
+                        ) : null}
                       </View>
-                    ) : null}
+                    ) : (
+                      <View style={styles.yanitSatir}>
+                        {mesajAgencyId || mesajUserId ? (
+                          <Pressable onPress={ajansMesajAc}>
+                            <Text style={styles.linkYazi}>Mesajlaş</Text>
+                          </Pressable>
+                        ) : null}
+                        {mahkemeAcilabilir ? (
+                          <Pressable onPress={mahkemeKur}>
+                            <Text
+                              style={[
+                                styles.linkYazi,
+                                { color: '#4DA3FF' },
+                              ]}
+                            >
+                              Mahkeme kur
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
+                    )}
                   </View>
                 );
               })
@@ -608,7 +1046,7 @@ export default function CuzdanTakasEkrani() {
             </Pressable>
           </View>
         ) : null}
-      </ScrollView>
+      </KlavyeScrollView>
 
       <Modal
         visible={taramaAcik}
@@ -630,6 +1068,15 @@ export default function CuzdanTakasEkrani() {
                 onBarcodeScanned={qrOkundu}
               />
             ) : null}
+            <View pointerEvents="none" style={styles.taramaOverlay}>
+              <View style={styles.taramaKutu}>
+                <View style={[styles.taramaKose, styles.taramaTL]} />
+                <View style={[styles.taramaKose, styles.taramaTR]} />
+                <View style={[styles.taramaKose, styles.taramaBL]} />
+                <View style={[styles.taramaKose, styles.taramaBR]} />
+              </View>
+              <Text style={styles.taramaIpucu}>Kodu çerçeveye hizala</Text>
+            </View>
           </View>
           <Pressable
             style={styles.btnIkincil}
@@ -682,12 +1129,17 @@ const styles = StyleSheet.create({
     borderColor: RenkTokenlari.borderAccent,
   },
   meta: { ...TipografiTokenlari.micro, color: RenkTokenlari.textMuted },
-  qrBlok: { alignItems: 'center', gap: 6, marginTop: 10 },
-  qr: {
-    width: 140,
-    height: 140,
-    borderRadius: 8,
-    backgroundColor: '#fff',
+  odemeNot: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  iadeNot: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.danger,
+    fontSize: 11,
+    lineHeight: 16,
   },
   btn: {
     backgroundColor: RenkTokenlari.primary,
@@ -756,6 +1208,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(240,180,41,0.12)',
   },
   listeYazi: { ...TipografiTokenlari.caption, color: RenkTokenlari.text },
+  teklifOnizleme: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
   link: { marginTop: 6 },
   linkYazi: {
     ...TipografiTokenlari.caption,
@@ -781,12 +1239,67 @@ const styles = StyleSheet.create({
   taramaCam: {
     width: '100%',
     height: 420,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: '#111',
+    position: 'relative',
   },
   taramaKamera: {
     width: '100%',
     height: '100%',
+  },
+  taramaOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.28)',
+  },
+  taramaKutu: {
+    width: 240,
+    height: 240,
+    position: 'relative',
+  },
+  taramaKose: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderColor: RenkTokenlari.accent,
+  },
+  taramaTL: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 3,
+    borderLeftWidth: 3,
+    borderTopLeftRadius: 6,
+  },
+  taramaTR: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 3,
+    borderRightWidth: 3,
+    borderTopRightRadius: 6,
+  },
+  taramaBL: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 3,
+    borderLeftWidth: 3,
+    borderBottomLeftRadius: 6,
+  },
+  taramaBR: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderBottomRightRadius: 6,
+  },
+  taramaIpucu: {
+    ...TipografiTokenlari.caption,
+    color: '#fff',
+    marginTop: 18,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
 });

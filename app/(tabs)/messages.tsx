@@ -24,6 +24,7 @@ import { MesajMarkaBasligi } from '../../src/moduller/mesajlasma/bilesenler/Mesa
 import { MesajKonuKarti } from '../../src/moduller/mesajlasma/bilesenler/MesajKonuKarti';
 import { MesajBosDurum } from '../../src/moduller/mesajlasma/bilesenler/MesajBosDurum';
 import { useMesajInboxKanali } from '../../src/moduller/mesajlasma/gercek-zamanli/useMesajKanali';
+import { useMesajOkunmamis } from '../../src/moduller/mesajlasma/baglam/MesajOkunmamisSaglayici';
 import { OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
@@ -34,6 +35,7 @@ export default function MessagesScreen() {
   const acik = OzellikBayragiAktifMi('messages_enabled');
   const { isGuest, refreshProfile, refreshWallet } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
+  const { sayfayiAcincaTemizle, yenile: mesajRozetYenile } = useMesajOkunmamis();
   const [konular, setKonular] = useState<MesajKonusu[]>([]);
   const [arsivModu, setArsivModu] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -55,8 +57,11 @@ export default function MessagesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      void load();
-    }, [load]),
+      sayfayiAcincaTemizle();
+      void load().then(() => {
+        void mesajRozetYenile();
+      });
+    }, [load, sayfayiAcincaTemizle, mesajRozetYenile]),
   );
 
   useMesajInboxKanali(() => {

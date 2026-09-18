@@ -15,7 +15,7 @@ import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { TextField } from '../../src/components/TextField';
 import { GradientButton } from '../../src/components/GradientButton';
-import { KlavyeScrollView } from '../../src/bilesenler/klavye/KlavyeScrollView';
+import { KlavyeScrollView, KlavyeFocusKaydir, type KlavyeScrollHandle } from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
 import { ProfilMedyaBuyutucu } from '../../src/moduller/kullanici-profili/bilesenler/ProfilMedyaBuyutucu';
@@ -92,6 +92,7 @@ function adSoyadAyir(displayName: string | null | undefined): {
 export default function ProfilDuzenleEkrani() {
   const { profile, user, isGuest, refreshProfile, refreshWallet, updatePassword } =
     useAuth();
+  const scrollRef = useRef<KlavyeScrollHandle>(null);
   const [upgradeAcik, setUpgradeAcik] = useState(false);
   const [medyaBusy, setMedyaBusy] = useState<ProfilMedyaTuru | null>(null);
   const [buyut, setBuyut] = useState<{ uri: string; tur: ProfilMedyaTuru } | null>(
@@ -400,6 +401,13 @@ export default function ProfilDuzenleEkrani() {
     Alert.alert('Banka', 'IBAN ve banka bilgilerin kaydedildi.');
   };
 
+  const klavyeKaydir = useCallback(
+    (e?: Parameters<typeof KlavyeFocusKaydir>[1]) => {
+      KlavyeFocusKaydir(scrollRef.current, e, { ustBosluk: 56, delayMs: 80 });
+    },
+    [],
+  );
+
   return (
     <Screen edges={['top']}>
       <EkranBasligi
@@ -408,8 +416,11 @@ export default function ProfilDuzenleEkrani() {
         fallbackHref="/(tabs)/profile"
       />
       <KlavyeScrollView
+        ref={scrollRef}
+        style={styles.scrollFlex}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
+        ekstraPad={56}
       >
         <Text style={styles.section}>Fotoğraflar</Text>
         <View style={styles.coverWrap}>
@@ -491,12 +502,19 @@ export default function ProfilDuzenleEkrani() {
         </View>
 
         <Text style={styles.section}>Kimlik</Text>
-        <TextField label="Ad" value={ad} onChangeText={setDirty(setAd)} placeholder="Adın" />
+        <TextField
+          label="Ad"
+          value={ad}
+          onChangeText={setDirty(setAd)}
+          placeholder="Adın"
+          onFocus={klavyeKaydir}
+        />
         <TextField
           label="Soyad"
           value={soyad}
           onChangeText={setDirty(setSoyad)}
           placeholder="Soyadın"
+          onFocus={klavyeKaydir}
         />
         <TextField
           label="Kullanıcı adı"
@@ -505,6 +523,7 @@ export default function ProfilDuzenleEkrani() {
           autoCapitalize="none"
           autoCorrect={false}
           placeholder="kullanici_adi"
+          onFocus={klavyeKaydir}
         />
         <TextField
           label="Hakkında"
@@ -513,6 +532,7 @@ export default function ProfilDuzenleEkrani() {
           placeholder="Kendinden kısaca bahset"
           multiline
           style={styles.bioInput}
+          onFocus={klavyeKaydir}
         />
 
         <Text style={styles.section}>Cinsiyet & doğum</Text>
@@ -617,6 +637,7 @@ export default function ProfilDuzenleEkrani() {
           onChangeText={setDirty(setTelefon)}
           keyboardType="phone-pad"
           placeholder="05xx xxx xx xx"
+          onFocus={klavyeKaydir}
         />
         <GradientButton
           title="Profili kaydet"
@@ -632,6 +653,7 @@ export default function ProfilDuzenleEkrani() {
           autoCapitalize="none"
           keyboardType="email-address"
           placeholder="sen@mail.com"
+          onFocus={klavyeKaydir}
         />
         <GradientButton
           title="E-postayı güncelle"
@@ -647,6 +669,7 @@ export default function ProfilDuzenleEkrani() {
           onChangeText={setYeniSifre}
           secureTextEntry
           placeholder="En az 6 karakter"
+          onFocus={klavyeKaydir}
         />
         <TextField
           label="Şifre tekrar"
@@ -654,6 +677,7 @@ export default function ProfilDuzenleEkrani() {
           onChangeText={setSifreTekrar}
           secureTextEntry
           placeholder="Tekrar"
+          onFocus={klavyeKaydir}
         />
         <GradientButton
           title="Şifreyi değiştir"
@@ -678,12 +702,14 @@ export default function ProfilDuzenleEkrani() {
               value={hesapSahibi}
               onChangeText={setHesapSahibi}
               placeholder="Ad Soyad"
+              onFocus={klavyeKaydir}
             />
             <TextField
               label="Banka adı"
               value={bankaAdi}
               onChangeText={setBankaAdi}
               placeholder="Örn. Ziraat Bankası"
+              onFocus={klavyeKaydir}
             />
             <TextField
               label="IBAN"
@@ -691,6 +717,7 @@ export default function ProfilDuzenleEkrani() {
               onChangeText={setIban}
               autoCapitalize="characters"
               placeholder="TR00 0000 0000 0000 0000 0000 00"
+              onFocus={klavyeKaydir}
             />
             <GradientButton
               title="Banka bilgisini kaydet"
@@ -741,6 +768,7 @@ export default function ProfilDuzenleEkrani() {
 }
 
 const styles = StyleSheet.create({
+  scrollFlex: { flex: 1 },
   scroll: {
     paddingHorizontal: BoslukTokenlari.xl,
     paddingBottom: BoslukTokenlari.xxxl,

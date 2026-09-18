@@ -15,6 +15,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { MesajKonusu } from '../okuma/MesajKonulariniGetir';
+import { MaviTikRozeti } from './MaviTikRozeti';
 
 type Props = {
   konu: MesajKonusu;
@@ -48,7 +49,9 @@ function formatZaman(iso: string | null): string {
 
 /** Inbox — Telegram tarzi: avatar + isim + onizleme + okunmamis */
 export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
+  const mahkeme = konu.thread_kind === 'mahkeme';
   const ad =
+    (mahkeme ? konu.thread_title || konu.peer_display_name : null)?.trim() ||
     konu.peer_display_name?.trim() ||
     konu.peer_username?.trim() ||
     'Kullanıcı';
@@ -56,6 +59,10 @@ export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
   const zaman = formatZaman(konu.last_message_at);
   const unread = konu.unread_count ?? 0;
   const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
+  const maviTik =
+    !!konu.peer_is_platform_official ||
+    mahkeme ||
+    (!!konu.peer_is_verified && mahkeme);
 
   return (
     <Pressable
@@ -69,18 +76,28 @@ export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
           <Image source={{ uri: konu.peer_avatar_url }} style={styles.avatarImg} />
         ) : (
           <LinearGradient
-            colors={[...RenkTokenlari.gradientPrimary]}
+            colors={
+              mahkeme
+                ? (['#4DA3FF', '#1D6FE8'] as [string, string])
+                : [...RenkTokenlari.gradientPrimary]
+            }
             style={styles.avatar}
           >
-            <Text style={styles.avatarYazi}>{harf}</Text>
+            <Text style={styles.avatarYazi}>{mahkeme ? '⚖' : harf}</Text>
           </LinearGradient>
         )}
 
         <View style={styles.copy}>
           <View style={styles.ust}>
-            <Text style={styles.ad} numberOfLines={1}>
-              {ad}
-            </Text>
+            <View style={styles.adSatir}>
+              <Text style={styles.ad} numberOfLines={1}>
+                {ad}
+              </Text>
+              {maviTik ? <MaviTikRozeti size={15} /> : null}
+              {konu.closed_at ? (
+                <Text style={styles.kapali}>Kapalı</Text>
+              ) : null}
+            </View>
             {zaman ? (
               <Text style={[styles.zaman, unread > 0 && styles.zamanUnread]}>
                 {zaman}
@@ -148,11 +165,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: BoslukTokenlari.sm,
   },
+  adSatir: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 0,
+  },
   ad: {
     ...TipografiTokenlari.body,
     fontWeight: '700',
     color: RenkTokenlari.text,
-    flex: 1,
+    flexShrink: 1,
+  },
+  kapali: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.danger,
+    fontWeight: '700',
+    fontSize: 10,
   },
   zaman: {
     ...TipografiTokenlari.micro,

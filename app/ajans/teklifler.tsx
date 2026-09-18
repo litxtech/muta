@@ -2,10 +2,11 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,6 +17,7 @@ import { Stack, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { KlavyeScrollView } from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { supabase } from '../../src/lib/supabase';
 import { DepoyaMedyaYukle } from '../../src/ortak/medya/DepoyaMedyaYukle';
@@ -188,11 +190,12 @@ export default function AjansTekliflerEkrani() {
         subtitle="Kabul · ödeme formu · dekont (1 gün)"
         fallbackHref="/ajans"
       />
-      <ScrollView
+      <KlavyeScrollView
         contentContainerStyle={[
           styles.pad,
           { paddingBottom: insets.bottom + 24 },
         ]}
+        ekstraPad={40}
         refreshControl={
           <RefreshControl
             refreshing={yukleniyor}
@@ -225,6 +228,9 @@ export default function AjansTekliflerEkrani() {
                 <Text style={styles.meta}>
                   {TAKAS_DURUM_ETIKET[t.status] ?? t.status}
                 </Text>
+                {t.note ? (
+                  <Text style={styles.teklifNot}>{t.note}</Text>
+                ) : null}
                 {t.payment_source ? (
                   <Text style={styles.meta}>
                     Satın alınan: {t.payment_coins_bought ?? '—'} · Kaynak:{' '}
@@ -303,46 +309,60 @@ export default function AjansTekliflerEkrani() {
             );
           })
         )}
-      </ScrollView>
+      </KlavyeScrollView>
 
       <Modal visible={!!formTeklif} animationType="slide" transparent>
-        <View style={styles.modalWrap}>
-          <View style={styles.modalKart}>
-            <Text style={styles.baslik}>Ödeme bilgisi</Text>
-            <Text style={styles.meta}>
-              Teklif: {Number(formTeklif?.coins ?? 0).toLocaleString('tr-TR')}{' '}
-              coin
-            </Text>
-            <TextInput
-              style={styles.input}
-              value={satinAlinan}
-              onChangeText={setSatinAlinan}
-              keyboardType="number-pad"
-              placeholder="Kaç coin satın aldınız?"
-              placeholderTextColor={RenkTokenlari.textDim}
-            />
-            <TextInput
-              style={[styles.input, { minHeight: 80 }]}
-              value={odemeKaynak}
-              onChangeText={setOdemeKaynak}
-              multiline
-              placeholder="Parayı nereden göndereceksiniz? (banka / hesap / yöntem)"
-              placeholderTextColor={RenkTokenlari.textDim}
-            />
-            <Text style={styles.uyari}>
-              Formdan sonra 1 gün içinde dekont yüklemelisiniz. Yoksa ajansa
-              ciddi uyarı gider ve işlem admin paneline düşer.
-            </Text>
-            <Pressable style={styles.btn} onPress={() => void odemeKaydet()}>
-              <Text style={styles.btnYazi}>Kaydet · 1 gün dekont süresi başlar</Text>
-            </Pressable>
-            <Pressable onPress={() => setFormTeklif(null)}>
-              <Text style={[styles.link, { textAlign: 'center', marginTop: 8 }]}>
-                Vazgeç
+        <KeyboardAvoidingView
+          style={styles.modalWrap}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
+        >
+          <KlavyeScrollView
+            contentContainerStyle={styles.modalScroll}
+            ekstraPad={32}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.modalKart}>
+              <Text style={styles.baslik}>Ödeme bilgisi</Text>
+              <Text style={styles.meta}>
+                Teklif: {Number(formTeklif?.coins ?? 0).toLocaleString('tr-TR')}{' '}
+                coin
               </Text>
-            </Pressable>
-          </View>
-        </View>
+              <TextInput
+                style={styles.input}
+                value={satinAlinan}
+                onChangeText={setSatinAlinan}
+                keyboardType="number-pad"
+                placeholder="Kaç coin satın aldınız?"
+                placeholderTextColor={RenkTokenlari.textDim}
+              />
+              <TextInput
+                style={[styles.input, { minHeight: 80 }]}
+                value={odemeKaynak}
+                onChangeText={setOdemeKaynak}
+                multiline
+                placeholder="Parayı nereden göndereceksiniz? (banka / hesap / yöntem)"
+                placeholderTextColor={RenkTokenlari.textDim}
+              />
+              <Text style={styles.uyari}>
+                Formdan sonra 1 gün içinde dekont yüklemelisiniz. Yoksa ajansa
+                ciddi uyarı gider ve işlem admin paneline düşer.
+              </Text>
+              <Pressable style={styles.btn} onPress={() => void odemeKaydet()}>
+                <Text style={styles.btnYazi}>
+                  Kaydet · 1 gün dekont süresi başlar
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => setFormTeklif(null)}>
+                <Text
+                  style={[styles.link, { textAlign: 'center', marginTop: 8 }]}
+                >
+                  Vazgeç
+                </Text>
+              </Pressable>
+            </View>
+          </KlavyeScrollView>
+        </KeyboardAvoidingView>
       </Modal>
 
       <ProfilMedyaBuyutucu
@@ -376,6 +396,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   meta: { ...TipografiTokenlari.caption, color: RenkTokenlari.textMuted },
+  teklifNot: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+    lineHeight: 18,
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
   tarih: { ...TipografiTokenlari.micro, color: RenkTokenlari.textDim },
   aksiyon: { flexDirection: 'row', gap: 16, marginTop: 8 },
   link: {
@@ -394,6 +421,10 @@ const styles = StyleSheet.create({
   modalWrap: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  modalScroll: {
+    flexGrow: 1,
     justifyContent: 'flex-end',
   },
   modalKart: {

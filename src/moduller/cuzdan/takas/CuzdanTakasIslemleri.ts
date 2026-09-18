@@ -100,38 +100,48 @@ export function AjansNoQrdenCoz(data: string): string | null {
   return null;
 }
 
-export async function TakasAjansAra(q?: string) {
+export type TakasAjansSatir = {
+  id: string;
+  name: string;
+  agency_public_id: string | null;
+  logo_url: string | null;
+  status: string;
+  owner_id?: string | null;
+};
+
+export type TakasKullaniciSatir = {
+  id: string;
+  display_name: string | null;
+  username: string | null;
+  wallet_number: string;
+  avatar_url: string | null;
+  legal_first_name?: string | null;
+  legal_last_name?: string | null;
+};
+
+export async function TakasAjansAra(q?: string): Promise<TakasAjansSatir[]> {
   const { data, error } = await supabase.rpc('takas_ajans_ara', {
     p_q: q ?? null,
   });
-  if (error) return [] as {
-    id: string;
-    name: string;
-    agency_public_id: string | null;
-    logo_url: string | null;
-    status: string;
-  }[];
-  return (data ?? []) as {
-    id: string;
-    name: string;
-    agency_public_id: string | null;
-    logo_url: string | null;
-    status: string;
-  }[];
+  if (error) return [];
+  return (data ?? []) as TakasAjansSatir[];
 }
 
-export async function TakasKullaniciAra(q: string) {
+export async function TakasKullaniciAra(q: string): Promise<TakasKullaniciSatir[]> {
   const { data, error } = await supabase.rpc('takas_kullanici_ara', {
     p_q: q,
   });
   if (error) return [];
-  return (data ?? []) as {
-    id: string;
-    display_name: string | null;
-    username: string | null;
-    wallet_number: string;
-    avatar_url: string | null;
-  }[];
+  return (data ?? []) as TakasKullaniciSatir[];
+}
+
+export function TakasKullaniciGorunenAd(k: TakasKullaniciSatir): string {
+  const ad = [k.legal_first_name, k.legal_last_name]
+    .map((x) => (x ?? '').trim())
+    .filter(Boolean)
+    .join(' ');
+  if (ad) return ad;
+  return (k.display_name ?? k.username ?? 'Kullanıcı').trim() || 'Kullanıcı';
 }
 
 export async function TakasTeklifOlustur(input: {
@@ -151,6 +161,20 @@ export async function TakasTeklifOlustur(input: {
   if (error) {
     if (/kyc required/i.test(error.message)) {
       return { ok: false, hata: 'Takas için kimlik onayı gerekli.' };
+    }
+    if (/refund risk/i.test(error.message)) {
+      return {
+        ok: false,
+        hata:
+          'İade / cashback riski nedeniyle takas kapalı. Hesap incelemede olabilir; destek ile iletişime geçin.',
+      };
+    }
+    if (/iap cooling/i.test(error.message)) {
+      return {
+        ok: false,
+        hata:
+          'Mağazadan yüklenen coinler 14 gün soğutulur. Bu süre dolmadan takasa giremez.',
+      };
     }
     return { ok: false, hata: error.message };
   }

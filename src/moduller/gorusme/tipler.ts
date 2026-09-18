@@ -29,6 +29,31 @@ export type ThreadKarsiProfil = {
   username: string | null;
   avatar_url: string | null;
   public_user_id: string | null;
+  is_verified?: boolean;
+  is_platform_official?: boolean;
+  is_platform_yargic?: boolean;
+  thread_kind?: 'dm' | 'mahkeme' | string;
+  thread_title?: string | null;
+  closed_at?: string | null;
+  dispute_id?: string | null;
+  dispute_status?: string | null;
+  offer_id?: string | null;
+  yargic_id?: string | null;
+  can_moderate?: boolean;
+  peer_agency_id?: string | null;
+  agency_name?: string | null;
+  agency_logo_url?: string | null;
+  uyeler?: {
+    id: string;
+    display_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+    public_user_id: string | null;
+    is_verified?: boolean;
+    is_platform_official?: boolean;
+    is_platform_yargic?: boolean;
+    rol?: string;
+  }[];
 };
 
 export type CallSecurityEvent = {

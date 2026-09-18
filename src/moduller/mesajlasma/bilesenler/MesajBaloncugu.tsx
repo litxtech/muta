@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   Alert,
   Image,
-  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -14,6 +13,7 @@ import { router } from 'expo-router';
 import type { DirektMesaj } from '../okuma/MesajlariGetir';
 import { HostBasvurusuOlustur } from '../../hostlar/islemler/HostBasvuruIslemleri';
 import { AjansDavetMesajindanKoduCikar } from '../../ajanslar/yardimcilar/AjansDavetMesajindanKoduCikar';
+import { MesajMedyaGoruntuleyici } from './MesajMedyaGoruntuleyici';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -21,6 +21,8 @@ import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenl
 type Props = {
   item: DirektMesaj;
   mine: boolean;
+  /** Karsi tarafin last_read_at — kendi mesajlarinda goruldu */
+  peerLastReadAt?: string | null;
   onLongPress?: () => void;
 };
 
@@ -35,16 +37,35 @@ function saat(iso: string): string {
   }
 }
 
-/** Telegram tarzi baloncuk — metin / resim / video / ajans daveti */
-export function MesajBaloncugu({ item, mine, onLongPress }: Props) {
+function mesajGorulduMu(
+  item: DirektMesaj,
+  peerLastReadAt: string | null | undefined,
+): boolean {
+  if (!peerLastReadAt || !item.created_at) return false;
+  return new Date(peerLastReadAt).getTime() >= new Date(item.created_at).getTime();
+}
+
+/** Telegram tarzi baloncuk — metin / kenarsiz medya / ajans daveti */
+export function MesajBaloncugu({
+  item,
+  mine,
+  peerLastReadAt,
+  onLongPress,
+}: Props) {
   const sending = item._localStatus === 'sending';
   const failed = item._localStatus === 'failed';
   const isImage = item.message_type === 'image' && !!item.media_url;
   const isVideo = item.message_type === 'video' && !!item.media_url;
+  const isMedya = isImage || isVideo;
   const isSystem = item.message_type === 'system';
   const davet = AjansDavetMesajindanKoduCikar(item.body);
   const [davetBusy, setDavetBusy] = useState(false);
   const [davetGonderildi, setDavetGonderildi] = useState(false);
+  const [goruntuleyici, setGoruntuleyici] = useState<{
+    uri: string;
+    tur: 'image' | 'video';
+  } | null>(null);
+  const goruldu = mine && !sending && !failed && mesajGorulduMu(item, peerLastReadAt);
 
   const davetiKabulEt = () => {
     if (!davet || mine || davetBusy || davetGonderildi) return;
@@ -96,23 +117,109 @@ export function MesajBaloncugu({ item, mine, onLongPress }: Props) {
     );
   }
 
+  const durumIkonu = (): {
+    name: keyof typeof Ionicons.glyphMap;
+    color: string;
+  } => {
+    if (failed) return { name: 'alert-circle', color: RenkTokenlari.danger };
+    if (sending) {
+      return {
+        name: 'time-outline',
+        color: isMedya ? 'rgba(255,255,255,0.75)' : 'rgba(18,4,12,0.55)',
+      };
+    }
+    if (goruldu) return { name: 'checkmark-done', color: RenkTokenlari.mint };
+    return {
+      name: 'checkmark',
+      color: isMedya ? 'rgba(255,255,255,0.85)' : 'rgba(18,4,12,0.55)',
+    };
+  };
+
+  const metaSatiri = (medyaUstu: boolean) => {
+    const ikon = durumIkonu();
+    return (
+      <View style={[styles.meta, medyaUstu && styles.metaMedya]}>
+        <Text
+          style={[
+            mine
+              ? medyaUstu
+                ? styles.timeMedya
+                : styles.timeMine
+              : medyaUstu
+                ? styles.timeMedya
+                : styles.time,
+          ]}
+        >
+          {saat(item.created_at)}
+        </Text>
+        {mine ? (
+          <Ionicons name={ikon.name} size={14} color={ikon.color} />
+        ) : null}
+      </View>
+    );
+  };
+
+  if (isMedya) {
+    return (
+      <>
+        <Pressable
+          onLongPress={onLongPress}
+          delayLongPress={300}
+          style={[
+            styles.medyaKart,
+            mine ? styles.medyaMine : styles.medyaTheirs,
+            sending && styles.sending,
+          ]}
+        >
+          <View style={styles.medyaGovde}>
+            {isImage ? (
+              <Pressable
+                onPress={() =>
+                  setGoruntuleyici({ uri: item.media_url!, tur: 'image' })
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Fotoğrafı aç"
+              >
+                <Image
+                  source={{ uri: item.media_url! }}
+                  style={styles.mediaFull}
+                  resizeMode="cover"
+                />
+              </Pressable>
+            ) : (
+              <Pressable
+                style={styles.videoFull}
+                onPress={() =>
+                  setGoruntuleyici({ uri: item.media_url!, tur: 'video' })
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Videoyu aç"
+              >
+                <Ionicons name="play-circle" size={52} color="#fff" />
+                <Text style={styles.videoHint}>Videoyu aç</Text>
+              </Pressable>
+            )}
+            {!item.body ? metaSatiri(true) : null}
+          </View>
+          {item.body ? (
+            <View style={styles.medyaCaptionWrap}>
+              <Text style={styles.medyaCaption}>{item.body}</Text>
+              {metaSatiri(false)}
+            </View>
+          ) : null}
+        </Pressable>
+        <MesajMedyaGoruntuleyici
+          uri={goruntuleyici?.uri ?? null}
+          tur={goruntuleyici?.tur ?? null}
+          onKapat={() => setGoruntuleyici(null)}
+        />
+      </>
+    );
+  }
+
   const icerik = (
     <>
-      {isImage ? (
-        <Pressable onPress={() => void Linking.openURL(item.media_url!)}>
-          <Image source={{ uri: item.media_url! }} style={styles.media} />
-        </Pressable>
-      ) : null}
-      {isVideo ? (
-        <Pressable
-          style={styles.videoBox}
-          onPress={() => void Linking.openURL(item.media_url!)}
-        >
-          <Ionicons name="play-circle" size={48} color="#fff" />
-          <Text style={styles.videoHint}>Videoyu aç</Text>
-        </Pressable>
-      ) : null}
-      {davet && !isImage && !isVideo ? (
+      {davet ? (
         <View style={mine ? styles.davetKartMine : styles.davetKart}>
           <View style={styles.davetBaslikSatir}>
             <Ionicons
@@ -158,24 +265,7 @@ export function MesajBaloncugu({ item, mine, onLongPress }: Props) {
       ) : item.body ? (
         <Text style={mine ? styles.bodyMine : styles.body}>{item.body}</Text>
       ) : null}
-      <View style={styles.meta}>
-        <Text style={mine ? styles.timeMine : styles.time}>
-          {saat(item.created_at)}
-        </Text>
-        {mine ? (
-          <Ionicons
-            name={
-              failed
-                ? 'alert-circle'
-                : sending
-                  ? 'time-outline'
-                  : 'checkmark-done'
-            }
-            size={14}
-            color={failed ? RenkTokenlari.danger : 'rgba(18,4,12,0.55)'}
-          />
-        ) : null}
-      </View>
+      {metaSatiri(false)}
     </>
   );
 
@@ -223,6 +313,48 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
     borderBottomLeftRadius: 4,
+  },
+  /** Kenara kadar medya — çerçeve / gradient yok, şeffaf zemin */
+  medyaKart: {
+    maxWidth: '78%',
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+    gap: 0,
+  },
+  medyaMine: {
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: 4,
+  },
+  medyaTheirs: {
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 4,
+  },
+  medyaGovde: {
+    position: 'relative',
+  },
+  mediaFull: {
+    width: 248,
+    height: 248,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+  },
+  videoFull: {
+    width: 248,
+    height: 160,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  medyaCaptionWrap: {
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 4,
+    gap: 2,
+  },
+  medyaCaption: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.text,
   },
   sending: { opacity: 0.7 },
   body: {
@@ -303,6 +435,16 @@ const styles = StyleSheet.create({
     gap: 4,
     marginTop: 2,
   },
+  metaMedya: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+    marginTop: 0,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
   time: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
@@ -313,20 +455,11 @@ const styles = StyleSheet.create({
     color: 'rgba(18,4,12,0.55)',
     fontSize: 10,
   },
-  media: {
-    width: 220,
-    height: 220,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-  videoBox: {
-    width: 220,
-    height: 140,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
+  timeMedya: {
+    ...TipografiTokenlari.micro,
+    color: 'rgba(255,255,255,0.92)',
+    fontSize: 10,
+    fontWeight: '600',
   },
   videoHint: {
     ...TipografiTokenlari.caption,

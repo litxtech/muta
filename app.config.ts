@@ -39,7 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       CFBundleName: APP_NAME,
       UIBackgroundModes: ['remote-notification', 'audio'],
       NSCameraUsageDescription:
-        'Allow $(PRODUCT_NAME) to access your camera for live video.',
+        'Allow $(PRODUCT_NAME) to access your camera for messages, live video and KYC.',
       NSMicrophoneUsageDescription:
         'Allow $(PRODUCT_NAME) to access your microphone for voice rooms and live.',
       NSBluetoothAlwaysUsageDescription:
@@ -110,7 +110,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         photosPermission:
           'Allow $(PRODUCT_NAME) to access your photos for profile and cover images.',
         cameraPermission:
-          'Allow $(PRODUCT_NAME) to access your camera for live video.',
+          'Allow $(PRODUCT_NAME) to access your camera for messages, live video and KYC.',
       },
     ],
     [
@@ -126,7 +126,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'expo-camera',
       {
         cameraPermission:
-          'Allow $(PRODUCT_NAME) to access your camera for live video, KYC and wallet QR scan.',
+          'Allow $(PRODUCT_NAME) to access your camera for messages, live video, KYC and wallet QR scan.',
         microphonePermission:
           'Allow $(PRODUCT_NAME) to access your microphone for voice rooms and live.',
         recordAudioAndroid: true,

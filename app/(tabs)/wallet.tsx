@@ -1,22 +1,24 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
-  type ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import * as Linking from 'expo-linking';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../../src/components/Screen';
 import { TextField } from '../../src/components/TextField';
 import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
 import {
-  KlavyeAlanaKaydir,
+  KlavyeFocusKaydir,
   KlavyeScrollView,
+  type KlavyeScrollHandle,
 } from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { YUZEN_TAB_ICERIK_BOSLUGU } from '../../src/components/YuzenTabBar';
 import { useAuth } from '../../src/contexts/AuthContext';
@@ -56,6 +58,12 @@ import { CuzdanBankaKarti } from '../../src/moduller/cuzdan/bilesenler/CuzdanBan
 import { CuzdanHesabiGarantile } from '../../src/moduller/cuzdan/takas/CuzdanHesabi';
 import { CUZDAN_MARKA_ADI } from '../../src/moduller/cuzdan/takas/CuzdanTakasTipleri';
 import type { WalletAccount } from '../../src/moduller/cuzdan/takas/CuzdanTakasTipleri';
+import {
+  CuzdanKartiniMesajlaPaylas,
+  CuzdanKartiniWhatsAppPaylas,
+} from '../../src/moduller/cuzdan/islemler/CuzdanKartPaylasimi';
+import { MesajKullaniciAramaPaneli } from '../../src/moduller/mesajlasma/bilesenler/MesajKullaniciAramaPaneli';
+import type { ArananKullanici } from '../../src/moduller/mesajlasma/okuma/KullanicilariAra';
 import {
   CuzdanHareketDetayKarti,
   type CuzdanHareketDetay,
@@ -124,7 +132,7 @@ export default function WalletScreen() {
   const { wallet, refreshWallet, adjustWallet, isGuest, refreshProfile, user, profile } =
     useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<KlavyeScrollHandle>(null);
   const [packages, setPackages] = useState<CoinPackage[]>(COIN_PAKET_FALLBACK);
   const [ledger, setLedger] = useState<LedgerSatiri[]>([]);
   const [hediyeler, setHediyeler] = useState<HediyeGecmisiKaydi[]>([]);
@@ -144,6 +152,9 @@ export default function WalletScreen() {
   );
   const [belgeBusy, setBelgeBusy] = useState(false);
   const [mutaHesap, setMutaHesap] = useState<WalletAccount | null>(null);
+  const [kartPaylasAcik, setKartPaylasAcik] = useState(false);
+  const [kartPaylasBusy, setKartPaylasBusy] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const yenileHepsi = useCallback(async () => {
     await refreshWallet();
@@ -389,6 +400,7 @@ export default function WalletScreen() {
           ref={scrollRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}
+          ekstraPad={56}
         >
           <KlavyeKapatan>
             <View style={styles.heroBolum}>
@@ -408,6 +420,25 @@ export default function WalletScreen() {
                 onQrOku={() =>
                   islemiDene('takas', () => router.push('/cuzdan/takas' as any))
                 }
+                onPaylas={() =>
+                  islemiDene('mesaj_gonder', () => {
+                    const no = mutaHesap?.wallet_number?.replace(/\D/g, '') ?? '';
+                    if (no.length !== 18) {
+                      Alert.alert('Cüzdan', 'Numara henüz hazır değil.');
+                      return;
+                    }
+                    setKartPaylasAcik(true);
+                  })
+                }
+                onWhatsAppPaylas={() =>
+                  islemiDene('mesaj_gonder', () => {
+                    void (async () => {
+                      const no = mutaHesap?.wallet_number ?? '';
+                      const r = await CuzdanKartiniWhatsAppPaylas(no);
+                      if (!r.ok) Alert.alert('WhatsApp', r.hata);
+                    })();
+                  })
+                }
               />
 
               <View style={styles.hizliAksiyonlar}>
@@ -425,7 +456,7 @@ export default function WalletScreen() {
                     size={18}
                     color={RenkTokenlari.accent}
                   />
-                  <Text style={styles.hizliBtnYazi}>Takas et</Text>
+                  <Text style={styles.hizliBtnYazi}>Takas / anlaşma</Text>
                 </Pressable>
                 <Pressable
                   style={({ pressed }) => [
@@ -736,7 +767,9 @@ export default function WalletScreen() {
                   onChangeText={setWithdrawAmount}
                   keyboardType="number-pad"
                   placeholder="Miktar (elmas)"
-                  onFocus={() => KlavyeAlanaKaydir(scrollRef.current)}
+                  onFocus={(e) =>
+                    KlavyeFocusKaydir(scrollRef.current, e, { delayMs: 60 })
+                  }
                 />
                 <Pressable
                   onPress={onWithdraw}
@@ -793,6 +826,76 @@ export default function WalletScreen() {
         icerik={hesapBelgesi}
         excelGirdi={excelGirdi}
       />
+
+      <Modal
+        visible={kartPaylasAcik}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => !kartPaylasBusy && setKartPaylasAcik(false)}
+      >
+        <View
+          style={[
+            styles.paylasModal,
+            { paddingTop: Math.max(insets.top, 12) },
+          ]}
+        >
+          <View style={styles.paylasModalUst}>
+            <Text style={styles.paylasModalBaslik}>Cüzdan kartını paylaş</Text>
+            <Pressable
+              onPress={() => !kartPaylasBusy && setKartPaylasAcik(false)}
+              hitSlop={8}
+              disabled={kartPaylasBusy}
+            >
+              <Ionicons name="close" size={24} color={RenkTokenlari.text} />
+            </Pressable>
+          </View>
+          <Text style={styles.paylasModalAlt}>
+            Kullanıcı seç — cüzdan no ve QR uygulama içi mesajla gider.
+          </Text>
+          <MesajKullaniciAramaPaneli
+            haricUserId={user?.id}
+            seciliyor={kartPaylasBusy}
+            onSec={(k: ArananKullanici) => {
+              const no = mutaHesap?.wallet_number ?? '';
+              const ad =
+                k.display_name?.trim() || k.username || 'kullanıcı';
+              Alert.alert(
+                'Kartı paylaş',
+                `${ad} kullanıcısına cüzdan kartı mesajı gönderilsin mi?`,
+                [
+                  { text: 'Vazgeç', style: 'cancel' },
+                  {
+                    text: 'Gönder',
+                    onPress: () => {
+                      void (async () => {
+                        setKartPaylasBusy(true);
+                        const r = await CuzdanKartiniMesajlaPaylas({
+                          otherUserId: k.id,
+                          walletNumber: no,
+                        });
+                        setKartPaylasBusy(false);
+                        if (!r.ok) {
+                          Alert.alert('Paylaşım', r.hata);
+                          return;
+                        }
+                        setKartPaylasAcik(false);
+                        Alert.alert('Gönderildi', 'Cüzdan kartı mesaj olarak iletildi.', [
+                          {
+                            text: 'Sohbete git',
+                            onPress: () =>
+                              router.push(`/mesaj/${r.threadId}` as any),
+                          },
+                          { text: 'Tamam' },
+                        ]);
+                      })();
+                    },
+                  },
+                ],
+              );
+            }}
+          />
+        </View>
+      </Modal>
 
       <HesabiTamamlaKarti
         visible={upgradeAcik}
@@ -1164,5 +1267,26 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.primarySoft,
     fontWeight: '700',
     flexShrink: 0,
+  },
+  paylasModal: {
+    flex: 1,
+    backgroundColor: RenkTokenlari.bg,
+  },
+  paylasModalUst: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: BoslukTokenlari.xl,
+    paddingBottom: BoslukTokenlari.sm,
+  },
+  paylasModalBaslik: {
+    ...TipografiTokenlari.h2,
+    color: RenkTokenlari.text,
+  },
+  paylasModalAlt: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    paddingHorizontal: BoslukTokenlari.xl,
+    marginBottom: BoslukTokenlari.sm,
   },
 });

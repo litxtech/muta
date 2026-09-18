@@ -1,31 +1,43 @@
 import { supabase } from '../../../lib/supabase';
 import { OrtamDegiskenleri } from '../../../yapilandirma/OrtamDegiskenleri';
-import { GaleriAc } from '../../../ortak/medya/ImagePickerHazirMi';
+import { GaleriAc, KameraAc } from '../../../ortak/medya/ImagePickerHazirMi';
 import {
   DepoyaMedyaYukle,
   MedyaUzantisiCoz,
 } from '../../../ortak/medya/DepoyaMedyaYukle';
 
 export type DmMedyaTuru = 'image' | 'video';
+export type DmMedyaKaynak = 'galeri' | 'kamera';
 
 function publicUrl(path: string): string {
   const base = OrtamDegiskenleri.supabaseUrl?.replace(/\/$/, '');
   return `${base}/storage/v1/object/public/dm-media/${path}`;
 }
 
-/** Galeri: foto veya video → dm-media bucket */
+/** Galeri veya kamera: foto / video → dm-media bucket */
 export async function DmMedyasiSecVeYukle(
   tur: DmMedyaTuru,
-  opts?: { onYuklemeBasladi?: () => void },
+  opts?: {
+    kaynak?: DmMedyaKaynak;
+    onYuklemeBasladi?: () => void;
+  },
 ): Promise<
   | { ok: true; url: string; messageType: DmMedyaTuru }
   | { ok: false; hata: string; iptal?: boolean }
 > {
   try {
-    const secim = await GaleriAc({
-      mediaTypes: tur === 'video' ? ['videos'] : ['images'],
+    const kaynak = opts?.kaynak ?? 'galeri';
+    const pickerOpts = {
+      mediaTypes: (tur === 'video' ? ['videos'] : ['images']) as (
+        | 'images'
+        | 'videos'
+      )[],
       videoMaxDuration: 120,
-    });
+    };
+    const secim =
+      kaynak === 'kamera'
+        ? await KameraAc(pickerOpts)
+        : await GaleriAc(pickerOpts);
     if (!secim.ok) return secim;
 
     opts?.onYuklemeBasladi?.();
