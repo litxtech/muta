@@ -15,6 +15,9 @@ type Props = {
   coins: number;
   diamonds: number;
   hesapKodu?: string | null;
+  /** 18 haneli MUTA PAY cüzdan no */
+  cuzdanNo?: string | null;
+  cuzdanMarka?: string | null;
   sahipAdi?: string | null;
   yuklenen?: number;
   harcanan?: number;
@@ -25,16 +28,21 @@ function formatBakiye(n: number): string {
 }
 
 function maskeHesap(kod?: string | null): string {
-  const temiz = (kod ?? 'TAMUSO').replace(/\s/g, '').toUpperCase().slice(-8);
-  const pad = temiz.padStart(8, '0');
+  const temiz = (kod ?? '').replace(/\D/g, '');
+  if (temiz.length >= 18) {
+    return temiz.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+  }
+  const pad = temiz.padStart(8, '0').slice(-8);
   return `${pad.slice(0, 4)}  ${pad.slice(4)}`;
 }
 
-/** Premium banka kartı — bakiye yüzü */
+/** Premium banka kartı — MUTA PAY cüzdan yüzü */
 export function CuzdanBankaKarti({
   coins,
   diamonds,
   hesapKodu,
+  cuzdanNo,
+  cuzdanMarka,
   sahipAdi,
   yuklenen = 0,
   harcanan = 0,
@@ -52,8 +60,8 @@ export function CuzdanBankaKarti({
 
         <View style={styles.ust}>
           <View style={styles.markaBlok}>
-            <Text style={styles.marka}>TAMUSO</Text>
-            <Text style={styles.kartTip}>Premium cüzdan</Text>
+            <Text style={styles.marka}>{cuzdanMarka || 'MUTA PAY'}</Text>
+            <Text style={styles.kartTip}>Dijital cüzdan</Text>
           </View>
           <View style={styles.chipWrap}>
             <LinearGradient
@@ -74,7 +82,9 @@ export function CuzdanBankaKarti({
           </View>
         </View>
 
-        <Text style={styles.hesapNo}>{maskeHesap(hesapKodu)}</Text>
+        <Text style={styles.hesapNo}>
+          {maskeHesap(cuzdanNo || hesapKodu)}
+        </Text>
 
         <View style={styles.bakiyeSatir}>
           <View style={styles.bakiyeKart}>

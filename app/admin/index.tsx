@@ -65,6 +65,22 @@ const MODULLER: Modul[] = [
     bolum: 'İnsanlar',
   },
   {
+    icon: 'id-card-outline',
+    label: 'Kimlik onayı',
+    alt: 'KYC · belge · canlılık · onay/red',
+    href: '/admin/kyc',
+    tint: RenkTokenlari.mint,
+    bolum: 'İnsanlar',
+  },
+  {
+    icon: 'swap-horizontal-outline',
+    label: 'Coin takas',
+    alt: 'P2P · ajans · platform onayı',
+    href: '/admin/takas',
+    tint: RenkTokenlari.accent,
+    bolum: 'İnsanlar',
+  },
+  {
     icon: 'add-circle-outline',
     label: 'Coin yükle',
     alt: 'İsim yaz · avatar · yükle',

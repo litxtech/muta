@@ -1,12 +1,12 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
+  type ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
@@ -14,6 +14,10 @@ import * as Linking from 'expo-linking';
 import { Screen } from '../../src/components/Screen';
 import { TextField } from '../../src/components/TextField';
 import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
+import {
+  KlavyeAlanaKaydir,
+  KlavyeScrollView,
+} from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { YUZEN_TAB_ICERIK_BOSLUGU } from '../../src/components/YuzenTabBar';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { CoinPaketleriniGetir } from '../../src/moduller/cuzdan/okuma/CoinPaketleriniGetir';
@@ -49,6 +53,9 @@ import {
   type KullaniciProfilIstatistikleri,
 } from '../../src/moduller/kullanici-profili/istatistik/ProfilIstatistikleriniGetir';
 import { CuzdanBankaKarti } from '../../src/moduller/cuzdan/bilesenler/CuzdanBankaKarti';
+import { CuzdanHesabiGarantile } from '../../src/moduller/cuzdan/takas/CuzdanHesabi';
+import { CUZDAN_MARKA_ADI } from '../../src/moduller/cuzdan/takas/CuzdanTakasTipleri';
+import type { WalletAccount } from '../../src/moduller/cuzdan/takas/CuzdanTakasTipleri';
 import {
   CuzdanHareketDetayKarti,
   type CuzdanHareketDetay,
@@ -117,6 +124,7 @@ export default function WalletScreen() {
   const { wallet, refreshWallet, adjustWallet, isGuest, refreshProfile, user, profile } =
     useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
+  const scrollRef = useRef<ScrollView>(null);
   const [packages, setPackages] = useState<CoinPackage[]>(COIN_PAKET_FALLBACK);
   const [ledger, setLedger] = useState<LedgerSatiri[]>([]);
   const [hediyeler, setHediyeler] = useState<HediyeGecmisiKaydi[]>([]);
@@ -135,6 +143,7 @@ export default function WalletScreen() {
     null,
   );
   const [belgeBusy, setBelgeBusy] = useState(false);
+  const [mutaHesap, setMutaHesap] = useState<WalletAccount | null>(null);
 
   const yenileHepsi = useCallback(async () => {
     await refreshWallet();
@@ -166,6 +175,9 @@ export default function WalletScreen() {
       OyunOyuncuIstatistikGetir(user.id)
         .then(setOyunStats)
         .catch(() => setOyunStats(null));
+      void CuzdanHesabiGarantile().then((r) => {
+        if (r.ok) setMutaHesap(r.hesap);
+      });
     }
   }, [refreshWallet, user?.id]);
 
@@ -373,10 +385,10 @@ export default function WalletScreen() {
           <View style={styles.geri} />
         </View>
 
-        <ScrollView
+        <KlavyeScrollView
+          ref={scrollRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
         >
           <KlavyeKapatan>
             <View style={styles.heroBolum}>
@@ -384,10 +396,61 @@ export default function WalletScreen() {
                 coins={wallet?.coins ?? 0}
                 diamonds={wallet?.diamonds ?? 0}
                 hesapKodu={profile?.public_user_id ?? user?.id}
-                sahipAdi={profile?.display_name ?? profile?.username}
+                cuzdanNo={mutaHesap?.wallet_number}
+                cuzdanMarka={mutaHesap?.wallet_brand_name ?? CUZDAN_MARKA_ADI}
+                sahipAdi={
+                  mutaHesap?.legal_first_name
+                    ? `${mutaHesap.legal_first_name} ${mutaHesap.legal_last_name ?? ''}`.trim()
+                    : (profile?.display_name ?? profile?.username)
+                }
                 yuklenen={stats?.total_topup_coin ?? 0}
                 harcanan={stats?.total_spent_coin ?? 0}
               />
+
+              <View style={styles.hizliAksiyonlar}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.hizliBtn,
+                    pressed && { opacity: 0.88 },
+                  ]}
+                  onPress={() =>
+                    islemiDene('takas', () => router.push('/cuzdan/takas' as any))
+                  }
+                >
+                  <Ionicons
+                    name="swap-horizontal"
+                    size={18}
+                    color={RenkTokenlari.accent}
+                  />
+                  <Text style={styles.hizliBtnYazi}>Takas et</Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.hizliBtn,
+                    pressed && { opacity: 0.88 },
+                  ]}
+                  onPress={() =>
+                    islemiDene('kyc', () => router.push('/kyc' as any))
+                  }
+                >
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={18}
+                    color={
+                      mutaHesap?.kyc_status === 'approved'
+                        ? RenkTokenlari.mint
+                        : RenkTokenlari.primarySoft
+                    }
+                  />
+                  <Text style={styles.hizliBtnYazi}>
+                    {mutaHesap?.kyc_status === 'approved'
+                      ? 'Kimlik onaylı'
+                      : mutaHesap?.kyc_status === 'pending'
+                        ? 'KYC bekliyor'
+                        : 'Kimlik onayı'}
+                  </Text>
+                </Pressable>
+              </View>
 
               {purchaseLocked ? (
                 <Text style={styles.lockHint}>Satın alma geçici olarak kapalı</Text>
@@ -666,6 +729,7 @@ export default function WalletScreen() {
                   onChangeText={setWithdrawAmount}
                   keyboardType="number-pad"
                   placeholder="Miktar (elmas)"
+                  onFocus={() => KlavyeAlanaKaydir(scrollRef.current)}
                 />
                 <Pressable
                   onPress={onWithdraw}
@@ -711,7 +775,7 @@ export default function WalletScreen() {
               </View>
             ) : null}
           </KlavyeKapatan>
-        </ScrollView>
+        </KlavyeScrollView>
       </ModulHataSiniri>
 
       <CuzdanHareketDetayKarti detay={detay} onKapat={() => setDetay(null)} />
@@ -795,6 +859,28 @@ const styles = StyleSheet.create({
   },
   heroBolum: {
     gap: BoslukTokenlari.md,
+  },
+  hizliAksiyonlar: {
+    flexDirection: 'row',
+    gap: BoslukTokenlari.sm,
+    paddingHorizontal: BoslukTokenlari.xl,
+  },
+  hizliBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: YaricapTokenlari.md,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+  },
+  hizliBtnYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
   },
   ozetBolum: {
     gap: BoslukTokenlari.sm,

@@ -172,6 +172,14 @@ function KokIcerik() {
             options={{ animation: 'slide_from_right' }}
           />
           <Stack.Screen name="admin/finans" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen
+            name="admin/kyc/index"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="admin/takas/index"
+            options={{ animation: 'slide_from_right' }}
+          />
           <Stack.Screen name="admin/ciro" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="admin/rehber" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
@@ -220,6 +228,8 @@ function KokIcerik() {
           <Stack.Screen name="ayarlar/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="profil-ayarlar/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="profil-duzenle/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="kyc/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="cuzdan/takas" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
             name="room/[id]"
             options={{
