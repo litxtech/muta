@@ -1,7 +1,6 @@
 import React, { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 
 type Props = {
@@ -13,28 +12,9 @@ type Props = {
   yardimciMu?: boolean;
 };
 
-const KOLTUK_PALET: ReadonlyArray<readonly [string, string, string]> = [
-  ['#FF6BA8', '#E84091', '#9B1F5C'], // fuşya
-  ['#7EC8FF', '#3B8FE8', '#1A4F8C'], // mavi
-  ['#6EF0C4', '#2EC4A0', '#0F6B55'], // mint
-  ['#C9A0FF', '#8B5CF6', '#4C2A8A'], // mor
-  ['#FFB86B', '#F08A2E', '#8C4A10'], // turuncu
-  ['#FF7A9A', '#E84B6A', '#8C2038'], // kırmızı
-  ['#7EE0FF', '#2AB8D9', '#0E5F73'], // camgöbeği
-  ['#B8F06B', '#7BC42E', '#3F6B12'], // yeşil
-];
-
-function koltukRenk(
-  numara: number | null | undefined,
-  yardimciMu: boolean,
-): readonly [string, string, string] {
-  if (yardimciMu) return ['#9ECFFF', '#4A8FD9', '#1E4A7A'] as const;
-  const i = Math.max(0, (numara ?? 1) - 1) % KOLTUK_PALET.length;
-  return KOLTUK_PALET[i];
-}
-
 /**
- * Dikey sandalye / taht silueti — yatay “yatak” kaide değil.
+ * Sahne podiumu — sandalye silueti değil; elips kaide + metal kenar.
+ * Host: geniş bronz/obsidiyen taht. Koltuk: kompakt mat metal disk.
  */
 function KoltukTahtiIc({
   numara,
@@ -44,102 +24,99 @@ function KoltukTahtiIc({
   yardimciMu = false,
 }: Props) {
   if (tahtMi || hostMu) {
-    return <PadisahTahti doluMu={doluMu} />;
+    return <HostPodiyumu doluMu={doluMu} />;
   }
 
-  const renk = koltukRenk(numara, yardimciMu);
-  const etiket = numara != null && numara > 0 ? String(numara) : '·';
+  const etiket = numara != null && numara > 0 ? String(numara) : '';
+  const kenar = yardimciMu
+    ? (['#B8D4F0', '#6A9CC8', '#3A6088'] as const)
+    : (['#C8C4D0', '#7A7688', '#3A3844'] as const);
+  const taban = yardimciMu
+    ? (['#2A3848', '#1A2430', '#0E141C'] as const)
+    : (['#2C2A34', '#1C1A22', '#100E14'] as const);
 
   return (
-    <View style={styles.koltukWrap} pointerEvents="none">
-      {/* Sırt — dikey sandalye */}
+    <View style={[styles.koltukWrap, !doluMu && styles.soluk]} pointerEvents="none">
+      {/* Üst yüz — fırçalı metal halka */}
       <LinearGradient
-        colors={[`${renk[0]}CC`, `${renk[1]}99`, `${renk[2]}66`]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={[styles.koltukSirt, !doluMu && styles.soluk]}
+        colors={[...kenar]}
+        start={{ x: 0.15, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={styles.koltukHalka}
       >
-        <View style={[styles.sirtCizgi, { backgroundColor: renk[0] }]} />
+        <LinearGradient
+          colors={[...taban]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.koltukYuzey}
+        >
+          <LinearGradient
+            colors={['rgba(255,255,255,0.14)', 'transparent']}
+            style={styles.koltukParlama}
+          />
+          {etiket ? (
+            <Text style={[styles.koltukNo, yardimciMu && styles.koltukNoYardimci]}>
+              {etiket}
+            </Text>
+          ) : null}
+        </LinearGradient>
       </LinearGradient>
-
-      {/* Oturak */}
-      <LinearGradient
-        colors={[renk[0], renk[1], renk[2]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.koltukOturak, !doluMu && styles.soluk]}
-      >
-        <Text style={styles.koltukNo}>{etiket}</Text>
-      </LinearGradient>
-
-      {/* Kollar */}
-      <View style={styles.koltukKollar}>
-        <View style={[styles.kol, { backgroundColor: renk[1] }]} />
-        <View style={[styles.kol, { backgroundColor: renk[1] }]} />
-      </View>
-
-      {/* Ayaklar */}
-      <View style={styles.ayaklar}>
-        <View style={[styles.ayak, { backgroundColor: renk[2] }]} />
-        <View style={[styles.ayak, { backgroundColor: renk[2] }]} />
-      </View>
+      {/* Alt gölge / kalınlık */}
+      <View style={[styles.koltukKalinlik, yardimciMu && styles.koltukKalinlikYardimci]} />
+      <View style={styles.koltukGolge} />
     </View>
   );
 }
 
-function PadisahTahti({ doluMu }: { doluMu: boolean }) {
+function HostPodiyumu({ doluMu }: { doluMu: boolean }) {
   return (
-    <View style={[styles.padisahWrap, !doluMu && styles.soluk]} pointerEvents="none">
-      {/* Taç */}
-      <View style={styles.tacSatir}>
-        <View style={styles.tacUc} />
-        <Ionicons name="diamond" size={12} color="#FFE9A8" style={styles.tacIcon} />
-        <View style={styles.tacUc} />
-      </View>
-
-      {/* Yüksek sırt — padişah tahtı */}
+    <View style={[styles.tahtWrap, !doluMu && styles.soluk]} pointerEvents="none">
+      {/* Üst basamak — ince altın halka */}
       <LinearGradient
-        colors={['#FFE08A', '#F0B429', '#C9891A', '#7A4A0E']}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={styles.padisahSirt}
-      >
-        <View style={styles.padisahSirtDesen} />
-        <View style={styles.padisahSirtDesenAlt} />
-        <Ionicons name="sparkles" size={14} color="rgba(255,240,200,0.85)" />
-      </LinearGradient>
-
-      {/* Kolluklar + oturak */}
-      <View style={styles.padisahGovde}>
-        <LinearGradient
-          colors={['#8B1E3F', '#C41E5A', '#6B102E']}
-          style={styles.padisahKol}
-        />
-        <LinearGradient
-          colors={['#FFD76A', '#E8A820', '#A86B10']}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.padisahOturak}
-        >
-          <Text style={styles.padisahEtiket}>TAHT</Text>
-        </LinearGradient>
-        <LinearGradient
-          colors={['#8B1E3F', '#C41E5A', '#6B102E']}
-          style={styles.padisahKol}
-        />
-      </View>
-
-      {/* Ayak basamağı */}
-      <LinearGradient
-        colors={['#D4A017', '#8B6914', '#5C3D0A']}
+        colors={['#F2E2B0', '#C9A84A', '#8A6A28']}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
-        style={styles.padisahBasamak}
+        style={styles.tahtUstHalka}
+      >
+        <LinearGradient
+          colors={['#3A2A18', '#1E160C', '#0C0A06']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.tahtUstYuzey}
+        >
+          <LinearGradient
+            colors={['rgba(242,226,176,0.22)', 'transparent']}
+            style={styles.tahtParlama}
+          />
+        </LinearGradient>
+      </LinearGradient>
+
+      {/* Ana kaide */}
+      <LinearGradient
+        colors={['#E8D090', '#B8923A', '#6E5420']}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={styles.tahtAnaHalka}
+      >
+        <LinearGradient
+          colors={['#2A1E12', '#14100A', '#080604']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.tahtAnaYuzey}
+        >
+          <View style={styles.tahtCizgi} />
+          <Text style={styles.tahtEtiket}>HOST</Text>
+        </LinearGradient>
+      </LinearGradient>
+
+      {/* Alt basamak */}
+      <LinearGradient
+        colors={['#A88838', '#6A5420', '#3A2E10']}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={styles.tahtAltBasamak}
       />
-      <View style={styles.padisahAyaklar}>
-        <View style={styles.padisahAyak} />
-        <View style={styles.padisahAyak} />
-      </View>
+      <View style={styles.tahtGolge} />
     </View>
   );
 }
@@ -147,183 +124,134 @@ function PadisahTahti({ doluMu }: { doluMu: boolean }) {
 export const KoltukTahti = memo(KoltukTahtiIc);
 
 const styles = StyleSheet.create({
-  soluk: { opacity: 0.62 },
+  soluk: { opacity: 0.5 },
 
   koltukWrap: {
-    width: 48,
+    width: 52,
+    height: 22,
     alignItems: 'center',
-    marginTop: -2,
+    marginTop: 0,
     zIndex: 2,
   },
-  koltukSirt: {
-    width: 34,
-    height: 18,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    borderBottomWidth: 0,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 3,
-  },
-  sirtCizgi: {
-    width: 14,
-    height: 2,
-    borderRadius: 1,
-    opacity: 0.85,
-  },
-  koltukOturak: {
+  koltukHalka: {
     width: 46,
-    height: 18,
-    borderRadius: 8,
-    marginTop: -2,
+    height: 14,
+    borderRadius: 23,
+    padding: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.4)',
   },
-  koltukNo: {
-    ...TipografiTokenlari.micro,
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '900',
-    textShadowColor: 'rgba(0,0,0,0.45)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  koltukKollar: {
-    position: 'absolute',
-    top: 14,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 0,
-  },
-  kol: {
-    width: 6,
-    height: 16,
-    borderRadius: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.25)',
-  },
-  ayaklar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: 36,
-    marginTop: 1,
-  },
-  ayak: {
-    width: 5,
-    height: 6,
-    borderRadius: 1.5,
-  },
-
-  padisahWrap: {
-    width: 108,
-    alignItems: 'center',
-    marginTop: -6,
-    zIndex: 3,
-  },
-  tacSatir: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    gap: 4,
-    marginBottom: -2,
-    zIndex: 4,
-  },
-  tacUc: {
-    width: 8,
-    height: 10,
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
-    backgroundColor: '#F0B429',
-    borderWidth: 1,
-    borderColor: '#FFE9A8',
-  },
-  tacIcon: {
-    marginBottom: 2,
-  },
-  padisahSirt: {
-    width: 72,
-    height: 36,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,230,150,0.75)',
-    borderBottomWidth: 0,
+  koltukYuzey: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  padisahSirtDesen: {
-    position: 'absolute',
-    top: 6,
+  koltukParlama: {
+    ...StyleSheet.absoluteFillObject,
+    borderTopLeftRadius: 21,
+    borderTopRightRadius: 21,
+  },
+  koltukNo: {
+    ...TipografiTokenlari.micro,
+    color: 'rgba(210,205,220,0.9)',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  koltukNoYardimci: {
+    color: 'rgba(180,210,240,0.95)',
+  },
+  koltukKalinlik: {
     width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,240,200,0.35)',
+    height: 3,
+    marginTop: -1,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
+    backgroundColor: '#141218',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 0,
+    borderColor: 'rgba(120,116,130,0.35)',
   },
-  padisahSirtDesenAlt: {
-    position: 'absolute',
-    bottom: -8,
-    width: 56,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(139,30,63,0.35)',
+  koltukKalinlikYardimci: {
+    backgroundColor: '#121820',
+    borderColor: 'rgba(100,140,180,0.4)',
   },
-  padisahGovde: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+  koltukGolge: {
+    width: 34,
+    height: 3,
+    marginTop: 1,
+    borderRadius: 2,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+
+  tahtWrap: {
+    width: 118,
+    height: 42,
+    alignItems: 'center',
+    marginTop: -2,
+    zIndex: 3,
+  },
+  tahtUstHalka: {
+    width: 72,
+    height: 12,
+    borderRadius: 36,
+    padding: 1.5,
+    zIndex: 3,
+  },
+  tahtUstYuzey: {
+    flex: 1,
+    borderRadius: 34,
+    overflow: 'hidden',
+  },
+  tahtParlama: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  tahtAnaHalka: {
+    width: 100,
+    height: 18,
+    borderRadius: 50,
+    padding: 2,
     marginTop: -4,
-    gap: 2,
+    zIndex: 2,
   },
-  padisahKol: {
-    width: 14,
-    height: 28,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,200,220,0.35)',
-  },
-  padisahOturak: {
-    width: 64,
-    height: 24,
-    borderRadius: 8,
+  tahtAnaYuzey: {
+    flex: 1,
+    borderRadius: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,230,150,0.8)',
+    overflow: 'hidden',
   },
-  padisahEtiket: {
+  tahtCizgi: {
+    position: 'absolute',
+    top: 3,
+    width: 48,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(232,208,144,0.35)',
+  },
+  tahtEtiket: {
     ...TipografiTokenlari.micro,
-    color: '#2A1808',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1.4,
+    color: '#E8D090',
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 2,
   },
-  padisahBasamak: {
+  tahtAltBasamak: {
+    width: 108,
+    height: 6,
+    borderRadius: 3,
+    marginTop: -2,
+    zIndex: 1,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(232,208,144,0.3)',
+  },
+  tahtGolge: {
     width: 88,
-    height: 8,
-    borderRadius: 4,
+    height: 4,
     marginTop: 2,
-    borderWidth: 1,
-    borderColor: 'rgba(255,220,120,0.45)',
-  },
-  padisahAyaklar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: 70,
-    marginTop: 2,
-  },
-  padisahAyak: {
-    width: 8,
-    height: 8,
     borderRadius: 2,
-    backgroundColor: '#8B6914',
-    borderWidth: 1,
-    borderColor: '#F0B429',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
 });

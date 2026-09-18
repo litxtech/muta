@@ -38,47 +38,59 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
       style={[styles.wrap, tahtMi && styles.wrapTaht]}
     >
       <View style={styles.avatarKutu}>
-        {dolu ? <SeviyeTaci level={seviye} size={tahtMi ? 'md' : 'sm'} /> : null}
-        <KonusmaciAktiflikEfekti
-          userId={seat.user_id}
-          size={efektBoy}
-          hostMu={hostMu || tahtMi}
-        >
-          {dolu && avatarUrl ? (
-            <Image
-              source={{ uri: avatarUrl }}
-              style={[
-                styles.avatarImg,
-                {
-                  width: avatarBoy,
-                  height: avatarBoy,
-                  borderRadius: avatarBoy / 2,
-                },
-                (tahtMi || hostMu) && styles.avatarHost,
-              ]}
-            />
-          ) : dolu ? (
-            <View
-              style={[
-                styles.avatar,
-                styles.filled,
-                {
-                  width: avatarBoy,
-                  height: avatarBoy,
-                  borderRadius: avatarBoy / 2,
-                },
-                (tahtMi || hostMu) && styles.avatarHost,
-                {
-                  backgroundColor:
-                    tahtMi || hostMu
-                      ? RenkTokenlari.accent
-                      : RenkTokenlari.primary,
-                },
-              ]}
+        {dolu ? (
+          <KonusmaciAktiflikEfekti
+            userId={seat.user_id}
+            size={avatarBoy}
+            hostMu={hostMu || tahtMi}
+          >
+            <SeviyeTaci
+              level={seviye}
+              size={tahtMi ? 'md' : 'sm'}
+              avatarBoy={avatarBoy}
             >
-              <Text style={[styles.harf, tahtMi && styles.harfTaht]}>{harf}</Text>
-            </View>
-          ) : (
+              {avatarUrl ? (
+                <Image
+                  source={{ uri: avatarUrl }}
+                  resizeMode="cover"
+                  style={{
+                    width: avatarBoy,
+                    height: avatarBoy,
+                    borderRadius: avatarBoy / 2,
+                  }}
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.avatar,
+                    styles.filled,
+                    {
+                      width: avatarBoy,
+                      height: avatarBoy,
+                      borderRadius: avatarBoy / 2,
+                    },
+                    (tahtMi || hostMu) && styles.avatarHost,
+                    {
+                      backgroundColor:
+                        tahtMi || hostMu
+                          ? RenkTokenlari.accent
+                          : RenkTokenlari.primary,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.harf, tahtMi && styles.harfTaht]}>
+                    {harf}
+                  </Text>
+                </View>
+              )}
+            </SeviyeTaci>
+          </KonusmaciAktiflikEfekti>
+        ) : (
+          <KonusmaciAktiflikEfekti
+            userId={seat.user_id}
+            size={efektBoy}
+            hostMu={hostMu || tahtMi}
+          >
             <View
               style={[
                 styles.avatar,
@@ -96,8 +108,8 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
                 color={tahtMi ? RenkTokenlari.accent : RenkTokenlari.textMuted}
               />
             </View>
-          )}
-        </KonusmaciAktiflikEfekti>
+          </KonusmaciAktiflikEfekti>
+        )}
         {dolu && muted ? (
           <View style={styles.micBadge} pointerEvents="none">
             <Ionicons name="mic-off" size={9} color="#fff" />

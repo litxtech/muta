@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Pressable,
@@ -23,12 +22,6 @@ import {
   type KullaniciProfilIstatistikleri,
 } from '../../src/moduller/kullanici-profili/istatistik/ProfilIstatistikleriniGetir';
 import { ProfilMedyaBuyutucu } from '../../src/moduller/kullanici-profili/bilesenler/ProfilMedyaBuyutucu';
-import { ProfilMedyaSecenekleri } from '../../src/moduller/kullanici-profili/bilesenler/ProfilMedyaSecenekleri';
-import { ProfilMedyasiSil } from '../../src/moduller/kullanici-profili/islemler/ProfilMedyasiSil';
-import {
-  ProfilMedyasiYukle,
-  type ProfilMedyaTuru,
-} from '../../src/moduller/kullanici-profili/islemler/ProfilMedyasiYukle';
 import {
   OyunOyuncuIstatistikGetir,
   type OyunOyuncuIstatistik,
@@ -41,6 +34,10 @@ import { useAjansYonetim } from '../../src/moduller/ajanslar/kancalar/useAjansYo
 import { useAjansUyeligi } from '../../src/moduller/ajanslar/kancalar/useAjansUyeligi';
 import { AjansProfilRozeti } from '../../src/moduller/ajanslar/bilesenler/AjansProfilRozeti';
 import { ProfilAvatarCerceve } from '../../src/moduller/kullanici-profili/bilesenler/ProfilAvatarCerceve';
+import {
+  GizlilikAyarlariniGetir,
+  type GizlilikAyarlari,
+} from '../../src/moduller/ayarlar/islemler/GizlilikAyarlariniYonet';
 import { DurumProfilIzgarasi } from '../../src/moduller/durum/bilesenler/DurumProfilIzgarasi';
 import {
   DurumKullanicisiniGetir,
@@ -59,6 +56,22 @@ import { TakipSayaciniFormatla } from '../../src/moduller/takip/TakipSayacFormat
 const COVER_H = 152;
 const AVATAR = 92;
 
+const EMPTY_PRIVACY: GizlilikAyarlari = {
+  hide_recharge_rank: false,
+  hide_gifter_rank: false,
+  hide_current_room: false,
+  hide_last_seen: false,
+  hide_agency: false,
+  hide_gift_collection: false,
+  hide_top_supporter: false,
+  hide_level: false,
+  hide_topup_coin: false,
+  hide_prestige: false,
+  hide_account_value: false,
+  hide_crown: false,
+  is_private: false,
+};
+
 /** Profil — tek ayarlar, tek düzenle; butonlar üst üste binmez */
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -68,12 +81,12 @@ export default function ProfileScreen() {
   const [upgradeAcik, setUpgradeAcik] = useState(false);
   const coverH = COVER_H + insets.top;
   const [stats, setStats] = useState<KullaniciProfilIstatistikleri | null>(null);
+  const [privacy, setPrivacy] = useState<GizlilikAyarlari>(EMPTY_PRIVACY);
   const [oyunStats, setOyunStats] = useState<OyunOyuncuIstatistik | null>(null);
-  const [medyaBusy, setMedyaBusy] = useState<ProfilMedyaTuru | null>(null);
-  const [buyut, setBuyut] = useState<{ uri: string; tur: ProfilMedyaTuru } | null>(
-    null,
-  );
-  const [medyaMenuTur, setMedyaMenuTur] = useState<ProfilMedyaTuru | null>(null);
+  const [buyut, setBuyut] = useState<{
+    uri: string;
+    tur: 'avatar' | 'cover';
+  } | null>(null);
   const [durumlar, setDurumlar] = useState<DurumOggesi[]>([]);
   const [durumYukleniyor, setDurumYukleniyor] = useState(true);
   const oyunPlatformAcik =
@@ -87,6 +100,9 @@ export default function ProfileScreen() {
     useCallback(() => {
       void refreshProfile();
       if (!user?.id) return;
+      if (!isGuest) {
+        void GizlilikAyarlariniGetir().then(setPrivacy);
+      }
       ProfilIstatistikleriniGetir(user.id)
         .then(setStats)
         .catch(() => setStats(null));
@@ -102,73 +118,13 @@ export default function ProfileScreen() {
         .then(setDurumlar)
         .catch(() => setDurumlar([]))
         .finally(() => setDurumYukleniyor(false));
-    }, [user?.id, refreshProfile, oyunProfiliAcik]),
+    }, [user?.id, refreshProfile, oyunProfiliAcik, isGuest]),
   );
 
-  const medyaUrl = (tur: ProfilMedyaTuru) =>
-    tur === 'cover' ? profile?.cover_url ?? null : profile?.avatar_url ?? null;
-
-  const medyaAc = (tur: ProfilMedyaTuru) => {
-    if (isGuest) {
-      setUpgradeAcik(true);
-      return;
-    }
-    setMedyaMenuTur(tur);
-  };
-
-  const medyaTikla = (tur: ProfilMedyaTuru) => {
-    const url = medyaUrl(tur);
-    if (url) {
-      setBuyut({ uri: url, tur });
-      return;
-    }
-    medyaAc(tur);
-  };
-
-  const medyaSec = async (tur: ProfilMedyaTuru) => {
-    if (isGuest) {
-      setUpgradeAcik(true);
-      return;
-    }
-    const sonucPromise = ProfilMedyasiYukle(tur);
-    setMedyaMenuTur(null);
-    setMedyaBusy(tur);
-    const sonuc = await sonucPromise;
-    setMedyaBusy(null);
-    if (!sonuc.ok) {
-      if (sonuc.iptal) return;
-      Alert.alert('Medya', sonuc.hata);
-      return;
-    }
-    await refreshProfile();
-  };
-
-  const medyaSil = (tur: ProfilMedyaTuru) => {
-    if (isGuest) {
-      setUpgradeAcik(true);
-      return;
-    }
-    const baslik = tur === 'cover' ? 'Kapak fotoğrafı' : 'Profil fotoğrafı';
-    Alert.alert(baslik, 'Bu fotoğraf silinsin mi?', [
-      { text: 'İptal', style: 'cancel' },
-      {
-        text: 'Sil',
-        style: 'destructive',
-        onPress: () => {
-          void (async () => {
-            setMedyaMenuTur(null);
-            setMedyaBusy(tur);
-            const sonuc = await ProfilMedyasiSil(tur);
-            setMedyaBusy(null);
-            if (!sonuc.ok) {
-              Alert.alert('Medya', sonuc.hata);
-              return;
-            }
-            await refreshProfile();
-          })();
-        },
-      },
-    ]);
+  const medyaTikla = (tur: 'avatar' | 'cover') => {
+    const url =
+      tur === 'cover' ? profile?.cover_url ?? null : profile?.avatar_url ?? null;
+    if (url) setBuyut({ uri: url, tur });
   };
 
   const profilDuzenle = () => {
@@ -201,16 +157,17 @@ export default function ProfileScreen() {
       <ModulHataSiniri modulAdi="kullanici-profili">
         <ScrollView
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={false}
+          scrollEventThrottle={16}
           contentContainerStyle={styles.scroll}
         >
-          {/* Kapak — üst ekrana sıfır; tıkla büyüt; kamera menü; ayarlar sağda */}
+          {/* Kapak — tıkla büyüt; yükleme profil düzenlemede */}
           <View style={[styles.coverWrap, { height: coverH }]}>
             <Pressable
               onPress={() => medyaTikla('cover')}
-              onLongPress={() => medyaAc('cover')}
-              disabled={medyaBusy !== null}
               style={styles.coverPress}
               accessibilityLabel="Kapak fotoğrafı"
+              disabled={!profile?.cover_url}
             >
               {profile?.cover_url ? (
                 <Image
@@ -232,23 +189,6 @@ export default function ProfileScreen() {
             </Pressable>
 
             <Pressable
-              style={styles.coverHint}
-              onPress={() => medyaAc('cover')}
-              disabled={medyaBusy !== null}
-              hitSlop={6}
-              accessibilityLabel="Kapak fotoğrafı düzenle"
-            >
-              {medyaBusy === 'cover' ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Ionicons name="camera-outline" size={14} color="#fff" />
-                  <Text style={styles.coverHintText}>Kapak</Text>
-                </>
-              )}
-            </Pressable>
-
-            <Pressable
               style={[styles.gearBtn, { top: insets.top + BoslukTokenlari.sm }]}
               onPress={() => router.push('/profil-ayarlar' as any)}
               hitSlop={8}
@@ -258,16 +198,19 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {/* Avatar — ortalı, altın taçlı çerçeve */}
+          {/* Avatar — ortalı, taçlı çerçeve; yükleme profil düzenlemede */}
           <View style={styles.avatarBand}>
             <View style={styles.avatarHit}>
-              <ProfilAvatarCerceve size={AVATAR}>
+              <ProfilAvatarCerceve
+                size={AVATAR}
+                level={profile?.level ?? 1}
+                gizli={privacy.hide_crown}
+              >
                 <Pressable
                   onPress={() => medyaTikla('avatar')}
-                  onLongPress={() => medyaAc('avatar')}
                   style={styles.avatarWrap}
-                  disabled={medyaBusy !== null}
                   accessibilityLabel="Profil fotoğrafı"
+                  disabled={!profile?.avatar_url}
                 >
                   {profile?.avatar_url ? (
                     <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
@@ -281,19 +224,6 @@ export default function ProfileScreen() {
                   )}
                 </Pressable>
               </ProfilAvatarCerceve>
-              <Pressable
-                style={styles.avatarCam}
-                onPress={() => medyaAc('avatar')}
-                disabled={medyaBusy !== null}
-                hitSlop={8}
-                accessibilityLabel="Profil fotoğrafı düzenle"
-              >
-                {medyaBusy === 'avatar' ? (
-                  <ActivityIndicator color="#3A2A08" size="small" />
-                ) : (
-                  <Ionicons name="camera" size={12} color="#3A2A08" />
-                )}
-              </Pressable>
             </View>
           </View>
 
@@ -633,27 +563,6 @@ export default function ProfileScreen() {
           tur={buyut?.tur}
           onKapat={() => setBuyut(null)}
         />
-
-        <ProfilMedyaSecenekleri
-          visible={medyaMenuTur !== null}
-          tur={medyaMenuTur}
-          varMi={medyaMenuTur ? Boolean(medyaUrl(medyaMenuTur)) : false}
-          busy={medyaBusy !== null}
-          onKapat={() => setMedyaMenuTur(null)}
-          onGoruntule={() => {
-            if (!medyaMenuTur) return;
-            const url = medyaUrl(medyaMenuTur);
-            const tur = medyaMenuTur;
-            setMedyaMenuTur(null);
-            if (url) setBuyut({ uri: url, tur });
-          }}
-          onEkleVeyaDegistir={() => {
-            if (medyaMenuTur) void medyaSec(medyaMenuTur);
-          }}
-          onSil={() => {
-            if (medyaMenuTur) medyaSil(medyaMenuTur);
-          }}
-        />
       </ModulHataSiniri>
     </Screen>
   );
@@ -737,20 +646,6 @@ const styles = StyleSheet.create({
     borderColor: RenkTokenlari.border,
     zIndex: 2,
   },
-  coverHint: {
-    position: 'absolute',
-    left: BoslukTokenlari.lg,
-    bottom: BoslukTokenlari.md,
-    zIndex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: RenkTokenlari.chipFill,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: YaricapTokenlari.pill,
-  },
-  coverHintText: { ...TipografiTokenlari.micro, color: '#fff' },
   avatarBand: {
     alignItems: 'center',
     marginTop: -(AVATAR / 2 + 8),
@@ -774,20 +669,6 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarCam: {
-    position: 'absolute',
-    right: 6,
-    bottom: 10,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#D4AF37',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#F5E6A8',
-    zIndex: 4,
   },
   identity: {
     paddingHorizontal: BoslukTokenlari.xl,

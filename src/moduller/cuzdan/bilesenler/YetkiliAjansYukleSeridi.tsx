@@ -16,7 +16,16 @@ import {
   YetkiliAjanslariGetir,
   type YetkiliAjans,
 } from '../okuma/YetkiliAjanslariGetir';
-import { AjansSohbetAcVeyaGetir } from '../../mesajlasma/islemler/MesajGonder';
+import {
+  AjansCoinPaketleriniUret,
+  AjansPaketMesajMetni,
+  AJANS_COIN_INDIRIM_YUZDE,
+  type AjansCoinPaket,
+} from '../katalog/AjansCoinPaketKatalog';
+import {
+  AjansSohbetAcVeyaGetir,
+  MesajGonder,
+} from '../../mesajlasma/islemler/MesajGonder';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -27,17 +36,27 @@ import {
 type Props = {
   /** Mağaza kilitliyken mesaj yine açık kalabilir */
   locked?: boolean;
+  /** Ajans seçilince IAP paketlerini de yenile */
+  onPaketleriYenile?: () => void;
 };
 
+function formatTry(n: number): string {
+  return `${n.toLocaleString('tr-TR', {
+    minimumFractionDigits: n % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })} ₺`;
+}
+
 /**
- * IAP paketlerinin altında: yetkili ajans ile yükle + mesaj.
- * iOS → Apple, Android → Google ödeme üstte (paketler); burada ajans hattı.
+ * IAP paketlerinin altında: yetkili ajans seç → indirimli paketler görünür.
  */
-export function YetkiliAjansYukleSeridi({ locked }: Props) {
+export function YetkiliAjansYukleSeridi({ locked, onPaketleriYenile }: Props) {
   const router = useRouter();
   const [liste, setListe] = useState<YetkiliAjans[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [secili, setSecili] = useState<YetkiliAjans | null>(null);
+  const [ajansPaketler, setAjansPaketler] = useState<AjansCoinPaket[]>([]);
 
   const yukle = useCallback(async () => {
     setYukleniyor(true);
@@ -50,15 +69,37 @@ export function YetkiliAjansYukleSeridi({ locked }: Props) {
     void yukle();
   }, [yukle]);
 
-  const mesajAc = async (ajans: YetkiliAjans) => {
+  const ajansSec = useCallback(
+    (ajans: YetkiliAjans) => {
+      const ayni = secili?.id === ajans.id;
+      if (ayni) {
+        setSecili(null);
+        setAjansPaketler([]);
+        return;
+      }
+      setSecili(ajans);
+      setAjansPaketler(AjansCoinPaketleriniUret());
+      onPaketleriYenile?.();
+    },
+    [onPaketleriYenile, secili?.id],
+  );
+
+  const sohbetAc = async (ajans: YetkiliAjans, paket?: AjansCoinPaket) => {
     if (busyId) return;
     setBusyId(ajans.id);
     const r = await AjansSohbetAcVeyaGetir(ajans.id);
-    setBusyId(null);
     if (!r.ok) {
+      setBusyId(null);
       Alert.alert('Mesaj', r.hata);
       return;
     }
+    if (paket) {
+      await MesajGonder({
+        threadId: r.threadId,
+        body: AjansPaketMesajMetni(paket),
+      });
+    }
+    setBusyId(null);
     router.push(`/mesaj/${r.threadId}` as any);
   };
 
@@ -79,8 +120,8 @@ export function YetkiliAjansYukleSeridi({ locked }: Props) {
 
       <Text style={styles.baslik}>Yetkili ajans ile yükle</Text>
       <Text style={styles.alt}>
-        Üstte {magazaEtiket} · aşağıda coin yükleme yetkili ajanslar. Mesaj
-        gönderip iletişime geçebilirsin.
+        Üstte {magazaEtiket} · ajans seçince %{AJANS_COIN_INDIRIM_YUZDE}{' '}
+        indirimli paketler (99 ₺ → 300.000 ₺) görünür.
       </Text>
 
       {yukleniyor ? (
@@ -92,47 +133,97 @@ export function YetkiliAjansYukleSeridi({ locked }: Props) {
         <Text style={styles.bos}>Şu an listelenen yetkili ajans yok.</Text>
       ) : (
         <View style={styles.liste}>
-          {liste.map((a) => (
-            <View key={a.id} style={styles.kart}>
+          {liste.map((a) => {
+            const aktif = secili?.id === a.id;
+            return (
               <Pressable
-                style={styles.sol}
-                onPress={() => router.push(`/ajans/profil/${a.id}` as any)}
+                key={a.id}
+                style={[styles.kart, aktif && styles.kartAktif]}
+                onPress={() => ajansSec(a)}
               >
-                {a.logo_url ? (
-                  <Image source={{ uri: a.logo_url }} style={styles.logo} />
-                ) : (
-                  <LinearGradient
-                    colors={[...RenkTokenlari.gradientPrimary]}
-                    style={styles.logo}
-                  >
-                    <Text style={styles.logoHarf}>
-                      {(a.name[0] || 'A').toUpperCase()}
+                <View style={styles.sol}>
+                  {a.logo_url ? (
+                    <Image source={{ uri: a.logo_url }} style={styles.logo} />
+                  ) : (
+                    <LinearGradient
+                      colors={[...RenkTokenlari.gradientPrimary]}
+                      style={styles.logo}
+                    >
+                      <Text style={styles.logoHarf}>
+                        {(a.name[0] || 'A').toUpperCase()}
+                      </Text>
+                    </LinearGradient>
+                  )}
+                  <View style={styles.metin}>
+                    <Text style={styles.ad} numberOfLines={1}>
+                      {a.name}
                     </Text>
-                  </LinearGradient>
-                )}
-                <View style={styles.metin}>
-                  <Text style={styles.ad} numberOfLines={1}>
-                    {a.name}
-                  </Text>
-                  <Text style={styles.meta} numberOfLines={1}>
-                    {a.agency_public_id ?? 'Yetkili dağıtıcı'}
-                    {a.slogan ? ` · ${a.slogan}` : ''}
-                  </Text>
+                    <Text style={styles.meta} numberOfLines={1}>
+                      {a.agency_public_id ?? 'Yetkili dağıtıcı'}
+                      {a.slogan ? ` · ${a.slogan}` : ''}
+                    </Text>
+                  </View>
                 </View>
+                <Ionicons
+                  name={aktif ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={22}
+                  color={aktif ? RenkTokenlari.mint : RenkTokenlari.textDim}
+                />
               </Pressable>
-              <Pressable
-                style={[styles.mesajBtn, busyId === a.id && { opacity: 0.6 }]}
-                disabled={!!busyId || locked}
-                onPress={() => void mesajAc(a)}
-                accessibilityLabel={`${a.name} ajansına mesaj gönder`}
-              >
-                <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
-                <Text style={styles.mesajYazi}>Mesaj</Text>
-              </Pressable>
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
+
+      {secili ? (
+        <View style={styles.paketBolum}>
+          <View style={styles.paketBaslikSatir}>
+            <Text style={styles.paketBaslik}>
+              {secili.name} · %{AJANS_COIN_INDIRIM_YUZDE} indirim
+            </Text>
+            <Pressable
+              style={[styles.mesajBtn, busyId === secili.id && { opacity: 0.6 }]}
+              disabled={!!busyId || locked}
+              onPress={() => void sohbetAc(secili)}
+            >
+              <Ionicons name="chatbubble-ellipses" size={16} color="#fff" />
+              <Text style={styles.mesajYazi}>Mesaj</Text>
+            </Pressable>
+          </View>
+          <Text style={styles.paketAlt}>
+            Paket seç → ajansa talep mesajı gider. Liste fiyatı üzerinden %
+            {AJANS_COIN_INDIRIM_YUZDE} indirimli ödersin.
+          </Text>
+          <View style={styles.paketGrid}>
+            {ajansPaketler.map((p) => (
+              <Pressable
+                key={p.id}
+                style={[styles.paketKart, locked && { opacity: 0.5 }]}
+                disabled={!!busyId || locked}
+                onPress={() => void sohbetAc(secili, p)}
+              >
+                <View style={styles.indirimChip}>
+                  <Text style={styles.indirimChipYazi}>
+                    -%{p.indirimYuzde}
+                  </Text>
+                </View>
+                <Text style={styles.paketAd}>{p.title}</Text>
+                <Text style={styles.paketCoin}>
+                  {p.coins.toLocaleString('tr-TR')} coin
+                </Text>
+                <Text style={styles.paketListe}>
+                  {formatTry(p.listeFiyatTry)}
+                </Text>
+                <Text style={styles.paketOde}>{formatTry(p.odenecekTry)}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : liste.length > 0 ? (
+        <Text style={styles.secUyari}>
+          İndirimli paketleri görmek için bir ajans seç.
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -175,6 +266,11 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.textDim,
     paddingVertical: 12,
   },
+  secUyari: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textDim,
+    paddingVertical: 8,
+  },
   liste: { gap: 10 },
   kart: {
     flexDirection: 'row',
@@ -185,6 +281,10 @@ const styles = StyleSheet.create({
     backgroundColor: RenkTokenlari.surface,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
+  },
+  kartAktif: {
+    borderColor: RenkTokenlari.mint,
+    backgroundColor: 'rgba(110, 231, 183, 0.08)',
   },
   sol: {
     flex: 1,
@@ -220,7 +320,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: YaricapTokenlari.pill,
     backgroundColor: RenkTokenlari.primary,
   },
@@ -228,5 +328,78 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.micro,
     color: '#fff',
     fontWeight: '800',
+  },
+  paketBolum: {
+    marginTop: BoslukTokenlari.md,
+    gap: BoslukTokenlari.sm,
+  },
+  paketBaslikSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  paketBaslik: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.text,
+    fontWeight: '800',
+    flex: 1,
+  },
+  paketAlt: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+    lineHeight: 16,
+  },
+  paketGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  paketKart: {
+    width: '47.5%',
+    flexGrow: 1,
+    minWidth: '46%',
+    padding: 12,
+    borderRadius: YaricapTokenlari.md,
+    backgroundColor: RenkTokenlari.bgCard,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 196, 98, 0.28)',
+    gap: 4,
+    overflow: 'hidden',
+  },
+  indirimChip: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: 'rgba(110, 231, 183, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(110, 231, 183, 0.35)',
+  },
+  indirimChipYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.mint,
+    fontWeight: '900',
+    fontSize: 10,
+  },
+  paketAd: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.text,
+    fontWeight: '800',
+  },
+  paketCoin: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.accent,
+    fontWeight: '900',
+  },
+  paketListe: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    textDecorationLine: 'line-through',
+  },
+  paketOde: {
+    ...TipografiTokenlari.body,
+    color: '#F5C462',
+    fontWeight: '900',
   },
 });

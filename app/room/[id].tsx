@@ -1482,9 +1482,9 @@ export default function RoomScreen() {
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled
             keyboardShouldPersistTaps="handled"
-            bounces
-            overScrollMode="always"
-            scrollEventThrottle={16}
+            bounces={false}
+            overScrollMode="never"
+            scrollEventThrottle={32}
           >
             <SesOdasiMikrofonDuzeni
               seats={seats}
@@ -1709,6 +1709,7 @@ export default function RoomScreen() {
         onClose={coinYukle.kapat}
         upgradeAcik={coinYukle.upgradeAcik}
         upgradeKapat={coinYukle.upgradeKapat}
+        onPaketleriYenile={coinYukle.paketleriYenile}
       />
 
       <HesabiTamamlaKarti

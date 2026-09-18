@@ -33,6 +33,7 @@ type Props = {
   /** Misafir upgrade (hook’tan) */
   upgradeAcik?: boolean;
   upgradeKapat?: () => void;
+  onPaketleriYenile?: () => void;
 };
 
 const EKRAN_H = Dimensions.get('window').height;
@@ -51,6 +52,7 @@ export function CoinYuklePaneli({
   onClose,
   upgradeAcik = false,
   upgradeKapat,
+  onPaketleriYenile,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { refreshProfile, refreshWallet } = useAuth();
@@ -107,6 +109,7 @@ export function CoinYuklePaneli({
                 locked={locked}
                 onBuy={onBuy}
                 baslikGoster={false}
+                onPaketleriYenile={onPaketleriYenile}
               />
             </ScrollView>
           </View>

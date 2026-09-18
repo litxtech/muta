@@ -32,23 +32,35 @@ import {
 
 export default function RoomsScreen() {
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [filtre, setFiltre] = useState<OdalarFiltre>('all');
+  const ilkYuklemeBitti = React.useRef(false);
+  const loadNesil = React.useRef(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (mod: 'ilk' | 'sessiz' | 'pull' = 'sessiz') => {
+    const nesil = ++loadNesil.current;
     try {
-      setLoading(true);
-      setRooms(await fetchLiveRooms(50));
+      if (mod === 'pull') setRefreshing(true);
+      const data = await fetchLiveRooms(50);
+      if (nesil !== loadNesil.current) return;
+      setRooms(data);
     } catch {
-      setRooms([]);
+      if (nesil !== loadNesil.current) return;
+      if (mod === 'ilk') setRooms([]);
     } finally {
-      setLoading(false);
+      if (nesil !== loadNesil.current) return;
+      if (mod === 'pull') setRefreshing(false);
+      ilkYuklemeBitti.current = true;
     }
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      void load(ilkYuklemeBitti.current ? 'sessiz' : 'ilk');
+      return () => {
+        loadNesil.current += 1;
+        setRefreshing(false);
+      };
     }, [load]),
   );
 
@@ -77,8 +89,8 @@ export default function RoomsScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={loading}
-              onRefresh={load}
+              refreshing={refreshing}
+              onRefresh={() => void load('pull')}
               tintColor={RenkTokenlari.primary}
             />
           }

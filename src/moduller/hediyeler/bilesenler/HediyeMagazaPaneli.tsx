@@ -347,6 +347,7 @@ export function HediyeMagazaPaneli({
                   locked={coinLocked}
                   onBuy={onCoinBuy}
                   baslikGoster={false}
+                  onPaketleriYenile={onCoinPaketHazirla}
                 />
               </ScrollView>
             ) : (

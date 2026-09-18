@@ -28,8 +28,8 @@ const KAPALI = 0.04;
 const TASMA = 26;
 
 /**
- * Konuşurken avatar etrafında net dalga halkaları.
- * Sustuğunda tamamen kaybolur — kimin konuştuğu belli olsun.
+ * Konuşurken avatar etrafında dalga halkaları.
+ * Scale nabız yok — sahne titremesin; sadece opacity + dalga.
  */
 export function KonusmaciAktiflikEfekti({
   userId,
@@ -41,7 +41,6 @@ export function KonusmaciAktiflikEfekti({
   const aktif = useSharedValue(0);
   const dalga1 = useSharedValue(0);
   const dalga2 = useSharedValue(0);
-  const nabiz = useSharedValue(1);
 
   useEffect(() => {
     let calisiyor = false;
@@ -55,10 +54,8 @@ export function KonusmaciAktiflikEfekti({
       aktif.value = withTiming(0, FADE);
       cancelAnimation(dalga1);
       cancelAnimation(dalga2);
-      cancelAnimation(nabiz);
       dalga1.value = 0;
       dalga2.value = 0;
-      nabiz.value = withTiming(1, FADE);
     };
 
     if (!userId) {
@@ -75,14 +72,6 @@ export function KonusmaciAktiflikEfekti({
       dalga2.value = 0;
       dalga1.value = withRepeat(withTiming(1, DALGA), -1, false);
       dalga2.value = withDelay(650, withRepeat(withTiming(1, DALGA), -1, false));
-      nabiz.value = withRepeat(
-        withTiming(1.06, {
-          duration: 700,
-          easing: Easing.inOut(Easing.sin),
-        }),
-        -1,
-        true,
-      );
     };
 
     const baslangic = KonusmaciSesSeviyesi.seviyeGetir(userId);
@@ -92,7 +81,6 @@ export function KonusmaciAktiflikEfekti({
       aktif.value = 0;
       dalga1.value = 0;
       dalga2.value = 0;
-      nabiz.value = 1;
     }
 
     return KonusmaciSesSeviyesi.dinleKullanici(userId, (lvl) => {
@@ -100,43 +88,41 @@ export function KonusmaciAktiflikEfekti({
       if (lvl > ACIK) baslat();
       else if (lvl <= KAPALI) durdur();
     });
-  }, [userId, level, aktif, dalga1, dalga2, nabiz]);
+  }, [userId, level, aktif, dalga1, dalga2]);
 
   const renk = hostMu ? RenkTokenlari.accent : RenkTokenlari.mint;
   const halkaBoy = size + 10;
   const wrapBoy = size + TASMA * 2;
 
+  const glow = useAnimatedStyle(() => {
+    const a = aktif.value;
+    return {
+      opacity: a * (0.22 + level.value * 0.28),
+    };
+  });
+
   const cember = useAnimatedStyle(() => {
     const a = aktif.value;
     const l = level.value;
     return {
-      opacity: a * (0.75 + l * 0.25),
-      transform: [{ scale: a > 0 ? nabiz.value : 1 }],
-      borderWidth: 3,
-    };
-  });
-
-  const glow = useAnimatedStyle(() => {
-    const a = aktif.value;
-    return {
-      opacity: a * (0.28 + level.value * 0.35),
-      transform: [{ scale: a > 0 ? nabiz.value * 1.02 : 1 }],
+      opacity: a * (0.7 + l * 0.25),
+      borderWidth: 2.5,
     };
   });
 
   const dalgaStili1 = useAnimatedStyle(() => {
     const t = dalga1.value;
     return {
-      opacity: aktif.value * (1 - t) * 0.85,
-      transform: [{ scale: 1 + t * 0.55 }],
+      opacity: aktif.value * (1 - t) * 0.75,
+      transform: [{ scale: 1 + t * 0.45 }],
     };
   });
 
   const dalgaStili2 = useAnimatedStyle(() => {
     const t = dalga2.value;
     return {
-      opacity: aktif.value * (1 - t) * 0.65,
-      transform: [{ scale: 1 + t * 0.55 }],
+      opacity: aktif.value * (1 - t) * 0.55,
+      transform: [{ scale: 1 + t * 0.45 }],
     };
   });
 

@@ -54,6 +54,8 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useAktifSesOdasi } from '../../src/moduller/ses-odalari/oturum/useAktifSesOdasi';
+import { KullaniciAktifOdasiniGetir, type KullaniciAktifOda } from '../../src/moduller/ses-odalari/okuma/KullaniciAktifOdasiniGetir';
+import { ProfilSesOdasiButonu } from '../../src/moduller/ses-odalari/bilesenler/ProfilSesOdasiButonu';
 
 const COVER_H = 168;
 const AVATAR = 96;
@@ -76,6 +78,7 @@ const EMPTY_PRIVACY: GizlilikAyarlari = {
   hide_topup_coin: false,
   hide_prestige: false,
   hide_account_value: false,
+  hide_crown: false,
   is_private: false,
 };
 
@@ -86,6 +89,7 @@ export default function KullaniciProfilEkrani() {
   const [profil, setProfil] = useState<Profile | null>(null);
   const [stats, setStats] = useState<KullaniciProfilIstatistikleri | null>(null);
   const [privacy, setPrivacy] = useState<GizlilikAyarlari>(EMPTY_PRIVACY);
+  const [aktifOda, setAktifOda] = useState<KullaniciAktifOda | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [durumlar, setDurumlar] = useState<DurumOggesi[]>([]);
   const [durumYukleniyor, setDurumYukleniyor] = useState(false);
@@ -112,18 +116,21 @@ export default function KullaniciProfilEkrani() {
     setYukleniyor(true);
     setDurumYukleniyor(true);
     try {
-      const [p, s, giz] = await Promise.all([
+      const [p, s, giz, oda] = await Promise.all([
         ProfilGetir(id),
         ProfilIstatistikleriniGetir(id).catch(() => null),
         GizlilikAyarlariniKullaniciIcinGetir(id).catch(() => EMPTY_PRIVACY),
+        KullaniciAktifOdasiniGetir(id).catch(() => null),
       ]);
       setProfil(p);
       setStats(s);
       setPrivacy(giz);
+      setAktifOda(oda);
     } catch {
       setProfil(null);
       setStats(null);
       setPrivacy(EMPTY_PRIVACY);
+      setAktifOda(null);
     } finally {
       setYukleniyor(false);
     }
@@ -163,6 +170,9 @@ export default function KullaniciProfilEkrani() {
   const gosterTopup = kendi || !privacy.hide_topup_coin;
   const gosterSeviye = kendi || !privacy.hide_level;
   const gosterHesapDegeri = kendi || !privacy.hide_account_value;
+  const gosterTac = !privacy.hide_crown;
+  const gosterAktifOda =
+    !!aktifOda && (kendi || !privacy.hide_current_room);
 
   const durumSil = (oge: DurumOggesi) => {
     if (!oge.is_mine) return;
@@ -254,6 +264,8 @@ export default function KullaniciProfilEkrani() {
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
+            removeClippedSubviews={false}
+            scrollEventThrottle={16}
             contentContainerStyle={[
               styles.pad,
               { paddingBottom: BoslukTokenlari.xxxl + insets.bottom },
@@ -311,7 +323,11 @@ export default function KullaniciProfilEkrani() {
             </View>
 
             <View style={styles.avatarBand}>
-              <ProfilAvatarCerceve size={AVATAR}>
+              <ProfilAvatarCerceve
+                size={AVATAR}
+                level={gosterSeviye ? profil.level ?? 1 : 0}
+                gizli={!gosterTac}
+              >
                 <Pressable
                   onPress={() => medyaTikla('avatar')}
                   style={styles.avatarHit}
@@ -382,6 +398,15 @@ export default function KullaniciProfilEkrani() {
                 username={profil.username}
                 isVerified={profil.is_verified}
                 onMesaj={kendi ? undefined : () => void mesajAc()}
+              />
+            ) : null}
+
+            {gosterAktifOda && aktifOda ? (
+              <ProfilSesOdasiButonu
+                oda={aktifOda}
+                onPress={() =>
+                  router.push(`/room/${aktifOda.roomId}` as any)
+                }
               />
             ) : null}
 

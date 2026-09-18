@@ -12,6 +12,7 @@ export type GizlilikAyarlari = {
   hide_topup_coin: boolean;
   hide_prestige: boolean;
   hide_account_value: boolean;
+  hide_crown: boolean;
   is_private: boolean;
 };
 
@@ -27,11 +28,12 @@ const DEFAULTS: GizlilikAyarlari = {
   hide_topup_coin: false,
   hide_prestige: false,
   hide_account_value: false,
+  hide_crown: false,
   is_private: false,
 };
 
 const SELECT_ALANLARI =
-  'hide_recharge_rank, hide_gifter_rank, hide_current_room, hide_last_seen, hide_agency, hide_gift_collection, hide_top_supporter, hide_level, hide_topup_coin, hide_prestige, hide_account_value, is_private';
+  'hide_recharge_rank, hide_gifter_rank, hide_current_room, hide_last_seen, hide_agency, hide_gift_collection, hide_top_supporter, hide_level, hide_topup_coin, hide_prestige, hide_account_value, hide_crown, is_private';
 
 function satirdanAyarlar(data: Partial<GizlilikAyarlari> | null): GizlilikAyarlari {
   return { ...DEFAULTS, ...(data ?? {}) };
@@ -136,6 +138,11 @@ export const PROFIL_GOSTERGE_GIZLILIK: {
     key: 'hide_level',
     label: 'Seviyemi gizle',
     aciklama: 'Seviye ve tecrübe puanın profilde görünmez',
+  },
+  {
+    key: 'hide_crown',
+    label: 'Seviye tacımı gizle',
+    aciklama: 'Avatarını saran parıltılı taç çerçevesi kapanır',
   },
   {
     key: 'hide_account_value',

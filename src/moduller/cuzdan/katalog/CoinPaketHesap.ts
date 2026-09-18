@@ -8,9 +8,9 @@
 
 export const COIN_TRY_ORANI = 0.1;
 
-/** Apple TRY uçları (dokümante price point; Connect’te en yakın kademe) */
-export const APPLE_TRY_MIN = 2.99;
-export const APPLE_TRY_MAX = 299_999.99;
+/** Mağaza IAP uçları — Apple TRY price point (X.99) */
+export const APPLE_TRY_MIN = 99.99;
+export const APPLE_TRY_MAX = 4_999.99;
 
 export type CoinPaketKademe = {
   sku: string;
@@ -24,24 +24,24 @@ export type CoinPaketKademe = {
 };
 
 /**
- * 4 kademe: Apple min → ara → ara → Apple max.
+ * 4 kademe: Apple uyumlu 99,99 → 4.999,99
  * Bonus merdiveni: 0% / 5% / 12% / 20%
  */
 export const COIN_PAKET_KADEMELERI: readonly CoinPaketKademe[] = [
   {
-    sku: 'coins_try_2_99',
+    sku: 'coins_try_99_99',
     title: 'Başlangıç',
     priceTry: APPLE_TRY_MIN,
-    priceUsd: 0.29,
+    priceUsd: 2.99,
     bonusYuzde: 0,
     badge: null,
     sortOrder: 1,
   },
   {
-    sku: 'coins_try_99_99',
+    sku: 'coins_try_499_99',
     title: 'Popüler',
-    priceTry: 99.99,
-    priceUsd: 2.99,
+    priceTry: 499.99,
+    priceUsd: 14.99,
     bonusYuzde: 5,
     badge: 'POPÜLER',
     sortOrder: 2,
@@ -56,10 +56,10 @@ export const COIN_PAKET_KADEMELERI: readonly CoinPaketKademe[] = [
     sortOrder: 3,
   },
   {
-    sku: 'coins_try_299999_99',
+    sku: 'coins_try_4999_99',
     title: 'Max',
     priceTry: APPLE_TRY_MAX,
-    priceUsd: 9999.99,
+    priceUsd: 149.99,
     bonusYuzde: 20,
     badge: 'MAX',
     sortOrder: 4,

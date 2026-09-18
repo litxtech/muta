@@ -94,22 +94,40 @@ export default function HomeScreen() {
   const { okunmamis, yenile: bildirimYenile } = useBildirimler();
   const { yonetimHref } = useAjansYonetim();
   const [feed, setFeed] = useState<FeedOggesi[]>([]);
+  /** İlk açılış iskeleti — odak dönüşünde tekrar açılmaz */
   const [loading, setLoading] = useState(true);
+  /** Sadece kullanıcı aşağı çekince */
+  const [refreshing, setRefreshing] = useState(false);
   const [menuAcik, setMenuAcik] = useState(false);
   const [filtre, setFiltre] = useState<FeedFiltre>('tumu');
   const odakli = useRef(false);
+  const ilkYuklemeBitti = useRef(false);
+  const loadNesil = useRef(0);
   const bolumler = useMemo(() => AnaSayfaBolumleriniGetir().filter((b) => b.aktif), []);
 
-  const load = useCallback(async (sessiz = false) => {
+  const load = useCallback(async (mod: 'ilk' | 'sessiz' | 'pull' = 'sessiz') => {
+    const nesil = ++loadNesil.current;
     try {
-      if (!sessiz) setLoading(true);
-      const data = await CanliFeedGetir(40);
+      if (mod === 'ilk') setLoading(true);
+      if (mod === 'pull') setRefreshing(true);
+
+      const data = await Promise.race([
+        CanliFeedGetir(40),
+        new Promise<FeedOggesi[]>((_, reject) => {
+          setTimeout(() => reject(new Error('feed-timeout')), 12_000);
+        }),
+      ]);
+      if (nesil !== loadNesil.current) return;
       setFeed(data);
-      if (!sessiz) void CihazPushTokeniniKaydet();
+      if (mod === 'ilk') void CihazPushTokeniniKaydet();
     } catch {
-      if (!sessiz) setFeed([]);
+      if (nesil !== loadNesil.current) return;
+      if (mod === 'ilk') setFeed([]);
     } finally {
-      if (!sessiz) setLoading(false);
+      if (nesil !== loadNesil.current) return;
+      if (mod === 'ilk') setLoading(false);
+      if (mod === 'pull') setRefreshing(false);
+      ilkYuklemeBitti.current = true;
     }
   }, []);
 
@@ -139,13 +157,18 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       odakli.current = true;
-      void load();
+      // Oda/profil dönüşünde spinner açma — sessiz yenile
+      void load(ilkYuklemeBitti.current ? 'sessiz' : 'ilk');
       void bildirimYenile();
       const timer = setInterval(() => {
-        if (odakli.current) void load(true);
+        if (odakli.current) void load('sessiz');
       }, YENILE_MS);
       return () => {
         odakli.current = false;
+        // Yarım kalan istek finally'de loading'i kaçırmasın
+        loadNesil.current += 1;
+        setRefreshing(false);
+        setLoading(false);
         clearInterval(timer);
       };
     }, [load, bildirimYenile]),
@@ -163,7 +186,7 @@ export default function HomeScreen() {
     }
 
     const yenile = () => {
-      if (odakli.current) void loadRef.current(true);
+      if (odakli.current) void loadRef.current('sessiz');
     };
 
     const kanal = supabase
@@ -400,8 +423,8 @@ export default function HomeScreen() {
                 removeClippedSubviews
                 refreshControl={
                   <RefreshControl
-                    refreshing={loading}
-                    onRefresh={() => void load()}
+                    refreshing={refreshing}
+                    onRefresh={() => void load('pull')}
                     tintColor={RenkTokenlari.primary}
                   />
                 }

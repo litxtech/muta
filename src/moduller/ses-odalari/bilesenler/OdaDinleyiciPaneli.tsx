@@ -305,13 +305,18 @@ export function OdaDinleyiciPaneli({
                     accessibilityLabel={`${ad} profili`}
                   >
                     <View style={styles.avatarKutu}>
-                      <SeviyeTaci level={item.profile?.level ?? 0} size="sm" />
-                      <ProfilAvatarKucuk
-                        size={48}
-                        displayName={item.profile?.display_name}
-                        username={item.profile?.username}
-                        avatarUrl={item.profile?.avatar_url}
-                      />
+                      <SeviyeTaci
+                        level={item.profile?.level ?? 0}
+                        size="sm"
+                        avatarBoy={48}
+                      >
+                        <ProfilAvatarKucuk
+                          size={48}
+                          displayName={item.profile?.display_name}
+                          username={item.profile?.username}
+                          avatarUrl={item.profile?.avatar_url}
+                        />
+                      </SeviyeTaci>
                       {item.profile?.is_verified ? (
                         <View style={styles.onayRozeti} pointerEvents="none">
                           <Ionicons

@@ -11,6 +11,7 @@ import {
   Image,
   Pressable,
   StyleSheet,
+  Text,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -18,7 +19,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
+import { useMesajOkunmamis } from '../moduller/mesajlasma/baglam/MesajOkunmamisSaglayici';
 import { RenkTokenlari } from '../tasarim-sistemi/RenkTokenlari';
+import { TipografiTokenlari } from '../tasarim-sistemi/TipografiTokenlari';
 import { useTemayaAboneOl } from '../tasarim-sistemi/tema/useTemayaAboneOl';
 import {
   YUZEN_TAB_SHELL_H,
@@ -101,6 +104,7 @@ function YuzenTabBarIc() {
   const pathname = usePathname();
   const { width: windowWidth } = useWindowDimensions();
   const { profile, session } = useAuth();
+  const { okunmamis: mesajOkunmamis } = useMesajOkunmamis();
   const avatarUrl = profile?.avatar_url ?? null;
   const [, setTick] = useState(0);
 
@@ -148,16 +152,25 @@ function YuzenTabBarIc() {
             const secili = focused === name;
             const isCreate = name === 'create';
             const isProfile = name === 'profile';
+            const isMessages = name === 'messages';
             const color = secili
               ? RenkTokenlari.text
               : RenkTokenlari.textMuted;
+            const badge =
+              isMessages && !secili && mesajOkunmamis > 0
+                ? mesajOkunmamis
+                : 0;
 
             return (
               <Pressable
                 key={name}
                 accessibilityRole="button"
                 accessibilityState={secili ? { selected: true } : {}}
-                accessibilityLabel={meta.label}
+                accessibilityLabel={
+                  badge > 0
+                    ? `${meta.label}, ${badge} okunmamış`
+                    : meta.label
+                }
                 onPress={() => {
                   if (secili) return;
                   router.navigate(HREF[name] as never);
@@ -165,30 +178,39 @@ function YuzenTabBarIc() {
                 style={styles.slot}
                 hitSlop={8}
               >
-                {isProfile && avatarUrl ? (
-                  <Image
-                    source={{ uri: avatarUrl }}
-                    style={[
-                      styles.avatar,
-                      {
-                        borderColor: secili
-                          ? RenkTokenlari.text
-                          : 'transparent',
-                        borderWidth: secili ? 2 : 1.5,
-                      },
-                    ]}
-                  />
-                ) : (
-                  <Ionicons
-                    name={secili ? meta.active : meta.idle}
-                    size={isCreate ? CREATE_SIZE : ICON_SIZE}
-                    color={
-                      isCreate && secili
-                        ? RenkTokenlari.primarySoft
-                        : color
-                    }
-                  />
-                )}
+                <View style={styles.iconWrap}>
+                  {isProfile && avatarUrl ? (
+                    <Image
+                      source={{ uri: avatarUrl }}
+                      style={[
+                        styles.avatar,
+                        {
+                          borderColor: secili
+                            ? RenkTokenlari.text
+                            : 'transparent',
+                          borderWidth: secili ? 2 : 1.5,
+                        },
+                      ]}
+                    />
+                  ) : (
+                    <Ionicons
+                      name={secili ? meta.active : meta.idle}
+                      size={isCreate ? CREATE_SIZE : ICON_SIZE}
+                      color={
+                        isCreate && secili
+                          ? RenkTokenlari.primarySoft
+                          : color
+                      }
+                    />
+                  )}
+                  {badge > 0 ? (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>
+                        {badge > 99 ? '99+' : String(badge)}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
               </Pressable>
             );
           })}
@@ -225,9 +247,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   avatar: {
     width: AVATAR,
     height: AVATAR,
     borderRadius: AVATAR / 2,
+  },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: RenkTokenlari.danger,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: RenkTokenlari.bg,
+  },
+  badgeText: {
+    ...TipografiTokenlari.micro,
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 10,
+    lineHeight: 12,
   },
 });

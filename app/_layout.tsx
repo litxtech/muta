@@ -27,10 +27,23 @@ try {
   /* ignore */
 }
 
+// LiveKit / WebRTC gürültülü DEBUG logları
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { LiveKitGurultuLoglariniKapat } = require('../src/moduller/livekit/polyfill/LiveKitGurultuLoglariniKapat') as {
+    LiveKitGurultuLoglariniKapat?: () => void;
+  };
+  LiveKitGurultuLoglariniKapat?.();
+} catch {
+  /* ignore */
+}
+
 // LiveKit bilincli disconnect sonrasi WS 1001; LogBox kirmizi hata gostermesin
 LogBox.ignoreLogs([
   'error reading from signal stream',
   'WS closed unexpectedly',
+  'rn-webrtc',
+  'ping timeout triggered',
 ]);
 
 /** LiveKit globals — expo-audio ile AVAudioSession cakismasin */

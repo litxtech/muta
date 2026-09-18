@@ -73,15 +73,14 @@ export function CanliSohbetMesajKarti({
           accessibilityRole="button"
           accessibilityLabel={`${ad} profili`}
         >
-          {seviye >= 1 ? (
-            <SeviyeTaci level={seviye} size="sm" animasyonluMu />
-          ) : null}
-          <ProfilAvatarKucuk
-            size={32}
-            displayName={item.display_name}
-            username={item.username}
-            avatarUrl={item.avatar_url}
-          />
+          <SeviyeTaci level={seviye} size="sm" avatarBoy={32}>
+            <ProfilAvatarKucuk
+              size={32}
+              displayName={item.display_name}
+              username={item.username}
+              avatarUrl={item.avatar_url}
+            />
+          </SeviyeTaci>
         </Pressable>
         <View style={styles.liveGovde}>
           <View style={styles.liveUst}>
@@ -122,15 +121,14 @@ export function CanliSohbetMesajKarti({
         accessibilityRole="button"
         accessibilityLabel={`${ad} profili`}
       >
-        {seviye >= 1 ? (
-          <SeviyeTaci level={seviye} size="sm" animasyonluMu />
-        ) : null}
-        <ProfilAvatarKucuk
-          size={34}
-          displayName={item.display_name}
-          username={item.username}
-          avatarUrl={item.avatar_url}
-        />
+        <SeviyeTaci level={seviye} size="sm" avatarBoy={34}>
+          <ProfilAvatarKucuk
+            size={34}
+            displayName={item.display_name}
+            username={item.username}
+            avatarUrl={item.avatar_url}
+          />
+        </SeviyeTaci>
       </Pressable>
       <View style={styles.body}>
         <View style={styles.liveUst}>
@@ -177,15 +175,11 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   liveAvatarWrap: {
-    width: 32,
-    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
   kartAvatarWrap: {
-    width: 34,
-    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
   },

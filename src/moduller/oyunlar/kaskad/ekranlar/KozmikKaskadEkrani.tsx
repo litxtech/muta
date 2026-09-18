@@ -163,6 +163,7 @@ function KozmikKaskadEkraniGovde({
     packages: coinPaketleri,
     purchaseLocked: coinYukleKilit,
     satinAl: coinSatinAl,
+    paketleriYenile: coinPaketleriYenile,
     upgradeAcik: coinUpgradeAcik,
     upgradeKapat: coinUpgradeKapat,
   } = useCoinYuklePaneli();
@@ -1107,6 +1108,7 @@ function KozmikKaskadEkraniGovde({
         onClose={coinYukleKapat}
         upgradeAcik={coinUpgradeAcik}
         upgradeKapat={coinUpgradeKapat}
+        onPaketleriYenile={coinPaketleriYenile}
       />
 
       <Modal

@@ -131,13 +131,14 @@ function OdaProfilKartiPaneliInner({
           >
             <View style={styles.kartIc}>
               <View style={styles.avatarWrap}>
-                <ProfilAvatarKucuk
-                  size={72}
-                  displayName={displayName}
-                  username={username}
-                  avatarUrl={avatarUrl}
-                />
-                <SeviyeTaci level={seviye} size="lg" />
+                <SeviyeTaci level={seviye} size="lg" avatarBoy={72}>
+                  <ProfilAvatarKucuk
+                    size={72}
+                    displayName={displayName}
+                    username={username}
+                    avatarUrl={avatarUrl}
+                  />
+                </SeviyeTaci>
               </View>
 
               <Text style={styles.ad}>{ad}</Text>

@@ -33,6 +33,7 @@ const EMPTY_PRIVACY: GizlilikAyarlari = {
   hide_topup_coin: false,
   hide_prestige: false,
   hide_account_value: false,
+  hide_crown: false,
   is_private: false,
 };
 

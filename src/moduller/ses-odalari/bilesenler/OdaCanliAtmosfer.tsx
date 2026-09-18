@@ -1,5 +1,14 @@
-import React, { useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 
 type Props = {
@@ -7,49 +16,51 @@ type Props = {
 };
 
 /**
- * Sesli oda sahnesi — statik atmosfer.
- * Animasyon yok: titreme / GPU kasma üretmez.
+ * Sesli oda sahnesi — sabit aura + yumuşak opacity nabız.
+ * Scale yok: sahne titremesini önler.
  */
 export function OdaCanliAtmosfer({ yogunluk = 'hafif' }: Props) {
-  const noktalar = useMemo(() => {
-    if (yogunluk === 'kapali') return [];
-    const n = yogunluk === 'hafif' ? 5 : 8;
-    const renkler = [
-      RenkTokenlari.primary,
-      RenkTokenlari.accent,
-      RenkTokenlari.mint,
-      RenkTokenlari.violet,
-    ];
-    return Array.from({ length: n }, (_, i) => ({
-      key: `a_${i}`,
-      left: `${10 + ((i * 19) % 80)}%` as `${number}%`,
-      top: `${12 + ((i * 27) % 68)}%` as `${number}%`,
-      size: 3 + (i % 3),
-      color: renkler[i % renkler.length],
-      opacity: 0.18 + (i % 3) * 0.08,
-    }));
-  }, [yogunluk]);
+  const nabiz = useSharedValue(0);
+
+  useEffect(() => {
+    if (yogunluk === 'kapali') {
+      nabiz.value = 0;
+      return;
+    }
+    nabiz.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 4800, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 4800, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
+  }, [yogunluk, nabiz]);
+
+  const auraStil = useAnimatedStyle(() => ({
+    opacity: 0.045 + nabiz.value * (yogunluk === 'normal' ? 0.04 : 0.025),
+  }));
 
   if (yogunluk === 'kapali') return null;
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <View style={styles.aura} />
-      {noktalar.map((n) => (
-        <View
-          key={n.key}
-          style={{
-            position: 'absolute',
-            left: n.left,
-            top: n.top,
-            width: n.size,
-            height: n.size,
-            borderRadius: n.size / 2,
-            backgroundColor: n.color,
-            opacity: n.opacity,
-          }}
+      <Animated.View style={[styles.aura, auraStil]}>
+        <LinearGradient
+          colors={[
+            'rgba(196,59,255,0.28)',
+            'rgba(240,180,41,0.12)',
+            'transparent',
+          ]}
+          style={StyleSheet.absoluteFill}
         />
-      ))}
+      </Animated.View>
+      <View
+        style={[
+          styles.halka,
+          { borderColor: RenkTokenlari.accent, opacity: 0.035 },
+        ]}
+      />
     </View>
   );
 }
@@ -58,11 +69,19 @@ const styles = StyleSheet.create({
   aura: {
     position: 'absolute',
     alignSelf: 'center',
-    top: '14%',
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: RenkTokenlari.primary,
-    opacity: 0.07,
+    top: '12%',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    overflow: 'hidden',
+  },
+  halka: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '18%',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 1.5,
   },
 });

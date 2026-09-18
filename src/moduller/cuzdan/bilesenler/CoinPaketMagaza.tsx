@@ -20,7 +20,10 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 function formatTry(n: number): string {
-  return `${Math.round(n).toLocaleString('tr-TR')} ₺`;
+  return `${n.toLocaleString('tr-TR', {
+    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
+    maximumFractionDigits: 2,
+  })} ₺`;
 }
 
 function formatCoin(n: number): string {
@@ -43,6 +46,8 @@ type Props = {
   baslikGoster?: boolean;
   /** Altında yetkili ajans listesi (varsayılan açık) */
   yetkiliAjansGoster?: boolean;
+  /** Ajans seçilince IAP paketlerini yenile */
+  onPaketleriYenile?: () => void;
 };
 
 export function CoinPaketMagaza({
@@ -51,6 +56,7 @@ export function CoinPaketMagaza({
   onBuy,
   baslikGoster = true,
   yetkiliAjansGoster = true,
+  onPaketleriYenile,
 }: Props) {
   const sirali = useMemo(
     () =>
@@ -184,7 +190,10 @@ export function CoinPaketMagaza({
       </View>
 
       {yetkiliAjansGoster ? (
-        <YetkiliAjansYukleSeridi locked={locked} />
+        <YetkiliAjansYukleSeridi
+          locked={locked}
+          onPaketleriYenile={onPaketleriYenile}
+        />
       ) : null}
     </View>
   );

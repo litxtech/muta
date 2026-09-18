@@ -39,33 +39,51 @@ export default function MessagesScreen() {
   const [konular, setKonular] = useState<MesajKonusu[]>([]);
   const [arsivModu, setArsivModu] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const ilkYuklemeBitti = React.useRef(false);
+  const loadNesil = React.useRef(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (mod: 'ilk' | 'sessiz' | 'pull' = 'sessiz') => {
     if (!acik || isGuest) {
       setKonular([]);
+      setLoading(false);
+      setRefreshing(false);
       return;
     }
-    setLoading(true);
+    const nesil = ++loadNesil.current;
     try {
-      setKonular(await MesajKonulariniGetir(arsivModu));
+      if (mod === 'ilk') setLoading(true);
+      if (mod === 'pull') setRefreshing(true);
+      const data = await MesajKonulariniGetir(arsivModu);
+      if (nesil !== loadNesil.current) return;
+      setKonular(data);
     } catch {
+      if (nesil !== loadNesil.current) return;
       setKonular([]);
     } finally {
-      setLoading(false);
+      if (nesil !== loadNesil.current) return;
+      if (mod === 'ilk') setLoading(false);
+      if (mod === 'pull') setRefreshing(false);
+      ilkYuklemeBitti.current = true;
     }
   }, [acik, isGuest, arsivModu]);
 
   useFocusEffect(
     useCallback(() => {
       sayfayiAcincaTemizle();
-      void load().then(() => {
+      void load(ilkYuklemeBitti.current ? 'sessiz' : 'ilk').then(() => {
         void mesajRozetYenile();
       });
+      return () => {
+        loadNesil.current += 1;
+        setRefreshing(false);
+        setLoading(false);
+      };
     }, [load, sayfayiAcincaTemizle, mesajRozetYenile]),
   );
 
   useMesajInboxKanali(() => {
-    void load();
+    void load('sessiz');
   });
 
   const yeniSohbet = () => {
@@ -82,7 +100,7 @@ export default function MessagesScreen() {
             onPress: () => {
               void (async () => {
                 await MesajThreadArsivle(konu.id, false);
-                await load();
+                await load('sessiz');
               })();
             },
           }
@@ -91,7 +109,7 @@ export default function MessagesScreen() {
             onPress: () => {
               void (async () => {
                 await MesajThreadArsivle(konu.id, true);
-                await load();
+                await load('sessiz');
               })();
             },
           },
@@ -111,7 +129,7 @@ export default function MessagesScreen() {
                   void (async () => {
                     const r = await MesajSohbetSil(konu.id);
                     if (!r.ok) Alert.alert('Silinemedi', r.hata);
-                    else await load();
+                    else await load('sessiz');
                   })();
                 },
               },
@@ -167,8 +185,8 @@ export default function MessagesScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={loading}
-              onRefresh={load}
+              refreshing={refreshing}
+              onRefresh={() => void load('pull')}
               tintColor={RenkTokenlari.primary}
             />
           }

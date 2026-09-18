@@ -733,6 +733,13 @@ export default function WalletScreen() {
                   packages={packages}
                   locked={purchaseLocked}
                   onBuy={onBuy}
+                  onPaketleriYenile={() => {
+                    CoinPaketleriniGetir()
+                      .then((data) => {
+                        if (data.length) setPackages(data);
+                      })
+                      .catch(() => undefined);
+                  }}
                 />
               </View>
             ) : null}
