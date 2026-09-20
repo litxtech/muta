@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../../src/components/Screen';
@@ -142,11 +142,20 @@ function formatTarih(iso: string): string {
   }
 }
 
+function sekmeParamCoz(v: unknown): Sekme | null {
+  const s = Array.isArray(v) ? v[0] : v;
+  if (s === 'hareket' || s === 'hediye' || s === 'yukle' || s === 'cekim') {
+    return s;
+  }
+  return null;
+}
+
 export default function WalletScreen() {
   const { wallet, refreshWallet, adjustWallet, isGuest, refreshProfile, user, profile } =
     useAuth();
   const { config: cuzdanUi } = useCuzdanUiConfig();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
+  const params = useLocalSearchParams<{ sekme?: string | string[] }>();
   const scrollRef = useRef<KlavyeScrollHandle>(null);
   const [packages, setPackages] = useState<CoinPackage[]>(COIN_PAKET_FALLBACK);
   const [ledger, setLedger] = useState<LedgerSatiri[]>([]);
@@ -157,7 +166,9 @@ export default function WalletScreen() {
   const [purchaseLocked, setPurchaseLocked] = useState(false);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
   const [banka, setBanka] = useState<BankaHesabi | null>(null);
-  const [sekme, setSekme] = useState<Sekme>('hareket');
+  const [sekme, setSekme] = useState<Sekme>(
+    () => sekmeParamCoz(params.sekme) ?? 'hareket',
+  );
   const [detay, setDetay] = useState<CuzdanHareketDetay | null>(null);
   const [oyunlar, setOyunlar] = useState<OyunGecmisiKaydi[]>([]);
   const [oyunStats, setOyunStats] = useState<OyunOyuncuIstatistik | null>(null);
@@ -184,11 +195,15 @@ export default function WalletScreen() {
     CoinPaketleriniGetir()
       .then(async (data) => {
         if (!data.length) return;
+        // Önce DB — IAP ayrı (Expo Go / native yoksa boş döner, çökmez)
+        setPackages(data);
         try {
           const fiyatlar = await MagazaFiyatlariniYukle(data);
-          setPackages(PaketlereMagazaFiyatiUygula(data, fiyatlar));
+          if (Object.keys(fiyatlar).length) {
+            setPackages(PaketlereMagazaFiyatiUygula(data, fiyatlar));
+          }
         } catch {
-          setPackages(data);
+          /* DB fiyatları kalır */
         }
       })
       .catch(() => undefined);
@@ -413,6 +428,12 @@ export default function WalletScreen() {
       ? ([{ id: 'cekim' as const, label: 'Çekim', icon: 'cash-outline' as const }] as const)
       : []),
   ];
+
+  // Bildirim / deep link: ?sekme=yukle → Yükle sekmesi
+  React.useEffect(() => {
+    const hedef = sekmeParamCoz(params.sekme);
+    if (hedef) setSekme(hedef);
+  }, [params.sekme]);
 
   // Çekim kapalıyken sekmede kalma
   React.useEffect(() => {
@@ -881,7 +902,9 @@ export default function WalletScreen() {
                   keyboardType="number-pad"
                   placeholder="Miktar (elmas)"
                   onFocus={(e) =>
-                    KlavyeFocusKaydir(scrollRef.current, e, { delayMs: 60 })
+                    KlavyeFocusKaydir(scrollRef.current, e as never, {
+                      delayMs: 60,
+                    })
                   }
                 />
                 <Pressable

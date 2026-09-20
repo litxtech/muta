@@ -1,3 +1,35 @@
+/** Coin / ajans yükleme bildirimleri → cüzdan Yükle sekmesi */
+const YUKLEME_TIPLERI = new Set([
+  'coin_purchase',
+  'agency_topup',
+  'admin_topup',
+  'wallet_topup',
+]);
+
+function cuzdanYukleYolu(): string {
+  return '/(tabs)/wallet?sekme=yukle';
+}
+
+function cuzdanHareketYolu(): string {
+  return '/(tabs)/wallet?sekme=hareket';
+}
+
+function yuklemeTipiMi(type: string, category?: string): boolean {
+  if (YUKLEME_TIPLERI.has(type)) return true;
+  if (category === 'wallet') {
+    if (
+      type.startsWith('wallet_transfer') ||
+      type.includes('trade') ||
+      type.includes('withdraw')
+    ) {
+      return false;
+    }
+    // Genel cüzdan / yükleme tamam bildirimleri
+    return !type || YUKLEME_TIPLERI.has(type) || type.includes('topup') || type.includes('purchase');
+  }
+  return false;
+}
+
 /** Bildirim tıklanınca gidecek rota */
 export function BildirimHedefYolu(input: {
   deep_link?: string | null;
@@ -11,7 +43,27 @@ export function BildirimHedefYolu(input: {
     return typeof v === 'string' && v.trim() ? v.trim() : null;
   };
 
+  const type = (str('type') ?? '').toLowerCase();
   const ham = (input.deep_link ?? '').trim();
+
+  // /(tabs)/wallet (± query) — yükleme bildirimlerinde Yükle sekmesi
+  if (
+    ham === '/(tabs)/wallet' ||
+    ham === '/wallet' ||
+    ham.startsWith('/(tabs)/wallet?')
+  ) {
+    if (ham.includes('sekme=')) return ham;
+    if (yuklemeTipiMi(type, input.category)) return cuzdanYukleYolu();
+    if (
+      type.startsWith('wallet_transfer') ||
+      type.includes('withdraw')
+    ) {
+      return cuzdanHareketYolu();
+    }
+    if (input.category === 'wallet') return cuzdanYukleYolu();
+    return ham;
+  }
+
   if (
     ham &&
     ham !== '/(tabs)/profile' &&
@@ -36,7 +88,6 @@ export function BildirimHedefYolu(input: {
   const election = str('election_id');
   if (election) return `/sehir/secim/${election}`;
 
-  const type = (str('type') ?? '').toLowerCase();
   if (
     type === 'city_election_start' ||
     type === 'city_election_voting' ||
@@ -68,8 +119,14 @@ export function BildirimHedefYolu(input: {
   ) {
     return str('agency_id') ? '/ajans/teklifler' : '/cuzdan/takas?sekme=teklifler';
   }
-  if (type === 'coin_purchase' || input.category === 'wallet') {
-    return '/(tabs)/wallet';
+  if (yuklemeTipiMi(type, input.category)) {
+    return cuzdanYukleYolu();
+  }
+  if (type.startsWith('wallet_transfer') || type.includes('withdraw')) {
+    return cuzdanHareketYolu();
+  }
+  if (input.category === 'wallet') {
+    return cuzdanYukleYolu();
   }
   if (actor) return `/kullanici/${actor}`;
   if (ham) return ham;

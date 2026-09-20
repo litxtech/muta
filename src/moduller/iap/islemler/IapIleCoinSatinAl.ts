@@ -1,14 +1,4 @@
 import { Platform } from 'react-native';
-import {
-  endConnection,
-  fetchProducts,
-  finishTransaction,
-  initConnection,
-  purchaseErrorListener,
-  purchaseUpdatedListener,
-  requestPurchase,
-  type Purchase,
-} from 'expo-iap';
 import { FinansIdempotencyAnahtariOlustur } from '../../cuzdan/islemler/FinansIdempotencyAnahtariOlustur';
 import { KillSwitchAktifMiSunucu } from '../../ozellik-bayraklari/okuma/KillSwitchAktifMiSunucu';
 import { OzellikBayragiAktifMiSunucu } from '../../ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
@@ -28,7 +18,7 @@ function storeProductId(pkg: CoinPackage): string {
 
 /**
  * Native IAP (StoreKit / Play Billing). Expo Go'da yok — development build gerekir.
- * iOS dijital coin: Stripe YASAK; bu yol zorunlu.
+ * expo-iap dinamik import — canlı/cüzdan mount'ta native modül yüklenmez.
  */
 export async function IapIleCoinSatinAl(pkg: CoinPackage): Promise<IapSatinAlSonuc> {
   if (await KillSwitchAktifMiSunucu('kill_coin_purchase')) {
@@ -40,6 +30,43 @@ export async function IapIleCoinSatinAl(pkg: CoinPackage): Promise<IapSatinAlSon
   if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
     return { ok: false, hata: 'IAP yalnızca iOS/Android.', kod: 'store' };
   }
+
+  try {
+    const Constants = (await import('expo-constants')).default;
+    if (Constants.appOwnership === 'expo') {
+      return {
+        ok: false,
+        hata: 'Coin satın alma için development / production build gerekir (Expo Go desteklemez).',
+        kod: 'store',
+      };
+    }
+  } catch {
+    /* devam */
+  }
+
+  let iap: typeof import('expo-iap');
+  try {
+    iap = await import('expo-iap');
+  } catch (e) {
+    return {
+      ok: false,
+      hata:
+        e instanceof Error
+          ? e.message
+          : 'IAP modülü yok (native build gerekir).',
+      kod: 'store',
+    };
+  }
+
+  const {
+    endConnection,
+    fetchProducts,
+    finishTransaction,
+    initConnection,
+    purchaseErrorListener,
+    purchaseUpdatedListener,
+    requestPurchase,
+  } = iap;
 
   const sku = storeProductId(pkg);
   const idempotencyKey = FinansIdempotencyAnahtariOlustur('coin_purchase');
@@ -68,7 +95,7 @@ export async function IapIleCoinSatinAl(pkg: CoinPackage): Promise<IapSatinAlSon
       resolve(r);
     };
 
-    const subUpdate = purchaseUpdatedListener(async (purchase: Purchase) => {
+    const subUpdate = purchaseUpdatedListener(async (purchase) => {
       try {
         const productId = purchase.productId;
         if (productId !== sku) return;

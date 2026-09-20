@@ -97,13 +97,14 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** Stüdyo açılışında güvenli ön ısıtma — room oluşturmaz */
+/** Stüdyo açılışında güvenli ön ısıtma — room oluşturmaz, Alert yok */
 export async function CanliYayinOnHazirlik(video: boolean): Promise<void> {
   try {
     await MedyaIzinleriniIste({
       mikrofon: true,
       kamera: video,
       amac: 'yayin',
+      ayarlarDiyalog: false,
     });
     log('permissions_prewarm');
   } catch (e) {

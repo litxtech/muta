@@ -11,11 +11,12 @@ type Props = {
 
 /**
  * Canli yayin lokal onizleme — LiveKit remote video ayri katman.
- * Expo Go / izin yoksa placeholder gosterir.
+ * Expo Go / izin yok / native hata → placeholder (asla çökme).
  */
 export function CanliKameraOnizleme({ aktif, facing = 'front' }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [hata, setHata] = useState<string | null>(null);
+  const [kameraKirildi, setKameraKirildi] = useState(false);
 
   useEffect(() => {
     if (!aktif) return;
@@ -25,30 +26,48 @@ export function CanliKameraOnizleme({ aktif, facing = 'front' }: Props) {
         .then((r) => {
           if (!r.granted) setHata('Kamera izni gerekli');
         })
-        .catch(() => setHata('Kamera kullanılamıyor (native build gerekebilir)'));
+        .catch(() =>
+          setHata('Kamera kullanılamıyor (native build gerekebilir)'),
+        );
     }
   }, [aktif, permission, requestPermission]);
 
   if (!aktif) return null;
 
-  if (hata || !permission?.granted) {
+  if (hata || kameraKirildi || !permission?.granted) {
     return (
       <View style={styles.placeholder}>
         <Text style={styles.placeholderText}>
-          {hata ?? 'Kamera izni bekleniyor…'}
+          {kameraKirildi
+            ? 'Kamera önizleme bu cihazda açılamadı'
+            : (hata ?? 'Kamera izni bekleniyor…')}
         </Text>
       </View>
     );
   }
 
-  return (
-    <View style={styles.wrap}>
-      <CameraView style={styles.camera} facing={facing} mode="video" />
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>CANLI ÖNİZLEME</Text>
+  try {
+    return (
+      <View style={styles.wrap}>
+        <CameraView
+          style={styles.camera}
+          facing={facing}
+          onMountError={() => setKameraKirildi(true)}
+        />
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>CANLI ÖNİZLEME</Text>
+        </View>
       </View>
-    </View>
-  );
+    );
+  } catch {
+    return (
+      <View style={styles.placeholder}>
+        <Text style={styles.placeholderText}>
+          Kamera önizleme kullanılamıyor
+        </Text>
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({

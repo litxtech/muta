@@ -36,7 +36,11 @@ export function CuzdanDinamikAksiyonGrid({ actions, onPress }: Props) {
           accessibilityLabel={a.title}
         >
           <Ionicons
-            name={(a.icon as keyof typeof Ionicons.glyphMap) || 'ellipse-outline'}
+            name={
+              a.icon && a.icon in Ionicons.glyphMap
+                ? (a.icon as keyof typeof Ionicons.glyphMap)
+                : 'ellipse-outline'
+            }
             size={18}
             color={a.icon_color || '#fff'}
           />

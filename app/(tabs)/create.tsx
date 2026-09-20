@@ -149,7 +149,12 @@ export default function CreateRoomScreen() {
       return;
     }
     if (kod === 'canli_yayin') {
-      router.push('/canli' as any);
+      // Stack'te güvenli geçiş — replace fallback (push çökerse)
+      try {
+        router.push('/canli' as any);
+      } catch {
+        router.replace('/canli' as any);
+      }
       return;
     }
     if (kod === 'durum') {

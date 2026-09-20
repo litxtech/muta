@@ -28,11 +28,16 @@ export function useCoinYuklePaneli() {
   const [purchaseLocked, setPurchaseLocked] = useState(false);
   const magazaYukleniyor = useRef(false);
 
-  const paketleriYenile = useCallback(async () => {
+  /** DB paketleri — mağaza fiyatı yok (IAP yalnız panel açıkken) */
+  const paketleriYenile = useCallback(async (magazaFiyat = false) => {
     void KillSwitchAktifMiSunucu('kill_coin_purchase').then(setPurchaseLocked);
     try {
       const data = await CoinPaketleriniGetir();
       if (!data.length) return;
+      if (!magazaFiyat) {
+        setPackages(data);
+        return;
+      }
       if (magazaYukleniyor.current) {
         setPackages(data);
         return;
@@ -51,13 +56,15 @@ export function useCoinYuklePaneli() {
     }
   }, []);
 
+  // Mount: yalnız katalog — canlı/oda ekranında IAP init etme (çökme riski)
   useEffect(() => {
-    void paketleriYenile();
+    void paketleriYenile(false);
   }, [paketleriYenile]);
 
+  // Panel açılınca mağaza fiyatı (native build)
   useEffect(() => {
     if (!acik) return;
-    void paketleriYenile();
+    void paketleriYenile(true);
   }, [acik, paketleriYenile]);
 
   // Admin değişiklikleri — realtime

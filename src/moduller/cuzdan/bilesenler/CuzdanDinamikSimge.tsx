@@ -25,9 +25,11 @@ export function CuzdanDinamikSimge({
   const bg = 'background' in icon ? icon.background : undefined;
   const radius = 'radius' in icon ? Number(icon.radius ?? 12) : 12;
   const url = icon.url?.trim();
-  const ion =
-    (icon.ionicon as keyof typeof Ionicons.glyphMap | undefined) ||
-    fallbackIonicon;
+  const ionRaw = icon.ionicon;
+  const ion: keyof typeof Ionicons.glyphMap =
+    ionRaw && ionRaw in Ionicons.glyphMap
+      ? (ionRaw as keyof typeof Ionicons.glyphMap)
+      : fallbackIonicon;
 
   const showUrl =
     (icon.source === 'url' || (!!url && icon.source !== 'ionicon')) &&
