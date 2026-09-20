@@ -178,6 +178,36 @@ export async function AdminPaketAktiflik(
   if (error) rpcHata(error);
 }
 
+export async function AdminCoinPaketGuncelle(input: {
+  id: string;
+  title?: string | null;
+  coins?: number | null;
+  bonusCoins?: number | null;
+  badge?: string | null;
+  campaignText?: string | null;
+  sortOrder?: number | null;
+  isActive?: boolean | null;
+  priceTry?: number | null;
+  priceUsd?: number | null;
+}): Promise<AdminPaket> {
+  const { data, error } = await supabase.rpc('admin_coin_paket_guncelle', {
+    p_id: input.id,
+    p_title: input.title ?? null,
+    p_coins: input.coins ?? null,
+    p_bonus_coins: input.bonusCoins ?? null,
+    p_badge: input.badge ?? null,
+    p_campaign_text: input.campaignText ?? null,
+    p_sort_order: input.sortOrder ?? null,
+    p_is_active: input.isActive ?? null,
+    p_price_try: input.priceTry ?? null,
+    p_price_usd: input.priceUsd ?? null,
+  });
+  if (error) rpcHata(error);
+  const paket = (data as { paket?: AdminPaket })?.paket;
+  if (!paket) throw new Error('Paket güncellenemedi');
+  return paket;
+}
+
 export async function AdminHediyeAktiflik(
   id: string,
   active: boolean,

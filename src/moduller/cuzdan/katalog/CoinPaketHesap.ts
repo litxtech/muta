@@ -1,68 +1,131 @@
 /**
- * Coin ekonomi modeli — tek kaynak.
- *
- * Liste fiyatı: 1 coin = 0,10 ₺  (10 coin = 1 ₺)
- * Büyük pakette bonus → efektif ₺/coin düşer (TikTok tarzı merdiven).
- * App Store tahsilatı Connect price point’ten gelir; bu oran UI + coin hesabı içindir.
+ * Coin paket kataloğu — Store Product ID'leri sabittir (App Store / Play).
+ * Coin miktarı / bonus / görünürlük admin + Supabase'ten gelir.
+ * Gerçek tahsilat fiyatı StoreKit / Play Billing'den okunur (price_try referans).
  */
 
 export const COIN_TRY_ORANI = 0.1;
 
-/** Mağaza IAP uçları — Apple TRY price point (X.99) */
-export const APPLE_TRY_MIN = 99.99;
-export const APPLE_TRY_MAX = 4_999.99;
+/** Mağaza IAP Product ID'leri — DEĞİŞTİRİLMEZ */
+export const TAMUSO_COIN_PRODUCT_IDS = [
+  'tamuso_coin_pack_1',
+  'tamuso_coin_pack_2',
+  'tamuso_coin_pack_3',
+  'tamuso_coin_pack_4',
+  'tamuso_coin_pack_5',
+  'tamuso_coin_pack_6',
+  'tamuso_coin_pack_7',
+  'tamuso_coin_pack_8',
+] as const;
+
+export type TamusoCoinProductId = (typeof TAMUSO_COIN_PRODUCT_IDS)[number];
 
 export type CoinPaketKademe = {
-  sku: string;
+  sku: TamusoCoinProductId;
   title: string;
+  /** Referans liste (mağaza fiyatı UI'da override eder) */
   priceTry: number;
   priceUsd: number;
-  /** Liste üzeri bonus % (0 = birebir oran) */
-  bonusYuzde: number;
+  coins: number;
+  bonusCoins: number;
   badge: string | null;
   sortOrder: number;
+  /** Pack 5–8 varsayılan kapalı; admin açar */
+  isActiveDefault: boolean;
 };
 
 /**
- * 4 kademe: Apple uyumlu 99,99 → 4.999,99
- * Bonus merdiveni: 0% / 5% / 12% / 20%
+ * Pack 1–4: talimat coin miktarları.
+ * Pack 5–8: coin admin panelinden — burada tahmin yok (0).
  */
 export const COIN_PAKET_KADEMELERI: readonly CoinPaketKademe[] = [
   {
-    sku: 'coins_try_99_99',
-    title: 'Başlangıç',
-    priceTry: APPLE_TRY_MIN,
+    sku: 'tamuso_coin_pack_1',
+    title: 'Başlangıç Coin Paketi',
+    priceTry: 99.99,
     priceUsd: 2.99,
-    bonusYuzde: 0,
+    coins: 400,
+    bonusCoins: 0,
     badge: null,
     sortOrder: 1,
+    isActiveDefault: true,
   },
   {
-    sku: 'coins_try_499_99',
-    title: 'Popüler',
-    priceTry: 499.99,
+    sku: 'tamuso_coin_pack_2',
+    title: 'Popüler Coin Paketi',
+    priceTry: 489.99,
     priceUsd: 14.99,
-    bonusYuzde: 5,
+    coins: 1500,
+    bonusCoins: 0,
     badge: 'POPÜLER',
     sortOrder: 2,
+    isActiveDefault: true,
   },
   {
-    sku: 'coins_try_999_99',
-    title: 'Prestij',
+    sku: 'tamuso_coin_pack_3',
+    title: 'Prestij Coin Paketi',
     priceTry: 999.99,
     priceUsd: 29.99,
-    bonusYuzde: 12,
-    badge: 'VIP',
+    coins: 2400,
+    bonusCoins: 0,
+    badge: null,
     sortOrder: 3,
+    isActiveDefault: true,
   },
   {
-    sku: 'coins_try_4999_99',
-    title: 'Max',
-    priceTry: APPLE_TRY_MAX,
+    sku: 'tamuso_coin_pack_4',
+    title: 'Max Coin Paketi',
+    priceTry: 4999.99,
     priceUsd: 149.99,
-    bonusYuzde: 20,
+    coins: 5200,
+    bonusCoins: 0,
     badge: 'MAX',
     sortOrder: 4,
+    isActiveDefault: true,
+  },
+  {
+    sku: 'tamuso_coin_pack_5',
+    title: 'Plus Coin Paketi',
+    priceTry: 0,
+    priceUsd: 0,
+    coins: 0,
+    bonusCoins: 0,
+    badge: null,
+    sortOrder: 5,
+    isActiveDefault: false,
+  },
+  {
+    sku: 'tamuso_coin_pack_6',
+    title: 'Elite Coin Paketi',
+    priceTry: 0,
+    priceUsd: 0,
+    coins: 0,
+    bonusCoins: 0,
+    badge: null,
+    sortOrder: 6,
+    isActiveDefault: false,
+  },
+  {
+    sku: 'tamuso_coin_pack_7',
+    title: 'Premium Coin Paketi',
+    priceTry: 0,
+    priceUsd: 0,
+    coins: 0,
+    bonusCoins: 0,
+    badge: null,
+    sortOrder: 7,
+    isActiveDefault: false,
+  },
+  {
+    sku: 'tamuso_coin_pack_8',
+    title: 'Ultra Coin Paketi',
+    priceTry: 0,
+    priceUsd: 0,
+    coins: 0,
+    bonusCoins: 0,
+    badge: null,
+    sortOrder: 8,
+    isActiveDefault: false,
   },
 ] as const;
 
@@ -74,51 +137,36 @@ export type CoinPaketHesap = {
   coins: number;
   bonusCoins: number;
   toplamCoin: number;
-  bonusYuzde: number;
-  /** Liste: her zaman ~0.10 */
-  listeTlPerCoin: number;
-  /** Ödenen ₺ / toplam coin (bonuslu) */
-  efektifTlPerCoin: number;
   badge: string | null;
   sortOrder: number;
 };
 
-/** Taban coin = fiyat ÷ 0.10 (yuvarlak) */
-export function TabanCoinHesapla(priceTry: number): number {
-  const p = Number(priceTry);
-  if (!Number.isFinite(p) || p <= 0) return 0;
-  return Math.max(1, Math.round(p / COIN_TRY_ORANI));
-}
-
 export function PaketHesapla(k: CoinPaketKademe): CoinPaketHesap {
-  const coins = TabanCoinHesapla(k.priceTry);
-  const bonusCoins =
-    k.bonusYuzde > 0 ? Math.round((coins * k.bonusYuzde) / 100) : 0;
-  const toplamCoin = coins + bonusCoins;
+  const toplamCoin = k.coins + k.bonusCoins;
   return {
     sku: k.sku,
     title: k.title,
     priceTry: k.priceTry,
     priceUsd: k.priceUsd,
-    coins,
-    bonusCoins,
+    coins: k.coins,
+    bonusCoins: k.bonusCoins,
     toplamCoin,
-    bonusYuzde: k.bonusYuzde,
-    listeTlPerCoin: COIN_TRY_ORANI,
-    efektifTlPerCoin:
-      toplamCoin > 0
-        ? Math.round((k.priceTry / toplamCoin) * 10000) / 10000
-        : COIN_TRY_ORANI,
     badge: k.badge,
     sortOrder: k.sortOrder,
   };
 }
 
 export function TumPaketHesaplari(): CoinPaketHesap[] {
-  return COIN_PAKET_KADEMELERI.map(PaketHesapla);
+  return COIN_PAKET_KADEMELERI.filter((k) => k.isActiveDefault).map(PaketHesapla);
 }
 
-/** Kaç adet 1-coin hediye (gül) alınır */
+/** @deprecated Oran tabanlı hesap — yeni sistemde kullanılmaz */
+export function TabanCoinHesapla(priceTry: number): number {
+  const p = Number(priceTry);
+  if (!Number.isFinite(p) || p <= 0) return 0;
+  return Math.max(1, Math.round(p / COIN_TRY_ORANI));
+}
+
 export function GulKarsiligi(toplamCoin: number): number {
   return Math.max(0, Math.floor(toplamCoin));
 }

@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.92, transform: [{ scale: 0.985 }] },
   aura: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: YaricapTokenlari.lg,
     backgroundColor: 'rgba(240, 180, 41, 0.22)',
   },

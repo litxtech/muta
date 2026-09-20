@@ -53,13 +53,13 @@ export default function TabsLayout() {
     >
       <Tabs
         backBehavior="none"
-        detachInactiveScreens={false}
+        detachInactiveScreens
         tabBar={() => null}
         screenOptions={{
           headerShown: false,
           animation: 'none',
-          lazy: false,
-          freezeOnBlur: false,
+          lazy: true,
+          freezeOnBlur: true,
           tabBarStyle: {
             display: 'none',
             height: 0,
@@ -71,13 +71,13 @@ export default function TabsLayout() {
         }}
       >
         <Tabs.Screen name="index" options={{ title: 'Ana Sayfa', lazy: false }} />
-        <Tabs.Screen name="durum" options={{ title: 'Durum', lazy: false }} />
-        <Tabs.Screen name="create" options={{ title: 'Oluştur', lazy: false }} />
+        <Tabs.Screen name="durum" options={{ title: 'Durum', lazy: true }} />
+        <Tabs.Screen name="create" options={{ title: 'Oluştur', lazy: true }} />
         <Tabs.Screen
           name="messages"
-          options={{ title: 'Mesajlar', lazy: false }}
+          options={{ title: 'Mesajlar', lazy: true }}
         />
-        <Tabs.Screen name="profile" options={{ title: 'Profil', lazy: false }} />
+        <Tabs.Screen name="profile" options={{ title: 'Profil', lazy: true }} />
         <Tabs.Screen name="rooms" options={{ href: null, title: 'Odalar' }} />
         <Tabs.Screen name="wallet" options={{ href: null, title: 'Cüzdan' }} />
         <Tabs.Screen

@@ -5,6 +5,7 @@ import { InteractionManager, LogBox } from 'react-native';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from '../src/contexts/AuthContext';
+import { CuzdanUiProvider } from '../src/moduller/cuzdan/ui-config/useCuzdanUiConfig';
 import { BildirimSaglayici } from '../src/moduller/bildirimler/baglam/BildirimSaglayici';
 import { MesajOkunmamisSaglayici } from '../src/moduller/mesajlasma/baglam/MesajOkunmamisSaglayici';
 import { GorusmeGelenSaglayici } from '../src/moduller/gorusme/bilesenler/GorusmeGelenSaglayici';
@@ -94,6 +95,7 @@ function KokIcerik() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: palet.bg }}>
       <UygulamaHataSiniri>
         <AuthProvider>
+          <CuzdanUiProvider>
           <KullanimSuresiSaglayici>
           <BildirimSaglayici>
           <MesajOkunmamisSaglayici>
@@ -229,6 +231,10 @@ function KokIcerik() {
           />
           <Stack.Screen name="admin/odalar" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="admin/ekonomi" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen
+            name="admin/coin-paketleri"
+            options={{ animation: 'slide_from_right' }}
+          />
           <Stack.Screen name="admin/oyunlar" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="admin/oyun-test" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
@@ -290,6 +296,7 @@ function KokIcerik() {
           </MesajOkunmamisSaglayici>
           </BildirimSaglayici>
           </KullanimSuresiSaglayici>
+          </CuzdanUiProvider>
         </AuthProvider>
       </UygulamaHataSiniri>
     </GestureHandlerRootView>

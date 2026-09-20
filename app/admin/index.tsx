@@ -89,6 +89,22 @@ const MODULLER: Modul[] = [
     bolum: 'İnsanlar',
   },
   {
+    icon: 'pricetags-outline',
+    label: 'Coin paketleri',
+    alt: 'Product ID · coin · bonus · kampanya',
+    href: '/admin/coin-paketleri',
+    tint: RenkTokenlari.primarySoft,
+    bolum: 'İnsanlar',
+  },
+  {
+    icon: 'color-palette-outline',
+    label: 'Cüzdan yönetimi',
+    alt: 'Simge · tema · bölüm · yayın / geri al',
+    href: '/admin/cuzdan-yonetimi',
+    tint: RenkTokenlari.primarySoft,
+    bolum: 'İnsanlar',
+  },
+  {
     icon: 'cash-outline',
     label: 'Ciro',
     alt: 'Anlık · gün · hafta · ay · PDF',

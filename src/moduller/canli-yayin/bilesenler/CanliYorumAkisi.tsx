@@ -1,9 +1,8 @@
 /**
- * Canlı yayın yorum akışı — sadece mesaj listesi.
- * Composer alt barda; klavye input'u ezmez.
+ * Canlı yayın yorum akışı — son N mesaj, incremental realtime, float overlay.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -29,42 +28,60 @@ import { CanliYayinModerasyon } from '../islemler/CanliYayinIslemleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 
+const VARSAYILAN_MAX = 80;
+
 type Props = {
   sessionId: string;
   currentUserId?: string | null;
   hostId?: string | null;
   yenileSinyali?: number;
-  /** true: üst başlık gizlenir (çekilebilir kart kendi başlığını gösterir) */
   baslikGizle?: boolean;
   onClose?: () => void;
+  /** Bellekte tutulan max yorum */
+  maxMesaj?: number;
+  /** TikTok tarzı şeffaf float — kart/fade yok */
+  floatMod?: boolean;
 };
 
-export function CanliYorumAkisi({
+function mesajiKirp(
+  list: CanliSohbetMesajGorunum[],
+  max: number,
+): CanliSohbetMesajGorunum[] {
+  if (list.length <= max) return list;
+  return list.slice(list.length - max);
+}
+
+function CanliYorumAkisiInner({
   sessionId,
   currentUserId,
   hostId,
   yenileSinyali = 0,
   baslikGizle = false,
   onClose,
+  maxMesaj = VARSAYILAN_MAX,
+  floatMod = false,
 }: Props) {
   const [messages, setMessages] = useState<CanliSohbetMesajGorunum[]>([]);
   const [hedef, setHedef] = useState<CanliSohbetMesajGorunum | null>(null);
   const listRef = useRef<FlatList<CanliSohbetMesajGorunum>>(null);
+  const seenIds = useRef<Set<string>>(new Set());
   const isHost = !!currentUserId && !!hostId && currentUserId === hostId;
 
   const load = useCallback(async () => {
     try {
-      setMessages(await CanliYayinSohbetMesajlariniGetir(sessionId));
+      const rows = await CanliYayinSohbetMesajlariniGetir(sessionId);
+      const kirp = mesajiKirp(rows, maxMesaj);
+      seenIds.current = new Set(kirp.map((m) => m.id));
+      setMessages(kirp);
     } catch {
       /* migration yoksa sessiz */
     }
-  }, [sessionId]);
+  }, [sessionId, maxMesaj]);
 
   useFocusEffect(
     useCallback(() => {
       void load();
-      const t = setInterval(() => void load(), 10_000);
-      return () => clearInterval(t);
+      return () => undefined;
     }, [load]),
   );
 
@@ -78,7 +95,41 @@ export function CanliYorumAkisi({
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'live_chat_messages',
+          filter: `session_id=eq.${sessionId}`,
+        },
+        (payload) => {
+          const row = payload.new as CanliSohbetMesajGorunum & {
+            id?: string;
+          };
+          if (!row?.id || seenIds.current.has(row.id)) return;
+          seenIds.current.add(row.id);
+          setMessages((prev) =>
+            mesajiKirp(
+              [
+                ...prev,
+                {
+                  id: row.id,
+                  user_id: row.user_id,
+                  body: row.body,
+                  created_at: row.created_at ?? new Date().toISOString(),
+                  display_name: (row as { display_name?: string }).display_name,
+                  username: (row as { username?: string }).username,
+                  avatar_url: (row as { avatar_url?: string }).avatar_url,
+                  level: (row as { level?: number }).level,
+                },
+              ],
+              maxMesaj,
+            ),
+          );
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
           schema: 'public',
           table: 'live_chat_messages',
           filter: `session_id=eq.${sessionId}`,
@@ -91,7 +142,7 @@ export function CanliYorumAkisi({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [load, sessionId]);
+  }, [load, sessionId, maxMesaj]);
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -120,67 +171,57 @@ export function CanliYorumAkisi({
   const uzunBas = (item: CanliSohbetMesajGorunum) => {
     if (!currentUserId) return;
     const mine = item.user_id === currentUserId;
-
     if (mine) {
       yorumSil(item);
       return;
     }
-
     if (!isHost) {
       setHedef(item);
       return;
     }
-
-    Alert.alert(
-      item.display_name || item.username || 'Kullanıcı',
-      'Moderasyon',
-      [
-        {
-          text: 'Yorumu sil',
-          style: 'destructive',
-          onPress: () => yorumSil(item),
+    Alert.alert(item.display_name || item.username || 'Kullanıcı', 'Moderasyon', [
+      {
+        text: 'Yorumu sil',
+        style: 'destructive',
+        onPress: () => yorumSil(item),
+      },
+      {
+        text: 'Yayından at',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            const r = await CanliYayinModerasyon({
+              sessionId,
+              targetUserId: item.user_id,
+              action: 'kick',
+            });
+            if (!r.ok) Alert.alert('Atma', r.hata);
+            else Alert.alert('Atıldı', 'Kullanıcı yayından çıkarıldı.');
+          })();
         },
-        {
-          text: 'Yayından at',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              const r = await CanliYayinModerasyon({
-                sessionId,
-                targetUserId: item.user_id,
-                action: 'kick',
-              });
-              if (!r.ok) Alert.alert('Atma', r.hata);
-              else Alert.alert('Atıldı', 'Kullanıcı yayından çıkarıldı.');
-            })();
-          },
+      },
+      {
+        text: 'Engelle',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            const r = await CanliYayinModerasyon({
+              sessionId,
+              targetUserId: item.user_id,
+              action: 'ban',
+            });
+            if (!r.ok) Alert.alert('Engelle', r.hata);
+            else Alert.alert('Engellendi', 'Bu yayına tekrar giremez.');
+          })();
         },
-        {
-          text: 'Engelle',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              const r = await CanliYayinModerasyon({
-                sessionId,
-                targetUserId: item.user_id,
-                action: 'ban',
-              });
-              if (!r.ok) Alert.alert('Engelle', r.hata);
-              else Alert.alert('Engellendi', 'Bu yayına tekrar giremez.');
-            })();
-          },
-        },
-        {
-          text: 'Bildir / engelle…',
-          onPress: () => setHedef(item),
-        },
-        { text: 'Vazgeç', style: 'cancel' },
-      ],
-    );
+      },
+      { text: 'Bildir / engelle…', onPress: () => setHedef(item) },
+      { text: 'Vazgeç', style: 'cancel' },
+    ]);
   };
 
   return (
-    <View style={styles.root} pointerEvents="box-none">
+    <View style={[styles.root, floatMod && styles.rootFloat]} pointerEvents="box-none">
       {!baslikGizle ? (
         <View style={styles.header} pointerEvents="box-none">
           <Text style={styles.title}>Yorumlar</Text>
@@ -198,7 +239,7 @@ export function CanliYorumAkisi({
       ) : null}
 
       <View style={styles.listWrap}>
-        <CanliSohbetListeFade />
+        {!floatMod ? <CanliSohbetListeFade /> : null}
         <FlatList
           ref={listRef}
           data={messages}
@@ -210,6 +251,10 @@ export function CanliYorumAkisi({
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          removeClippedSubviews
+          initialNumToRender={12}
+          maxToRenderPerBatch={8}
+          windowSize={7}
           ListEmptyComponent={
             <Text style={styles.empty}>İlk yorumu yaz — herkes görsün.</Text>
           }
@@ -243,8 +288,11 @@ export function CanliYorumAkisi({
   );
 }
 
+export const CanliYorumAkisi = memo(CanliYorumAkisiInner);
+
 const styles = StyleSheet.create({
   root: { flex: 1, minHeight: 0 },
+  rootFloat: { backgroundColor: 'transparent' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -270,11 +318,14 @@ const styles = StyleSheet.create({
   },
   listWrap: { flex: 1, minHeight: 0, position: 'relative' },
   list: { flex: 1 },
-  listContent: { gap: 5, paddingBottom: 4, paddingRight: 2 },
+  listContent: { gap: 4, paddingBottom: 4, paddingRight: 2 },
   listEmpty: { flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 8 },
   empty: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
+    color: 'rgba(255,255,255,0.55)',
     paddingHorizontal: 2,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });

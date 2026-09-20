@@ -1,8 +1,9 @@
 /**
- * Canlı yayın tiyatrosu — tam ekran video + Reels tarzı çekilebilir yorum + hediye.
+ * Canlı yayın tiyatrosu — tam ekran video + şeffaf overlay UI.
+ * Video alt layer; yorum/hediye/kontroller absolute; video comment ile rerender olmaz.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Keyboard,
@@ -21,11 +22,10 @@ import { ModulHataSiniri } from '../../../ortak/hata-sinirlari/ModulHataSiniri';
 import { CanliYayinVideoSahne } from './CanliYayinVideoSahne';
 import { CanliYorumAkisi } from './CanliYorumAkisi';
 import { CanliYorumComposer } from './CanliYorumComposer';
-import { CanliYorumCekilebilirKart } from '../../canli-sohbet/bilesenler/CanliYorumCekilebilirKart';
 import { CanliBegeniEfekti } from './CanliBegeniEfekti';
-import {
-  CanliYayinBegen,
-} from '../islemler/CanliYayinIslemleri';
+import { CanliYayinBegen } from '../islemler/CanliYayinIslemleri';
+import { TakipEt } from '../../kullanici-profili/okuma/TakipIslemleri';
+import { LiveKitBaglantiYoneticisi } from '../../livekit/baglanti/LiveKitBaglantiYoneticisi';
 import { supabase } from '../../../lib/supabase';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
@@ -43,6 +43,7 @@ export type CanliYayinMeta = {
   gift_count: number;
   total_coins_earned: number;
   hostAd: string;
+  hostAvatar?: string | null;
 };
 
 type Props = {
@@ -59,9 +60,28 @@ type Props = {
   onCikis?: () => void;
   onPk?: () => void;
   onMeta?: (patch: Partial<CanliYayinMeta>) => void;
-  /** Aktif PK maçı — skor seridi */
   pkMac?: PkCanliMacDetay | null;
 };
+
+const VideoKatmani = memo(function VideoKatmani({
+  rol,
+  mock,
+  durumYazi,
+}: {
+  rol: 'host' | 'izleyici';
+  mock?: boolean;
+  durumYazi?: string;
+}) {
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <CanliYayinVideoSahne
+        rol={rol === 'host' ? 'host' : 'izleyici'}
+        mock={!!mock}
+        durumYazi={durumYazi}
+      />
+    </View>
+  );
+});
 
 export function CanliYayinTiyatro({
   rol,
@@ -81,14 +101,54 @@ export function CanliYayinTiyatro({
 }: Props) {
   const insets = useSafeAreaInsets();
   const { yukseklik: klavyeH, acik: klavyeAcik } = useKlavyeYuksekligi(0);
-  const [chatOpen, setChatOpen] = useState(true);
   const [yorumYenile, setYorumYenile] = useState(0);
   const [burst, setBurst] = useState<{ id: string; x: number; y: number } | null>(
     null,
   );
+  const [altBarH, setAltBarH] = useState(72);
+  const [takipBusy, setTakipBusy] = useState(false);
+  const [takipEdildi, setTakipEdildi] = useState(false);
+  const [baglantiBanner, setBaglantiBanner] = useState<string | null>(null);
   const begeniKilit = useRef(false);
+  const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Canlı istatistik realtime
+  useEffect(() => {
+    return LiveKitBaglantiYoneticisi.dinle((_durum, detay) => {
+      if (detay === 'reconnecting' || detay === 'signal-reconnecting') {
+        if (bannerTimer.current) clearTimeout(bannerTimer.current);
+        setBaglantiBanner('Bağlantı yeniden kuruluyor…');
+      } else if (detay === 'reconnected' || detay === 'connected') {
+        setBaglantiBanner((onceki) => {
+          if (
+            onceki === 'Bağlantı yeniden kuruluyor…' ||
+            onceki === 'Bağlantı koptu'
+          ) {
+            return 'Bağlantı yeniden kuruldu';
+          }
+          return null;
+        });
+        if (bannerTimer.current) clearTimeout(bannerTimer.current);
+        bannerTimer.current = setTimeout(() => setBaglantiBanner(null), 1600);
+      } else if (detay === 'disconnected') {
+        // Kasitli leave / rol yükseltme 'left' yayınlar — koptu göstermeyiz.
+        // Gerçek kopmada kısa debounce: hemen reconnect gelirse banner yok.
+        if (bannerTimer.current) clearTimeout(bannerTimer.current);
+        bannerTimer.current = setTimeout(() => {
+          setBaglantiBanner('Bağlantı koptu');
+        }, 1600);
+      } else if (detay === 'left' || detay === 'connecting') {
+        if (bannerTimer.current) clearTimeout(bannerTimer.current);
+        setBaglantiBanner(null);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (bannerTimer.current) clearTimeout(bannerTimer.current);
+    };
+  }, []);
+
   useEffect(() => {
     const ch = supabase
       .channel(`canli-meta-${meta.id}`)
@@ -97,8 +157,8 @@ export function CanliYayinTiyatro({
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'live_sessions',
           filter: `id=eq.${meta.id}`,
+          table: 'live_sessions',
         },
         (payload: { new?: Record<string, unknown> }) => {
           const n = payload.new;
@@ -118,7 +178,7 @@ export function CanliYayinTiyatro({
     return () => {
       void supabase.removeChannel(ch);
     };
-  }, [meta.id, meta.viewer_count, meta.like_count, meta.gift_count, meta.total_coins_earned, meta.title, onMeta]);
+  }, [meta.id]); // eslint-disable-line react-hooks/exhaustive-deps -- sadece session
 
   const ekranaDokun = useCallback(
     (e: { nativeEvent: { locationX: number; locationY: number } }) => {
@@ -139,11 +199,8 @@ export function CanliYayinTiyatro({
       begeniKilit.current = true;
       void CanliYayinBegen(meta.id).then((r) => {
         begeniKilit.current = false;
-        if (r.ok) {
-          onMeta?.({ like_count: r.like_count });
-        } else if (r.hata.includes('Misafir')) {
-          onNeedUpgrade?.();
-        }
+        if (r.ok) onMeta?.({ like_count: r.like_count });
+        else if (r.hata.includes('Misafir')) onNeedUpgrade?.();
       });
     },
     [canSend, klavyeAcik, meta.id, onMeta, onNeedUpgrade, rol],
@@ -153,363 +210,475 @@ export function CanliYayinTiyatro({
     if (rol === 'host' && onBitir) {
       Alert.alert('Yayını bitir', 'Çıkınca yayın sonlanır.', [
         { text: 'Vazgeç', style: 'cancel' },
-        {
-          text: 'Bitir',
-          style: 'destructive',
-          onPress: () => onBitir(),
-        },
+        { text: 'Bitir', style: 'destructive', onPress: () => onBitir() },
       ]);
       return;
     }
     onCikis?.();
   };
 
+  const takipEt = () => {
+    if (rol === 'host' || !currentUserId || takipEdildi || takipBusy) return;
+    if (!canSend) {
+      onNeedUpgrade?.();
+      return;
+    }
+    setTakipBusy(true);
+    void TakipEt(meta.host_id).then((r) => {
+      setTakipBusy(false);
+      if (r.ok) setTakipEdildi(true);
+      else Alert.alert('Takip', r.hata ?? 'Takip edilemedi');
+    });
+  };
+
+  const yorumBottom =
+    altBarH + 12 + (klavyeAcik ? (Platform.OS === 'ios' ? klavyeH : 0) : 0);
+  const altPad = klavyeAcik
+    ? Platform.OS === 'android'
+      ? 8
+      : Math.max(8, klavyeH)
+    : Math.max(insets.bottom, 8);
+
   return (
     <View style={styles.root}>
       <Pressable style={styles.stage} onPress={ekranaDokun}>
-        <View style={styles.videoFill} pointerEvents="none">
-          <CanliYayinVideoSahne
-            rol={rol === 'host' ? 'host' : 'izleyici'}
-            mock={!!medyaMock}
-            durumYazi={medyaDurum ?? undefined}
-          />
-        </View>
+        <VideoKatmani
+          rol={rol}
+          mock={medyaMock}
+          durumYazi={medyaDurum ?? undefined}
+        />
 
+        {/* Hafif okunabilirlik — videoyu karartmaz */}
         <LinearGradient
-          colors={['rgba(8,6,12,0.72)', 'transparent', 'rgba(8,6,12,0.62)']}
-          style={StyleSheet.absoluteFill}
+          colors={['rgba(0,0,0,0.35)', 'transparent']}
+          style={styles.gradUst}
+          pointerEvents="none"
+        />
+        <LinearGradient
+          colors={[
+            'transparent',
+            'rgba(0,0,0,0.15)',
+            'rgba(0,0,0,0.40)',
+          ]}
+          locations={[0, 0.55, 1]}
+          style={styles.gradAlt}
           pointerEvents="none"
         />
 
         <CanliBegeniEfekti burst={burst} />
 
-        <View style={[styles.topBar, { paddingTop: Math.max(8, insets.top + 4) }]}>
-          <Pressable onPress={cikisIste} style={styles.iconBtn} accessibilityLabel="Çık">
-            <Ionicons
-              name={rol === 'host' ? 'close' : 'chevron-down'}
-              size={22}
-              color={RenkTokenlari.text}
-            />
-          </Pressable>
-
-          <Pressable
-            style={styles.meta}
-            onPress={() => router.push(`/kullanici/${meta.host_id}` as any)}
+        {baglantiBanner ? (
+          <View
+            style={[
+              styles.baglantiBanner,
+              { top: Math.max(6, insets.top) + 52 },
+            ]}
+            pointerEvents="none"
           >
-            <Text style={styles.title} numberOfLines={1}>
-              {meta.title}
-            </Text>
-            <Text style={styles.sub} numberOfLines={1}>
-              {meta.hostAd}
-              {medyaDurum ? ` · ${medyaDurum}` : ''}
-            </Text>
-          </Pressable>
+            <Text style={styles.baglantiBannerYazi}>{baglantiBanner}</Text>
+          </View>
+        ) : null}
 
+        {/* Üst sol: yayıncı */}
+        <View
+          style={[styles.topOverlay, { paddingTop: Math.max(6, insets.top + 2) }]}
+          pointerEvents="box-none"
+        >
+          <View style={styles.hostSatir} pointerEvents="box-none">
+            <Pressable
+              style={styles.hostKart}
+              onPress={() => router.push(`/kullanici/${meta.host_id}` as any)}
+            >
+              <View style={styles.avatar}>
+                <Text style={styles.avatarHarf}>
+                  {(meta.hostAd || '?').charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.hostMetin}>
+                <Text style={styles.hostAd} numberOfLines={1}>
+                  {meta.hostAd}
+                </Text>
+                <Text style={styles.hostAlt} numberOfLines={1}>
+                  🪙 {meta.total_coins_earned.toLocaleString('tr-TR')}
+                  {meta.like_count > 0
+                    ? ` · ♥ ${meta.like_count.toLocaleString('tr-TR')}`
+                    : ''}
+                </Text>
+              </View>
+            </Pressable>
+
+            {rol === 'izleyici' && !takipEdildi ? (
+              <Pressable
+                style={styles.takipBtn}
+                onPress={takipEt}
+                disabled={takipBusy}
+              >
+                <Text style={styles.takipYazi}>Takip Et</Text>
+              </Pressable>
+            ) : null}
+            {takipEdildi ? (
+              <View style={styles.takipEdildi}>
+                <Text style={styles.takipEdildiYazi}>Takip</Text>
+              </View>
+            ) : null}
+          </View>
+
+          <View style={styles.sagUst}>
+            <View style={styles.izleyiciChip}>
+              <Ionicons name="eye" size={13} color="#fff" />
+              <Text style={styles.izleyiciSayi}>
+                {meta.viewer_count >= 1000
+                  ? `${(meta.viewer_count / 1000).toFixed(1)}K`
+                  : meta.viewer_count}
+              </Text>
+            </View>
+            <Pressable
+              onPress={cikisIste}
+              style={styles.kapatBtn}
+              accessibilityLabel={rol === 'host' ? 'Yayını bitir' : 'Çık'}
+            >
+              <Ionicons name="close" size={20} color="#fff" />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Chip satırı */}
+        <View
+          style={[styles.chipSatir, { top: Math.max(6, insets.top) + 52 }]}
+          pointerEvents="box-none"
+        >
+          <View style={styles.chip}>
+            <Text style={styles.chipYazi}>🔥 Saatlik</Text>
+          </View>
+          <Pressable
+            style={styles.chip}
+            onPress={() => router.push('/canli' as any)}
+          >
+            <Text style={styles.chipYazi}>Keşfet ›</Text>
+          </Pressable>
           <View style={styles.livePill}>
             <View style={styles.dot} />
             <Text style={styles.liveText}>CANLI</Text>
           </View>
         </View>
 
-        <View style={styles.statRow} pointerEvents="none">
-          <View style={styles.statChip}>
-            <Ionicons name="eye" size={13} color={RenkTokenlari.mint} />
-            <Text style={styles.statText}>{meta.viewer_count}</Text>
+        {pkMac ? (
+          <View style={[styles.pkWrap, { top: Math.max(6, insets.top) + 88 }]}>
+            <PkSkorSeridi mac={pkMac} selfLiveId={meta.id} />
           </View>
-          <View style={styles.statChip}>
-            <Ionicons name="heart" size={13} color={RenkTokenlari.live} />
-            <Text style={styles.statText}>{meta.like_count}</Text>
-          </View>
-          <View style={styles.statChip}>
-            <Text style={styles.statEmoji}>🎁</Text>
-            <Text style={styles.statText}>{meta.gift_count}</Text>
-          </View>
-          <View style={styles.statChip}>
-            <Text style={styles.statEmoji}>🪙</Text>
-            <Text style={styles.statText}>{meta.total_coins_earned}</Text>
-          </View>
-        </View>
-
-        {pkMac ? <PkSkorSeridi mac={pkMac} selfLiveId={meta.id} /> : null}
+        ) : null}
       </Pressable>
 
+      {/* Yorumlar — alt barın üstünde, input'u örtmez */}
       <View
-        style={[
-          styles.altBar,
-          {
-            marginBottom:
-              Platform.OS === 'android' && klavyeAcik ? klavyeH : 0,
-            paddingBottom: klavyeAcik
-              ? Platform.OS === 'android'
-                ? 6
-                : Math.max(6, klavyeH)
-              : Math.max(insets.bottom, 4),
-          },
-        ]}
+        style={[styles.yorumFloat, { bottom: yorumBottom }]}
+        pointerEvents="box-none"
       >
-        {chatOpen ? (
-          <View style={styles.yorumPanel} pointerEvents="box-none">
-            <ModulHataSiniri modulAdi="canlı sohbet" varyant="kart">
-              <CanliYorumCekilebilirKart
-                klavyeAcik={klavyeAcik}
-                onClose={() => setChatOpen(false)}
-              >
-                <CanliYorumAkisi
-                  sessionId={meta.id}
-                  currentUserId={currentUserId}
-                  hostId={meta.host_id}
-                  yenileSinyali={yorumYenile}
-                  baslikGizle
-                />
-              </CanliYorumCekilebilirKart>
-            </ModulHataSiniri>
-          </View>
-        ) : (
-          <Pressable style={styles.chatPeek} onPress={() => setChatOpen(true)}>
-            <Ionicons
-              name="chatbubble-ellipses"
-              size={18}
-              color={RenkTokenlari.mint}
-            />
-            <Text style={styles.chatPeekText}>Yorumları aç</Text>
-          </Pressable>
-        )}
+        <ModulHataSiniri modulAdi="canlı sohbet" varyant="kart">
+          <CanliYorumAkisi
+            sessionId={meta.id}
+            currentUserId={currentUserId}
+            hostId={meta.host_id}
+            yenileSinyali={yorumYenile}
+            baslikGizle
+            maxMesaj={80}
+            floatMod
+          />
+        </ModulHataSiniri>
+      </View>
 
-        {chatOpen ? (
-          <View style={styles.composerRow}>
-            <CanliYorumComposer
-              sessionId={meta.id}
-              canSend={canSend}
-              onNeedUpgrade={onNeedUpgrade}
-              onSent={() => {
-                setYorumYenile((n) => n + 1);
-                Keyboard.dismiss();
-              }}
-            />
-          </View>
-        ) : null}
-
-        {!klavyeAcik ? (
-          <View style={styles.controls}>
-            {onHediye ? (
-              <Pressable
-                onPress={() => onHediye()}
-                style={styles.giftBtn}
-                accessibilityLabel="Hediye gönder"
-              >
-                <LinearGradient
-                  colors={[...RenkTokenlari.gradientPrimary]}
-                  style={styles.giftBtnInner}
+      {/* Alt etkileşim çubuğu — şeffaf */}
+      <View
+        style={[styles.altBar, { paddingBottom: altPad }]}
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          if (h > 40 && Math.abs(h - altBarH) > 2) setAltBarH(h);
+        }}
+      >
+        <View style={styles.composerRow}>
+          <CanliYorumComposer
+            sessionId={meta.id}
+            canSend={canSend}
+            onNeedUpgrade={onNeedUpgrade}
+            onSent={() => {
+              setYorumYenile((n) => n + 1);
+            }}
+            placeholder="Yorum ekle..."
+          />
+          {!klavyeAcik ? (
+            <View style={styles.aksiyonlar}>
+              {onHediye ? (
+                <Pressable
+                  onPress={() => onHediye()}
+                  style={styles.aksiyonBtn}
+                  accessibilityLabel="Hediye"
                 >
-                  <Text style={styles.giftBtnText}>🎁</Text>
-                </LinearGradient>
-              </Pressable>
-            ) : null}
-
-            <Pressable
-              onPress={() => setChatOpen((v) => !v)}
-              style={styles.controlBtn}
-              accessibilityLabel="Yorumlar"
-            >
-              <Ionicons
-                name="chatbubble-ellipses"
-                size={22}
-                color={chatOpen ? RenkTokenlari.mint : RenkTokenlari.textMuted}
-              />
-            </Pressable>
-
-            {rol === 'host' &&
-            OzellikBayragiAktifMi('pk_enabled') &&
-            onPk ? (
-              <Pressable onPress={onPk} style={styles.controlBtn}>
-                <Ionicons name="flash" size={22} color="#F0B429" />
-              </Pressable>
-            ) : null}
-
-            {rol === 'host' && onBitir ? (
-              <Pressable onPress={cikisIste} style={styles.endBtn}>
-                <Text style={styles.endBtnText}>Bitir</Text>
-              </Pressable>
-            ) : null}
-
-            {walletCoins != null ? (
-              <View style={styles.coinChip}>
-                <Text style={styles.coinText}>🪙 {walletCoins}</Text>
-              </View>
-            ) : null}
-          </View>
-        ) : null}
+                  <Text style={styles.aksiyonEmoji}>🎁</Text>
+                </Pressable>
+              ) : null}
+              {rol === 'host' &&
+              OzellikBayragiAktifMi('pk_enabled') &&
+              onPk ? (
+                <Pressable onPress={onPk} style={styles.aksiyonBtn}>
+                  <Ionicons name="flash" size={20} color="#F0B429" />
+                </Pressable>
+              ) : null}
+              {walletCoins != null ? (
+                <View style={styles.coinChip}>
+                  <Text style={styles.coinText}>
+                    {walletCoins.toLocaleString('tr-TR')}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, minHeight: 0, backgroundColor: '#0A0810' },
-  stage: { flex: 1, minHeight: 0, position: 'relative' },
-  videoFill: { ...StyleSheet.absoluteFill },
-  topBar: {
+  root: { flex: 1, backgroundColor: '#000' },
+  stage: { ...StyleSheet.absoluteFill },
+  baglantiBanner: {
+    position: 'absolute',
+    alignSelf: 'center',
+    left: 24,
+    right: 24,
+    zIndex: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+  },
+  baglantiBannerYazi: {
+    ...TipografiTokenlari.micro,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  gradUst: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+    zIndex: 2,
+  },
+  gradAlt: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 220,
+    zIndex: 2,
+  },
+  topOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 6,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    gap: 8,
+  },
+  hostSatir: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 12,
-    zIndex: 4,
+    gap: 8,
+    flexShrink: 1,
+    maxWidth: '72%',
   },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(18,16,24,0.72)',
+  hostKart: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingRight: 10,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    maxWidth: '100%',
+  },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(232,64,145,0.35)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  meta: { flex: 1, minWidth: 0 },
-  title: {
-    ...TipografiTokenlari.h2,
-    color: RenkTokenlari.text,
-    fontSize: 16,
+  avatarHarf: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 15,
   },
-  sub: {
+  hostMetin: { flexShrink: 1, minWidth: 0, gap: 1 },
+  hostAd: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  hostAlt: {
+    ...TipografiTokenlari.micro,
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 10,
+  },
+  takipBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: RenkTokenlari.primarySoft,
+  },
+  takipYazi: {
+    ...TipografiTokenlari.micro,
+    color: '#1A1220',
+    fontWeight: '800',
+  },
+  takipEdildi: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  takipEdildiYazi: {
+    ...TipografiTokenlari.micro,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '700',
+  },
+  sagUst: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  izleyiciChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  izleyiciSayi: {
+    ...TipografiTokenlari.micro,
+    color: '#fff',
+    fontWeight: '800',
+  },
+  kapatBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipSatir: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    zIndex: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+  },
+  chipYazi: {
+    ...TipografiTokenlari.micro,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '700',
+    fontSize: 11,
   },
   livePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    gap: 5,
+    marginLeft: 'auto',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: YaricapTokenlari.pill,
-    backgroundColor: 'rgba(232,64,145,0.22)',
+    backgroundColor: 'rgba(232,64,145,0.35)',
   },
   dot: {
-    width: 6,
-    height: 6,
+    width: 5,
+    height: 5,
     borderRadius: 3,
     backgroundColor: RenkTokenlari.live,
   },
   liveText: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.primarySoft,
+    color: '#fff',
     fontWeight: '800',
+    fontSize: 10,
   },
-  statRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    paddingHorizontal: 12,
-    marginTop: 8,
-    zIndex: 4,
+  pkWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    zIndex: 5,
   },
-  statChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: YaricapTokenlari.pill,
-    backgroundColor: 'rgba(8,6,14,0.7)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
+  yorumFloat: {
+    position: 'absolute',
+    left: 8,
+    width: '78%',
+    maxWidth: 340,
+    height: 220,
+    zIndex: 7,
   },
-  statText: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.text,
-    fontWeight: '700',
-  },
-  statEmoji: { fontSize: 11 },
   altBar: {
-    flexShrink: 0,
-    gap: 6,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 10,
     paddingTop: 6,
-    backgroundColor: 'rgba(8,6,14,0.94)',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-  },
-  yorumPanel: {
     paddingHorizontal: 10,
+    gap: 6,
   },
   composerRow: {
-    paddingHorizontal: 12,
-    width: '100%',
-    zIndex: 8,
-    elevation: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
   },
-  chatPeek: {
-    alignSelf: 'center',
+  aksiyonlar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: YaricapTokenlari.pill,
-    backgroundColor: 'rgba(12,10,18,0.72)',
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
+    paddingBottom: 2,
   },
-  chatPeekText: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.mint,
-    fontWeight: '700',
-  },
-  controls: {
-    flexDirection: 'row',
+  aksiyonBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-    flexWrap: 'wrap',
-    paddingHorizontal: 12,
-    paddingBottom: 0,
-    gap: 12,
-    zIndex: 8,
-    elevation: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.18)',
   },
-  controlBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: RenkTokenlari.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-  },
-  giftBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    overflow: 'hidden',
-  },
-  giftBtnInner: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  giftBtnText: { fontSize: 20 },
-  endBtn: {
-    paddingHorizontal: 18,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: RenkTokenlari.danger,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  endBtnText: {
-    ...TipografiTokenlari.caption,
-    color: '#fff',
-    fontWeight: '800',
-  },
+  aksiyonEmoji: { fontSize: 20 },
   coinChip: {
-    paddingHorizontal: 12,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(240,180,41,0.16)',
+    paddingHorizontal: 10,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(240,180,41,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(240,180,41,0.35)',
   },
   coinText: {
-    ...TipografiTokenlari.caption,
+    ...TipografiTokenlari.micro,
     color: '#F0B429',
     fontWeight: '800',
   },

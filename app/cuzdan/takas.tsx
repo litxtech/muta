@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
@@ -22,6 +22,7 @@ import {
 } from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { supabase } from '../../src/lib/supabase';
+import { OzellikBayragiAktifMiSunucu } from '../../src/moduller/ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
 import { CuzdanHesabiGarantile } from '../../src/moduller/cuzdan/takas/CuzdanHesabi';
 import {
   CuzdanNoIleAliciGetir,
@@ -92,6 +93,25 @@ export default function CuzdanTakasEkrani() {
   const [mod, setMod] = useState<Mod>('menu');
   const [kyc, setKyc] = useState<string>('none');
   const [walletNo, setWalletNo] = useState('');
+  const [bayrakKontrol, setBayrakKontrol] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      void OzellikBayragiAktifMiSunucu('wallet_exchange_enabled').then((acik) => {
+        if (!alive) return;
+        if (!acik) {
+          Alert.alert('Takas kapalı', 'Bu özellik şu an kullanılamıyor.');
+          router.replace('/(tabs)/wallet' as any);
+          return;
+        }
+        setBayrakKontrol(false);
+      });
+      return () => {
+        alive = false;
+      };
+    }, [router]),
+  );
 
   const [tNo, setTNo] = useState('');
   const [tAd, setTAd] = useState('');
@@ -522,6 +542,15 @@ export default function CuzdanTakasEkrani() {
       ],
     );
   };
+
+  if (bayrakKontrol) {
+    return (
+      <Screen>
+        <Stack.Screen options={{ headerShown: false }} />
+        <EkranBasligi title="Coin takas" subtitle="Kontrol ediliyor…" />
+      </Screen>
+    );
+  }
 
   return (
     <Screen>

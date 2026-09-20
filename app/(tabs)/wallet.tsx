@@ -26,8 +26,13 @@ import { CoinPaketleriniGetir } from '../../src/moduller/cuzdan/okuma/CoinPaketl
 import { COIN_PAKET_FALLBACK } from '../../src/moduller/cuzdan/katalog/CoinPaketFallback';
 import {
   CoinPaketMagaza,
-  PaketFiyatTry,
 } from '../../src/moduller/cuzdan/bilesenler/CoinPaketMagaza';
+import { PaketFiyatYazi } from '../../src/moduller/cuzdan/katalog/CoinPaketFiyat';
+import {
+  MagazaFiyatlariniYukle,
+  PaketlereMagazaFiyatiUygula,
+} from '../../src/moduller/cuzdan/katalog/MagazaFiyatlariniYukle';
+import { OzellikBayragiAktifMiSunucu } from '../../src/moduller/ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
 import { CanliHediyeSimgesi } from '../../src/moduller/cuzdan/bilesenler/CanliCoinSimgesi';
 import {
   CuzdanLedgeriniGetir,
@@ -94,6 +99,15 @@ import {
   CoinTryKarsiligi,
   TryYazi,
 } from '../../src/moduller/cuzdan/katalog/CoinTryOrani';
+import { useCuzdanUiConfig } from '../../src/moduller/cuzdan/ui-config/useCuzdanUiConfig';
+import {
+  CuzdanAksiyonlariSirali,
+  CuzdanBolumAcikMi,
+  CuzdanMetinAl,
+} from '../../src/moduller/cuzdan/ui-config/CuzdanUiNormalize';
+import { CuzdanDinamikSimge } from '../../src/moduller/cuzdan/bilesenler/CuzdanDinamikSimge';
+import { CuzdanDinamikAksiyonGrid } from '../../src/moduller/cuzdan/bilesenler/CuzdanDinamikAksiyonGrid';
+import type { CuzdanUiAction } from '../../src/moduller/cuzdan/ui-config/CuzdanUiTipleri';
 
 type CekimTalebi = {
   id: string;
@@ -131,6 +145,7 @@ function formatTarih(iso: string): string {
 export default function WalletScreen() {
   const { wallet, refreshWallet, adjustWallet, isGuest, refreshProfile, user, profile } =
     useAuth();
+  const { config: cuzdanUi } = useCuzdanUiConfig();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
   const scrollRef = useRef<KlavyeScrollHandle>(null);
   const [packages, setPackages] = useState<CoinPackage[]>(COIN_PAKET_FALLBACK);
@@ -154,14 +169,27 @@ export default function WalletScreen() {
   const [mutaHesap, setMutaHesap] = useState<WalletAccount | null>(null);
   const [kartPaylasAcik, setKartPaylasAcik] = useState(false);
   const [kartPaylasBusy, setKartPaylasBusy] = useState(false);
+  const [takasAcik, setTakasAcik] = useState(false);
+  const [cekimAcik, setCekimAcik] = useState(false);
   const insets = useSafeAreaInsets();
 
   const yenileHepsi = useCallback(async () => {
     await refreshWallet();
     void KillSwitchAktifMiSunucu('kill_coin_purchase').then(setPurchaseLocked);
+    void OzellikBayragiAktifMiSunucu('wallet_exchange_enabled').then(setTakasAcik);
+    void Promise.all([
+      OzellikBayragiAktifMiSunucu('wallet_withdraw_enabled'),
+      OzellikBayragiAktifMiSunucu('withdrawals_enabled'),
+    ]).then(([a, b]) => setCekimAcik(a || b));
     CoinPaketleriniGetir()
-      .then((data) => {
-        if (data.length) setPackages(data);
+      .then(async (data) => {
+        if (!data.length) return;
+        try {
+          const fiyatlar = await MagazaFiyatlariniYukle(data);
+          setPackages(PaketlereMagazaFiyatiUygula(data, fiyatlar));
+        } catch {
+          setPackages(data);
+        }
       })
       .catch(() => undefined);
     CuzdanLedgeriniGetir(80)
@@ -274,14 +302,20 @@ export default function WalletScreen() {
         return;
       }
       const toplam = pkg.coins + pkg.bonus_coins;
-      const fiyatTry = PaketFiyatTry(pkg);
+      const fiyatYazi = PaketFiyatYazi(pkg);
       const kanal =
-        Platform.OS === 'ios' || Platform.OS === 'android'
-          ? 'App Store / Play'
-          : 'Stripe';
+        Platform.OS === 'ios'
+          ? 'App Store'
+          : Platform.OS === 'android'
+            ? 'Google Play'
+            : 'Stripe';
+      const bonusSatir =
+        pkg.bonus_coins > 0
+          ? `\n${pkg.coins.toLocaleString('tr-TR')} + ${pkg.bonus_coins.toLocaleString('tr-TR')} bonus`
+          : '';
       Alert.alert(
         'Coin yükle',
-        `${pkg.title}\n${toplam.toLocaleString('tr-TR')} coin\n${fiyatTry.toLocaleString('tr-TR')} ₺\nÖdeme: ${kanal}`,
+        `${pkg.title}${bonusSatir}\nToplam ${toplam.toLocaleString('tr-TR')} coin\n${fiyatYazi}\nÖdeme: ${kanal}`,
         [
           { text: 'İptal', style: 'cancel' },
           {
@@ -375,26 +409,110 @@ export default function WalletScreen() {
     { id: 'hareket', label: 'Hareket', icon: 'swap-vertical' },
     { id: 'hediye', label: 'Hediye', icon: 'gift-outline' },
     { id: 'yukle', label: 'Yükle', icon: 'card-outline' },
-    { id: 'cekim', label: 'Çekim', icon: 'cash-outline' },
+    ...(cekimAcik
+      ? ([{ id: 'cekim' as const, label: 'Çekim', icon: 'cash-outline' as const }] as const)
+      : []),
   ];
+
+  // Çekim kapalıyken sekmede kalma
+  React.useEffect(() => {
+    if (!cekimAcik && sekme === 'cekim') setSekme('yukle');
+  }, [cekimAcik, sekme]);
+
+  const flagMap = useMemo(
+    () => ({
+      wallet_exchange_enabled: takasAcik,
+      wallet_withdraw_enabled: cekimAcik,
+      withdrawals_enabled: cekimAcik,
+    }),
+    [takasAcik, cekimAcik],
+  );
+
+  const hizliAksiyonlar = useMemo(() => {
+    const list = CuzdanAksiyonlariSirali(cuzdanUi, flagMap).filter(
+      (a) => a.key === 'takas' || a.key === 'kyc' || a.action_type === 'route',
+    );
+    // KYC başlığını durumla zenginleştir
+    return list.map((a) => {
+      if (a.key !== 'kyc') return a;
+      return {
+        ...a,
+        title:
+          mutaHesap?.kyc_status === 'approved'
+            ? 'Kimlik onaylı'
+            : mutaHesap?.kyc_status === 'pending'
+              ? 'KYC bekliyor'
+              : a.title,
+        icon_color:
+          mutaHesap?.kyc_status === 'approved'
+            ? RenkTokenlari.mint
+            : a.icon_color,
+      };
+    });
+  }, [cuzdanUi, flagMap, mutaHesap?.kyc_status]);
+
+  const aksiyonCalistir = useCallback(
+    (a: CuzdanUiAction) => {
+      if (a.action_type === 'open_statement') {
+        void hesapOzetiniAc();
+        return;
+      }
+      if (a.action_type === 'route' && a.action_target) {
+        const hedef = a.action_target;
+        if (hedef.includes('takas')) {
+          islemiDene('takas', () => router.push(hedef as any));
+        } else if (hedef.includes('kyc')) {
+          islemiDene('kyc', () => router.push(hedef as any));
+        } else {
+          router.push(hedef as any);
+        }
+      }
+    },
+    [hesapOzetiniAc, islemiDene],
+  );
+
+  const tema = cuzdanUi.theme;
+  const goster = (key: Parameters<typeof CuzdanBolumAcikMi>[1]) =>
+    CuzdanBolumAcikMi(cuzdanUi, key);
 
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="cuzdan">
+        {goster('header') ? (
         <View style={styles.baslikBar}>
           <Pressable
             onPress={() => router.navigate('/(tabs)/profile')}
             style={styles.geri}
             hitSlop={8}
           >
-            <Ionicons name="chevron-back" size={22} color={RenkTokenlari.text} />
+            <Ionicons name="chevron-back" size={22} color={tema.primaryText} />
           </Pressable>
           <View style={styles.baslikCopy}>
-            <Text style={styles.baslikFisilti}>HESABIM</Text>
-            <Text style={styles.baslik}>Cüzdan</Text>
+            {cuzdanUi.general.eyebrow ? (
+              <Text style={[styles.baslikFisilti, { color: tema.secondaryText }]}>
+                {cuzdanUi.general.eyebrow}
+              </Text>
+            ) : null}
+            <View style={styles.baslikSatir}>
+              {cuzdanUi.wallet_icon.visible !== false ? (
+                <CuzdanDinamikSimge
+                  icon={cuzdanUi.wallet_icon}
+                  fallbackIonicon="wallet-outline"
+                />
+              ) : null}
+              <Text style={[styles.baslik, { color: tema.primaryText }]}>
+                {cuzdanUi.general.screen_name || 'Cüzdan'}
+              </Text>
+            </View>
+            {cuzdanUi.general.subtitle ? (
+              <Text style={[styles.baslikAlt, { color: tema.secondaryText }]}>
+                {cuzdanUi.general.subtitle}
+              </Text>
+            ) : null}
           </View>
           <View style={styles.geri} />
         </View>
+        ) : null}
 
         <KlavyeScrollView
           ref={scrollRef}
@@ -404,6 +522,7 @@ export default function WalletScreen() {
         >
           <KlavyeKapatan>
             <View style={styles.heroBolum}>
+              {goster('hero_card') ? (
               <CuzdanBankaKarti
                 coins={wallet?.coins ?? 0}
                 diamonds={wallet?.diamonds ?? 0}
@@ -417,8 +536,13 @@ export default function WalletScreen() {
                 }
                 yuklenen={stats?.total_topup_coin ?? 0}
                 harcanan={stats?.total_spent_coin ?? 0}
-                onQrOku={() =>
-                  islemiDene('takas', () => router.push('/cuzdan/takas' as any))
+                onQrOku={
+                  takasAcik
+                    ? () =>
+                        islemiDene('takas', () =>
+                          router.push('/cuzdan/takas' as any),
+                        )
+                    : undefined
                 }
                 onPaylas={() =>
                   islemiDene('mesaj_gonder', () => {
@@ -440,59 +564,38 @@ export default function WalletScreen() {
                   })
                 }
               />
+              ) : null}
 
-              <View style={styles.hizliAksiyonlar}>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.hizliBtn,
-                    pressed && { opacity: 0.88 },
-                  ]}
-                  onPress={() =>
-                    islemiDene('takas', () => router.push('/cuzdan/takas' as any))
-                  }
-                >
-                  <Ionicons
-                    name="swap-horizontal"
-                    size={18}
-                    color={RenkTokenlari.accent}
-                  />
-                  <Text style={styles.hizliBtnYazi}>Takas / anlaşma</Text>
-                </Pressable>
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.hizliBtn,
-                    pressed && { opacity: 0.88 },
-                  ]}
-                  onPress={() =>
-                    islemiDene('kyc', () => router.push('/kyc' as any))
-                  }
-                >
-                  <Ionicons
-                    name="shield-checkmark-outline"
-                    size={18}
-                    color={
-                      mutaHesap?.kyc_status === 'approved'
-                        ? RenkTokenlari.mint
-                        : RenkTokenlari.primarySoft
-                    }
-                  />
-                  <Text style={styles.hizliBtnYazi}>
-                    {mutaHesap?.kyc_status === 'approved'
-                      ? 'Kimlik onaylı'
-                      : mutaHesap?.kyc_status === 'pending'
-                        ? 'KYC bekliyor'
-                        : 'Kimlik onayı'}
-                  </Text>
-                </Pressable>
-              </View>
+              {goster('quick_actions') && hizliAksiyonlar.length > 0 ? (
+                <CuzdanDinamikAksiyonGrid
+                  actions={hizliAksiyonlar}
+                  onPress={aksiyonCalistir}
+                />
+              ) : null}
 
               {purchaseLocked ? (
-                <Text style={styles.lockHint}>Satın alma geçici olarak kapalı</Text>
+                <Text style={[styles.lockHint, { color: tema.warning }]}>
+                  {CuzdanMetinAl(
+                    cuzdanUi,
+                    'purchase_locked',
+                    'tr',
+                    'Satın alma geçici olarak kapalı',
+                  )}
+                </Text>
+              ) : null}
+
+              {goster('coin_info') ? (
+                <Text style={[styles.coinInfo, { color: tema.secondaryText }]}>
+                  {CuzdanMetinAl(cuzdanUi, 'coin_info', 'tr')}
+                </Text>
               ) : null}
             </View>
 
+            {goster('summary') ? (
             <View style={styles.ozetBolum}>
-              <Text style={styles.bolumEtiket}>Özet</Text>
+              <Text style={[styles.bolumEtiket, { color: tema.secondaryText }]}>
+                {CuzdanMetinAl(cuzdanUi, 'summary_title', 'tr', 'Özet')}
+              </Text>
               <View style={styles.summaryRow}>
                 <OzetKutu
                   icon="arrow-up-circle"
@@ -508,13 +611,15 @@ export default function WalletScreen() {
                 />
                 <OzetKutu
                   icon="trending-up"
-                  tint={RenkTokenlari.accent}
+                  tint={tema.accent}
                   label="Yükleme"
                   value={String(yuklemeler.length)}
                 />
               </View>
             </View>
+            ) : null}
 
+            {goster('tabs') ? (
             <View style={styles.sekmeBolum}>
               <Text style={styles.bolumEtiket}>İşlemler</Text>
               <View style={styles.tabs}>
@@ -557,8 +662,9 @@ export default function WalletScreen() {
                 })}
               </View>
             </View>
+            ) : null}
 
-            {sekme === 'hareket' ? (
+            {sekme === 'hareket' && goster('ledger') ? (
               <View style={styles.panel}>
                 <View style={styles.panelBaslikSatir}>
                   <View style={{ flex: 1, gap: 2 }}>
@@ -645,7 +751,7 @@ export default function WalletScreen() {
               </View>
             ) : null}
 
-            {sekme === 'hediye' ? (
+            {sekme === 'hediye' && goster('gifts') ? (
               <View style={styles.panel}>
                 <Text style={styles.panelTitle}>Hediye geçmişi</Text>
                 <Text style={styles.panelSub}>
@@ -727,7 +833,7 @@ export default function WalletScreen() {
               </View>
             ) : null}
 
-            {sekme === 'yukle' ? (
+            {sekme === 'yukle' && goster('topup') ? (
               <View style={styles.panel}>
                 <CoinPaketMagaza
                   packages={packages}
@@ -744,7 +850,7 @@ export default function WalletScreen() {
               </View>
             ) : null}
 
-            {sekme === 'cekim' ? (
+            {sekme === 'cekim' && goster('withdraw') && cekimAcik ? (
               <View style={styles.panel}>
                 <Text style={styles.panelTitle}>Elmas çekimi</Text>
                 <View style={styles.odemeBilgiKart}>
@@ -968,6 +1074,21 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.h1,
     color: RenkTokenlari.text,
     lineHeight: 28,
+  },
+  baslikSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  baslikAlt: {
+    ...TipografiTokenlari.micro,
+    textAlign: 'center',
+  },
+  coinInfo: {
+    ...TipografiTokenlari.micro,
+    lineHeight: 16,
+    paddingHorizontal: BoslukTokenlari.xl,
   },
   scroll: {
     paddingBottom: YUZEN_TAB_ICERIK_BOSLUGU,

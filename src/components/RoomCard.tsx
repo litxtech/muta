@@ -236,10 +236,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   kapak: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   top: {
     flexDirection: 'row',

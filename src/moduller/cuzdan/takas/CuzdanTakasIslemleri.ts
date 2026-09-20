@@ -151,6 +151,13 @@ export async function TakasTeklifOlustur(input: {
   coins: number;
   note?: string;
 }): Promise<{ ok: true; offer: CoinTradeOffer } | { ok: false; hata: string }> {
+  const { OzellikBayragiAktifMiSunucu } = await import(
+    '../../ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu'
+  );
+  if (!(await OzellikBayragiAktifMiSunucu('wallet_exchange_enabled'))) {
+    return { ok: false, hata: 'Takas şu an kullanılamıyor.' };
+  }
+
   const { data, error } = await supabase.rpc('coin_takas_teklif_olustur', {
     p_buyer_type: input.buyerType,
     p_buyer_user_id: input.buyerUserId ?? null,
@@ -159,6 +166,9 @@ export async function TakasTeklifOlustur(input: {
     p_note: input.note ?? null,
   });
   if (error) {
+    if (/takas kapali|wallet_exchange/i.test(error.message)) {
+      return { ok: false, hata: 'Takas şu an kullanılamıyor.' };
+    }
     if (/kyc required/i.test(error.message)) {
       return { ok: false, hata: 'Takas için kimlik onayı gerekli.' };
     }

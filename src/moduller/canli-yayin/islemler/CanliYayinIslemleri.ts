@@ -16,6 +16,17 @@ export async function CanliYayinBaslat(input: {
   return { ok: true, session: data as { id: string; livekit_room_name?: string } };
 }
 
+/** LiveKit bağlandıktan sonra keşfete düşür (is_live=true) */
+export async function CanliYayinAktifEt(
+  sessionId: string,
+): Promise<{ ok: true } | { ok: false; hata: string }> {
+  const { error } = await supabase.rpc('canli_yayin_aktif_et', {
+    p_session_id: sessionId,
+  });
+  if (error) return { ok: false, hata: error.message };
+  return { ok: true };
+}
+
 /** Yayini bitir (RPC). sessionId yoksa kullanicinin aktif yayinini kapatir. */
 export async function CanliYayinBitir(
   sessionId?: string | null,

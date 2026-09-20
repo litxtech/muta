@@ -3,6 +3,7 @@ import {
   Alert,
   Image,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -280,7 +281,11 @@ export default function CreateRoomScreen() {
 
   return (
     <Screen edges={['top']} tabSayfaKaydir>
-      <ModulHataSiniri modulAdi="oda-olusturma">
+      <ModulHataSiniri
+        modulAdi="Canlıya geç"
+        varyant="ekran"
+        fallbackHref="/(tabs)"
+      >
         <KlavyeScrollView
           ref={scrollRef}
           showsVerticalScrollIndicator={false}

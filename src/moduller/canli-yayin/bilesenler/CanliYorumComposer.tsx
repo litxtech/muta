@@ -23,6 +23,7 @@ type Props = {
   canSend: boolean;
   onNeedUpgrade?: () => void;
   onSent?: () => void;
+  placeholder?: string;
 };
 
 export function CanliYorumComposer({
@@ -30,6 +31,7 @@ export function CanliYorumComposer({
   canSend,
   onNeedUpgrade,
   onSent,
+  placeholder = 'Yorum ekle...',
 }: Props) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -79,7 +81,7 @@ export function CanliYorumComposer({
         ref={inputRef}
         value={text}
         onChangeText={setText}
-        placeholder="Yorum yaz…"
+        placeholder={placeholder}
         placeholderTextColor={RenkTokenlari.textDim}
         style={styles.input}
         maxLength={500}
@@ -118,12 +120,12 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    minHeight: 44,
-    maxHeight: 96,
+    minHeight: 42,
+    maxHeight: 88,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    backgroundColor: 'rgba(12, 10, 18, 0.88)',
+    borderColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(0, 0, 0, 0.42)',
     color: RenkTokenlari.text,
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 11 : 9,

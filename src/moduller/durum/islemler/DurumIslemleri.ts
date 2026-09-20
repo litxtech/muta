@@ -17,6 +17,7 @@ export type DurumOggesi = {
   id: string;
   user_id: string;
   media_type: 'image' | 'video' | 'card';
+  /** Boş string olabilir (oyun kartı / bozuk satır) — UI null uri ile Image açmaz */
   media_url: string;
   caption: string | null;
   like_count: number;
@@ -34,8 +35,11 @@ export type DurumOggesi = {
 };
 
 function normalizeDurum(row: DurumOggesi): DurumOggesi {
+  const mediaUrl =
+    typeof row.media_url === 'string' ? row.media_url.trim() : '';
   return {
     ...row,
+    media_url: mediaUrl,
     gift_count: Number(row.gift_count ?? 0),
     post_kind: (row.post_kind as DurumPostKind) || 'media',
     payload: (row.payload as DurumOggesi['payload']) ?? {},

@@ -42,12 +42,22 @@ export default function DurumOlusturEkrani() {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [caption, setCaption] = useState('');
+  const [mood, setMood] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     // Video seçiminde izin dialog’u picker’dan önce gelmesin
     ImagePickerOnIsit({ izinIste: true });
   }, []);
+
+  const MOODLAR: { kod: string; etiket: string; emoji: string }[] = [
+    { kod: 'mutlu', etiket: 'İyi hissediyorum', emoji: '😊' },
+    { kod: 'enerjik', etiket: 'Enerjik', emoji: '⚡' },
+    { kod: 'sakin', etiket: 'Sakin', emoji: '🌙' },
+    { kod: 'sosyal', etiket: 'Sohbetteyim', emoji: '💬' },
+    { kod: 'muzik', etiket: 'Müzik', emoji: '🎧' },
+    { kod: 'oyun', etiket: 'Oyundayım', emoji: '🎮' },
+  ];
 
   const sec = (tur: 'image' | 'video') => {
     islemiDene('durum_paylas', () => {
@@ -67,17 +77,28 @@ export default function DurumOlusturEkrani() {
   };
 
   const yayinla = () => {
+    if (!mediaUrl && !caption.trim() && !mood) {
+      Alert.alert('Durum', 'Medya, mood veya kısa bir metin ekle.');
+      return;
+    }
     if (!mediaUrl) {
-      Alert.alert('Durum', 'Önce fotoğraf veya video seç.');
+      Alert.alert('Durum', 'Önizleme için fotoğraf veya video seç.');
       return;
     }
     islemiDene('durum_paylas', () => {
       void (async () => {
         setBusy(true);
+        const moodEtiket = MOODLAR.find((m) => m.kod === mood);
+        const birlesik = [
+          moodEtiket ? `${moodEtiket.emoji} ${moodEtiket.etiket}` : null,
+          caption.trim() || null,
+        ]
+          .filter(Boolean)
+          .join(' · ');
         const r = await DurumOlustur({
           mediaType,
           mediaUrl,
-          caption: caption.trim() || undefined,
+          caption: birlesik || undefined,
         });
         setBusy(false);
         if (!r.ok) {
@@ -105,8 +126,8 @@ export default function DurumOlusturEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="durum">
         <EkranBasligi
-          title="Durum paylaş"
-          subtitle="Foto veya video · metin ekle"
+          title="Anlık durum"
+          subtitle="Mood · medya · kısa metin · önizleme"
           fallbackHref={'/(tabs)/durum' as any}
         />
         <KlavyeGuvenliAlan style={styles.flex}>
@@ -119,6 +140,32 @@ export default function DurumOlusturEkrani() {
             showsVerticalScrollIndicator={false}
             onScrollBeginDrag={Keyboard.dismiss}
           >
+            <Text style={styles.moodBaslik}>Nasıl hissediyorsun?</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.moodSerit}
+            >
+              {MOODLAR.map((m) => {
+                const secili = mood === m.kod;
+                return (
+                  <Pressable
+                    key={m.kod}
+                    onPress={() => setMood(secili ? null : m.kod)}
+                    style={[styles.moodChip, secili && styles.moodChipAktif]}
+                  >
+                    <Text style={styles.moodEmoji}>{m.emoji}</Text>
+                    <Text
+                      style={[styles.moodYazi, secili && styles.moodYaziAktif]}
+                      numberOfLines={1}
+                    >
+                      {m.etiket}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
             {mediaUrl ? (
               <Pressable
                 style={[styles.onizleme, klavyeAcik && styles.onizlemeKucuk]}
@@ -218,6 +265,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: BoslukTokenlari.lg,
     gap: BoslukTokenlari.md,
     paddingBottom: BoslukTokenlari.xl,
+  },
+  moodBaslik: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  moodSerit: {
+    gap: BoslukTokenlari.sm,
+    paddingRight: BoslukTokenlari.md,
+  },
+  moodChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: YaricapTokenlari.pill,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    backgroundColor: RenkTokenlari.bgCard,
+  },
+  moodChipAktif: {
+    borderColor: RenkTokenlari.borderAccent,
+    backgroundColor: 'rgba(232,64,145,0.16)',
+  },
+  moodEmoji: {
+    fontSize: 16,
+  },
+  moodYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    fontWeight: '600',
+  },
+  moodYaziAktif: {
+    color: RenkTokenlari.primarySoft,
+    fontWeight: '800',
   },
   secim: {
     flexDirection: 'row',

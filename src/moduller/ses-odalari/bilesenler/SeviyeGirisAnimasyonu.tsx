@@ -787,7 +787,7 @@ export function SeviyeGirisAnimasyonu({
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 38,
     justifyContent: 'flex-start',
     alignItems: 'center',
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   sis: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   coreGlow: {
     position: 'absolute',
@@ -984,7 +984,7 @@ const styles = StyleSheet.create({
     left: 0,
   },
   hero: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingBottom: H * 0.04,
@@ -1039,7 +1039,7 @@ const styles = StyleSheet.create({
     borderWidth: 3.5,
   },
   avatarRim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: AVATAR_HERO / 2,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.4)',

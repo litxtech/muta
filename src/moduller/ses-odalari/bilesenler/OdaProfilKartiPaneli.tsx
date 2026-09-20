@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   perde: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   sheet: {

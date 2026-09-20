@@ -25,8 +25,15 @@ export async function CekimTalebiOlustur(input: {
   if (await KillSwitchAktifMiSunucu('kill_withdrawal')) {
     return { ok: false, hata: 'Çekim geçici olarak kapalı.' };
   }
-  if (!(await OzellikBayragiAktifMiSunucu('withdrawals_enabled'))) {
+  const withdrawAcik =
+    (await OzellikBayragiAktifMiSunucu('wallet_withdraw_enabled')) ||
+    (await OzellikBayragiAktifMiSunucu('withdrawals_enabled'));
+  if (!withdrawAcik) {
     return { ok: false, hata: 'Çekim şu an kullanılamıyor.' };
+  }
+  const { error: bayrakErr } = await supabase.rpc('cekim_wallet_bayrak_kontrol');
+  if (bayrakErr) {
+    return { ok: false, hata: CekimHataMesaji(bayrakErr.message) };
   }
 
   const { error } = await supabase.rpc('cekim_talebi_olustur', {

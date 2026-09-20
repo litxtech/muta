@@ -175,6 +175,8 @@ export default function RoomScreen() {
   const [balonOyunKodu, setBalonOyunKodu] = useState<GameCode | null>(null);
   const [lastGift, setLastGift] = useState<string | null>(null);
   const [lkDurum, setLkDurum] = useState('Hazır');
+  /** İlk LiveKit join bitti — konuşmacı yükseltme effect'ini tetikler */
+  const [medyaHazirTick, setMedyaHazirTick] = useState(0);
   const [chatOpen, setChatOpen] = useState(true);
   const [yorumYenile, setYorumYenile] = useState(0);
   /** Oyun oturumu açıkken lazy katman unmount olmasın */
@@ -186,6 +188,10 @@ export default function RoomScreen() {
   const konusmaciYukseltildi = React.useRef(false);
   /** Focus remount — gecikmeli disconnect'i iptal etmek için */
   const odaFocusNesil = React.useRef(0);
+  /** load() nesli — stale MedyaOdasiBaglan sonucunu yut */
+  const odaLoadNesil = React.useRef(0);
+  /** İlk LiveKit join bitti mi (yükseltme effect yarışını keser) */
+  const medyaIlkBaglantiBitti = React.useRef(false);
   const sahipTahtOnceki = React.useRef<boolean | null>(null);
 
   const isDemo = useMemo(() => id?.startsWith('demo'), [id]);
@@ -423,6 +429,8 @@ export default function RoomScreen() {
     if (kendiKoltukta) return;
     // Profil ziyaretinde koltuk state geçici boşalırsa mic'i ezme
     if (AktifSesOdasiArkaPlandaMi()) return;
+    // Seats henüz gelmedi / boş flicker — demote etme (yanlış reconnect)
+    if (loading || seats.length === 0) return;
     const oncekiYayinci = konusmaciYukseltildi.current;
     konusmaciYukseltildi.current = false;
     setMuted(true);
@@ -437,7 +445,7 @@ export default function RoomScreen() {
         }
       });
     }
-  }, [isDemo, isHost, user?.id, kendiKoltukta, room]);
+  }, [isDemo, isHost, user?.id, kendiKoltukta, room, loading, seats.length]);
 
   /** Mikrofon kabulü sonrası konuşmacı token'ına yükselt */
   React.useEffect(() => {
@@ -445,8 +453,11 @@ export default function RoomScreen() {
     if (!kendiKoltukta) return;
     // Profil ziyareti / arka plan: token veya mic'e dokunma
     if (AktifSesOdasiArkaPlandaMi()) return;
+    // load() join bitmeden ikinci join atma
+    if (!medyaIlkBaglantiBitti.current) return;
     // load() zaten speaker bağladıysa tekrar join etme
     if (konusmaciYukseltildi.current && MedyaYayinciMi()) return;
+    if (konusmaciYukseltildi.current) return;
     konusmaciYukseltildi.current = true;
     const roomName = room.livekit_room_name ?? `voice_${room.id}`;
     void (async () => {
@@ -462,10 +473,12 @@ export default function RoomScreen() {
         AktifSesOdasiGuncelle({ micAcik });
       } else {
         konusmaciYukseltildi.current = false;
-        Alert.alert('Mikrofon', medya.hata ?? 'Konuşmacı bağlantısı kurulamadı');
+        if (medya.hata !== 'Bağlantı iptal edildi') {
+          Alert.alert('Mikrofon', medya.hata ?? 'Konuşmacı bağlantısı kurulamadı');
+        }
       }
     })();
-  }, [isDemo, room, user?.id, isHost, kendiKoltukta]);
+  }, [isDemo, room, user?.id, isHost, kendiKoltukta, medyaHazirTick]);
 
   /** Koltuk değişiklikleri (mic kabul / ayrılma) */
   React.useEffect(() => {
@@ -945,7 +958,10 @@ export default function RoomScreen() {
   );
 
   const load = useCallback(async () => {
+    const loadNesil = ++odaLoadNesil.current;
+    medyaIlkBaglantiBitti.current = false;
     if (!id || isDemo) {
+      medyaIlkBaglantiBitti.current = true;
       setRoom({
         id: id ?? 'demo',
         host_id: 'demo',
@@ -1037,6 +1053,8 @@ export default function RoomScreen() {
           : fetchRoomSeats(id),
       ]);
 
+      if (loadNesil !== odaLoadNesil.current) return;
+
       if (!r || !r.is_live) {
         setRoom(null);
         if (!OdaCikisKilidiAktifMi()) {
@@ -1063,8 +1081,9 @@ export default function RoomScreen() {
         if (!tahtta) {
           void HostTahtaOtur(r.id).then(async (res) => {
             if (!res.ok) return;
+            if (loadNesil !== odaLoadNesil.current) return;
             const next = await fetchRoomSeats(r.id).catch(() => null);
-            if (next) setSeats(next);
+            if (next && loadNesil === odaLoadNesil.current) setSeats(next);
           });
         }
       }
@@ -1081,6 +1100,7 @@ export default function RoomScreen() {
           .eq('user_id', user.id)
           .maybeSingle()
           .then(({ data }) => {
+            if (loadNesil !== odaLoadNesil.current) return;
             if (hostMu) setMemberRole('host');
             else
               setMemberRole(
@@ -1100,6 +1120,9 @@ export default function RoomScreen() {
         roomName,
         role: hostMu ? 'host' : koltukta ? 'speaker' : 'listener',
       });
+      if (loadNesil !== odaLoadNesil.current) return;
+      medyaIlkBaglantiBitti.current = true;
+      setMedyaHazirTick((n) => n + 1);
       if (medya.ok) {
         setLkDurum(medya.mock ? `Demo · ${medya.saglayici}` : `Bağlı · ${medya.saglayici}`);
         MedyaHoparlorAyarla(true);
@@ -1121,6 +1144,7 @@ export default function RoomScreen() {
 
         // Join sonrası soft routing (tam configure yarışını tetikleme)
         setTimeout(() => {
+          if (loadNesil !== odaLoadNesil.current) return;
           MedyaSesOturumunuYenile(false);
           MedyaHoparlorAyarla(true);
           MedyaUzakSesHacmiAyarla(1);
@@ -1145,7 +1169,10 @@ export default function RoomScreen() {
         AktifSesOdasiOneCikar();
       } else {
         setLkDurum(medya.hata ?? 'Bağlantı hatası');
-        if (hostMu || koltukta) {
+        if (
+          (hostMu || koltukta) &&
+          medya.hata !== 'Bağlantı iptal edildi'
+        ) {
           konusmaciYukseltildi.current = false;
           Alert.alert(
             'Ses bağlantısı',
@@ -1155,6 +1182,9 @@ export default function RoomScreen() {
         }
       }
     } catch (e) {
+      if (loadNesil !== odaLoadNesil.current) return;
+      medyaIlkBaglantiBitti.current = true;
+      setMedyaHazirTick((n) => n + 1);
       Alert.alert('Oda yüklenemedi', e instanceof Error ? e.message : 'Hata');
       setLoading(false);
     }

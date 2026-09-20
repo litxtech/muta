@@ -17,9 +17,13 @@ type Props = {
 
 /**
  * Canli yayin video sahnesi — LiveKit VideoView.
- * Expo Camera ile cakisma yok (tek kaynak LiveKit).
+ * Memo: yorum/hediye state degisince video remount olmaz.
  */
-export function CanliYayinVideoSahne({ rol, mock, durumYazi }: Props) {
+export const CanliYayinVideoSahne = React.memo(function CanliYayinVideoSahne({
+  rol,
+  mock,
+  durumYazi,
+}: Props) {
   const VideoViewComp = LiveKitVideoViewAl();
   const [localVideo, setLocalVideo] = useState<LocalVideoTrack | null>(null);
   const [remoteVideo, setRemoteVideo] = useState<RemoteVideoTrack | null>(null);
@@ -90,7 +94,7 @@ export function CanliYayinVideoSahne({ rol, mock, durumYazi }: Props) {
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   root: {

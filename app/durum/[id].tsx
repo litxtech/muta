@@ -38,6 +38,14 @@ import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 function VideoTam({ uri }: { uri: string }) {
+  const guvenli = typeof uri === 'string' ? uri.trim() : '';
+  if (!/^https?:\/\//i.test(guvenli)) {
+    return <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]} />;
+  }
+  return <VideoTamIc uri={guvenli} />;
+}
+
+function VideoTamIc({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.play();
@@ -165,6 +173,18 @@ export default function DurumDetayEkrani() {
                 if (oge.media_type === 'video') {
                   return <VideoTam uri={oge.media_url} />;
                 }
+                const resimUri =
+                  typeof oge.media_url === 'string' ? oge.media_url.trim() : '';
+                if (!/^https?:\/\//i.test(resimUri)) {
+                  return (
+                    <View
+                      style={[
+                        StyleSheet.absoluteFill,
+                        { backgroundColor: '#111' },
+                      ]}
+                    />
+                  );
+                }
                 return (
                   <Pressable
                     style={StyleSheet.absoluteFill}
@@ -173,7 +193,7 @@ export default function DurumDetayEkrani() {
                     accessibilityLabel="Resmi büyüt"
                   >
                     <Image
-                      source={{ uri: oge.media_url }}
+                      source={{ uri: resimUri }}
                       style={StyleSheet.absoluteFill}
                       resizeMode="contain"
                     />
@@ -373,7 +393,12 @@ export default function DurumDetayEkrani() {
 
         {oge && lightboxAcik && oge.media_type === 'image' ? (
           <DurumResimLightbox
-            uri={oge.media_url}
+            uri={
+              typeof oge.media_url === 'string' &&
+              /^https?:\/\//i.test(oge.media_url.trim())
+                ? oge.media_url.trim()
+                : null
+            }
             onClose={() => setLightboxAcik(false)}
           />
         ) : null}

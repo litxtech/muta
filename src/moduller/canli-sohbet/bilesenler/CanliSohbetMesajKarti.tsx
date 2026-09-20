@@ -200,6 +200,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 14,
     flexShrink: 1,
+    textShadowColor: 'rgba(0,0,0,0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   liveAdMine: {
     color: RenkTokenlari.primarySoft,
@@ -216,6 +219,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     fontSize: 14,
     lineHeight: 19,
+    textShadowColor: 'rgba(0,0,0,0.65)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   kart: {
     flexDirection: 'row',

@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   coverPress: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   cover: {
     width: '100%',

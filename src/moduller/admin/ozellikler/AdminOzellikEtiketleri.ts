@@ -31,8 +31,21 @@ const OZELLIK_METINLERI: Record<string, AdminOzellikMetni> = {
     aciklama: 'Ajans ve host yönetimi özelliklerini kontrol eder.',
   },
   withdrawals_enabled: {
-    baslik: 'Para çekimi',
+    baslik: 'Para çekimi (eski)',
     aciklama: 'Elmas / kazanç çekim taleplerini açar veya kapatır.',
+  },
+  wallet_exchange_enabled: {
+    baslik: 'Cüzdan takas',
+    aciklama:
+      'Kullanıcı cüzdanında Takas / anlaşma butonunu ve /cuzdan/takas yolunu açar. Kapalıyken RPC da reddeder.',
+  },
+  wallet_sell_enabled: {
+    baslik: 'Coin sat',
+    aciklama: 'Coin satım izlenimi veren kullanıcı aksiyonlarını açar (varsayılan kapalı).',
+  },
+  wallet_withdraw_enabled: {
+    baslik: 'Cüzdan çekim',
+    aciklama: 'Kullanıcı cüzdanındaki Çekim sekmesini açar. Store uyumu için varsayılan kapalı.',
   },
   city_league_enabled: {
     baslik: 'Şehir ligi',

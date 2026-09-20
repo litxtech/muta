@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Keyboard, StyleSheet, View } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -31,12 +31,17 @@ export default function GorusmeEkrani() {
   const [baglandi, setBaglandi] = useState(false);
   const [mock, setMock] = useState(false);
   const [durumYazi, setDurumYazi] = useState('Bağlanıyor…');
+  const callDurumRef = useRef<DirectCall['status'] | null>(null);
 
   const bitir = useCallback(
     async (reason = 'hangup') => {
       if (!id) return;
       Keyboard.dismiss();
-      await GorusmeBitir(id, reason);
+      try {
+        await GorusmeBitir(id, reason);
+      } catch {
+        /* DB fail olsa bile medyayı kes */
+      }
       await MedyaOdasiKes();
       void deactivateKeepAwake(KEEP_TAG);
       if (router.canGoBack()) router.back();
@@ -61,12 +66,24 @@ export default function GorusmeEkrani() {
     if (!id) return;
     let alive = true;
     let korumaStop: (() => void) | undefined;
+    let ringTimer: ReturnType<typeof setTimeout> | undefined;
+    const callId = id;
 
     (async () => {
       try {
         Keyboard.dismiss();
-        const c = await GorusmeGetir(id);
+        // Stale ghost temizlik (sunucu)
+        void (async () => {
+          try {
+            await supabase.rpc('gorusme_stale_temizle');
+          } catch {
+            /* RPC henüz deploy edilmemiş olabilir */
+          }
+        })();
+
+        const c = await GorusmeGetir(callId);
         if (!alive) return;
+        callDurumRef.current = c.status;
         setCall(c);
         const isVideo = c.call_type === 'video';
         setCameraOn(isVideo);
@@ -76,6 +93,11 @@ export default function GorusmeEkrani() {
         const benArayan = c.caller_id === user?.id;
         if (c.status === 'ringing' && benArayan) {
           setDurumYazi('Çalıyor…');
+          // Ring timeout — ghost ringing engeli
+          ringTimer = setTimeout(() => {
+            if (!alive) return;
+            void bitir('ring_timeout');
+          }, 55_000);
         } else if (c.status === 'ringing') {
           setDurumYazi('Bağlanıyor…');
         } else if (c.status === 'active') {
@@ -147,19 +169,21 @@ export default function GorusmeEkrani() {
     })();
 
     const channel = supabase
-      .channel(`call-${id}`)
+      .channel(`call-${callId}`)
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
-          filter: `id=eq.${id}`,
+          filter: `id=eq.${callId}`,
           table: 'direct_calls',
         },
         (payload) => {
           const next = payload.new as DirectCall;
+          callDurumRef.current = next.status;
           setCall(next);
           if (next.status === 'active') {
+            if (ringTimer) clearTimeout(ringTimer);
             setBaglandi(true);
             setDurumYazi('Bağlandı');
             // Karşı taraf cevapladıktan sonra video track yenile
@@ -169,6 +193,7 @@ export default function GorusmeEkrani() {
             LiveKitBaglantiYoneticisi.muteLocalAudio(false);
           }
           if (['ended', 'rejected', 'missed', 'cancelled'].includes(next.status)) {
+            if (ringTimer) clearTimeout(ringTimer);
             void MedyaOdasiKes();
             void deactivateKeepAwake(KEEP_TAG);
             if (router.canGoBack()) router.back();
@@ -180,12 +205,19 @@ export default function GorusmeEkrani() {
 
     return () => {
       alive = false;
+      if (ringTimer) clearTimeout(ringTimer);
       korumaStop?.();
       void supabase.removeChannel(channel);
+      // Unmount: DB'de hâlâ ringing/active ise bitir — ghost call kök nedeni
+      const st = callDurumRef.current;
+      if (st === 'ringing' || st === 'active') {
+        void GorusmeBitir(callId, 'client_unmount').catch(() => undefined);
+      }
+      callDurumRef.current = null;
       void MedyaOdasiKes();
       void deactivateKeepAwake(KEEP_TAG);
     };
-  }, [id, user?.id]);
+  }, [id, user?.id, bitir]);
 
   useEffect(() => {
     LiveKitBaglantiYoneticisi.muteLocalAudio(muted);

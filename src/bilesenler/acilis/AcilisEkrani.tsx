@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sahne: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   auroraA: {
     position: 'absolute',
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   halkaDisDolgu: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: RING / 2,
   },
   halkaDisBosluk: {
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   halkaIcCizgi: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: (RING - 22) / 2,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,

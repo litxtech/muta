@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: RenkTokenlari.bgCard,
   },
-  kapak: { ...StyleSheet.absoluteFillObject },
+  kapak: { ...StyleSheet.absoluteFill },
   top: {
     flexDirection: 'row',
     alignItems: 'center',

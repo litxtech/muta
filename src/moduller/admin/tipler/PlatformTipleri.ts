@@ -158,6 +158,10 @@ export type AdminPaket = {
   price_try?: number | null;
   is_active: boolean;
   badge: string | null;
+  campaign_text?: string | null;
+  sort_order?: number | null;
+  apple_product_id?: string | null;
+  google_product_id?: string | null;
 };
 
 export type AdminHediye = {

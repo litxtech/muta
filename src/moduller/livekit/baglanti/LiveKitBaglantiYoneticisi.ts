@@ -182,6 +182,8 @@ class LiveKitBaglantiYoneticisiImpl {
   private asPublisher = false;
   /** Uygulama mikrofonu açık istiyor mu — reconnect setTimeout mute'u ezmesin */
   private micIstenenAcik = false;
+  /** bilerek kes / rol upgrade — UI "Bağlantı koptu" göstermesin */
+  private kasitliKes = false;
 
   /** Track'e yazılacak seviye (Android dinleyicide boost; yayıncıda AEC için 1×) */
   private uzakSesUygulanacak(): number {
@@ -587,7 +589,12 @@ class LiveKitBaglantiYoneticisiImpl {
           this.durum = 'disconnected';
           this.speakerGuvenliTemizle();
           try {
-            this.yayinla('disconnected');
+            if (this.kasitliKes) {
+              this.kasitliKes = false;
+              this.yayinla('left');
+            } else {
+              this.yayinla('disconnected');
+            }
           } catch {
             /* ignore */
           }
@@ -1275,6 +1282,7 @@ class LiveKitBaglantiYoneticisiImpl {
 
   private async baglantiyiKesIc(opts?: { rolSifirla?: boolean }) {
     const rolSifirla = opts?.rolSifirla !== false;
+    this.kasitliKes = true;
     try {
       const room = this.room;
       this.room = null;
@@ -1313,12 +1321,15 @@ class LiveKitBaglantiYoneticisiImpl {
         /* ignore */
       }
       try {
-        this.yayinla('disconnected');
+        // Kasitli kes: 'left' — UI bağlantı koptu göstermesin
+        this.yayinla('left');
+        this.kasitliKes = false;
       } catch {
-        /* ignore */
+        this.kasitliKes = false;
       }
     } catch {
       this.durum = 'disconnected';
+      this.kasitliKes = false;
     }
   }
 }

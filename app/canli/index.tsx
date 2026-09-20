@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -16,11 +16,17 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
 import { useMisafirIslemKapisi } from '../../src/moduller/misafir-hesabi/islemler/useMisafirIslemKapisi';
 import {
-  CanliYayinBaslat,
   CanliYayinBitir,
   CanliYayinlariGetir,
   TakipCanliYayinlariGetir,
 } from '../../src/moduller/canli-yayin/islemler/CanliYayinIslemleri';
+import {
+  CanliYayinBaslatMotoru,
+  CanliYayinOnHazirlik,
+  CanliBaslatKilitliMi,
+  type CanliBaslatDurum,
+} from '../../src/moduller/canli-yayin/islemler/CanliYayinBaslatMotoru';
+import { CanliGeriSayimKatmani } from '../../src/moduller/canli-yayin/bilesenler/CanliGeriSayimKatmani';
 import {
   CanliYayinTiyatro,
   type CanliYayinMeta,
@@ -28,17 +34,16 @@ import {
 import { CanliYayinMarkaBasligi } from '../../src/moduller/canli-yayin/bilesenler/CanliYayinMarkaBasligi';
 import { CanliYayinStudioKarti } from '../../src/moduller/canli-yayin/bilesenler/CanliYayinStudioKarti';
 import { CanliYayinKarti } from '../../src/moduller/canli-yayin/bilesenler/CanliYayinKarti';
-import { MedyaOdasiBaglan, MedyaOdasiKes } from '../../src/moduller/livekit/MedyaBaglantisi';
+import { MedyaOdasiKes } from '../../src/moduller/livekit/MedyaBaglantisi';
 import { OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import { HediyeAnimasyonKatmani } from '../../src/moduller/hediyeler/bilesenler/HediyeAnimasyonKatmani';
+import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
+import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediyeMagaza';
 import { useCanliHediyeCanlisi } from '../../src/moduller/hediyeler/gercek-zamanli/useCanliHediyeCanlisi';
-import { HediyeKatalogunuGetir } from '../../src/moduller/hediyeler/okuma/HediyeKatalogunuGetir';
-import { HEDIYE_FALLBACK_50 } from '../../src/moduller/hediyeler/katalog/HediyeFallback50';
 import { PkDavetPaneli } from '../../src/moduller/pk/bilesenler/PkDavetPaneli';
 import { PkDavetModal } from '../../src/moduller/pk/bilesenler/PkDavetModal';
 import { usePkDaveti } from '../../src/moduller/pk/kancalar/usePkDaveti';
 import { useCanliPkMac } from '../../src/moduller/pk/kancalar/useCanliPkMac';
-import type { Gift } from '../../src/types/models';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -55,6 +60,7 @@ export default function CanliYayinEkrani() {
     useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene, upgradeAc } =
     useMisafirIslemKapisi(isGuest);
+  const magaza = useHediyeMagaza();
   const [title, setTitle] = useState('');
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -63,8 +69,9 @@ export default function CanliYayinEkrani() {
   const [meta, setMeta] = useState<CanliYayinMeta | null>(null);
   const [medyaDurum, setMedyaDurum] = useState<string | null>(null);
   const [medyaMock, setMedyaMock] = useState(false);
-  const [gifts, setGifts] = useState<Gift[]>(HEDIYE_FALLBACK_50);
   const [pkDavetAcik, setPkDavetAcik] = useState(false);
+  const [geriSayim, setGeriSayim] = useState<number | null>(null);
+  const [baslatDurum, setBaslatDurum] = useState<CanliBaslatDurum>('idle');
   const yayindaRef = useRef(false);
   const sessionIdRef = useRef<string | null>(null);
   const liveEnabled = OzellikBayragiAktifMi('live_enabled');
@@ -88,17 +95,9 @@ export default function CanliYayinEkrani() {
   useCanliHediyeCanlisi({
     sessionId: meta?.id,
     selfUserId: user?.id,
-    gifts,
+    gifts: magaza.gifts,
     enabled: yayinda && !!meta?.id,
   });
-
-  React.useEffect(() => {
-    void HediyeKatalogunuGetir()
-      .then((rows) => {
-        if (rows.length) setGifts(rows);
-      })
-      .catch(() => undefined);
-  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -124,31 +123,36 @@ export default function CanliYayinEkrani() {
     setMeta(null);
     setMedyaDurum(null);
     setMedyaMock(false);
+    setGeriSayim(null);
+    setBaslatDurum('idle');
     await load();
   }, [load]);
 
   useFocusEffect(
     useCallback(() => {
       void load();
+      void CanliYayinOnHazirlik(videoEnabled);
       return () => {
         void (async () => {
           const sid = sessionIdRef.current;
           const aktif = yayindaRef.current || !!sid;
-          await MedyaOdasiKes();
-          if (aktif) {
-            await CanliYayinBitir(sid).catch(() => undefined);
+          // Geri sayım / bağlanırken çıkılırsa temizle
+          if (aktif || CanliBaslatKilitliMi()) {
+            await MedyaOdasiKes();
+            if (sid) await CanliYayinBitir(sid).catch(() => undefined);
+          } else {
+            await MedyaOdasiKes();
           }
           yayindaRef.current = false;
           sessionIdRef.current = null;
         })();
       };
-    }, [load]),
+    }, [load, videoEnabled]),
   );
 
-  // Geri jesti / hardware back: yayını bitir
-  React.useEffect(() => {
+  useEffect(() => {
     const unsub = navigation.addListener('beforeRemove', (e) => {
-      if (!yayindaRef.current) return;
+      if (!yayindaRef.current && baslatDurum === 'idle') return;
       e.preventDefault();
       Alert.alert('Yayını bitir', 'Çıkınca canlı yayın sonlanır.', [
         { text: 'Kal', style: 'cancel' },
@@ -165,7 +169,7 @@ export default function CanliYayinEkrani() {
       ]);
     });
     return unsub;
-  }, [navigation, yayiniSonlandir]);
+  }, [navigation, yayiniSonlandir, baslatDurum]);
 
   const baslat = () => {
     islemiDene('canli_ac', async () => {
@@ -176,32 +180,60 @@ export default function CanliYayinEkrani() {
         );
         return;
       }
+      if (CanliBaslatKilitliMi() || loading) return;
       if (!title.trim()) {
         Alert.alert('Başlık gerekli');
         return;
       }
+
       setLoading(true);
-      const sonuc = await CanliYayinBaslat({ title: title.trim(), mode: 'solo' });
+      setBaslatDurum('preparing');
+      setGeriSayim(3);
+
+      const sonuc = await CanliYayinBaslatMotoru({
+        title: title.trim(),
+        videoEnabled,
+        onProgress: (p) => {
+          setBaslatDurum(p.durum);
+          if (p.durum === 'countdown' && typeof p.countdown === 'number') {
+            setGeriSayim(p.countdown);
+          } else if (
+            p.durum === 'connecting' ||
+            p.durum === 'publishing' ||
+            p.durum === 'preparing'
+          ) {
+            setGeriSayim(-1);
+            if (p.mesaj) setMedyaDurum(p.mesaj);
+          } else if (p.durum === 'live' && typeof p.countdown === 'number') {
+            setGeriSayim(0);
+          }
+        },
+      });
+
       setLoading(false);
+
       if (!sonuc.ok) {
+        setGeriSayim(null);
+        setBaslatDurum('failed');
+        sessionIdRef.current = null;
+        await MedyaOdasiKes().catch(() => undefined);
         Alert.alert('Canlı', sonuc.hata);
+        setBaslatDurum('idle');
         return;
       }
-      const session = sonuc.session;
-      const roomName = session.livekit_room_name ?? `live_${session.id}`;
-      const medya = await MedyaOdasiBaglan({
-        roomName,
-        role: 'host',
-        video: videoEnabled,
-      });
-      sessionIdRef.current = session.id;
+
+      if (__DEV__ && sonuc.metrik) {
+        console.log('[LIVE_START] metrik', sonuc.metrik);
+      }
+
+      sessionIdRef.current = sonuc.session.id;
       yayindaRef.current = true;
       const hostAd =
         profile?.display_name?.trim() ||
         profile?.username?.trim() ||
         'Sen';
       setMeta({
-        id: session.id,
+        id: sonuc.session.id,
         host_id: user?.id ?? '',
         title: title.trim(),
         viewer_count: 0,
@@ -211,16 +243,16 @@ export default function CanliYayinEkrani() {
         hostAd,
       });
       setYayinda(true);
-      setMedyaMock(!!(medya.ok && medya.mock));
+      setMedyaMock(!!sonuc.mock);
       setMedyaDurum(
-        medya.ok
-          ? medya.mock
-            ? `Mock yayın`
-            : videoEnabled
-              ? 'Kamera açık'
-              : 'Video kapalı'
-          : medya.hata,
+        sonuc.mock
+          ? 'Mock yayın'
+          : videoEnabled
+            ? 'Kamera açık'
+            : 'Video kapalı',
       );
+      setGeriSayim(null);
+      setBaslatDurum('live');
       await load();
     });
   };
@@ -231,6 +263,48 @@ export default function CanliYayinEkrani() {
     setLoading(false);
     Alert.alert('Yayın bitti', 'Canlı yayın sonlandırıldı.');
   };
+
+  /** Host solo'da hediye yok; PK'de rakibe hediye */
+  const hediyeAc = useCallback(() => {
+    if (!meta || !pkMac?.host_a_id || !pkMac.host_b_id) return;
+    const pkAlicilar = [
+      {
+        id: pkMac.host_a_id,
+        ad: pkMac.side_a?.host_name ?? 'Yayıncı A',
+        liveSessionId: pkMac.live_a_id,
+        side: 'a' as const,
+      },
+      {
+        id: pkMac.host_b_id,
+        ad: pkMac.side_b?.host_name ?? 'Yayıncı B',
+        liveSessionId: pkMac.live_b_id,
+        side: 'b' as const,
+      },
+    ].filter((a) => a.id !== user?.id);
+    const alici = pkAlicilar[0];
+    if (!alici) return;
+    magaza.ac({
+      receiverId: alici.id,
+      aliciAdi: alici.ad,
+      liveSessionId: meta.id,
+      pkAlicilar,
+      animasyon: true,
+      onBasarili: (_g, adet) => {
+        setMeta((m) =>
+          m ? { ...m, gift_count: m.gift_count + adet } : m,
+        );
+        void refreshWallet();
+      },
+    });
+  }, [meta, pkMac, user?.id, magaza, refreshWallet]);
+
+  const countdownVisible =
+    !yayinda &&
+    geriSayim != null &&
+    (baslatDurum === 'countdown' ||
+      baslatDurum === 'connecting' ||
+      baslatDurum === 'publishing' ||
+      baslatDurum === 'preparing');
 
   if (yayinda && meta) {
     return (
@@ -245,6 +319,7 @@ export default function CanliYayinEkrani() {
             canSend={!isGuest}
             walletCoins={wallet?.coins ?? null}
             onNeedUpgrade={upgradeAc}
+            onHediye={pkMac ? hediyeAc : undefined}
             onBitir={() => void bitir()}
             onMeta={(patch) => setMeta((m) => (m ? { ...m, ...patch } : m))}
             pkMac={pkMac}
@@ -274,14 +349,25 @@ export default function CanliYayinEkrani() {
             onSonuc={(s) => {
               if (s.status === 'accepted') {
                 void pkYenile();
-                Alert.alert('PK başladı!', 'Hediyeler skor ve cüzdana anlık işlenir.');
+                Alert.alert(
+                  'PK başladı!',
+                  'Hediyeler skor ve cüzdana anlık işlenir.',
+                );
               }
             }}
           />
+          <HediyeMagazaBaglamasi
+            magaza={magaza}
+            misafirKart={false}
+            animasyon={false}
+          />
           <HediyeAnimasyonKatmani />
           <HesabiTamamlaKarti
-            visible={upgradeAcik}
-            onClose={upgradeKapat}
+            visible={upgradeAcik || magaza.upgradeAcik}
+            onClose={() => {
+              upgradeKapat();
+              magaza.upgradeKapat();
+            }}
             onCompleted={() => {
               void refreshProfile();
               void refreshWallet();
@@ -295,92 +381,103 @@ export default function CanliYayinEkrani() {
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="canli-yayin">
-        <FlatList
-          data={list}
-          keyExtractor={(item) => item.id}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.list}
-          ListHeaderComponent={
-            <View style={styles.header}>
-              <CanliYayinMarkaBasligi
-                canliSayisi={list.length}
-                onGeri={() => {
-                  if (router.canGoBack()) router.back();
-                  else router.replace('/(tabs)' as any);
-                }}
-              />
-              <CanliYayinStudioKarti
-                title={title}
-                onChangeTitle={setTitle}
-                onBaslat={baslat}
-                loading={loading}
-                placeholder={baslikOnerisi || 'Gece şovu...'}
-              />
+        <View style={{ flex: 1 }}>
+          <FlatList
+            data={list}
+            keyExtractor={(item) => item.id}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.list}
+            ListHeaderComponent={
+              <View style={styles.header}>
+                <CanliYayinMarkaBasligi
+                  canliSayisi={list.length}
+                  onGeri={() => {
+                    if (router.canGoBack()) router.back();
+                    else router.replace('/(tabs)' as any);
+                  }}
+                />
+                <CanliYayinStudioKarti
+                  title={title}
+                  onChangeTitle={setTitle}
+                  onBaslat={baslat}
+                  loading={loading || CanliBaslatKilitliMi()}
+                  placeholder={baslikOnerisi || 'Gece şovu...'}
+                  kameraOnizleme={!countdownVisible}
+                />
 
-              <Animated.View
-                entering={FadeInDown.delay(120)
-                  .duration(AnimasyonTokenlari.yavas)
-                  .springify()
-                  .damping(18)}
-                style={styles.sectionRow}
-              >
-                <View style={styles.sectionSol}>
-                  <View style={styles.sectionAccent} />
-                  <Text style={styles.section}>Şimdi canlı</Text>
-                </View>
-                <View style={styles.sekmeSerit}>
-                  {(
-                    [
-                      { id: 'hepsi' as const, label: 'Hepsi' },
-                      { id: 'takip' as const, label: 'Takip' },
-                    ] as const
-                  ).map((s) => {
-                    const aktif = canliSekme === s.id;
-                    return (
-                      <Pressable
-                        key={s.id}
-                        onPress={() => setCanliSekme(s.id)}
-                        style={[styles.sekme, aktif && styles.sekmeAktif]}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected: aktif }}
-                      >
-                        <Text
-                          style={[styles.sekmeYazi, aktif && styles.sekmeYaziAktif]}
+                <Animated.View
+                  entering={FadeInDown.delay(120)
+                    .duration(AnimasyonTokenlari.yavas)
+                    .springify()
+                    .damping(18)}
+                  style={styles.sectionRow}
+                >
+                  <View style={styles.sectionSol}>
+                    <View style={styles.sectionAccent} />
+                    <Text style={styles.section}>Şimdi canlı</Text>
+                  </View>
+                  <View style={styles.sekmeSerit}>
+                    {(
+                      [
+                        { id: 'hepsi' as const, label: 'Hepsi' },
+                        { id: 'takip' as const, label: 'Takip' },
+                      ] as const
+                    ).map((s) => {
+                      const aktif = canliSekme === s.id;
+                      return (
+                        <Pressable
+                          key={s.id}
+                          onPress={() => setCanliSekme(s.id)}
+                          style={[styles.sekme, aktif && styles.sekmeAktif]}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: aktif }}
                         >
-                          {s.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </Animated.View>
-            </View>
-          }
-          ListEmptyComponent={
-            <BosDurum
-              icon="videocam-outline"
-              title={
-                canliSekme === 'takip'
-                  ? 'Takip ettiğin yayın yok'
-                  : 'Canlı yayın yok'
-              }
-              body={
-                canliSekme === 'takip'
-                  ? 'Takip ettiğin hesaplar yayına geçince burada görünür.'
-                  : 'Yayınlar başladığında burada listelenir.'
-              }
-            />
-          }
-          renderItem={({ item, index }) => (
-            <CanliYayinKarti
-              item={item}
-              index={index}
-              onPress={() => router.push(`/canli/${item.id}` as any)}
-            />
-          )}
-        />
+                          <Text
+                            style={[
+                              styles.sekmeYazi,
+                              aktif && styles.sekmeYaziAktif,
+                            ]}
+                          >
+                            {s.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </Animated.View>
+              </View>
+            }
+            ListEmptyComponent={
+              <BosDurum
+                icon="videocam-outline"
+                title={
+                  canliSekme === 'takip'
+                    ? 'Takip ettiğin yayın yok'
+                    : 'Canlı yayın yok'
+                }
+                body={
+                  canliSekme === 'takip'
+                    ? 'Takip ettiğin hesaplar yayına geçince burada görünür.'
+                    : 'Yayınlar başladığında burada listelenir.'
+                }
+              />
+            }
+            renderItem={({ item, index }) => (
+              <CanliYayinKarti
+                item={item}
+                index={index}
+                onPress={() => router.push(`/canli/${item.id}` as any)}
+              />
+            )}
+          />
+          <CanliGeriSayimKatmani
+            sayi={geriSayim ?? 3}
+            visible={countdownVisible}
+            mesaj={medyaDurum}
+          />
+        </View>
         <HesabiTamamlaKarti
           visible={upgradeAcik}
           onClose={upgradeKapat}

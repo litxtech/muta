@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   koltukParlama: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderTopLeftRadius: 21,
     borderTopRightRadius: 21,
   },
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   tahtParlama: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   tahtAnaHalka: {
     width: 100,

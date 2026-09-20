@@ -10,8 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { CoinPackage } from '../../../types/models';
 import { CanliCoinSimgesi } from './CanliCoinSimgesi';
 import { YetkiliAjansYukleSeridi } from './YetkiliAjansYukleSeridi';
-import { PaketFiyatTry } from '../katalog/CoinPaketFiyat';
-import { COIN_TRY_ORANI } from '../katalog/CoinTryOrani';
+import { PaketFiyatTry, PaketFiyatYazi } from '../katalog/CoinPaketFiyat';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -19,20 +18,8 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-function formatTry(n: number): string {
-  return `${n.toLocaleString('tr-TR', {
-    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
-    maximumFractionDigits: 2,
-  })} ₺`;
-}
-
 function formatCoin(n: number): string {
   return n.toLocaleString('tr-TR');
-}
-
-function bonusYuzde(coins: number, bonus: number): number | null {
-  if (!bonus || coins <= 0) return null;
-  return Math.round((bonus / coins) * 100);
 }
 
 /** @deprecated Import `PaketFiyatTry` from `../katalog/CoinPaketFiyat` */
@@ -42,11 +29,8 @@ type Props = {
   packages: CoinPackage[];
   locked?: boolean;
   onBuy: (pkg: CoinPackage) => void;
-  /** Üst başlık/alt yazı (modal içinde gizlenebilir) */
   baslikGoster?: boolean;
-  /** Altında yetkili ajans listesi (varsayılan açık) */
   yetkiliAjansGoster?: boolean;
-  /** Ajans seçilince IAP paketlerini yenile */
   onPaketleriYenile?: () => void;
 };
 
@@ -61,18 +45,19 @@ export function CoinPaketMagaza({
   const sirali = useMemo(
     () =>
       [...packages].sort(
-        (a, b) => PaketFiyatTry(a) - PaketFiyatTry(b) || a.coins - b.coins,
+        (a, b) =>
+          (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+          PaketFiyatTry(a) - PaketFiyatTry(b) ||
+          a.coins - b.coins,
       ),
     [packages],
   );
 
-  const maxFiyat = Math.max(...sirali.map(PaketFiyatTry), 1);
-  const nabizPaketId = sirali.find((p) => !!p.badge)?.id ?? null;
   const odemeKanal =
     Platform.OS === 'ios'
-      ? 'Apple'
+      ? 'App Store'
       : Platform.OS === 'android'
-        ? 'Google'
+        ? 'Google Play'
         : 'Mağaza';
 
   return (
@@ -81,22 +66,23 @@ export function CoinPaketMagaza({
         <>
           <Text style={styles.title}>Coin yükle</Text>
           <Text style={styles.sub}>
-            {odemeKanal} ile güvenli ödeme · 1 coin ={' '}
-            {COIN_TRY_ORANI.toFixed(2).replace('.', ',')} ₺ · büyük pakette daha
-            avantajlı
+            {odemeKanal} üzerinden güvenli satın alma · fiyat mağazadan gelir
           </Text>
         </>
       ) : null}
 
+      <Text style={styles.bilgi}>
+        Coinler sanal içerikler, hediyeler ve desteklenen uygulama içi özelliklerde
+        kullanılır. Gerçek paraya dönüştürülemez.
+      </Text>
+
       <View style={styles.grid}>
         {sirali.map((pkg) => {
-          const fiyat = PaketFiyatTry(pkg);
           const bonus = pkg.bonus_coins || 0;
           const toplam = pkg.coins + bonus;
-          const seviye = Math.min(1, fiyat / maxFiyat);
           const vurgu = !!pkg.badge;
-          const nabizAcik = pkg.id === nabizPaketId;
-          const ekstra = bonusYuzde(pkg.coins, bonus);
+          const fiyatYazi = PaketFiyatYazi(pkg);
+          const kampanya = pkg.campaign_text?.trim();
 
           return (
             <Pressable
@@ -104,7 +90,7 @@ export function CoinPaketMagaza({
               disabled={locked}
               onPress={() => onBuy(pkg)}
               accessibilityRole="button"
-              accessibilityLabel={`${pkg.title}, ${formatCoin(toplam)} coin, ${formatTry(fiyat)} satın al`}
+              accessibilityLabel={`${pkg.title}, ${formatCoin(toplam)} coin, ${fiyatYazi} satın al`}
               style={({ pressed }) => [
                 styles.kartWrap,
                 pressed && styles.kartPressed,
@@ -121,68 +107,59 @@ export function CoinPaketMagaza({
                 end={{ x: 1, y: 1 }}
                 style={[styles.kart, vurgu && styles.kartVurgu]}
               >
-                {vurgu ? (
-                  <LinearGradient
-                    colors={[...RenkTokenlari.gradientPrimary]}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={styles.badge}
-                  >
-                    <Text style={styles.badgeText}>{pkg.badge}</Text>
-                  </LinearGradient>
+                {pkg.badge ? (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText} numberOfLines={1}>
+                      {pkg.badge}
+                    </Text>
+                  </View>
                 ) : null}
 
                 <View style={styles.ustSatir}>
-                  <CanliCoinSimgesi
-                    size={vurgu ? 42 : 36}
-                    seviye={seviye}
-                    animasyon={nabizAcik}
-                  />
+                  <CanliCoinSimgesi size={vurgu ? 40 : 34} seviye={0.5} animasyon={false} />
                   <View style={styles.ustMetin}>
-                    <Text style={styles.pkgTitle} numberOfLines={1}>
+                    <Text style={styles.pkgTitle} numberOfLines={2}>
                       {pkg.title}
                     </Text>
-                    {ekstra != null ? (
-                      <View style={styles.bonusChip}>
-                        <Text style={styles.bonusChipText}>+%{ekstra} bonus</Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.paketEtiket}>Anında yükle</Text>
-                    )}
+                    {kampanya ? (
+                      <Text style={styles.kampanya} numberOfLines={1}>
+                        {kampanya}
+                      </Text>
+                    ) : null}
                   </View>
                 </View>
 
                 <View style={styles.miktarBlok}>
-                  <Text style={[styles.coins, vurgu && styles.coinsVurgu]}>
-                    {formatCoin(toplam)}
+                  <Text
+                    style={[styles.coins, vurgu && styles.coinsVurgu]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  >
+                    {formatCoin(pkg.coins)}
                   </Text>
                   <Text style={styles.coinsBirim}>coin</Text>
                 </View>
 
                 {bonus > 0 ? (
-                  <Text style={styles.coinsAlt}>
-                    {formatCoin(pkg.coins)} +{' '}
-                    <Text style={styles.bonusInline}>
-                      {formatCoin(bonus)} bonus
-                    </Text>
+                  <Text style={styles.coinsAlt} numberOfLines={2}>
+                    +{formatCoin(bonus)} bonus · Toplam {formatCoin(toplam)}
                   </Text>
                 ) : (
-                  <Text style={styles.coinsAlt}>Net bakiye</Text>
+                  <Text style={styles.coinsAlt}>Toplam {formatCoin(toplam)} coin</Text>
                 )}
 
-                <LinearGradient
-                  colors={
-                    vurgu
-                      ? [...RenkTokenlari.gradientPrimary]
-                      : [...RenkTokenlari.gradientGold]
-                  }
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={styles.cta}
-                >
-                  <Text style={styles.ctaFiyat}>{formatTry(fiyat)}</Text>
+                <View style={[styles.cta, vurgu && styles.ctaVurgu]}>
+                  <Text
+                    style={styles.ctaFiyat}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.65}
+                  >
+                    {fiyatYazi}
+                  </Text>
                   <Text style={styles.ctaAksiyon}>Satın Al</Text>
-                </LinearGradient>
+                </View>
               </LinearGradient>
             </Pressable>
           );
@@ -205,7 +182,14 @@ const styles = StyleSheet.create({
   sub: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
-    marginBottom: 4,
+    marginBottom: 2,
+  },
+  bilgi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+    fontSize: 11,
+    lineHeight: 15,
+    marginBottom: BoslukTokenlari.sm,
   },
   grid: {
     flexDirection: 'row',
@@ -219,7 +203,6 @@ const styles = StyleSheet.create({
   },
   kartPressed: {
     opacity: 0.92,
-    transform: [{ scale: 0.98 }],
   },
   kartKilitli: {
     opacity: 0.5,
@@ -232,7 +215,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: BoslukTokenlari.md,
     paddingBottom: BoslukTokenlari.md,
     gap: 8,
-    minHeight: 220,
+    minHeight: 210,
     overflow: 'hidden',
   },
   kartVurgu: {
@@ -243,9 +226,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     right: 0,
+    maxWidth: '70%',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderBottomLeftRadius: YaricapTokenlari.sm,
+    backgroundColor: RenkTokenlari.primarySoft,
     zIndex: 2,
   },
   badgeText: {
@@ -253,7 +238,7 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.textOnOverlay,
     fontWeight: '900',
     fontSize: 9,
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
   },
   ustSatir: {
     flexDirection: 'row',
@@ -263,34 +248,20 @@ const styles = StyleSheet.create({
   },
   ustMetin: {
     flex: 1,
-    gap: 3,
+    gap: 2,
   },
   pkgTitle: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.text,
     fontWeight: '800',
+    fontSize: 12,
+    lineHeight: 16,
   },
-  paketEtiket: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textDim,
-    fontSize: 10,
-    letterSpacing: 0.2,
-  },
-  bonusChip: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(61, 207, 176, 0.16)',
-    borderWidth: 1,
-    borderColor: 'rgba(61, 207, 176, 0.35)',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: YaricapTokenlari.pill,
-  },
-  bonusChipText: {
+  kampanya: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.mint,
-    fontWeight: '800',
-    fontSize: 9,
-    letterSpacing: 0.2,
+    fontWeight: '700',
+    fontSize: 10,
   },
   miktarBlok: {
     flexDirection: 'row',
@@ -302,8 +273,9 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.h2,
     color: RenkTokenlari.accent,
     fontWeight: '900',
-    fontSize: 26,
+    fontSize: 24,
     letterSpacing: -0.4,
+    flexShrink: 1,
   },
   coinsVurgu: {
     color: RenkTokenlari.primarySoft,
@@ -318,24 +290,25 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.textDim,
     marginBottom: 2,
   },
-  bonusInline: {
-    color: RenkTokenlari.mint,
-    fontWeight: '800',
-  },
   cta: {
     marginTop: 'auto',
     borderRadius: YaricapTokenlari.md,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
+    backgroundColor: RenkTokenlari.accent,
+  },
+  ctaVurgu: {
+    backgroundColor: RenkTokenlari.primarySoft,
   },
   ctaFiyat: {
     ...TipografiTokenlari.body,
     color: '#1A1220',
     fontWeight: '900',
-    fontSize: 16,
+    fontSize: 15,
+    maxWidth: '100%',
   },
   ctaAksiyon: {
     ...TipografiTokenlari.micro,

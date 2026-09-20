@@ -93,12 +93,18 @@ export type CoinPackage = {
   coins: number;
   bonus_coins: number;
   price_usd: number;
-  /** Türkiye fiyatı (TL) — yoksa UI price_usd gösterir */
+  /** Referans TL — gerçek tahsilat StoreKit/Play'den */
   price_try?: number | null;
   badge: string | null;
+  campaign_text?: string | null;
+  sort_order?: number | null;
   apple_product_id?: string | null;
   google_product_id?: string | null;
   stripe_price_id?: string | null;
+  /** StoreKit / Play localized price string */
+  store_display_price?: string | null;
+  store_price_amount?: number | null;
+  store_currency?: string | null;
 };
 
 export type RoomSeat = {

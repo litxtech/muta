@@ -9,15 +9,35 @@ import {
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 type Props = {
-  uri: string;
+  uri: string | null | undefined;
   style?: StyleProp<ViewStyle>;
+  /** FlatList görünürlük — false iken native player mount etme */
+  aktif?: boolean;
 };
+
+function MedyaUriGecerliMi(uri: string | null | undefined): uri is string {
+  return typeof uri === 'string' && /^https?:\/\//i.test(uri.trim());
+}
 
 /**
  * Paylaşılan video kartı. Image video URL açamaz; boş kare görünür.
  * Android'de surfaceView overflow:hidden içinde boş kalır → textureView.
+ * Boş/geçersiz uri veya pasif hücrede player oluşturulmaz (feed crash + bellek).
  */
-export function DurumVideoOnizleme({ uri, style }: Props) {
+export function DurumVideoOnizleme({ uri, style, aktif = true }: Props) {
+  if (!aktif || !MedyaUriGecerliMi(uri)) {
+    return <View style={[styles.wrap, style]} pointerEvents="none" />;
+  }
+  return <DurumVideoOnizlemeIc uri={uri.trim()} style={style} />;
+}
+
+function DurumVideoOnizlemeIc({
+  uri,
+  style,
+}: {
+  uri: string;
+  style?: StyleProp<ViewStyle>;
+}) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.muted = true;
@@ -32,6 +52,13 @@ export function DurumVideoOnizleme({ uri, style }: Props) {
     } catch {
       /* native player henüz hazır değilse yok say */
     }
+    return () => {
+      try {
+        player.pause();
+      } catch {
+        /* ignore */
+      }
+    };
   }, [player, uri]);
 
   return (
@@ -55,8 +82,9 @@ const styles = StyleSheet.create({
   wrap: {
     width: '100%',
     overflow: 'hidden',
+    backgroundColor: '#1a1a22',
   },
   video: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
 });

@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   trackBg: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.1)',
   },

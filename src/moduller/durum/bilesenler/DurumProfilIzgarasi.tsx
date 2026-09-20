@@ -86,8 +86,14 @@ export function DurumProfilIzgarasi({
                     uri={oge.media_url}
                     style={styles.img}
                   />
+                ) : typeof oge.media_url === 'string' &&
+                  /^https?:\/\//i.test(oge.media_url.trim()) ? (
+                  <Image
+                    source={{ uri: oge.media_url.trim() }}
+                    style={styles.img}
+                  />
                 ) : (
-                  <Image source={{ uri: oge.media_url }} style={styles.img} />
+                  <View style={[styles.img, styles.imgBos]} />
                 )}
                 {oge.media_type === 'video' && !kazanc ? (
                   <View style={styles.videoBadge} pointerEvents="none">
@@ -155,6 +161,9 @@ const styles = StyleSheet.create({
   img: {
     width: '100%',
     height: '100%',
+  },
+  imgBos: {
+    backgroundColor: '#1a1a22',
   },
   videoBadge: {
     position: 'absolute',

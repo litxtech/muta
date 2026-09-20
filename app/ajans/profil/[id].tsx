@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
   },
   banner: { width: '100%', height: 120 },
   bannerFade: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     top: 40,
     height: 80,
   },

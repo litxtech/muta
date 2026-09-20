@@ -25,6 +25,8 @@ type Props = {
   onHediye: () => void;
   onProfil: () => void;
   onMenu?: () => void;
+  /** Akışta görünür değilken video player mount etme */
+  videoAktif?: boolean;
 };
 
 function formatSayi(n: number): string {
@@ -42,6 +44,7 @@ export function DurumKart({
   onHediye,
   onProfil,
   onMenu,
+  videoAktif = true,
 }: Props) {
   const handle = oge.username ? `@${oge.username}` : null;
   const kazanc = DurumOyunKazanciPayloadAl(oge);
@@ -106,13 +109,17 @@ export function DurumKart({
               <DurumVideoOnizleme
                 uri={oge.media_url}
                 style={StyleSheet.absoluteFill}
+                aktif={videoAktif}
               />
               <View style={styles.videoBadge} pointerEvents="none">
                 <Ionicons name="play" size={13} color="#fff" />
               </View>
             </View>
+          ) : typeof oge.media_url === 'string' &&
+            /^https?:\/\//i.test(oge.media_url.trim()) ? (
+            <Image source={{ uri: oge.media_url.trim() }} style={styles.medya} />
           ) : (
-            <Image source={{ uri: oge.media_url }} style={styles.medya} />
+            <View style={[styles.medya, styles.medyaBos]} />
           )}
         </Pressable>
 
@@ -273,6 +280,9 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 16 / 10,
     backgroundColor: RenkTokenlari.bgElevated,
+  },
+  medyaBos: {
+    backgroundColor: '#1a1a22',
   },
   videoBadge: {
     position: 'absolute',

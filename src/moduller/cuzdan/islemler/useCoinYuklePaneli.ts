@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -7,7 +7,12 @@ import { CoinPaketiSatinAl } from '../../iap/islemler/CoinPaketiSatinAl';
 import { KillSwitchAktifMiSunucu } from '../../ozellik-bayraklari/okuma/KillSwitchAktifMiSunucu';
 import { CoinPaketleriniGetir } from '../okuma/CoinPaketleriniGetir';
 import { COIN_PAKET_FALLBACK } from '../katalog/CoinPaketFallback';
-import { PaketFiyatTry } from '../katalog/CoinPaketFiyat';
+import { PaketFiyatYazi } from '../katalog/CoinPaketFiyat';
+import {
+  MagazaFiyatlariniYukle,
+  PaketlereMagazaFiyatiUygula,
+} from '../katalog/MagazaFiyatlariniYukle';
+import { supabase } from '../../../lib/supabase';
 import type { CoinPackage } from '../../../types/models';
 
 /**
@@ -21,25 +26,56 @@ export function useCoinYuklePaneli() {
   const [acik, setAcik] = useState(false);
   const [packages, setPackages] = useState<CoinPackage[]>(COIN_PAKET_FALLBACK);
   const [purchaseLocked, setPurchaseLocked] = useState(false);
+  const magazaYukleniyor = useRef(false);
 
-  const paketleriYenile = useCallback(() => {
+  const paketleriYenile = useCallback(async () => {
     void KillSwitchAktifMiSunucu('kill_coin_purchase').then(setPurchaseLocked);
-    CoinPaketleriniGetir()
-      .then((data) => {
-        if (data.length) setPackages(data);
-      })
-      .catch(() => undefined);
+    try {
+      const data = await CoinPaketleriniGetir();
+      if (!data.length) return;
+      if (magazaYukleniyor.current) {
+        setPackages(data);
+        return;
+      }
+      magazaYukleniyor.current = true;
+      try {
+        const fiyatlar = await MagazaFiyatlariniYukle(data);
+        setPackages(PaketlereMagazaFiyatiUygula(data, fiyatlar));
+      } catch {
+        setPackages(data);
+      } finally {
+        magazaYukleniyor.current = false;
+      }
+    } catch {
+      /* fallback kalır */
+    }
   }, []);
 
   useEffect(() => {
-    // Panel içi kullanım + ayrı Modal — paketler her zaman hazır olsun
-    paketleriYenile();
+    void paketleriYenile();
   }, [paketleriYenile]);
 
   useEffect(() => {
     if (!acik) return;
-    paketleriYenile();
+    void paketleriYenile();
   }, [acik, paketleriYenile]);
+
+  // Admin değişiklikleri — realtime
+  useEffect(() => {
+    const ch = supabase
+      .channel('coin-packages-live')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'coin_packages' },
+        () => {
+          void paketleriYenile();
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [paketleriYenile]);
 
   const ac = useCallback(() => {
     setAcik(true);
@@ -57,14 +93,20 @@ export function useCoinYuklePaneli() {
           return;
         }
         const toplam = pkg.coins + pkg.bonus_coins;
-        const fiyatTry = PaketFiyatTry(pkg);
+        const fiyatYazi = PaketFiyatYazi(pkg);
         const kanal =
-          Platform.OS === 'ios' || Platform.OS === 'android'
-            ? 'App Store / Play'
-            : 'Stripe';
+          Platform.OS === 'ios'
+            ? 'App Store'
+            : Platform.OS === 'android'
+              ? 'Google Play'
+              : 'Stripe';
+        const bonusSatir =
+          pkg.bonus_coins > 0
+            ? `\n${pkg.coins.toLocaleString('tr-TR')} + ${pkg.bonus_coins.toLocaleString('tr-TR')} bonus`
+            : '';
         Alert.alert(
           'Coin yükle',
-          `${pkg.title}\n${toplam.toLocaleString('tr-TR')} coin\n${fiyatTry.toLocaleString('tr-TR')} ₺\nÖdeme: ${kanal}`,
+          `${pkg.title}${bonusSatir}\nToplam ${toplam.toLocaleString('tr-TR')} coin\n${fiyatYazi}\nÖdeme: ${kanal}`,
           [
             { text: 'İptal', style: 'cancel' },
             {

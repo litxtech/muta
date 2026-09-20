@@ -76,28 +76,75 @@ Deno.serve(async (req) => {
     }
 
     const admin = createClient(supabaseUrl, serviceKey);
-    const { data: pkg, error: pkgErr } = await admin
+
+    // Güvenilir eşleme: store productId → paket (client packageId'ye tek başına güvenme)
+    const productCol =
+      body.store === 'apple' ? 'apple_product_id' : 'google_product_id';
+    let pkg: Record<string, unknown> | null = null;
+
+    const byStoreId = await admin
       .from('coin_packages')
       .select('*')
-      .eq('id', body.packageId)
-      .eq('is_active', true)
+      .eq(productCol, body.productId)
       .maybeSingle();
-    if (pkgErr || !pkg) {
+    if (!byStoreId.error && byStoreId.data) {
+      pkg = byStoreId.data as Record<string, unknown>;
+    } else {
+      const bySku = await admin
+        .from('coin_packages')
+        .select('*')
+        .eq('sku', body.productId)
+        .maybeSingle();
+      if (!bySku.error && bySku.data) {
+        pkg = bySku.data as Record<string, unknown>;
+      }
+    }
+
+    if (!pkg && body.packageId) {
+      const { data: byId, error: pkgErr } = await admin
+        .from('coin_packages')
+        .select('*')
+        .eq('id', body.packageId)
+        .maybeSingle();
+      if (pkgErr || !byId) {
+        return Response.json(
+          { error: 'Package not found' },
+          { status: 404, headers: corsHeaders },
+        );
+      }
+      pkg = byId as Record<string, unknown>;
+    }
+
+    // is_active zorunlu değil — satın alma sırasında admin kapatırsa race'te coin yine verilsin
+    if (!pkg) {
       return Response.json({ error: 'Package not found' }, { status: 404, headers: corsHeaders });
     }
 
     const expectedSku =
-      body.store === 'apple' ? pkg.apple_product_id ?? pkg.sku : pkg.google_product_id ?? pkg.sku;
+      body.store === 'apple'
+        ? (pkg.apple_product_id as string | null) ?? (pkg.sku as string)
+        : (pkg.google_product_id as string | null) ?? (pkg.sku as string);
     if (expectedSku && body.productId !== expectedSku && body.productId !== pkg.sku) {
       return Response.json({ error: 'Product mismatch' }, { status: 400, headers: corsHeaders });
     }
+    if (
+      body.packageId &&
+      pkg.id &&
+      String(pkg.id) !== String(body.packageId)
+    ) {
+      return Response.json(
+        { error: 'Package/product mismatch' },
+        { status: 400, headers: corsHeaders },
+      );
+    }
 
+    const packageId = String(pkg.id);
     const providerTx =
       body.transactionId ?? body.purchaseToken ?? `${body.store}_${body.idempotencyKey}`;
 
     const { data, error } = await admin.rpc('coin_satin_al_onayla_servis', {
       p_user_id: user.id,
-      p_package_id: body.packageId,
+      p_package_id: packageId,
       p_idempotency_key: body.idempotencyKey,
       p_provider: body.store,
       p_provider_tx_id: providerTx,

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type ViewToken,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,6 +44,24 @@ export default function DurumAkisEkrani() {
   const [yorumStatusId, setYorumStatusId] = useState<string | null>(null);
   const [bildirOge, setBildirOge] = useState<DurumOggesi | null>(null);
   const [sekme, setSekme] = useState<'sana' | 'takip'>('sana');
+  const [gorunurIdler, setGorunurIdler] = useState<Set<string>>(() => new Set());
+  const gorunurRef = useRef<Set<string>>(new Set());
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const next = new Set(
+        viewableItems
+          .map((v) => (v.item as DurumOggesi | undefined)?.id)
+          .filter((id): id is string => !!id),
+      );
+      gorunurRef.current = next;
+      setGorunurIdler(next);
+    },
+  ).current;
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 35,
+    minimumViewTime: 80,
+  }).current;
 
   const yukle = useCallback(async () => {
     try {
@@ -227,6 +246,7 @@ export default function DurumAkisEkrani() {
             renderItem={({ item }) => (
               <DurumKart
                 oge={item}
+                videoAktif={gorunurIdler.has(item.id)}
                 onPress={() => router.push(`/durum/${item.id}` as any)}
                 onBegen={() => begen(item)}
                 onYorum={() =>
@@ -239,6 +259,12 @@ export default function DurumAkisEkrani() {
                 onMenu={() => menuAc(item)}
               />
             )}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            windowSize={7}
+            maxToRenderPerBatch={6}
+            initialNumToRender={5}
+            removeClippedSubviews
           />
         )}
 
