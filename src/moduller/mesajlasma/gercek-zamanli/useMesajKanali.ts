@@ -22,7 +22,14 @@ export function useMesajKanali(
   okunduCb.current = onPeerOkundu;
 
   useEffect(() => {
-    if (!threadId || threadId === 'yeni') return;
+    if (
+      !threadId ||
+      typeof threadId !== 'string' ||
+      threadId === 'yeni' ||
+      threadId.includes(',')
+    ) {
+      return;
+    }
 
     const topic = `dm-thread-${threadId}`;
     for (const ch of supabase.getChannels()) {
@@ -33,9 +40,11 @@ export function useMesajKanali(
 
     const handle = (payload: ChangePayload) => {
       if (payload.eventType === 'DELETE') {
+        const oldId = payload.old?.id;
+        if (!oldId) return;
         cb.current(
           {
-            id: payload.old?.id ?? '',
+            id: oldId,
             thread_id: threadId,
           } as DirektMesaj,
           'DELETE',

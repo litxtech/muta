@@ -103,6 +103,32 @@ export type CuzdanUiTextBlock = {
   locales: Partial<Record<CuzdanUiLocale | string, string>>;
 };
 
+/** Kart üstü marka + Apple-güvenli gelir açıklaması */
+export type CuzdanUiBrand = {
+  /** Kart üstü marka — örn. MUTA PAY */
+  name: string;
+  /** Marka altı — örn. Dijital cüzdan */
+  card_type: string;
+  /** Kart tipi altına kısa tagline (gizlenebilir) */
+  tagline: string;
+  tagline_visible: boolean;
+};
+
+/** Katalog / tahmini tutar paneli — satır satır admin kontrolü */
+export type CuzdanUiValueSummary = {
+  enabled: boolean;
+  show_katalog: boolean;
+  show_platform_share: boolean;
+  show_seller_net: boolean;
+  show_payment_note: boolean;
+  show_language_note: boolean;
+  katalog_label: string;
+  platform_label: string;
+  seller_net_label: string;
+  payment_note: string;
+  language_note: string;
+};
+
 export type CuzdanUiPayload = {
   schema_version: number;
   general: {
@@ -111,6 +137,8 @@ export type CuzdanUiPayload = {
     subtitle?: string;
     description?: string;
   };
+  brand: CuzdanUiBrand;
+  value_summary: CuzdanUiValueSummary;
   wallet_icon: CuzdanUiIcon;
   coin: CuzdanCoinDisplay;
   theme: CuzdanUiTheme;

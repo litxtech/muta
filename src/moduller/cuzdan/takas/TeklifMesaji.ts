@@ -1,6 +1,6 @@
 /**
  * Takas teklif metni — push, note ve sohbet için ortak şablon.
- * Fiyat: satıcı net TL (katalog × %40) + yaklaşık USD.
+ * Katalog özeti gösterilir; “satış / nakit” dili kullanılmaz.
  */
 
 import { CoinDegerOzeti, TryYazi } from '../katalog/CoinTakasPaylasimi';
@@ -22,26 +22,25 @@ export function CoinYazi(coins: number): string {
   return Math.floor(Number(coins) || 0).toLocaleString('tr-TR');
 }
 
-/** Örn: Merhaba, benim 100.000 coinim var; bunu sana 4.000 ₺ veya yaklaşık 114 $'a satmak istiyorum… */
+/** Teklif gövdesi — katalog özeti; “satmak” dili yok */
 export function TeklifMesajiOlustur(coins: number): string {
   const ozet = CoinDegerOzeti(coins);
-  const usd = CoinUsdYaklasik(ozet.saticiNetTl);
   return (
-    `Merhaba, benim ${CoinYazi(ozet.coins)} coinim var; ` +
-    `bunu sana ${TryYazi(ozet.saticiNetTl)} veya yaklaşık ${UsdYazi(usd)}'a satmak istiyorum. ` +
-    `Kabul edersen işlemleri başlatalım.`
+    `Merhaba, ${CoinYazi(ozet.coins)} coin için takas teklifim var ` +
+    `(katalog özeti: ${TryYazi(ozet.saticiNetTl)}). ` +
+    `Uygulama içi sanal öğe transferidir. Kabul edersen işlemleri başlatalım.`
   );
 }
 
-/** Push gövdesi — biraz daha kısa */
+/** Push gövdesi — kısa */
 export function TeklifPushOzeti(coins: number, saticiNetTl?: number): string {
   const ozet = CoinDegerOzeti(coins);
-  const net = saticiNetTl != null && Number.isFinite(Number(saticiNetTl))
-    ? Number(saticiNetTl)
-    : ozet.saticiNetTl;
-  const usd = CoinUsdYaklasik(net);
+  const net =
+    saticiNetTl != null && Number.isFinite(Number(saticiNetTl))
+      ? Number(saticiNetTl)
+      : ozet.saticiNetTl;
   return (
-    `${CoinYazi(ozet.coins)} coin · ${TryYazi(net)} / ~${UsdYazi(usd)}. ` +
+    `${CoinYazi(ozet.coins)} coin takas teklifi · katalog ${TryYazi(net)}. ` +
     `Kabul edersen işlemleri başlatalım.`
   );
 }

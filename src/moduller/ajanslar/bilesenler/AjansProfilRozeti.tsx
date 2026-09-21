@@ -59,8 +59,10 @@ export function AjansProfilRozeti({
         end={{ x: 1, y: 0.5 }}
         style={[styles.pill, !uye && styles.pillKenar]}
       >
-        {uye && ajans?.logo_url ? (
-          <Image source={{ uri: ajans.logo_url }} style={styles.logo} />
+        {uye &&
+        typeof ajans?.logo_url === 'string' &&
+        /^https?:\/\//i.test(ajans.logo_url.trim()) ? (
+          <Image source={{ uri: ajans.logo_url.trim() }} style={styles.logo} />
         ) : (
           <View style={[styles.logo, styles.logoBos, uye && styles.logoUye]}>
             <Ionicons

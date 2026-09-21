@@ -88,7 +88,7 @@ export function CanliCoinSimgesi({
             borderColor: 'rgba(255,255,255,0.35)',
           }}
         >
-          <Text style={{ fontSize: font, fontWeight: '900', color: '#3A2208' }}>₺</Text>
+          <Text style={{ fontSize: font, fontWeight: '900', color: '#3A2208' }}>C</Text>
         </LinearGradient>
       </Animated.View>
     </View>

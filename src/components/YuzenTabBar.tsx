@@ -79,13 +79,35 @@ const ICON_SIZE = 26;
 const CREATE_SIZE = 30;
 const AVATAR = 26;
 
+function tabsIcindeMi(segments: string[]): boolean {
+  return segments[0] === '(tabs)';
+}
+
+/**
+ * Görünür sekme adı. wallet / rooms / cihazlar gibi gizli sekmelerde
+ * null döner — Ana'yı seçili göstermemek kritik (aksi halde Ana'ya
+ * basmak no-op olur / navigasyon karışır).
+ */
 function aktifTabAdi(segments: string[]): GorunurTabAdi | null {
-  if (segments[0] !== '(tabs)') return null;
+  if (!tabsIcindeMi(segments)) return null;
   const ad = (segments[1] ?? 'index') as string;
   if ((GORUNUR_TAB_SIRASI as readonly string[]).includes(ad)) {
     return ad as GorunurTabAdi;
   }
-  return 'index';
+  return null;
+}
+
+/** Tab geçişi — IAP / AppState sonrası navigate fail olursa replace */
+function tabGit(href: string) {
+  try {
+    router.navigate(href as never);
+  } catch {
+    try {
+      router.replace(href as never);
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 /** Modal / tam ekran — tab chrome üstüne binmesin */
@@ -115,8 +137,9 @@ function YuzenTabBarIc() {
 
   const segList = useMemo(() => segments.map(String), [segments]);
   const focused = aktifTabAdi(segList);
+  // Cüzdan/odalar gizli olsa da tab bar kalsın (focused null olabilir)
   const gorunur =
-    focused != null && !!session && !tamEkranMu(pathname);
+    tabsIcindeMi(segList) && !!session && !tamEkranMu(pathname);
 
   const barW = TabBarGuvenliGenislik(windowWidth);
   const bottomPad = guvenliTabAltInset(insets.bottom);
@@ -173,7 +196,7 @@ function YuzenTabBarIc() {
                 }
                 onPress={() => {
                   if (secili) return;
-                  router.navigate(HREF[name] as never);
+                  tabGit(HREF[name]);
                 }}
                 style={styles.slot}
                 hitSlop={8}

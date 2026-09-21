@@ -61,6 +61,7 @@ export function CuzdanKartPaylasimMetni(walletNumber: string): string {
     formatCuzdanNo(no),
     '',
     `Bağlantı: ${payload}`,
+    'Ses odası, gönderi, mesaj ve canlı yayın aktiviteleri için dijital cüzdan.',
     'Uygulamada Takas / QR ile okutabilirsin.',
   ].join('\n');
 }

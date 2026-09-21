@@ -12,6 +12,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { ModulHataSiniri } from '../../../ortak/hata-sinirlari/ModulHataSiniri';
+import { MedyaUriGuvenli } from '../yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   uri: string | null;
@@ -58,11 +60,12 @@ function MesajVideoOynatici({ uri }: { uri: string }) {
   );
 }
 
-/** DM resim / video — uygulama içi tam ekran */
+/** DM resim / video — tek örnek; geçersiz URI'de modal açılmaz (Image/video crash yok) */
 export function MesajMedyaGoruntuleyici({ uri, tur, onKapat }: Props) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const acik = Boolean(uri && tur);
+  const safeUri = MedyaUriGuvenli(uri);
+  const acik = Boolean(safeUri && tur);
 
   return (
     <Modal
@@ -82,18 +85,21 @@ export function MesajMedyaGoruntuleyici({ uri, tur, onKapat }: Props) {
           accessibilityLabel="Kapat"
         />
 
-        {uri && tur === 'image' ? (
-          <Pressable style={styles.icerik} onPress={(e) => e.stopPropagation()}>
+        {safeUri && tur === 'image' ? (
+          <View style={styles.icerik} pointerEvents="box-none">
             <Image
-              source={{ uri }}
-              style={{ width, height: height - insets.top - insets.bottom }}
+              source={{ uri: safeUri }}
+              style={{
+                width,
+                height: Math.max(120, height - insets.top - insets.bottom),
+              }}
               resizeMode="contain"
               accessibilityLabel="Mesaj fotoğrafı"
             />
-          </Pressable>
+          </View>
         ) : null}
 
-        {uri && tur === 'video' ? (
+        {safeUri && tur === 'video' ? (
           <View
             style={[
               styles.videoWrap,
@@ -105,7 +111,18 @@ export function MesajMedyaGoruntuleyici({ uri, tur, onKapat }: Props) {
             ]}
             pointerEvents="box-none"
           >
-            <MesajVideoOynatici uri={uri} />
+            <ModulHataSiniri
+              modulAdi="mesaj-video"
+              varyant="kart"
+              yedek={
+                <View style={styles.videoHata}>
+                  <Ionicons name="videocam-off" size={40} color="#fff" />
+                  <Text style={styles.videoHataYazi}>Video açılamadı</Text>
+                </View>
+              }
+            >
+              <MesajVideoOynatici uri={safeUri} />
+            </ModulHataSiniri>
           </View>
         ) : null}
 
@@ -119,7 +136,9 @@ export function MesajMedyaGoruntuleyici({ uri, tur, onKapat }: Props) {
         </Pressable>
 
         <Text style={[styles.ipucu, { bottom: Math.max(16, insets.bottom + 12) }]}>
-          {tur === 'video' ? 'Kontrollerle oynat · boşluğa dokunarak kapat' : 'Boşluğa dokunarak kapat'}
+          {tur === 'video'
+            ? 'Kontrollerle oynat · boşluğa dokunarak kapat'
+            : 'Boşluğa dokunarak kapat'}
         </Text>
       </View>
     </Modal>
@@ -134,7 +153,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#000',
   },
   icerik: {
@@ -150,6 +169,17 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
+  },
+  videoHata: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  videoHataYazi: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+    fontWeight: '600',
   },
   kapatBtn: {
     position: 'absolute',

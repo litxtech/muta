@@ -4,11 +4,8 @@ import {
   CoinDegerOzeti,
   TryYazi,
 } from '../katalog/CoinTakasPaylasimi';
-import {
-  TAKAS_DIL_NOTU,
-  TAKAS_IADE_UYARISI,
-  TAKAS_ODEME_BILGISI,
-} from '../takas/TakasOdemeBilgisi';
+import { DEFAULT_CUZDAN_UI_CONFIG } from '../ui-config/CuzdanUiVarsayilan';
+import type { CuzdanUiValueSummary } from '../ui-config/CuzdanUiTipleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -22,47 +19,79 @@ type Props = {
   kompakt?: boolean;
   /** İade uyarısını göster */
   iadeUyari?: boolean;
+  iadeMetin?: string;
+  /** Admin value_summary — yoksa varsayılan Apple-güvenli metinler */
+  ozet?: Partial<CuzdanUiValueSummary> | null;
 };
 
-/** Coin stoku → katalog / platform / satıcı net özeti (Apple-güvenli dil) */
+function ozetBirlesik(
+  ozet?: Partial<CuzdanUiValueSummary> | null,
+): CuzdanUiValueSummary {
+  return { ...DEFAULT_CUZDAN_UI_CONFIG.value_summary, ...(ozet ?? {}) };
+}
+
+/** Coin stoku → katalog / platform / hesap özeti (Apple-güvenli dil) */
 export function CoinDegerOzetiPaneli({
   coins,
   kompakt = false,
   iadeUyari = false,
+  iadeMetin,
+  ozet: ozetProp,
 }: Props) {
+  const cfg = useMemo(() => ozetBirlesik(ozetProp), [ozetProp]);
   const ozet = useMemo(() => CoinDegerOzeti(coins), [coins]);
 
-  if (ozet.coins <= 0) {
+  if (!cfg.enabled || ozet.coins <= 0) {
+    return null;
+  }
+
+  const satirVar =
+    cfg.show_katalog || cfg.show_platform_share || cfg.show_seller_net;
+  if (!satirVar && !cfg.show_payment_note && !cfg.show_language_note) {
     return null;
   }
 
   return (
     <View style={[styles.wrap, kompakt && styles.wrapKompakt]}>
-      <Text style={styles.baslik}>Katalog değeri</Text>
-      <Text style={styles.katalog}>{TryYazi(ozet.katalogTl)}</Text>
+      {cfg.show_katalog ? (
+        <>
+          <Text style={styles.baslik}>{cfg.katalog_label}</Text>
+          <Text style={styles.katalog}>{TryYazi(ozet.katalogTl)}</Text>
+        </>
+      ) : null}
 
-      <View style={styles.kirilim}>
-        <View style={styles.satir}>
-          <Text style={styles.etiket}>Platform payı (%60)</Text>
-          <Text style={styles.deger}>{TryYazi(ozet.platformTl)}</Text>
+      {(cfg.show_platform_share || cfg.show_seller_net) && (
+        <View style={styles.kirilim}>
+          {cfg.show_platform_share ? (
+            <View style={styles.satir}>
+              <Text style={styles.etiket}>{cfg.platform_label}</Text>
+              <Text style={styles.deger}>{TryYazi(ozet.platformTl)}</Text>
+            </View>
+          ) : null}
+          {cfg.show_seller_net ? (
+            <View style={styles.satir}>
+              <Text style={styles.etiketNet}>{cfg.seller_net_label}</Text>
+              <Text style={styles.net}>{TryYazi(ozet.saticiNetTl)}</Text>
+            </View>
+          ) : null}
         </View>
-        <View style={styles.satir}>
-          <Text style={styles.etiketNet}>Anlaşma sonrası tahmini tutar</Text>
-          <Text style={styles.net}>{TryYazi(ozet.saticiNetTl)}</Text>
-        </View>
-      </View>
+      )}
 
       {!kompakt ? (
         <>
-          <Text style={styles.not}>{TAKAS_ODEME_BILGISI}</Text>
-          <Text style={styles.dil}>{TAKAS_DIL_NOTU}</Text>
-          {iadeUyari ? (
-            <Text style={styles.iade}>{TAKAS_IADE_UYARISI}</Text>
+          {cfg.show_payment_note && cfg.payment_note ? (
+            <Text style={styles.not}>{cfg.payment_note}</Text>
+          ) : null}
+          {cfg.show_language_note && cfg.language_note ? (
+            <Text style={styles.dil}>{cfg.language_note}</Text>
+          ) : null}
+          {iadeUyari && iadeMetin ? (
+            <Text style={styles.iade}>{iadeMetin}</Text>
           ) : null}
         </>
-      ) : (
-        <Text style={styles.notKompakt}>{TAKAS_ODEME_BILGISI}</Text>
-      )}
+      ) : cfg.show_payment_note && cfg.payment_note ? (
+        <Text style={styles.notKompakt}>{cfg.payment_note}</Text>
+      ) : null}
     </View>
   );
 }

@@ -33,6 +33,8 @@ function deepMergePayload(
     ...raw,
     schema_version: Number(raw.schema_version ?? base.schema_version) || 1,
     general: { ...base.general, ...(raw.general ?? {}) },
+    brand: { ...base.brand, ...(raw.brand ?? {}) },
+    value_summary: { ...base.value_summary, ...(raw.value_summary ?? {}) },
     wallet_icon: {
       ...base.wallet_icon,
       ...(raw.wallet_icon ?? {}),

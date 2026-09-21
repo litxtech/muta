@@ -22,9 +22,9 @@ import { useKlavyeYuksekligi } from '../../src/bilesenler/klavye/useKlavyeYuksek
 import {
   DurumDetayGetir,
   DurumGuncelle,
+  DurumMedyaHttpsMi,
   type DurumOggesi,
 } from '../../src/moduller/durum/islemler/DurumIslemleri';
-import { DurumVideoOnizleme } from '../../src/moduller/durum/bilesenler/DurumVideoOnizleme';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -123,14 +123,31 @@ export default function DurumDuzenleEkrani() {
                 onPress={Keyboard.dismiss}
               >
                 {oge.media_type === 'video' ? (
-                  <DurumVideoOnizleme
-                    uri={oge.media_url}
+                  <View
+                    style={[
+                      styles.img,
+                      styles.videoPlaceholder,
+                      klavyeAcik && styles.imgKucuk,
+                    ]}
+                  >
+                    <Ionicons
+                      name="play-circle"
+                      size={48}
+                      color="rgba(255,255,255,0.8)"
+                    />
+                  </View>
+                ) : DurumMedyaHttpsMi(oge.media_url) ? (
+                  <Image
+                    source={{ uri: oge.media_url.trim() }}
                     style={[styles.img, klavyeAcik && styles.imgKucuk]}
                   />
                 ) : (
-                  <Image
-                    source={{ uri: oge.media_url }}
-                    style={[styles.img, klavyeAcik && styles.imgKucuk]}
+                  <View
+                    style={[
+                      styles.img,
+                      styles.videoPlaceholder,
+                      klavyeAcik && styles.imgKucuk,
+                    ]}
                   />
                 )}
                 {oge.media_type === 'video' ? (
@@ -207,6 +224,11 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 4 / 5,
     backgroundColor: RenkTokenlari.bgElevated,
+  },
+  videoPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1a1a22',
   },
   imgKucuk: {
     aspectRatio: 1,

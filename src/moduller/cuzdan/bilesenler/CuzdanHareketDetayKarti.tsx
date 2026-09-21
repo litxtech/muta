@@ -127,7 +127,7 @@ export function CuzdanHareketDetayKarti({ detay, onKapat }: Props) {
       { etiket: 'Kaynak', deger: LedgerRefEtiketi(r.ref_type) },
       {
         etiket: 'Yön',
-        deger: pozitif ? 'Hesaba giriş / kazanç' : 'Hesaptan çıkış / harcama',
+        deger: pozitif ? 'Hesaba giriş' : 'Hesaptan çıkış',
       },
       { etiket: 'Tarih', deger: formatTarih(r.created_at) },
       { etiket: 'Saat', deger: formatSaat(r.created_at) },
@@ -156,7 +156,7 @@ export function CuzdanHareketDetayKarti({ detay, onKapat }: Props) {
       { etiket: 'Oda', deger: h.oda?.title ?? '—' },
       { etiket: 'Tutar', deger: tutar },
       {
-        etiket: gonderildi ? 'TL değeri' : 'TL kazanç karşılığı',
+        etiket: gonderildi ? 'Katalog değeri' : 'Alınan karşılık (katalog)',
         deger: TryYazi(tryDeger),
       },
       { etiket: 'Tarih', deger: formatTarih(h.created_at) },

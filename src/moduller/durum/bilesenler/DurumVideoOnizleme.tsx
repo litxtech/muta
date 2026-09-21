@@ -7,6 +7,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { ModulHataSiniri } from '../../../ortak/hata-sinirlari/ModulHataSiniri';
 
 type Props = {
   uri: string | null | undefined;
@@ -23,12 +24,21 @@ function MedyaUriGecerliMi(uri: string | null | undefined): uri is string {
  * Paylaşılan video kartı. Image video URL açamaz; boş kare görünür.
  * Android'de surfaceView overflow:hidden içinde boş kalır → textureView.
  * Boş/geçersiz uri veya pasif hücrede player oluşturulmaz (feed crash + bellek).
+ * file:// / content:// kabul edilmez — yalnızca https.
  */
 export function DurumVideoOnizleme({ uri, style, aktif = true }: Props) {
   if (!aktif || !MedyaUriGecerliMi(uri)) {
     return <View style={[styles.wrap, style]} pointerEvents="none" />;
   }
-  return <DurumVideoOnizlemeIc uri={uri.trim()} style={style} />;
+  return (
+    <ModulHataSiniri
+      modulAdi="durum-video-onizleme"
+      varyant="kart"
+      yedek={<View style={[styles.wrap, style, styles.hata]} pointerEvents="none" />}
+    >
+      <DurumVideoOnizlemeIc uri={uri.trim()} style={style} />
+    </ModulHataSiniri>
+  );
 }
 
 function DurumVideoOnizlemeIc({
@@ -82,6 +92,9 @@ const styles = StyleSheet.create({
   wrap: {
     width: '100%',
     overflow: 'hidden',
+    backgroundColor: '#1a1a22',
+  },
+  hata: {
     backgroundColor: '#1a1a22',
   },
   video: {

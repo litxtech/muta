@@ -13,7 +13,7 @@ import { router } from 'expo-router';
 import type { DirektMesaj } from '../okuma/MesajlariGetir';
 import { HostBasvurusuOlustur } from '../../hostlar/islemler/HostBasvuruIslemleri';
 import { AjansDavetMesajindanKoduCikar } from '../../ajanslar/yardimcilar/AjansDavetMesajindanKoduCikar';
-import { MesajMedyaGoruntuleyici } from './MesajMedyaGoruntuleyici';
+import { MedyaUriGuvenli } from '../yardimcilar/MedyaUriGecerliMi';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -24,6 +24,8 @@ type Props = {
   /** Karsi tarafin last_read_at — kendi mesajlarinda goruldu */
   peerLastReadAt?: string | null;
   onLongPress?: () => void;
+  /** Tek ekran-seviyesi goruntuleyici — baloncuk basina Modal yok */
+  onMedyaAc?: (uri: string, tur: 'image' | 'video') => void;
 };
 
 function saat(iso: string): string {
@@ -51,20 +53,21 @@ export function MesajBaloncugu({
   mine,
   peerLastReadAt,
   onLongPress,
+  onMedyaAc,
 }: Props) {
   const sending = item._localStatus === 'sending';
   const failed = item._localStatus === 'failed';
-  const isImage = item.message_type === 'image' && !!item.media_url;
-  const isVideo = item.message_type === 'video' && !!item.media_url;
+  const safeMediaUri = MedyaUriGuvenli(item.media_url);
+  const isImage = item.message_type === 'image' && !!safeMediaUri;
+  const isVideo = item.message_type === 'video' && !!safeMediaUri;
+  const isBrokenMedia =
+    (item.message_type === 'image' || item.message_type === 'video') &&
+    !safeMediaUri;
   const isMedya = isImage || isVideo;
   const isSystem = item.message_type === 'system';
   const davet = AjansDavetMesajindanKoduCikar(item.body);
   const [davetBusy, setDavetBusy] = useState(false);
   const [davetGonderildi, setDavetGonderildi] = useState(false);
-  const [goruntuleyici, setGoruntuleyici] = useState<{
-    uri: string;
-    tur: 'image' | 'video';
-  } | null>(null);
   const goruldu = mine && !sending && !failed && mesajGorulduMu(item, peerLastReadAt);
 
   const davetiKabulEt = () => {
@@ -159,61 +162,67 @@ export function MesajBaloncugu({
     );
   };
 
-  if (isMedya) {
+  if (isBrokenMedia) {
     return (
-      <>
-        <Pressable
-          onLongPress={onLongPress}
-          delayLongPress={300}
-          style={[
-            styles.medyaKart,
-            mine ? styles.medyaMine : styles.medyaTheirs,
-            sending && styles.sending,
-          ]}
-        >
-          <View style={styles.medyaGovde}>
-            {isImage ? (
-              <Pressable
-                onPress={() =>
-                  setGoruntuleyici({ uri: item.media_url!, tur: 'image' })
-                }
-                accessibilityRole="button"
-                accessibilityLabel="Fotoğrafı aç"
-              >
-                <Image
-                  source={{ uri: item.media_url! }}
-                  style={styles.mediaFull}
-                  resizeMode="cover"
-                />
-              </Pressable>
-            ) : (
-              <Pressable
-                style={styles.videoFull}
-                onPress={() =>
-                  setGoruntuleyici({ uri: item.media_url!, tur: 'video' })
-                }
-                accessibilityRole="button"
-                accessibilityLabel="Videoyu aç"
-              >
-                <Ionicons name="play-circle" size={52} color="#fff" />
-                <Text style={styles.videoHint}>Videoyu aç</Text>
-              </Pressable>
-            )}
-            {!item.body ? metaSatiri(true) : null}
+      <Pressable
+        onLongPress={onLongPress}
+        delayLongPress={300}
+        style={[
+          styles.medyaKart,
+          mine ? styles.medyaMine : styles.medyaTheirs,
+          styles.videoFull,
+        ]}
+      >
+        <Ionicons name="image-outline" size={36} color="rgba(255,255,255,0.55)" />
+        <Text style={styles.videoHint}>Medya yok</Text>
+      </Pressable>
+    );
+  }
+
+  if (isMedya && safeMediaUri) {
+    return (
+      <Pressable
+        onLongPress={onLongPress}
+        delayLongPress={300}
+        style={[
+          styles.medyaKart,
+          mine ? styles.medyaMine : styles.medyaTheirs,
+          sending && styles.sending,
+        ]}
+      >
+        <View style={styles.medyaGovde}>
+          {isImage ? (
+            <Pressable
+              onPress={() => onMedyaAc?.(safeMediaUri, 'image')}
+              accessibilityRole="button"
+              accessibilityLabel="Fotoğrafı aç"
+            >
+              <Image
+                source={{ uri: safeMediaUri }}
+                style={styles.mediaFull}
+                resizeMode="cover"
+              />
+            </Pressable>
+          ) : (
+            <Pressable
+              style={styles.videoFull}
+              onPress={() => onMedyaAc?.(safeMediaUri, 'video')}
+              accessibilityRole="button"
+              accessibilityLabel="Videoyu aç"
+            >
+              <Ionicons name="play-circle" size={52} color="#fff" />
+              <Text style={styles.videoHint}>Videoyu aç</Text>
+            </Pressable>
+          )}
+          {!item.body ? metaSatiri(true) : null}
+        </View>
+        {item.body ? (
+          <View style={styles.medyaCaptionWrap}>
+            <Text style={styles.medyaCaption}>{item.body}</Text>
+            {metaSatiri(false)}
           </View>
-          {item.body ? (
-            <View style={styles.medyaCaptionWrap}>
-              <Text style={styles.medyaCaption}>{item.body}</Text>
-              {metaSatiri(false)}
-            </View>
-          ) : null}
-        </Pressable>
-        <MesajMedyaGoruntuleyici
-          uri={goruntuleyici?.uri ?? null}
-          tur={goruntuleyici?.tur ?? null}
-          onKapat={() => setGoruntuleyici(null)}
-        />
-      </>
+        ) : null}
+      </Pressable>
     );
   }
 

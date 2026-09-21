@@ -34,11 +34,13 @@ import { DmMedyasiSecVeYukle } from '../../src/moduller/mesajlasma/islemler/DmMe
 import { MesajKullaniciAramaPaneli } from '../../src/moduller/mesajlasma/bilesenler/MesajKullaniciAramaPaneli';
 import { MesajBaloncugu } from '../../src/moduller/mesajlasma/bilesenler/MesajBaloncugu';
 import { MesajMedyaSecimPaneli } from '../../src/moduller/mesajlasma/bilesenler/MesajMedyaSecimPaneli';
+import { MesajMedyaGoruntuleyici } from '../../src/moduller/mesajlasma/bilesenler/MesajMedyaGoruntuleyici';
 import {
   MesajPeerOkunduYayinla,
   useMesajKanali,
 } from '../../src/moduller/mesajlasma/gercek-zamanli/useMesajKanali';
 import type { ArananKullanici } from '../../src/moduller/mesajlasma/okuma/KullanicilariAra';
+import { MedyaUriGuvenli } from '../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import {
   GorusmeBaslat,
   MesajThreadKarsiProfil,
@@ -72,8 +74,22 @@ function uuidYerel(): string {
   });
 }
 
+/** expo-router bazen id'yi string[] verir — tek string'e indir */
+function rotaParamString(
+  v: string | string[] | undefined,
+): string | undefined {
+  if (Array.isArray(v)) {
+    const first = v.find((x) => typeof x === 'string' && x.length > 0);
+    return first;
+  }
+  if (typeof v === 'string' && v.length > 0) return v;
+  return undefined;
+}
+
 export default function MesajDetayEkrani() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: idHam } = useLocalSearchParams<{ id: string | string[] }>();
+  const id = rotaParamString(idHam);
+  const threadId = id && id !== 'yeni' ? id : undefined;
   const { user, isGuest, profile } = useAuth();
   const insets = useSafeAreaInsets();
   const magaza = useHediyeMagaza();
@@ -86,6 +102,10 @@ export default function MesajDetayEkrani() {
   const [medyaSecimAcik, setMedyaSecimAcik] = useState(false);
   const [guvenlikAcik, setGuvenlikAcik] = useState(false);
   const [platformHesapAcik, setPlatformHesapAcik] = useState(false);
+  const [medyaGoruntule, setMedyaGoruntule] = useState<{
+    uri: string;
+    tur: 'image' | 'video';
+  } | null>(null);
   const [raporIcerik, setRaporIcerik] = useState<{
     contentId: string;
     preview: string;
@@ -110,6 +130,7 @@ export default function MesajDetayEkrani() {
   }, []);
 
   const mergeMesaj = useCallback((msg: DirektMesaj) => {
+    if (!msg?.id) return;
     setMesajlar((prev) => {
       const byClient =
         msg.client_id &&
@@ -137,7 +158,7 @@ export default function MesajDetayEkrani() {
   }, []);
 
   useMesajKanali(
-    id === 'yeni' ? undefined : id,
+    threadId,
     (msg, event) => {
       if (event === 'DELETE') {
         setMesajlar((p) => p.filter((m) => m.id !== msg.id));
@@ -149,10 +170,10 @@ export default function MesajDetayEkrani() {
       }
       mergeMesaj(msg);
       // Karsi mesaji geldiyse okundu isaretle + yayinla
-      if (msg.sender_id && msg.sender_id !== user?.id && id && id !== 'yeni') {
+      if (msg.sender_id && msg.sender_id !== user?.id && threadId) {
         const at = new Date().toISOString();
-        void MesajThreadOkundu(id).then(() => {
-          void MesajPeerOkunduYayinla(id, at, user?.id);
+        void MesajThreadOkundu(threadId).then(() => {
+          void MesajPeerOkunduYayinla(threadId, at, user?.id);
         });
       }
     },
@@ -166,19 +187,23 @@ export default function MesajDetayEkrani() {
   );
 
   const load = useCallback(async () => {
-    if (!id || id === 'yeni') return;
+    if (!threadId) return;
     try {
       const [msgs, karsi, peerRead] = await Promise.all([
-        MesajlariGetir({ threadId: id, limit: 60 }),
-        MesajThreadKarsiProfil(id).catch(() => null),
-        MesajPeerLastReadGet(id),
+        MesajlariGetir({ threadId, limit: 60 }),
+        MesajThreadKarsiProfil(threadId).catch(() => null),
+        MesajPeerLastReadGet(threadId),
       ]);
-      setMesajlar(msgs.map((m) => ({ ...m, _localStatus: 'sent' as const })));
+      setMesajlar(
+        msgs
+          .filter((m) => typeof m?.id === 'string' && m.id.length > 0)
+          .map((m) => ({ ...m, _localStatus: 'sent' as const })),
+      );
       setPeer(karsi);
       setPeerLastReadAt(peerRead);
       const at = new Date().toISOString();
-      void MesajThreadOkundu(id).then(() => {
-        void MesajPeerOkunduYayinla(id, at, user?.id);
+      void MesajThreadOkundu(threadId).then(() => {
+        void MesajPeerOkunduYayinla(threadId, at, user?.id);
       });
       requestAnimationFrame(() => {
         listRef.current?.scrollToEnd({ animated: false });
@@ -186,7 +211,7 @@ export default function MesajDetayEkrani() {
     } catch {
       setMesajlar([]);
     }
-  }, [id, user?.id]);
+  }, [threadId, user?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -640,6 +665,25 @@ export default function MesajDetayEkrani() {
     );
   }
 
+  if (!threadId) {
+    return (
+      <Screen edges={['top', 'bottom']}>
+        <ModulHataSiniri modulAdi="mesajlasma">
+          <View style={styles.topBar}>
+            <Pressable style={styles.backBtn} onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={24} color={RenkTokenlari.text} />
+            </Pressable>
+            <View style={styles.topCopy}>
+              <Text style={styles.topTitle}>Sohbet bulunamadı</Text>
+              <Text style={styles.topFisilti}>Geri dönüp tekrar dene</Text>
+            </View>
+            <View style={styles.backBtn} />
+          </View>
+        </ModulHataSiniri>
+      </Screen>
+    );
+  }
+
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="mesajlasma">
@@ -738,6 +782,7 @@ export default function MesajDetayEkrani() {
                 mine={item.sender_id === user?.id}
                 peerLastReadAt={peerLastReadAt}
                 onLongPress={() => mesajMenu(item)}
+                onMedyaAc={(uri, tur) => setMedyaGoruntule({ uri, tur })}
               />
             )}
           />
@@ -773,13 +818,14 @@ export default function MesajDetayEkrani() {
               style={styles.attachModern}
               onPress={() => {
                 if (!peer?.id) return;
+                setMedyaGoruntule(null);
                 magaza.ac({
                   receiverId: peer.id,
                   aliciAdi: peer.display_name || peer.username,
                   animasyon: false,
                   onBasarili: (gift, adet) => {
                     void MesajGonder({
-                      threadId: id!,
+                      threadId,
                       body: `🎁 ${gift.emoji} ${gift.name}${adet > 1 ? ` ×${adet}` : ''} hediye gönderdi`,
                       messageType: 'text',
                       clientId: uuidYerel(),
@@ -803,6 +849,7 @@ export default function MesajDetayEkrani() {
               style={styles.attachModern}
               onPress={() => {
                 Keyboard.dismiss();
+                setMedyaGoruntule(null);
                 setMedyaSecimAcik(true);
               }}
               accessibilityLabel="Fotoğraf veya video gönder"
@@ -858,7 +905,7 @@ export default function MesajDetayEkrani() {
             contentType={raporIcerik ? 'dm_message' : 'user'}
             contentId={raporIcerik?.contentId}
             contentPreview={raporIcerik?.preview}
-            contentMediaUrl={raporIcerik?.mediaUrl}
+            contentMediaUrl={MedyaUriGuvenli(raporIcerik?.mediaUrl)}
             onClose={() => {
               setGuvenlikAcik(false);
               setRaporIcerik(null);
@@ -879,6 +926,12 @@ export default function MesajDetayEkrani() {
           onSec={(secim) => {
             void medyaGonder(secim.tur, secim.kaynak);
           }}
+        />
+
+        <MesajMedyaGoruntuleyici
+          uri={medyaGoruntule?.uri ?? null}
+          tur={medyaGoruntule?.tur ?? null}
+          onKapat={() => setMedyaGoruntule(null)}
         />
       </ModulHataSiniri>
     </Screen>

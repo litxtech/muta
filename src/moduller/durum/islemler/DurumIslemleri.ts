@@ -35,6 +35,9 @@ export type DurumOggesi = {
 };
 
 function normalizeDurum(row: DurumOggesi): DurumOggesi {
+  if (!row || typeof row !== 'object') {
+    throw new Error('Durum yok');
+  }
   const mediaUrl =
     typeof row.media_url === 'string' ? row.media_url.trim() : '';
   return {
@@ -62,6 +65,20 @@ export function DurumOyunKazanciPayloadAl(
     total_multiplier: Number(p.total_multiplier ?? 1),
     win_tier: String(p.win_tier ?? 'STORM'),
   };
+}
+
+export function DurumMedyaHttpsMi(url: string | null | undefined): boolean {
+  return typeof url === 'string' && /^https?:\/\//i.test(url.trim());
+}
+
+/**
+ * Caption/mood vb. — görüntülenebilir https medya yok.
+ * Lightbox / siyah medya sahnesi açılmamalı.
+ */
+export function DurumMetinGonderisiMi(oge: DurumOggesi): boolean {
+  if (DurumOyunKazanciPayloadAl(oge)) return false;
+  if ((oge.media_type as string) === 'text') return true;
+  return !DurumMedyaHttpsMi(oge.media_url);
 }
 
 export type DurumYorum = {
@@ -110,6 +127,9 @@ export async function DurumTakipAkisiniGetir(limit = 40): Promise<DurumOggesi[]>
 export async function DurumDetayGetir(id: string): Promise<DurumOggesi> {
   const { data, error } = await supabase.rpc('durum_detay', { p_status_id: id });
   if (error) throw error;
+  if (!data || typeof data !== 'object') {
+    throw new Error('Durum yok');
+  }
   return normalizeDurum(data as DurumOggesi);
 }
 

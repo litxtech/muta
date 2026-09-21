@@ -56,7 +56,11 @@ export default function MessagesScreen() {
       if (mod === 'pull') setRefreshing(true);
       const data = await MesajKonulariniGetir(arsivModu);
       if (nesil !== loadNesil.current) return;
-      setKonular(data);
+      setKonular(
+        (data ?? []).filter(
+          (k) => typeof k?.id === 'string' && k.id.length > 0,
+        ),
+      );
     } catch {
       if (nesil !== loadNesil.current) return;
       setKonular([]);
@@ -158,7 +162,13 @@ export default function MessagesScreen() {
           onYeniSohbet={yeniSohbet}
         />
 
-        <TamusoBanner placement="MESSAGES_TOP" screen="MESSAGES" />
+        <ModulHataSiniri
+          modulAdi="mesaj-banner"
+          varyant="kart"
+          yedek={<View />}
+        >
+          <TamusoBanner placement="MESSAGES_TOP" screen="MESSAGES" />
+        </ModulHataSiniri>
 
         <View style={styles.tabs}>
           <Pressable
@@ -205,7 +215,10 @@ export default function MessagesScreen() {
           renderItem={({ item }) => (
             <MesajKonuKarti
               konu={item}
-              onPress={() => router.push(`/mesaj/${item.id}` as any)}
+              onPress={() => {
+                if (!item?.id) return;
+                router.push(`/mesaj/${item.id}` as any);
+              }}
               onLongPress={() => konuMenu(item)}
             />
           )}

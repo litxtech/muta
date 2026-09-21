@@ -11,7 +11,6 @@ import { Ionicons } from '@expo/vector-icons';
 import type { DurumOggesi } from '../islemler/DurumIslemleri';
 import { DurumOyunKazanciPayloadAl } from '../islemler/DurumIslemleri';
 import { DurumOyunKazanciKart } from './DurumOyunKazanciKart';
-import { DurumVideoOnizleme } from './DurumVideoOnizleme';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -82,10 +81,15 @@ export function DurumProfilIzgarasi({
                 {kazanc ? (
                   <DurumOyunKazanciKart payload={kazanc} compact />
                 ) : oge.media_type === 'video' ? (
-                  <DurumVideoOnizleme
-                    uri={oge.media_url}
-                    style={styles.img}
-                  />
+                  // Profil ızgarasında native VideoPlayer mount etme — çoklu
+                  // player çökme / hata ekranı riski. Statik kare + play.
+                  <View style={[styles.img, styles.imgBos]}>
+                    <Ionicons
+                      name="play-circle"
+                      size={28}
+                      color="rgba(255,255,255,0.75)"
+                    />
+                  </View>
                 ) : typeof oge.media_url === 'string' &&
                   /^https?:\/\//i.test(oge.media_url.trim()) ? (
                   <Image
@@ -164,6 +168,8 @@ const styles = StyleSheet.create({
   },
   imgBos: {
     backgroundColor: '#1a1a22',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   videoBadge: {
     position: 'absolute',

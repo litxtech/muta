@@ -22,22 +22,27 @@ export type MesajKonusu = {
 export async function MesajKonulariniGetir(
   arsiv = false,
 ): Promise<MesajKonusu[]> {
+  const normalize = (rows: MesajKonusu[]): MesajKonusu[] =>
+    ((rows as MesajKonusu[]) ?? [])
+      .filter((r) => typeof r?.id === 'string' && r.id.length > 0)
+      .map((r) => ({
+        ...r,
+        unread_count: Number(r.unread_count) || 0,
+      }));
+
   const { data, error } = await supabase.rpc('mesaj_konularini_getir', {
     p_limit: 50,
     p_arsiv: arsiv,
   });
 
   if (!error && data) {
-    return ((data as MesajKonusu[]) ?? []).map((r) => ({
-      ...r,
-      unread_count: Number(r.unread_count) || 0,
-    }));
+    return normalize(data as MesajKonusu[]);
   }
 
   // Fallback eski 1-arg RPC
   const fb = await supabase.rpc('mesaj_konularini_getir', { p_limit: 50 });
   if (!fb.error && fb.data) {
-    return (fb.data as MesajKonusu[]) ?? [];
+    return normalize(fb.data as MesajKonusu[]);
   }
   return [];
 }

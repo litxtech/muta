@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,11 +20,12 @@ import { useMisafirIslemKapisi } from '../../src/moduller/misafir-hesabi/islemle
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
 import { ProfilAvatarKucuk } from '../../src/moduller/canli-sohbet/bilesenler/ProfilAvatarKucuk';
 import { DurumYorumPaneli } from '../../src/moduller/durum/bilesenler/DurumYorumPaneli';
-import { DurumResimLightbox } from '../../src/moduller/durum/bilesenler/DurumResimLightbox';
 import { KullaniciGuvenlikMenusu } from '../../src/moduller/moderasyon/bilesenler/KullaniciGuvenlikMenusu';
 import {
   DurumBegeniToggle,
   DurumDetayGetir,
+  DurumMedyaHttpsMi,
+  DurumMetinGonderisiMi,
   DurumOyunKazanciPayloadAl,
   DurumSil,
   type DurumOggesi,
@@ -38,28 +39,69 @@ import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 function VideoTam({ uri }: { uri: string }) {
-  const guvenli = typeof uri === 'string' ? uri.trim() : '';
-  if (!/^https?:\/\//i.test(guvenli)) {
+  const guvenli = DurumMedyaHttpsMi(uri) ? uri.trim() : '';
+  if (!guvenli) {
     return <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]} />;
   }
-  return <VideoTamIc uri={guvenli} />;
+  return (
+    <ModulHataSiniri
+      modulAdi="durum-video"
+      varyant="kart"
+      yedek={
+        <View style={[StyleSheet.absoluteFill, styles.videoHata]}>
+          <Ionicons name="videocam-off" size={40} color="#fff" />
+          <Text style={styles.videoHataYazi}>Video açılamadı</Text>
+        </View>
+      }
+    >
+      <VideoTamIc uri={guvenli} />
+    </ModulHataSiniri>
+  );
 }
 
 function VideoTamIc({ uri }: { uri: string }) {
+  const [odakli, setOdakli] = useState(true);
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
+    p.muted = false;
     p.play();
   });
+
+  useFocusEffect(
+    useCallback(() => {
+      setOdakli(true);
+      return () => setOdakli(false);
+    }, []),
+  );
+
+  useEffect(() => {
+    try {
+      player.loop = true;
+      player.muted = false;
+      if (odakli) player.play();
+      else player.pause();
+    } catch {
+      /* native henüz hazır değilse */
+    }
+    return () => {
+      try {
+        player.pause();
+      } catch {
+        /* */
+      }
+    };
+  }, [player, uri, odakli]);
+
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none" collapsable={false}>
+    <View style={StyleSheet.absoluteFill} collapsable={false}>
       <VideoView
         player={player}
         style={StyleSheet.absoluteFill}
         contentFit="contain"
-        // Android nativeControls tüm overlay Pressable'ları yutar.
-        nativeControls={false}
+        nativeControls
+        fullscreenOptions={{ enable: true }}
+        allowsPictureInPicture={false}
         playsInline
-        pointerEvents="none"
         {...(Platform.OS === 'android'
           ? { surfaceType: 'textureView' as const }
           : null)}
@@ -69,7 +111,8 @@ function VideoTamIc({ uri }: { uri: string }) {
 }
 
 export default function DurumDetayEkrani() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string | string[] }>();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const insets = useSafeAreaInsets();
   const { isGuest } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
@@ -100,6 +143,7 @@ export default function DurumDetayEkrani() {
   useFocusEffect(
     useCallback(() => {
       void yukle();
+      setLightboxAcik(false);
     }, [yukle]),
   );
 
@@ -143,14 +187,35 @@ export default function DurumDetayEkrani() {
     ]);
   };
 
+  const metinGonderisi = oge ? DurumMetinGonderisiMi(oge) : false;
+  const ikonRenk = metinGonderisi ? RenkTokenlari.text : '#fff';
+  // Yüklenirken siyah boş ekran olmasın
+  const ekranBg = !oge || metinGonderisi ? RenkTokenlari.bg : '#000';
+
   return (
-    <Screen edges={[]} style={{ backgroundColor: '#000' }}>
+    <Screen edges={[]} style={{ backgroundColor: ekranBg }}>
       <ModulHataSiniri modulAdi="durum">
         {yukleniyor && !oge ? (
-          <ActivityIndicator
-            color={RenkTokenlari.primarySoft}
-            style={{ marginTop: 80 }}
-          />
+          <View style={[styles.root, { backgroundColor: RenkTokenlari.bg }]}>
+            <View
+              style={[styles.ust, { paddingTop: insets.top + 8 }]}
+              pointerEvents="box-none"
+            >
+              <View style={{ flex: 1 }} />
+              <Pressable
+                style={styles.ikonBtn}
+                onPress={kapat}
+                hitSlop={12}
+                accessibilityLabel="Kapat"
+              >
+                <Ionicons name="close" size={24} color={RenkTokenlari.text} />
+              </Pressable>
+            </View>
+            <ActivityIndicator
+              color={RenkTokenlari.primarySoft}
+              style={{ marginTop: 80 }}
+            />
+          </View>
         ) : !oge ? (
           <View style={styles.bos}>
             <Text style={styles.bosYazi}>Durum bulunamadı</Text>
@@ -159,8 +224,13 @@ export default function DurumDetayEkrani() {
             </Pressable>
           </View>
         ) : (
-          <View style={styles.root}>
-            <View style={styles.medyaKatman}>
+          <View style={[styles.root, metinGonderisi && { backgroundColor: ekranBg }]}>
+            <View
+              style={[
+                styles.medyaKatman,
+                metinGonderisi && { backgroundColor: ekranBg },
+              ]}
+            >
               {(() => {
                 const kazanc = DurumOyunKazanciPayloadAl(oge);
                 if (kazanc) {
@@ -170,17 +240,27 @@ export default function DurumDetayEkrani() {
                     </View>
                   );
                 }
+                if (metinGonderisi) {
+                  return (
+                    <View style={styles.metinGovde} pointerEvents="none">
+                      <Text style={styles.metinBaslik}>
+                        {oge.caption?.trim() || 'Durum'}
+                      </Text>
+                    </View>
+                  );
+                }
                 if (oge.media_type === 'video') {
                   return <VideoTam uri={oge.media_url} />;
                 }
-                const resimUri =
-                  typeof oge.media_url === 'string' ? oge.media_url.trim() : '';
-                if (!/^https?:\/\//i.test(resimUri)) {
+                const resimUri = DurumMedyaHttpsMi(oge.media_url)
+                  ? oge.media_url.trim()
+                  : '';
+                if (!resimUri) {
                   return (
                     <View
                       style={[
                         StyleSheet.absoluteFill,
-                        { backgroundColor: '#111' },
+                        { backgroundColor: RenkTokenlari.bgElevated },
                       ]}
                     />
                   );
@@ -202,6 +282,39 @@ export default function DurumDetayEkrani() {
               })()}
             </View>
 
+            {!metinGonderisi &&
+            lightboxAcik &&
+            DurumMedyaHttpsMi(oge.media_url) ? (
+              <View
+                style={styles.lightbox}
+                accessibilityViewIsModal
+                accessibilityLabel="Büyütülmüş resim"
+              >
+                <Pressable
+                  style={StyleSheet.absoluteFill}
+                  onPress={() => setLightboxAcik(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Resmi kapat"
+                />
+                <Image
+                  source={{ uri: oge.media_url.trim() }}
+                  style={styles.lightboxResim}
+                  resizeMode="contain"
+                />
+                <Pressable
+                  style={[
+                    styles.lightboxKapat,
+                    { top: Math.max(12, insets.top + 8) },
+                  ]}
+                  onPress={() => setLightboxAcik(false)}
+                  hitSlop={12}
+                  accessibilityLabel="Kapat"
+                >
+                  <Ionicons name="close" size={22} color="#fff" />
+                </Pressable>
+              </View>
+            ) : null}
+
             <View
               style={[styles.ust, { paddingTop: insets.top + 8 }]}
               pointerEvents="box-none"
@@ -219,8 +332,15 @@ export default function DurumDetayEkrani() {
                   avatarUrl={oge.avatar_url}
                 />
                 <View style={styles.kisiMetin}>
-                  <Text style={styles.isim}>{oge.display_name}</Text>
-                  <Text style={styles.zaman}>
+                  <Text style={[styles.isim, metinGonderisi && { color: RenkTokenlari.text }]}>
+                    {oge.display_name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.zaman,
+                      metinGonderisi && { color: RenkTokenlari.textMuted },
+                    ]}
+                  >
                     {DurumTarihSaat(oge.created_at)}
                   </Text>
                 </View>
@@ -237,11 +357,11 @@ export default function DurumDetayEkrani() {
                         hitSlop={8}
                         accessibilityLabel="Düzenle"
                       >
-                        <Ionicons name="create-outline" size={20} color="#fff" />
+                        <Ionicons name="create-outline" size={20} color={ikonRenk} />
                       </Pressable>
                     ) : null}
                     <Pressable style={styles.ikonBtn} onPress={sil} hitSlop={8}>
-                      <Ionicons name="trash-outline" size={20} color="#fff" />
+                      <Ionicons name="trash-outline" size={20} color={ikonRenk} />
                     </Pressable>
                   </>
                 ) : (
@@ -250,17 +370,23 @@ export default function DurumDetayEkrani() {
                     onPress={() => setBildirAcik(true)}
                     hitSlop={8}
                   >
-                    <Ionicons name="flag-outline" size={20} color="#fff" />
+                    <Ionicons name="flag-outline" size={20} color={ikonRenk} />
                   </Pressable>
                 )}
                 <Pressable style={styles.ikonBtn} onPress={kapat} hitSlop={8}>
-                  <Ionicons name="close" size={24} color="#fff" />
+                  <Ionicons name="close" size={24} color={ikonRenk} />
                 </Pressable>
               </View>
             </View>
 
-            <View style={[styles.alt, { paddingBottom: insets.bottom + 16 }]}>
-              {oge.caption ? (
+            <View
+              style={[
+                styles.alt,
+                { paddingBottom: insets.bottom + 16 },
+                metinGonderisi && styles.altMetin,
+              ]}
+            >
+              {oge.caption && !metinGonderisi ? (
                 <Text style={styles.caption} numberOfLines={4}>
                   {oge.caption}
                 </Text>
@@ -270,9 +396,20 @@ export default function DurumDetayEkrani() {
                   <Ionicons
                     name={oge.liked_by_me ? 'heart' : 'heart-outline'}
                     size={28}
-                    color={oge.liked_by_me ? RenkTokenlari.danger : '#fff'}
+                    color={
+                      oge.liked_by_me
+                        ? RenkTokenlari.danger
+                        : ikonRenk
+                    }
                   />
-                  <Text style={styles.aksiyonYazi}>{oge.like_count}</Text>
+                  <Text
+                    style={[
+                      styles.aksiyonYazi,
+                      metinGonderisi && { color: RenkTokenlari.text },
+                    ]}
+                  >
+                    {oge.like_count}
+                  </Text>
                 </Pressable>
                 <Pressable
                   style={styles.aksiyon}
@@ -281,8 +418,19 @@ export default function DurumDetayEkrani() {
                   }
                   hitSlop={10}
                 >
-                  <Ionicons name="chatbubble-outline" size={26} color="#fff" />
-                  <Text style={styles.aksiyonYazi}>{oge.comment_count}</Text>
+                  <Ionicons
+                    name="chatbubble-outline"
+                    size={26}
+                    color={ikonRenk}
+                  />
+                  <Text
+                    style={[
+                      styles.aksiyonYazi,
+                      metinGonderisi && { color: RenkTokenlari.text },
+                    ]}
+                  >
+                    {oge.comment_count}
+                  </Text>
                 </Pressable>
                 {!oge.is_mine ? (
                   <Pressable
@@ -310,10 +458,15 @@ export default function DurumDetayEkrani() {
                       name="gift-outline"
                       size={26}
                       color={
-                        oge.gift_count > 0 ? RenkTokenlari.accent : '#fff'
+                        oge.gift_count > 0 ? RenkTokenlari.accent : ikonRenk
                       }
                     />
-                    <Text style={styles.aksiyonYazi}>
+                    <Text
+                      style={[
+                        styles.aksiyonYazi,
+                        metinGonderisi && { color: RenkTokenlari.text },
+                      ]}
+                    >
                       {oge.gift_count > 0 ? oge.gift_count : 'Hediye'}
                     </Text>
                   </Pressable>
@@ -324,7 +477,14 @@ export default function DurumDetayEkrani() {
                       size={26}
                       color={RenkTokenlari.accent}
                     />
-                    <Text style={styles.aksiyonYazi}>{oge.gift_count ?? 0}</Text>
+                    <Text
+                      style={[
+                        styles.aksiyonYazi,
+                        metinGonderisi && { color: RenkTokenlari.text },
+                      ]}
+                    >
+                      {oge.gift_count ?? 0}
+                    </Text>
                   </View>
                 )}
                 {!oge.is_mine ? (
@@ -333,8 +493,19 @@ export default function DurumDetayEkrani() {
                     onPress={() => setBildirAcik(true)}
                     hitSlop={10}
                   >
-                    <Ionicons name="alert-circle-outline" size={26} color="#fff" />
-                    <Text style={styles.aksiyonYazi}>Bildir</Text>
+                    <Ionicons
+                      name="alert-circle-outline"
+                      size={26}
+                      color={ikonRenk}
+                    />
+                    <Text
+                      style={[
+                        styles.aksiyonYazi,
+                        metinGonderisi && { color: RenkTokenlari.text },
+                      ]}
+                    >
+                      Bildir
+                    </Text>
                   </Pressable>
                 ) : oge.post_kind !== 'game_win' ? (
                   <Pressable
@@ -344,13 +515,27 @@ export default function DurumDetayEkrani() {
                     }
                     hitSlop={10}
                   >
-                    <Ionicons name="create-outline" size={26} color="#fff" />
-                    <Text style={styles.aksiyonYazi}>Düzenle</Text>
+                    <Ionicons name="create-outline" size={26} color={ikonRenk} />
+                    <Text
+                      style={[
+                        styles.aksiyonYazi,
+                        metinGonderisi && { color: RenkTokenlari.text },
+                      ]}
+                    >
+                      Düzenle
+                    </Text>
                   </Pressable>
                 ) : (
                   <Pressable style={styles.aksiyon} onPress={sil} hitSlop={10}>
-                    <Ionicons name="trash-outline" size={26} color="#fff" />
-                    <Text style={styles.aksiyonYazi}>Kaldır</Text>
+                    <Ionicons name="trash-outline" size={26} color={ikonRenk} />
+                    <Text
+                      style={[
+                        styles.aksiyonYazi,
+                        metinGonderisi && { color: RenkTokenlari.text },
+                      ]}
+                    >
+                      Kaldır
+                    </Text>
                   </Pressable>
                 )}
               </View>
@@ -391,18 +576,6 @@ export default function DurumDetayEkrani() {
           />
         ) : null}
 
-        {oge && lightboxAcik && oge.media_type === 'image' ? (
-          <DurumResimLightbox
-            uri={
-              typeof oge.media_url === 'string' &&
-              /^https?:\/\//i.test(oge.media_url.trim())
-                ? oge.media_url.trim()
-                : null
-            }
-            onClose={() => setLightboxAcik(false)}
-          />
-        ) : null}
-
         <HediyeMagazaBaglamasi magaza={magaza} misafirKart={false} />
 
         <HesabiTamamlaKarti
@@ -426,6 +599,41 @@ const styles = StyleSheet.create({
   medyaKatman: {
     ...StyleSheet.absoluteFill,
     backgroundColor: '#000',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  metinGovde: {
+    paddingHorizontal: BoslukTokenlari.xl,
+    maxWidth: 420,
+    alignItems: 'center',
+  },
+  metinBaslik: {
+    ...TipografiTokenlari.h2,
+    color: RenkTokenlari.text,
+    textAlign: 'center',
+    lineHeight: 28,
+    fontWeight: '700',
+  },
+  lightbox: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 40,
+    elevation: 40,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lightboxResim: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 41,
+  },
+  lightboxKapat: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 42,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -480,6 +688,11 @@ const styles = StyleSheet.create({
     zIndex: 10,
     elevation: 10,
   },
+  altMetin: {
+    backgroundColor: 'transparent',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: RenkTokenlari.border,
+  },
   caption: {
     ...TipografiTokenlari.body,
     color: '#fff',
@@ -510,4 +723,15 @@ const styles = StyleSheet.create({
   },
   bosYazi: { ...TipografiTokenlari.body, color: RenkTokenlari.textMuted },
   link: { ...TipografiTokenlari.body, color: RenkTokenlari.primarySoft },
+  videoHata: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#000',
+  },
+  videoHataYazi: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });

@@ -24,8 +24,10 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { useMisafirIslemKapisi } from '../../src/moduller/misafir-hesabi/islemler/useMisafirIslemKapisi';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
 import { DurumMedyasiSecVeYukle } from '../../src/moduller/durum/islemler/DurumMedyasiYukle';
-import { DurumOlustur } from '../../src/moduller/durum/islemler/DurumIslemleri';
-import { DurumVideoOnizleme } from '../../src/moduller/durum/bilesenler/DurumVideoOnizleme';
+import {
+  DurumMedyaHttpsMi,
+  DurumOlustur,
+} from '../../src/moduller/durum/islemler/DurumIslemleri';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -70,7 +72,12 @@ export default function DurumOlusturEkrani() {
           if (!r.iptal) Alert.alert('Medya', r.hata);
           return;
         }
-        setMediaUrl(r.url);
+        // Yalnızca https public URL — file:// / content:// Image/Video crash önlenir.
+        if (!DurumMedyaHttpsMi(r.url)) {
+          Alert.alert('Medya', 'Yüklenen dosya adresi geçersiz.');
+          return;
+        }
+        setMediaUrl(r.url.trim());
         setMediaType(r.mediaType);
       })();
     });
@@ -81,7 +88,7 @@ export default function DurumOlusturEkrani() {
       Alert.alert('Durum', 'Medya, mood veya kısa bir metin ekle.');
       return;
     }
-    if (!mediaUrl) {
+    if (!mediaUrl || !DurumMedyaHttpsMi(mediaUrl)) {
       Alert.alert('Durum', 'Önizleme için fotoğraf veya video seç.');
       return;
     }
@@ -97,7 +104,7 @@ export default function DurumOlusturEkrani() {
           .join(' · ');
         const r = await DurumOlustur({
           mediaType,
-          mediaUrl,
+          mediaUrl: mediaUrl.trim(),
           caption: birlesik || undefined,
         });
         setBusy(false);
@@ -105,9 +112,16 @@ export default function DurumOlusturEkrani() {
           Alert.alert('Durum', r.hata ?? 'Paylaşılamadı');
           return;
         }
-        router.replace('/(tabs)/durum' as any);
-        if (r.id) {
-          setTimeout(() => router.push(`/durum/${r.id}` as any), 120);
+        // Detaya otomatik push etme — fullScreenModal siyah ekranda
+        // takılıyor; paylaşım zaten oluştu, feed'e dön.
+        try {
+          router.replace('/(tabs)/durum' as any);
+        } catch {
+          try {
+            router.navigate('/(tabs)/durum' as any);
+          } catch {
+            if (router.canGoBack()) router.back();
+          }
         }
       })();
     });
@@ -166,19 +180,30 @@ export default function DurumOlusturEkrani() {
               })}
             </ScrollView>
 
-            {mediaUrl ? (
+            {mediaUrl && DurumMedyaHttpsMi(mediaUrl) ? (
               <Pressable
                 style={[styles.onizleme, klavyeAcik && styles.onizlemeKucuk]}
                 onPress={Keyboard.dismiss}
               >
                 {mediaType === 'video' ? (
-                  <DurumVideoOnizleme
-                    uri={mediaUrl}
-                    style={[styles.img, klavyeAcik && styles.imgKucuk]}
-                  />
+                  // Oluştur ekranında native VideoPlayer mount etme —
+                  // paylaş / geri navigasyonunda crash + çoklu player riski.
+                  <View
+                    style={[
+                      styles.img,
+                      styles.videoPlaceholder,
+                      klavyeAcik && styles.imgKucuk,
+                    ]}
+                  >
+                    <Ionicons
+                      name="play-circle"
+                      size={48}
+                      color="rgba(255,255,255,0.8)"
+                    />
+                  </View>
                 ) : (
                   <Image
-                    source={{ uri: mediaUrl }}
+                    source={{ uri: mediaUrl.trim() }}
                     style={[styles.img, klavyeAcik && styles.imgKucuk]}
                   />
                 )}
@@ -337,6 +362,11 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 4 / 5,
     backgroundColor: RenkTokenlari.bgElevated,
+  },
+  videoPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1a1a22',
   },
   imgKucuk: {
     aspectRatio: 1,

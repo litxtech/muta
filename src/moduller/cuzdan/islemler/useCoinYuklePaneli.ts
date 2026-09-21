@@ -119,26 +119,38 @@ export function useCoinYuklePaneli() {
             {
               text: 'Satın al',
               onPress: async () => {
-                const sonuc = await CoinPaketiSatinAl(pkg);
-                if (!sonuc.ok) {
-                  Alert.alert('Satın alma', sonuc.hata);
-                  return;
+                try {
+                  const sonuc = await CoinPaketiSatinAl(pkg);
+                  if (!sonuc.ok) {
+                    Alert.alert('Satın alma', sonuc.hata);
+                    return;
+                  }
+                  if (sonuc.method === 'stripe' && sonuc.url) {
+                    await Linking.openURL(sonuc.url);
+                    return;
+                  }
+                  if (sonuc.coinsAdded != null && sonuc.coinsAdded > 0) {
+                    adjustWallet({ coins: sonuc.coinsAdded });
+                  }
+                  await new Promise((r) => setTimeout(r, 350));
+                  try {
+                    await refreshWallet();
+                  } catch {
+                    /* bakiye alert’te yine gösterilir */
+                  }
+                  Alert.alert(
+                    'Başarılı',
+                    sonuc.coinsAdded != null
+                      ? `+${sonuc.coinsAdded} coin`
+                      : 'Ödeme tamam',
+                  );
+                  setAcik(false);
+                } catch (e) {
+                  Alert.alert(
+                    'Satın alma',
+                    e instanceof Error ? e.message : 'Beklenmeyen hata',
+                  );
                 }
-                if (sonuc.method === 'stripe' && sonuc.url) {
-                  await Linking.openURL(sonuc.url);
-                  return;
-                }
-                if (sonuc.coinsAdded != null && sonuc.coinsAdded > 0) {
-                  adjustWallet({ coins: sonuc.coinsAdded });
-                }
-                await refreshWallet();
-                Alert.alert(
-                  'Başarılı',
-                  sonuc.coinsAdded != null
-                    ? `+${sonuc.coinsAdded} coin`
-                    : 'Ödeme tamam',
-                );
-                setAcik(false);
               },
             },
           ],

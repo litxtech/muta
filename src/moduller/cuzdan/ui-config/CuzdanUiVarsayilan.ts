@@ -9,6 +9,28 @@ export const DEFAULT_CUZDAN_UI_CONFIG: CuzdanUiPayload = {
     subtitle: '',
     description: '',
   },
+  brand: {
+    name: 'MUTA PAY',
+    card_type: 'Dijital cüzdan',
+    tagline:
+      'Ses odası, gönderi, mesaj ve canlı yayın aktiviteleri ile platform ödüllerinin özeti.',
+    tagline_visible: true,
+  },
+  value_summary: {
+    enabled: true,
+    show_katalog: true,
+    show_platform_share: true,
+    show_seller_net: true,
+    show_payment_note: true,
+    show_language_note: true,
+    katalog_label: 'Katalog değeri',
+    platform_label: 'Platform hizmet payı',
+    seller_net_label: 'Tahmini hesap özeti',
+    payment_note:
+      'Hesap hareketleri ayın 01–15 ve 15–31 dönemlerinde işlenir.',
+    language_note:
+      'Gösterilen tutarlar uygulama içi sanal öğe katalog özetidir; gerçek para ödemesi değildir.',
+  },
   wallet_icon: {
     source: 'ionicon',
     ionicon: 'wallet-outline',
@@ -24,7 +46,7 @@ export const DEFAULT_CUZDAN_UI_CONFIG: CuzdanUiPayload = {
     name: 'Coin',
     short_name: 'Coin',
     source: 'ionicon',
-    ionicon: 'logo-bitcoin',
+    ionicon: 'ellipse',
     url: null,
     color: '#F0B429',
     gradient_start: '#F0B429',
@@ -69,8 +91,8 @@ export const DEFAULT_CUZDAN_UI_CONFIG: CuzdanUiPayload = {
     {
       key: 'takas',
       enabled: true,
-      title: 'Takas / anlaşma',
-      subtitle: '',
+      title: 'Coin takas',
+      subtitle: 'Hesaplar arası transfer',
       icon: 'swap-horizontal',
       icon_type: 'ionicon',
       icon_color: '#F0B429',
@@ -120,9 +142,9 @@ export const DEFAULT_CUZDAN_UI_CONFIG: CuzdanUiPayload = {
       sort_order: 10,
       style_variant: 'footnote',
       locales: {
-        tr: 'Coinler Tamuso içerisinde kullanılan sanal öğelerdir ve nakit paraya dönüştürülemez.',
-        en: 'Coins are virtual items used within Tamuso and cannot be redeemed for cash.',
-        ar: 'العملات عناصر افتراضية داخل تاموسو ولا يمكن استبدالها نقداً.',
+        tr: 'Coinler Tamuso içinde kullanılan sanal öğelerdir; uygulama dışı gerçek para ödemesi değildir.',
+        en: 'Coins are virtual items used within Tamuso; they are not a real-money payout outside the app.',
+        ar: 'العملات عناصر افتراضية داخل تاموسو وليست مدفوعات نقدية خارج التطبيق.',
       },
     },
     {
@@ -144,6 +166,18 @@ export const DEFAULT_CUZDAN_UI_CONFIG: CuzdanUiPayload = {
       sort_order: 5,
       style_variant: 'section',
       locales: { tr: 'Özet', en: 'Summary', ar: 'ملخص' },
+    },
+    {
+      key: 'hero_note',
+      type: 'info',
+      enabled: true,
+      sort_order: 8,
+      style_variant: 'footnote',
+      locales: {
+        tr: 'Cüzdan bakiyen; içerik, hediye ve platform aktivitelerini yönetmek içindir.',
+        en: 'Your wallet balance helps manage content, gifts, and platform activity.',
+        ar: 'رصيد محفظتك لإدارة المحتوى والهدايا ونشاط المنصة.',
+      },
     },
   ],
   assets: {

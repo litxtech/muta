@@ -20,9 +20,16 @@ type Props = {
   /** 18 haneli MUTA PAY cüzdan no */
   cuzdanNo?: string | null;
   cuzdanMarka?: string | null;
+  /** Marka altı — Dijital cüzdan */
+  kartTipi?: string | null;
+  /** Marka / tip altına kısa açıklama */
+  markaTagline?: string | null;
+  markaTaglineGorunur?: boolean;
   sahipAdi?: string | null;
   yuklenen?: number;
   harcanan?: number;
+  /** Katalog özeti görünürlük / metinler */
+  degerOzeti?: Partial<import('../ui-config/CuzdanUiTipleri').CuzdanUiValueSummary> | null;
   /** QR okutma (kamera) — opsiyonel */
   onQrOku?: () => void;
   /** Uygulama içi cüzdan kartı paylaş */
@@ -61,9 +68,13 @@ export function CuzdanBankaKarti({
   hesapKodu,
   cuzdanNo,
   cuzdanMarka,
+  kartTipi,
+  markaTagline,
+  markaTaglineGorunur = true,
   sahipAdi,
   yuklenen = 0,
   harcanan = 0,
+  degerOzeti,
   onQrOku,
   onPaylas,
   onWhatsAppPaylas,
@@ -72,6 +83,8 @@ export function CuzdanBankaKarti({
   const gosterilen = maskeHesap(cuzdanNo || hesapKodu);
   const kopyalanabilir = hamNo.length >= 18;
   const paylasilabilir = kopyalanabilir && (!!onPaylas || !!onWhatsAppPaylas);
+  const tip = (kartTipi ?? '').trim() || 'Dijital cüzdan';
+  const tagline = (markaTagline ?? '').trim();
 
   return (
     <View style={styles.wrap}>
@@ -87,7 +100,12 @@ export function CuzdanBankaKarti({
         <View style={styles.ust}>
           <View style={styles.markaBlok}>
             <Text style={styles.marka}>{cuzdanMarka || 'MUTA PAY'}</Text>
-            <Text style={styles.kartTip}>Dijital cüzdan</Text>
+            <Text style={styles.kartTip}>{tip}</Text>
+            {markaTaglineGorunur && tagline ? (
+              <Text style={styles.tagline} numberOfLines={3}>
+                {tagline}
+              </Text>
+            ) : null}
           </View>
           <View style={styles.chipWrap}>
             <LinearGradient
@@ -168,7 +186,9 @@ export function CuzdanBankaKarti({
           </View>
         </View>
 
-        {coins > 0 ? <CoinDegerOzetiPaneli coins={coins} kompakt /> : null}
+        {coins > 0 ? (
+          <CoinDegerOzetiPaneli coins={coins} kompakt ozet={degerOzeti} />
+        ) : null}
 
         <View style={styles.alt}>
           <View style={styles.altSol}>
@@ -270,6 +290,14 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textMuted,
     fontSize: 11,
+  },
+  tagline: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    fontSize: 10,
+    lineHeight: 14,
+    marginTop: 4,
+    maxWidth: 220,
   },
   chipWrap: {
     flexDirection: 'row',

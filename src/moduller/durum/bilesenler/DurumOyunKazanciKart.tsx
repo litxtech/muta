@@ -20,7 +20,9 @@ const TIER_LABELS: Record<string, string> = {
 };
 
 function formatCoin(n: number): string {
-  return Math.floor(n).toLocaleString('tr-TR');
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '0';
+  return Math.floor(v).toLocaleString('tr-TR');
 }
 
 type Props = {

@@ -56,11 +56,15 @@ export async function DurumMedyasiSecVeYukle(
 
     const { data: pub } = supabase.storage.from('status-media').getPublicUrl(path);
     const base = OrtamDegiskenleri.supabaseUrl?.replace(/\/$/, '');
+    const url =
+      pub?.publicUrl ||
+      `${base}/storage/v1/object/public/status-media/${path}`;
+    if (typeof url !== 'string' || !/^https?:\/\//i.test(url.trim())) {
+      return { ok: false, hata: 'Geçersiz medya adresi' };
+    }
     return {
       ok: true,
-      url:
-        pub?.publicUrl ||
-        `${base}/storage/v1/object/public/status-media/${path}`,
+      url: url.trim(),
       mediaType: tur,
     };
   } catch (e) {

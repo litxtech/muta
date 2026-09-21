@@ -15,6 +15,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { MesajKonusu } from '../okuma/MesajKonulariniGetir';
+import { MedyaUriGuvenli } from '../yardimcilar/MedyaUriGecerliMi';
 import { MaviTikRozeti } from './MaviTikRozeti';
 
 type Props = {
@@ -63,6 +64,7 @@ export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
     !!konu.peer_is_platform_official ||
     mahkeme ||
     (!!konu.peer_is_verified && mahkeme);
+  const avatarUri = MedyaUriGuvenli(konu.peer_avatar_url);
 
   return (
     <Pressable
@@ -72,8 +74,8 @@ export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
       style={({ pressed }) => [styles.press, pressed && styles.pressed]}
     >
       <View style={styles.kart}>
-        {konu.peer_avatar_url ? (
-          <Image source={{ uri: konu.peer_avatar_url }} style={styles.avatarImg} />
+        {avatarUri ? (
+          <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
         ) : (
           <LinearGradient
             colors={

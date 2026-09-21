@@ -197,13 +197,13 @@ export function DurumYorumPaneli({
               <Text style={styles.satirIsim}>{y.display_name}</Text>
             </Pressable>
             {y.body ? <Text style={styles.satirBody}>{y.body}</Text> : null}
-            {y.media_url ? (
+            {y.media_url && /^https?:\/\//i.test(y.media_url.trim()) ? (
               <Pressable
-                onPress={() => setLightboxUri(y.media_url)}
+                onPress={() => setLightboxUri(y.media_url!.trim())}
                 style={styles.yorumResimHit}
               >
                 <Image
-                  source={{ uri: y.media_url }}
+                  source={{ uri: y.media_url.trim() }}
                   style={styles.yorumResim}
                   resizeMode="cover"
                 />

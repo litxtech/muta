@@ -9,10 +9,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { ProfilAvatarKucuk } from '../../canli-sohbet/bilesenler/ProfilAvatarKucuk';
 import type { DurumOggesi } from '../islemler/DurumIslemleri';
-import { DurumOyunKazanciPayloadAl } from '../islemler/DurumIslemleri';
+import {
+  DurumMedyaHttpsMi,
+  DurumMetinGonderisiMi,
+  DurumOyunKazanciPayloadAl,
+} from '../islemler/DurumIslemleri';
 import { DurumZamanMetni } from '../islemler/DurumZaman';
 import { DurumOyunKazanciKart } from './DurumOyunKazanciKart';
-import { DurumVideoOnizleme } from './DurumVideoOnizleme';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -20,13 +23,13 @@ import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenla
 type Props = {
   oge: DurumOggesi;
   onPress: () => void;
+  /** Resim gönderisinde medyaya basınca büyüt (yoksa onPress) */
+  onResimPress?: () => void;
   onBegen: () => void;
   onYorum: () => void;
   onHediye: () => void;
   onProfil: () => void;
   onMenu?: () => void;
-  /** Akışta görünür değilken video player mount etme */
-  videoAktif?: boolean;
 };
 
 function formatSayi(n: number): string {
@@ -39,15 +42,22 @@ function formatSayi(n: number): string {
 export function DurumKart({
   oge,
   onPress,
+  onResimPress,
   onBegen,
   onYorum,
   onHediye,
   onProfil,
   onMenu,
-  videoAktif = true,
 }: Props) {
   const handle = oge.username ? `@${oge.username}` : null;
   const kazanc = DurumOyunKazanciPayloadAl(oge);
+  const metinGonderisi = DurumMetinGonderisiMi(oge);
+  const resimBuyutulebilir =
+    !kazanc &&
+    !metinGonderisi &&
+    oge.media_type !== 'video' &&
+    DurumMedyaHttpsMi(oge.media_url) &&
+    typeof onResimPress === 'function';
 
   return (
     <Pressable style={styles.kart} onPress={onPress}>
@@ -97,31 +107,40 @@ export function DurumKart({
           <Text style={styles.caption}>{oge.caption}</Text>
         ) : null}
 
-        <Pressable
-          onPress={onPress}
-          style={[styles.medyaHit, !!kazanc && styles.medyaHitKart]}
-          accessibilityRole="imagebutton"
-        >
-          {kazanc ? (
-            <DurumOyunKazanciKart payload={kazanc} />
-          ) : oge.media_type === 'video' ? (
-            <View style={styles.medya} pointerEvents="box-none">
-              <DurumVideoOnizleme
-                uri={oge.media_url}
-                style={StyleSheet.absoluteFill}
-                aktif={videoAktif}
-              />
-              <View style={styles.videoBadge} pointerEvents="none">
-                <Ionicons name="play" size={13} color="#fff" />
+        {!metinGonderisi ? (
+          <Pressable
+            onPress={resimBuyutulebilir ? onResimPress : onPress}
+            style={[styles.medyaHit, !!kazanc && styles.medyaHitKart]}
+            accessibilityRole="imagebutton"
+            accessibilityLabel={resimBuyutulebilir ? 'Resmi büyüt' : undefined}
+          >
+            {kazanc ? (
+              <DurumOyunKazanciKart payload={kazanc} />
+            ) : oge.media_type === 'video' ? (
+              // Feed'de native VideoPlayer yok — fullScreenModal detay üstünde
+              // ikinci player / siyah ekran / hata sınırı glitch'ini önler.
+              <View style={[styles.medya, styles.medyaBos]}>
+                <View style={styles.videoPlaceholder} pointerEvents="none">
+                  <Ionicons
+                    name="play-circle"
+                    size={36}
+                    color="rgba(255,255,255,0.8)"
+                  />
+                </View>
+                <View style={styles.videoBadge} pointerEvents="none">
+                  <Ionicons name="play" size={13} color="#fff" />
+                </View>
               </View>
-            </View>
-          ) : typeof oge.media_url === 'string' &&
-            /^https?:\/\//i.test(oge.media_url.trim()) ? (
-            <Image source={{ uri: oge.media_url.trim() }} style={styles.medya} />
-          ) : (
-            <View style={[styles.medya, styles.medyaBos]} />
-          )}
-        </Pressable>
+            ) : DurumMedyaHttpsMi(oge.media_url) ? (
+              <Image
+                source={{ uri: oge.media_url.trim() }}
+                style={styles.medya}
+              />
+            ) : (
+              <View style={[styles.medya, styles.medyaBos]} />
+            )}
+          </Pressable>
+        ) : null}
 
         <View style={styles.aksiyonlar}>
           <Pressable
@@ -283,6 +302,11 @@ const styles = StyleSheet.create({
   },
   medyaBos: {
     backgroundColor: '#1a1a22',
+  },
+  videoPlaceholder: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   videoBadge: {
     position: 'absolute',

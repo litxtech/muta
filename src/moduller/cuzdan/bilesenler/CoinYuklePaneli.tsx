@@ -82,7 +82,7 @@ export function CoinYuklePaneli({
               <View style={{ flex: 1, gap: 4 }}>
                 <Text style={styles.baslik}>Coin yükle</Text>
                 <Text style={styles.alt}>
-                  1 coin = 0,10 ₺ · büyük pakette bonus · anında yükle
+                  Mağaza paketleri · büyük pakette bonus · anında yükle
                 </Text>
                 {coins != null ? (
                   <View style={styles.bakiyeSatir}>

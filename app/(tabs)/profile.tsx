@@ -123,7 +123,15 @@ export default function ProfileScreen() {
 
   const medyaTikla = (tur: 'avatar' | 'cover') => {
     const url =
-      tur === 'cover' ? profile?.cover_url ?? null : profile?.avatar_url ?? null;
+      tur === 'cover'
+        ? typeof profile?.cover_url === 'string' &&
+          /^https?:\/\//i.test(profile.cover_url.trim())
+          ? profile.cover_url.trim()
+          : null
+        : typeof profile?.avatar_url === 'string' &&
+            /^https?:\/\//i.test(profile.avatar_url.trim())
+          ? profile.avatar_url.trim()
+          : null;
     if (url) setBuyut({ uri: url, tur });
   };
 
@@ -151,6 +159,16 @@ export default function ProfileScreen() {
     (isGuest
       ? 'Misafir hesabın — tam profil için hesabını tamamla.'
       : 'Tamuso’da ses, hediye ve canlı yayın.');
+  const coverUri =
+    typeof profile?.cover_url === 'string' &&
+    /^https?:\/\//i.test(profile.cover_url.trim())
+      ? profile.cover_url.trim()
+      : null;
+  const avatarUri =
+    typeof profile?.avatar_url === 'string' &&
+    /^https?:\/\//i.test(profile.avatar_url.trim())
+      ? profile.avatar_url.trim()
+      : null;
 
   return (
     <Screen edges={[]} tabSayfaKaydir>
@@ -167,11 +185,11 @@ export default function ProfileScreen() {
               onPress={() => medyaTikla('cover')}
               style={styles.coverPress}
               accessibilityLabel="Kapak fotoğrafı"
-              disabled={!profile?.cover_url}
+              disabled={!coverUri}
             >
-              {profile?.cover_url ? (
+              {coverUri ? (
                 <Image
-                  source={{ uri: profile.cover_url }}
+                  source={{ uri: coverUri }}
                   style={[styles.cover, { height: coverH }]}
                 />
               ) : (
@@ -203,17 +221,17 @@ export default function ProfileScreen() {
             <View style={styles.avatarHit}>
               <ProfilAvatarCerceve
                 size={AVATAR}
-                level={profile?.level ?? 1}
+                level={Number(profile?.level) || 1}
                 gizli={privacy.hide_crown}
               >
                 <Pressable
                   onPress={() => medyaTikla('avatar')}
                   style={styles.avatarWrap}
                   accessibilityLabel="Profil fotoğrafı"
-                  disabled={!profile?.avatar_url}
+                  disabled={!avatarUri}
                 >
-                  {profile?.avatar_url ? (
-                    <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+                  {avatarUri ? (
+                    <Image source={{ uri: avatarUri }} style={styles.avatar} />
                   ) : (
                     <LinearGradient
                       colors={[...RenkTokenlari.gradientPrimary]}
@@ -249,17 +267,17 @@ export default function ProfileScreen() {
               </View>
             ) : null}
             <Text style={styles.bio}>{bio}</Text>
-            {stats ? (
+            {stats && !privacy.hide_account_value ? (
               <HesapDegeriRozeti
-                value={stats.account_value ?? 0}
+                value={Number(stats.account_value) || 0}
                 label={stats.account_value_label}
               />
             ) : null}
-            {stats ? (
+            {stats && !privacy.hide_prestige ? (
               <PrestigeRozetSatiri
-                vipLevel={stats.vip_level ?? 0}
+                vipLevel={Number(stats.vip_level) || 0}
                 gifterLevel={stats.gifter_rank}
-                charmLevel={stats.charm_level ?? 0}
+                charmLevel={Number(stats.charm_level) || 0}
                 rechargeLevel={stats.recharge_rank}
               />
             ) : null}
@@ -457,22 +475,24 @@ export default function ProfileScreen() {
             </View>
           ) : null}
 
-          <DurumProfilIzgarasi
-            items={durumlar}
-            yukleniyor={durumYukleniyor}
-            baslik="Gönderilerim"
-            bosMetin={
-              isGuest
-                ? 'Paylaşım için hesabını tamamla.'
-                : 'Henüz paylaşımın yok — ilk durumunu ekle.'
-            }
-            onPress={(oge) => router.push(`/durum/${oge.id}` as any)}
-            onPaylas={
-              isGuest
-                ? () => setUpgradeAcik(true)
-                : () => router.push('/durum/olustur' as any)
-            }
-          />
+          <ModulHataSiniri modulAdi="profil-gonderiler" varyant="kart">
+            <DurumProfilIzgarasi
+              items={durumlar}
+              yukleniyor={durumYukleniyor}
+              baslik="Gönderilerim"
+              bosMetin={
+                isGuest
+                  ? 'Paylaşım için hesabını tamamla.'
+                  : 'Henüz paylaşımın yok — ilk durumunu ekle.'
+              }
+              onPress={(oge) => router.push(`/durum/${oge.id}` as any)}
+              onPaylas={
+                isGuest
+                  ? () => setUpgradeAcik(true)
+                  : () => router.push('/durum/olustur' as any)
+              }
+            />
+          </ModulHataSiniri>
 
           {/* Keşfet — düz modern satırlar */}
           <View style={styles.menu}>
@@ -569,9 +589,11 @@ export default function ProfileScreen() {
 }
 
 function formatSayi(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
+  const v = Number(n);
+  if (!Number.isFinite(v) || v < 0) return '0';
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+  return String(Math.floor(v));
 }
 
 function Metric({

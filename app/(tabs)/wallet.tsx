@@ -333,30 +333,43 @@ export default function WalletScreen() {
         `${pkg.title}${bonusSatir}\nToplam ${toplam.toLocaleString('tr-TR')} coin\n${fiyatYazi}\nÖdeme: ${kanal}`,
         [
           { text: 'İptal', style: 'cancel' },
-          {
-            text: 'Satın al',
-            onPress: async () => {
-              const sonuc = await CoinPaketiSatinAl(pkg);
-              if (!sonuc.ok) {
-                Alert.alert('Satın alma', sonuc.hata);
-                return;
-              }
-              if (sonuc.method === 'stripe' && sonuc.url) {
-                await Linking.openURL(sonuc.url);
-                return;
-              }
-              if (sonuc.coinsAdded != null && sonuc.coinsAdded > 0) {
-                adjustWallet({ coins: sonuc.coinsAdded });
-              }
-              await yenileHepsi();
-              Alert.alert(
-                'Başarılı',
-                sonuc.coinsAdded != null
-                  ? `+${sonuc.coinsAdded} coin`
-                  : 'Ödeme tamam',
-              );
+            {
+              text: 'Satın al',
+              onPress: async () => {
+                try {
+                  const sonuc = await CoinPaketiSatinAl(pkg);
+                  if (!sonuc.ok) {
+                    Alert.alert('Satın alma', sonuc.hata);
+                    return;
+                  }
+                  if (sonuc.method === 'stripe' && sonuc.url) {
+                    await Linking.openURL(sonuc.url);
+                    return;
+                  }
+                  if (sonuc.coinsAdded != null && sonuc.coinsAdded > 0) {
+                    adjustWallet({ coins: sonuc.coinsAdded });
+                  }
+                  // IAP bağlantısı kapandıktan sonra mağaza/yenile yarışmasın
+                  await new Promise((r) => setTimeout(r, 350));
+                  try {
+                    await yenileHepsi();
+                  } catch {
+                    void refreshWallet().catch(() => undefined);
+                  }
+                  Alert.alert(
+                    'Başarılı',
+                    sonuc.coinsAdded != null
+                      ? `+${sonuc.coinsAdded} coin`
+                      : 'Ödeme tamam',
+                  );
+                } catch (e) {
+                  Alert.alert(
+                    'Satın alma',
+                    e instanceof Error ? e.message : 'Beklenmeyen hata',
+                  );
+                }
+              },
             },
-          },
         ],
       );
     });
@@ -502,7 +515,17 @@ export default function WalletScreen() {
         {goster('header') ? (
         <View style={styles.baslikBar}>
           <Pressable
-            onPress={() => router.navigate('/(tabs)/profile')}
+            onPress={() => {
+              try {
+                router.navigate('/(tabs)/profile');
+              } catch {
+                try {
+                  router.replace('/(tabs)/profile');
+                } catch {
+                  /* ignore */
+                }
+              }
+            }}
             style={styles.geri}
             hitSlop={8}
           >
@@ -549,7 +572,15 @@ export default function WalletScreen() {
                 diamonds={wallet?.diamonds ?? 0}
                 hesapKodu={profile?.public_user_id ?? user?.id}
                 cuzdanNo={mutaHesap?.wallet_number}
-                cuzdanMarka={mutaHesap?.wallet_brand_name ?? CUZDAN_MARKA_ADI}
+                cuzdanMarka={
+                  cuzdanUi.brand?.name?.trim() ||
+                  mutaHesap?.wallet_brand_name ||
+                  CUZDAN_MARKA_ADI
+                }
+                kartTipi={cuzdanUi.brand?.card_type}
+                markaTagline={cuzdanUi.brand?.tagline}
+                markaTaglineGorunur={cuzdanUi.brand?.tagline_visible !== false}
+                degerOzeti={cuzdanUi.value_summary}
                 sahipAdi={
                   mutaHesap?.legal_first_name
                     ? `${mutaHesap.legal_first_name} ${mutaHesap.legal_last_name ?? ''}`.trim()
@@ -608,6 +639,11 @@ export default function WalletScreen() {
               {goster('coin_info') ? (
                 <Text style={[styles.coinInfo, { color: tema.secondaryText }]}>
                   {CuzdanMetinAl(cuzdanUi, 'coin_info', 'tr')}
+                </Text>
+              ) : null}
+              {CuzdanMetinAl(cuzdanUi, 'hero_note', 'tr') ? (
+                <Text style={[styles.coinInfo, { color: tema.secondaryText, marginTop: 4 }]}>
+                  {CuzdanMetinAl(cuzdanUi, 'hero_note', 'tr')}
                 </Text>
               ) : null}
             </View>
@@ -743,7 +779,7 @@ export default function WalletScreen() {
                         <Text style={styles.lineMeta}>
                           {formatTarih(row.created_at)}
                           {' · '}
-                          {row.delta >= 0 ? 'Giriş / kazanç' : 'Çıkış / harcama'}
+                          {row.delta >= 0 ? 'Giriş' : 'Çıkış'}
                         </Text>
                       </View>
                       <Text

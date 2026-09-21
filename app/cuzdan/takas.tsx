@@ -53,6 +53,7 @@ import {
 } from '../../src/moduller/cuzdan/takas/TakasOdemeBilgisi';
 import { TeklifMesajiOlustur } from '../../src/moduller/cuzdan/takas/TeklifMesaji';
 import { CoinDegerOzetiPaneli } from '../../src/moduller/cuzdan/bilesenler/CoinDegerOzetiPaneli';
+import { useCuzdanUiConfig } from '../../src/moduller/cuzdan/ui-config/useCuzdanUiConfig';
 import { TakasProfilKarti } from '../../src/moduller/cuzdan/bilesenler/TakasProfilKarti';
 import {
   CoinDegerOzeti,
@@ -89,6 +90,7 @@ export default function CuzdanTakasEkrani() {
   const params = useLocalSearchParams<{ sekme?: string }>();
   const insets = useSafeAreaInsets();
   const { wallet, refreshWallet, adjustWallet, user } = useAuth();
+  const { config: cuzdanUi } = useCuzdanUiConfig();
   const [camIzin, camIzinIste] = useCameraPermissions();
   const [mod, setMod] = useState<Mod>('menu');
   const [kyc, setKyc] = useState<string>('none');
@@ -557,7 +559,7 @@ export default function CuzdanTakasEkrani() {
       <Stack.Screen options={{ headerShown: false }} />
       <EkranBasligi
         title="Coin takas"
-        subtitle="MUTA PAY · anlaşma · transfer"
+        subtitle={`${cuzdanUi.brand?.name || CUZDAN_MARKA_ADI} · hesap · transfer`}
       />
       <KlavyeScrollView
         ref={scrollRef}
@@ -568,7 +570,9 @@ export default function CuzdanTakasEkrani() {
         ekstraPad={72}
       >
         <View style={styles.kart}>
-          <Text style={styles.marka}>{CUZDAN_MARKA_ADI}</Text>
+          <Text style={styles.marka}>
+            {cuzdanUi.brand?.name || CUZDAN_MARKA_ADI}
+          </Text>
           <View style={styles.noSatirKart}>
             <Text style={styles.no} numberOfLines={1}>
               {walletNo
@@ -612,7 +616,11 @@ export default function CuzdanTakasEkrani() {
           </Text>
           {(wallet?.coins ?? 0) > 0 ? (
             <View style={{ marginTop: 10 }}>
-              <CoinDegerOzetiPaneli coins={wallet?.coins ?? 0} kompakt />
+              <CoinDegerOzetiPaneli
+                coins={wallet?.coins ?? 0}
+                kompakt
+                ozet={cuzdanUi.value_summary}
+              />
             </View>
           ) : null}
           {walletNo.replace(/\D/g, '').length === 18 ? (
@@ -829,6 +837,8 @@ export default function CuzdanTakasEkrani() {
                 <CoinDegerOzetiPaneli
                   coins={Math.floor(Number(teklifCoin))}
                   iadeUyari
+                  iadeMetin={TAKAS_IADE_UYARISI}
+                  ozet={cuzdanUi.value_summary}
                 />
                 <Text style={styles.teklifOnizleme}>
                   {TeklifMesajiOlustur(Math.floor(Number(teklifCoin)))}

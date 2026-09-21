@@ -260,6 +260,141 @@ export default function AdminCuzdanYonetimi() {
                 }
                 multiline
               />
+
+              <Text style={[styles.bolum, { marginTop: 12 }]}>Kart markası</Text>
+              <Alan
+                label="Marka adı (kart üstü — örn. MUTA PAY)"
+                value={payload.brand?.name ?? ''}
+                onChange={(v) =>
+                  patch((p) => ({
+                    ...p,
+                    brand: { ...p.brand, name: v },
+                  }))
+                }
+              />
+              <Alan
+                label="Kart tipi (örn. Dijital cüzdan)"
+                value={payload.brand?.card_type ?? ''}
+                onChange={(v) =>
+                  patch((p) => ({
+                    ...p,
+                    brand: { ...p.brand, card_type: v },
+                  }))
+                }
+              />
+              <Alan
+                label="Tagline (ses odası / gönderi / yayın gelirleri…)"
+                value={payload.brand?.tagline ?? ''}
+                onChange={(v) =>
+                  patch((p) => ({
+                    ...p,
+                    brand: { ...p.brand, tagline: v },
+                  }))
+                }
+                multiline
+              />
+              <View style={styles.satir}>
+                <Text style={styles.satirBaslik}>Tagline görünür</Text>
+                <Switch
+                  value={payload.brand?.tagline_visible !== false}
+                  onValueChange={(v) =>
+                    patch((p) => ({
+                      ...p,
+                      brand: { ...p.brand, tagline_visible: v },
+                    }))
+                  }
+                />
+              </View>
+
+              <Text style={[styles.bolum, { marginTop: 12 }]}>
+                Katalog / tahmini tutar paneli
+              </Text>
+              <View style={styles.satir}>
+                <Text style={styles.satirBaslik}>Panel açık</Text>
+                <Switch
+                  value={payload.value_summary?.enabled !== false}
+                  onValueChange={(v) =>
+                    patch((p) => ({
+                      ...p,
+                      value_summary: { ...p.value_summary, enabled: v },
+                    }))
+                  }
+                />
+              </View>
+              {(
+                [
+                  ['show_katalog', 'Katalog değeri satırı'],
+                  ['show_platform_share', 'Platform hizmet payı'],
+                  ['show_seller_net', 'Tahmini hesap özeti'],
+                  ['show_payment_note', 'Ödeme / dönem notu'],
+                  ['show_language_note', 'Dil / uyarı notu'],
+                ] as const
+              ).map(([key, label]) => (
+                <View key={key} style={styles.satir}>
+                  <Text style={styles.satirBaslik}>{label}</Text>
+                  <Switch
+                    value={!!payload.value_summary?.[key]}
+                    onValueChange={(v) =>
+                      patch((p) => ({
+                        ...p,
+                        value_summary: { ...p.value_summary, [key]: v },
+                      }))
+                    }
+                  />
+                </View>
+              ))}
+              <Alan
+                label="Katalog etiketi"
+                value={payload.value_summary?.katalog_label ?? ''}
+                onChange={(v) =>
+                  patch((p) => ({
+                    ...p,
+                    value_summary: { ...p.value_summary, katalog_label: v },
+                  }))
+                }
+              />
+              <Alan
+                label="Platform payı etiketi"
+                value={payload.value_summary?.platform_label ?? ''}
+                onChange={(v) =>
+                  patch((p) => ({
+                    ...p,
+                    value_summary: { ...p.value_summary, platform_label: v },
+                  }))
+                }
+              />
+              <Alan
+                label="Tahmini tutar etiketi (eski: anlaşma sonrası…)"
+                value={payload.value_summary?.seller_net_label ?? ''}
+                onChange={(v) =>
+                  patch((p) => ({
+                    ...p,
+                    value_summary: { ...p.value_summary, seller_net_label: v },
+                  }))
+                }
+              />
+              <Alan
+                label="Ödeme / dönem notu"
+                value={payload.value_summary?.payment_note ?? ''}
+                onChange={(v) =>
+                  patch((p) => ({
+                    ...p,
+                    value_summary: { ...p.value_summary, payment_note: v },
+                  }))
+                }
+                multiline
+              />
+              <Alan
+                label="Uyarı / dil notu (Apple-güvenli)"
+                value={payload.value_summary?.language_note ?? ''}
+                onChange={(v) =>
+                  patch((p) => ({
+                    ...p,
+                    value_summary: { ...p.value_summary, language_note: v },
+                  }))
+                }
+                multiline
+              />
             </View>
           ) : null}
 
@@ -687,7 +822,34 @@ export default function AdminCuzdanYonetimi() {
                     { backgroundColor: payload.theme.cardBackground },
                   ]}
                 >
-                  <View style={styles.baslikSatir}>
+                  <Text
+                    style={{
+                      color: payload.theme.accent,
+                      fontSize: 11,
+                      fontWeight: '800',
+                      letterSpacing: 2,
+                    }}
+                  >
+                    {(payload.brand?.name || 'MUTA PAY').toUpperCase()}
+                  </Text>
+                  <Text style={{ color: payload.theme.secondaryText, fontSize: 12 }}>
+                    {payload.brand?.card_type || 'Dijital cüzdan'}
+                  </Text>
+                  {payload.brand?.tagline_visible !== false &&
+                  payload.brand?.tagline ? (
+                    <Text
+                      style={{
+                        color: payload.theme.secondaryText,
+                        fontSize: 10,
+                        lineHeight: 14,
+                        marginTop: 4,
+                        opacity: 0.85,
+                      }}
+                    >
+                      {payload.brand.tagline}
+                    </Text>
+                  ) : null}
+                  <View style={[styles.baslikSatir, { marginTop: 12 }]}>
                     {payload.coin.show_beside_amount &&
                     payload.coin.placement === 'before' ? (
                       <CuzdanDinamikSimge
@@ -709,6 +871,18 @@ export default function AdminCuzdanYonetimi() {
                   <Text style={{ color: payload.theme.secondaryText }}>
                     {payload.coin.name} bakiyesi (örnek)
                   </Text>
+                  {payload.value_summary?.enabled !== false &&
+                  payload.value_summary?.show_seller_net ? (
+                    <Text
+                      style={{
+                        color: payload.theme.secondaryText,
+                        fontSize: 11,
+                        marginTop: 8,
+                      }}
+                    >
+                      {payload.value_summary.seller_net_label}: örnek tutar
+                    </Text>
+                  ) : null}
                 </View>
               ) : null}
               {CuzdanBolumAcikMi(payload, 'quick_actions') ? (
