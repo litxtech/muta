@@ -27,6 +27,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 function saatMetni(sn: number) {
   const s = Math.max(0, Math.floor(sn / 3600));
@@ -84,8 +85,8 @@ export default function AjansUyePaneli() {
                   colors={[...RenkTokenlari.gradientCard]}
                   style={styles.ajansKart}
                 >
-                  {ajans.logo_url ? (
-                    <Image source={{ uri: ajans.logo_url }} style={styles.logo} />
+                  {MedyaUriGuvenli(ajans.logo_url) ? (
+                    <Image source={{ uri: MedyaUriGuvenli(ajans.logo_url)! }} style={styles.logo} />
                   ) : (
                     <View style={[styles.logo, styles.logoBos]}>
                       <Ionicons

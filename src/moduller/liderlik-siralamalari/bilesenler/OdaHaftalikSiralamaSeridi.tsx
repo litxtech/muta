@@ -22,6 +22,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 export function OdaHaftalikSiralamaSeridi() {
   const [rows, setRows] = useState<SiralamaSatiri[]>([]);
@@ -88,7 +89,7 @@ function OdaMiniKart({ item }: { item: SiralamaSatiri }) {
     item.room_title?.trim() ||
     item.display_name?.trim() ||
     'Oda';
-  const kapak = item.room_cover_url || item.avatar_url || null;
+  const kapak = MedyaUriGuvenli(item.room_cover_url || item.avatar_url);
   const odaId = item.room_id;
 
   return (

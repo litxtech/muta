@@ -59,13 +59,13 @@ export function SeviyeGirisAltMetin(kademe: SeviyeGirisKademe, level: number): s
 export function SeviyeGirisSuresiMs(kademe: SeviyeGirisKademe): number {
   switch (kademe) {
     case 'efsane':
-      return 5200;
-    case 'altin':
-      return 4400;
-    case 'gumus':
-      return 3200;
-    default:
       return 2800;
+    case 'altin':
+      return 2600;
+    case 'gumus':
+      return 2100;
+    default:
+      return 1900;
   }
 }
 

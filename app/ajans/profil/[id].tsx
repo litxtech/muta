@@ -16,6 +16,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../../src/components/Screen';
 import { EkranBasligi } from '../../../src/components/EkranBasligi';
 import { ModulHataSiniri } from '../../../src/ortak/hata-sinirlari/ModulHataSiniri';
+import { MedyaUriGuvenli } from '../../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
 import { useMisafirIslemKapisi } from '../../../src/moduller/misafir-hesabi/islemler/useMisafirIslemKapisi';
@@ -148,9 +149,13 @@ export default function AjansProfilEkrani() {
               />
             }
           >
+            {(() => {
+              const banner = MedyaUriGuvenli(a.banner_url);
+              const logo = MedyaUriGuvenli(a.logo_url);
+              return (
             <View style={styles.heroWrap}>
-              {a.banner_url ? (
-                <Image source={{ uri: a.banner_url }} style={styles.banner} />
+              {banner ? (
+                <Image source={{ uri: banner }} style={styles.banner} />
               ) : (
                 <LinearGradient
                   colors={[...RenkTokenlari.gradientPlaceholder]}
@@ -162,8 +167,8 @@ export default function AjansProfilEkrani() {
                 style={styles.bannerFade}
               />
               <View style={styles.heroGovde}>
-                {a.logo_url ? (
-                  <Image source={{ uri: a.logo_url }} style={styles.logo} />
+                {logo ? (
+                  <Image source={{ uri: logo }} style={styles.logo} />
                 ) : (
                   <View style={[styles.logo, styles.logoBos]}>
                     <Ionicons
@@ -264,6 +269,8 @@ export default function AjansProfilEkrani() {
                 )}
               </View>
             </View>
+              );
+            })()}
 
             <Text style={styles.bolum}>İstatistikler</Text>
             <View style={styles.statGrid}>
@@ -310,8 +317,11 @@ export default function AjansProfilEkrani() {
                   style={styles.yayinciKart}
                   onPress={() => router.push(`/kullanici/${y.user_id}` as any)}
                 >
-                  {y.avatar_url ? (
-                    <Image source={{ uri: y.avatar_url }} style={styles.avatar} />
+                  {MedyaUriGuvenli(y.avatar_url) ? (
+                    <Image
+                      source={{ uri: MedyaUriGuvenli(y.avatar_url)! }}
+                      style={styles.avatar}
+                    />
                   ) : (
                     <View style={[styles.avatar, styles.avatarBos]}>
                       <Ionicons

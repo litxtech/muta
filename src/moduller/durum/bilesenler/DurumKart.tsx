@@ -16,6 +16,8 @@ import {
 } from '../islemler/DurumIslemleri';
 import { DurumZamanMetni } from '../islemler/DurumZaman';
 import { DurumOyunKazanciKart } from './DurumOyunKazanciKart';
+import { DurumVideoOnizleme } from './DurumVideoOnizleme';
+import { DurumCaptionAcilir } from './DurumCaptionAcilir';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -30,6 +32,10 @@ type Props = {
   onHediye: () => void;
   onProfil: () => void;
   onMenu?: () => void;
+  /** FlatList görünür + sekme odakta → muted video önizleme */
+  videoAktif?: boolean;
+  /** Paylaş — yoksa buton gizli */
+  onPaylas?: () => void;
 };
 
 function formatSayi(n: number): string {
@@ -48,6 +54,8 @@ export function DurumKart({
   onHediye,
   onProfil,
   onMenu,
+  videoAktif = false,
+  onPaylas,
 }: Props) {
   const handle = oge.username ? `@${oge.username}` : null;
   const kazanc = DurumOyunKazanciPayloadAl(oge);
@@ -104,7 +112,7 @@ export function DurumKart({
         </View>
 
         {oge.caption ? (
-          <Text style={styles.caption}>{oge.caption}</Text>
+          <DurumCaptionAcilir metin={oge.caption} style={styles.caption} />
         ) : null}
 
         {!metinGonderisi ? (
@@ -117,16 +125,21 @@ export function DurumKart({
             {kazanc ? (
               <DurumOyunKazanciKart payload={kazanc} />
             ) : oge.media_type === 'video' ? (
-              // Feed'de native VideoPlayer yok — fullScreenModal detay üstünde
-              // ikinci player / siyah ekran / hata sınırı glitch'ini önler.
               <View style={[styles.medya, styles.medyaBos]}>
-                <View style={styles.videoPlaceholder} pointerEvents="none">
-                  <Ionicons
-                    name="play-circle"
-                    size={36}
-                    color="rgba(255,255,255,0.8)"
-                  />
-                </View>
+                <DurumVideoOnizleme
+                  uri={oge.media_url}
+                  style={StyleSheet.absoluteFill}
+                  aktif={videoAktif}
+                />
+                {!videoAktif || !DurumMedyaHttpsMi(oge.media_url) ? (
+                  <View style={styles.videoPlaceholder} pointerEvents="none">
+                    <Ionicons
+                      name="play-circle"
+                      size={36}
+                      color="rgba(255,255,255,0.8)"
+                    />
+                  </View>
+                ) : null}
                 <View style={styles.videoBadge} pointerEvents="none">
                   <Ionicons name="play" size={13} color="#fff" />
                 </View>
@@ -213,6 +226,36 @@ export function DurumKart({
               </Text>
             ) : null}
           </Pressable>
+
+          <View style={styles.aksiyon} accessibilityLabel="Görüntülenme">
+            <Ionicons
+              name="eye-outline"
+              size={18}
+              color={RenkTokenlari.textDim}
+            />
+            <Text style={styles.aksiyonSayi}>
+              {formatSayi(Number(oge.view_count ?? 0))}
+            </Text>
+          </View>
+
+          {onPaylas ? (
+            <Pressable
+              style={styles.aksiyon}
+              onPress={(e) => {
+                e.stopPropagation?.();
+                onPaylas();
+              }}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Gönderiyi paylaş"
+            >
+              <Ionicons
+                name="paper-plane-outline"
+                size={18}
+                color={RenkTokenlari.textDim}
+              />
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </Pressable>
@@ -322,17 +365,17 @@ const styles = StyleSheet.create({
   aksiyonlar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingRight: 24,
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap',
+    gap: 14,
     paddingTop: 2,
-    maxWidth: 280,
+    columnGap: 16,
   },
   aksiyon: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
     minHeight: 32,
-    minWidth: 44,
   },
   aksiyonSayi: {
     ...TipografiTokenlari.caption,

@@ -82,7 +82,7 @@ export function CanliYorumComposer({
         value={text}
         onChangeText={setText}
         placeholder={placeholder}
-        placeholderTextColor={RenkTokenlari.textDim}
+        placeholderTextColor="rgba(255,255,255,0.55)"
         style={styles.input}
         maxLength={500}
         editable
@@ -91,6 +91,9 @@ export function CanliYorumComposer({
         onSubmitEditing={() => void gonder()}
         returnKeyType="send"
         textAlignVertical="center"
+        keyboardAppearance="dark"
+        selectionColor="#FFFFFF"
+        cursorColor="#FFFFFF"
       />
       <Pressable
         onPress={() => void gonder()}
@@ -101,9 +104,7 @@ export function CanliYorumComposer({
         <Ionicons
           name="send"
           size={18}
-          color={
-            busy || !text.trim() ? RenkTokenlari.textDim : RenkTokenlari.text
-          }
+          color={busy || !text.trim() ? 'rgba(255,255,255,0.35)' : '#FFFFFF'}
         />
       </Pressable>
     </View>
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
     backgroundColor: 'rgba(0, 0, 0, 0.42)',
-    color: RenkTokenlari.text,
+    color: '#FFFFFF',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'ios' ? 11 : 9,
     paddingBottom: Platform.OS === 'ios' ? 11 : 9,

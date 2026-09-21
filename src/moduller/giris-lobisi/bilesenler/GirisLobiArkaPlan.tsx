@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { VideoView, useVideoPlayer } from 'expo-video';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import type { GirisLobisiMedya } from '../tipler';
 
@@ -128,26 +129,28 @@ export function GirisLobiArkaPlan({ medya, aktif = true }: Props) {
   const poster =
     aktifListe.find((m) => m.tur === 'image') ??
     (suanki?.tur === 'image' ? suanki : null);
+  const posterUri = MedyaUriGuvenli(poster?.public_url);
+  const suankiUri = MedyaUriGuvenli(suanki?.public_url);
 
   return (
     <View style={styles.wrap} pointerEvents="none" collapsable={false}>
       <ModernArkaPlan />
 
-      {poster && suanki?.tur === 'video' ? (
+      {posterUri && suanki?.tur === 'video' ? (
         <Image
-          source={{ uri: poster.public_url }}
+          source={{ uri: posterUri }}
           style={styles.tamEkran}
           resizeMode="cover"
         />
       ) : null}
 
-      {suanki?.tur === 'video' ? (
-        <UzakVideo uri={suanki.public_url} aktif={aktif} />
+      {suanki?.tur === 'video' && suankiUri ? (
+        <UzakVideo uri={suankiUri} aktif={aktif} />
       ) : null}
 
-      {suanki?.tur === 'image' ? (
+      {suanki?.tur === 'image' && suankiUri ? (
         <Image
-          source={{ uri: suanki.public_url }}
+          source={{ uri: suankiUri }}
           style={styles.tamEkran}
           resizeMode="cover"
         />

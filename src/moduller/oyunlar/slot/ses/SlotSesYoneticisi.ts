@@ -231,5 +231,8 @@ export async function preloadSlotAudio(): Promise<void> {
       .then(() => undefined)
       .catch(() => undefined);
   }
-  await preloadPromise;
+  await Promise.race([
+    preloadPromise,
+    new Promise<void>((resolve) => setTimeout(resolve, 2500)),
+  ]);
 }

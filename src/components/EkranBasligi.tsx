@@ -32,7 +32,10 @@ export function guvenliGeriDon(fallbackHref: Href = '/(tabs)/profile') {
   router.replace(fallbackHref);
 }
 
-/** Ortak üst bar: geri + başlık + opsiyonel sağ aksiyon */
+/**
+ * Ortak üst bar: geri + ortalı başlık + opsiyonel sağ aksiyon.
+ * Başlık absolute ortalı — butonlarla iç içe binmez.
+ */
 export function EkranBasligi({
   title,
   subtitle,
@@ -44,19 +47,26 @@ export function EkranBasligi({
   return (
     <View style={styles.wrap}>
       <View style={styles.top}>
-        {showBack ? (
-          <Pressable
-            style={styles.backBtn}
-            onPress={onBack ?? (() => guvenliGeriDon(fallbackHref))}
-            hitSlop={8}
-            accessibilityLabel="Geri"
-          >
-            <Ionicons name="chevron-back" size={24} color={RenkTokenlari.text} />
-          </Pressable>
-        ) : (
-          <View style={styles.backBtn} />
-        )}
-        <View style={styles.center}>
+        <View style={styles.yanSol}>
+          {showBack ? (
+            <Pressable
+              style={styles.backBtn}
+              onPress={onBack ?? (() => guvenliGeriDon(fallbackHref))}
+              hitSlop={8}
+              accessibilityLabel="Geri"
+            >
+              <Ionicons
+                name="chevron-back"
+                size={24}
+                color={RenkTokenlari.text}
+              />
+            </Pressable>
+          ) : (
+            <View style={styles.backBtn} />
+          )}
+        </View>
+
+        <View style={styles.merkez} pointerEvents="none">
           <Text style={styles.title} numberOfLines={1}>
             {title}
           </Text>
@@ -66,7 +76,10 @@ export function EkranBasligi({
             </Text>
           ) : null}
         </View>
-        <View style={styles.right}>{right ?? <View style={styles.backBtn} />}</View>
+
+        <View style={styles.yanSag}>
+          {right ?? <View style={styles.backBtn} />}
+        </View>
       </View>
     </View>
   );
@@ -77,11 +90,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: BoslukTokenlari.md,
     paddingTop: BoslukTokenlari.xs,
     paddingBottom: BoslukTokenlari.sm,
+    zIndex: 2,
   },
   top: {
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 48,
+    position: 'relative',
+  },
+  yanSol: {
+    minWidth: 44,
+    zIndex: 2,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  yanSag: {
+    minWidth: 44,
+    marginLeft: 'auto',
+    zIndex: 2,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   backBtn: {
     width: 40,
@@ -89,26 +117,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  center: {
-    flex: 1,
+  merkez: {
+    position: 'absolute',
+    left: 52,
+    right: 52,
+    top: 0,
+    bottom: 0,
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: BoslukTokenlari.sm,
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    zIndex: 1,
   },
   title: {
-    ...TipografiTokenlari.h1,
+    ...TipografiTokenlari.h2,
     color: RenkTokenlari.text,
     textAlign: 'center',
-    lineHeight: 28,
+    fontSize: 17,
+    lineHeight: 22,
+    fontWeight: '800',
+    maxWidth: '100%',
   },
   sub: {
-    ...TipografiTokenlari.caption,
+    ...TipografiTokenlari.micro,
     color: RenkTokenlari.textMuted,
     textAlign: 'center',
-    lineHeight: 18,
-  },
-  right: {
-    minWidth: 40,
-    alignItems: 'flex-end',
+    lineHeight: 14,
+    marginTop: 2,
+    maxWidth: '100%',
   },
 });

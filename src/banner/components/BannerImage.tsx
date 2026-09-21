@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { BANNER_BORDER_RADIUS } from '../core/BannerConstants';
 import { RenkTokenlari } from '../../tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   uri?: string | null;
@@ -13,6 +14,7 @@ type Props = {
 
 export function BannerImage({ uri, alt, aspectRatio, flush }: Props) {
   const [failed, setFailed] = useState(false);
+  const safeUri = MedyaUriGuvenli(uri);
   const radius = flush
     ? undefined
     : {
@@ -20,13 +22,13 @@ export function BannerImage({ uri, alt, aspectRatio, flush }: Props) {
         borderTopRightRadius: BANNER_BORDER_RADIUS,
       };
 
-  if (!uri || failed) {
+  if (!safeUri || failed) {
     return <View style={[styles.fallback, { aspectRatio }, radius]} />;
   }
 
   return (
     <Image
-      source={{ uri }}
+      source={{ uri: safeUri }}
       style={[styles.img, { aspectRatio }, radius]}
       resizeMode="cover"
       accessibilityLabel={alt ?? 'Banner görseli'}

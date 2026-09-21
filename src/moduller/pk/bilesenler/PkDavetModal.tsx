@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { PkDavet } from '../islemler/PkDavetIslemleri';
 import { PkDavetYanitla } from '../islemler/PkDavetIslemleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
@@ -75,8 +76,8 @@ export function PkDavetModal({ davet, onKapat, onSonuc }: Props) {
             <Text style={styles.badgeYazi}>PK DAVETİ</Text>
           </View>
 
-          {davet.from_avatar ? (
-            <Image source={{ uri: davet.from_avatar }} style={styles.avatar} />
+          {MedyaUriGuvenli(davet.from_avatar) ? (
+            <Image source={{ uri: MedyaUriGuvenli(davet.from_avatar)! }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.avatarBos]}>
               <Ionicons name="person" size={28} color={RenkTokenlari.textMuted} />

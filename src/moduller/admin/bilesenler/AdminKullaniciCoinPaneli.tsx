@@ -27,6 +27,7 @@ import {
   OneriAdi,
   type AdminKullaniciOneriSatiri,
 } from '../kullanici/okuma/AdminKullaniciOneri';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 const HIZLI = [1_000, 5_000, 10_000, 50_000, 100_000] as const;
 
@@ -50,10 +51,11 @@ function Avatar({
   size?: number;
 }) {
   const harf = (ad.trim() || '?').charAt(0).toLocaleUpperCase('tr-TR');
-  if (url) {
+  const safe = MedyaUriGuvenli(url);
+  if (safe) {
     return (
       <Image
-        source={{ uri: url }}
+        source={{ uri: safe }}
         style={{ width: size, height: size, borderRadius: size / 2 }}
       />
     );

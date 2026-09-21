@@ -27,6 +27,7 @@ type Props = {
   targetUserId: string;
   targetName?: string | null;
   roomId?: string | null;
+  isGuest?: boolean;
   contentType?:
     | 'user'
     | 'dm_message'
@@ -53,6 +54,7 @@ export function KullaniciGuvenlikMenusu({
   targetUserId,
   targetName,
   roomId,
+  isGuest,
   contentType,
   contentId,
   contentPreview,
@@ -73,7 +75,15 @@ export function KullaniciGuvenlikMenusu({
     onClose();
   };
 
+  const misafirUyar = () => {
+    Alert.alert('Misafir', 'Bildir / engelle için hesabını tamamla.');
+  };
+
   const engelle = () => {
+    if (isGuest) {
+      misafirUyar();
+      return;
+    }
     Alert.alert(
       'Engelle',
       `${targetName ?? 'Bu kişi'} engellenecek. Sizi platformda bulamaz, mesaj / arama / takip yapamaz.`,
@@ -102,6 +112,10 @@ export function KullaniciGuvenlikMenusu({
   };
 
   const bildir = async () => {
+    if (isGuest) {
+      misafirUyar();
+      return;
+    }
     if (!sebepId) {
       Alert.alert('Bildir', 'Bir sebep seç.');
       return;

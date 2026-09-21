@@ -66,9 +66,10 @@ export function useSlotGame(opts: {
     void (async () => {
       const unfinished = await restoreUnfinishedSlotRound();
       if (unfinished?.result) {
-        dispatch({ type: 'RECOVER', result: unfinished.result });
         setGrid(unfinished.result.grid);
         setBalance(unfinished.result.balanceAfter);
+        setSpinToken((t) => t + 1);
+        dispatch({ type: 'RECOVER', result: unfinished.result });
       }
     })();
     return () => {
@@ -129,6 +130,20 @@ export function useSlotGame(opts: {
       void presentWins(r);
     }, 40);
   }, [presentWins]);
+
+  // SPINNING/STOPPING takılırsa makara onStopped gelmese bile turu bitir
+  useEffect(() => {
+    if (machine.phase !== 'SPINNING' && machine.phase !== 'STOPPING') {
+      return;
+    }
+    const t = setTimeout(() => {
+      const phase = machineRef.current.phase;
+      if (phase === 'SPINNING' || phase === 'STOPPING') {
+        onAllReelsStopped();
+      }
+    }, 6500);
+    return () => clearTimeout(t);
+  }, [machine.phase, onAllReelsStopped]);
 
   const spin = useCallback(async () => {
     if (!machineRef.current.canSpin) return;

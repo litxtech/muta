@@ -25,12 +25,16 @@ import { CanliYorumComposer } from './CanliYorumComposer';
 import { CanliBegeniEfekti } from './CanliBegeniEfekti';
 import { CanliYayinBegen } from '../islemler/CanliYayinIslemleri';
 import { TakipEt } from '../../kullanici-profili/okuma/TakipIslemleri';
+import { ProfilGetir } from '../../kullanici-profili/okuma/ProfilGetir';
+import { OdaProfilKartiPaneli } from '../../ses-odalari/bilesenler/OdaProfilKartiPaneli';
+import type { CanliSohbetMesajGorunum } from '../../canli-sohbet/bilesenler/CanliSohbetMesajKarti';
 import { LiveKitBaglantiYoneticisi } from '../../livekit/baglanti/LiveKitBaglantiYoneticisi';
 import { supabase } from '../../../lib/supabase';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { OzellikBayragiAktifMi } from '../../ozellik-bayraklari/OzellikBayragiAktifMi';
+import { IcerikGuvenlikDugmesi } from '../../moderasyon/bilesenler/IcerikGuvenlikDugmesi';
 import { PkSkorSeridi } from '../../pk/bilesenler/PkSkorSeridi';
 import type { PkCanliMacDetay } from '../../pk/skor/PkCanliMaciniGetir';
 
@@ -56,11 +60,14 @@ type Props = {
   walletCoins?: number | null;
   onNeedUpgrade?: () => void;
   onHediye?: () => void;
+  /** Alt bardaki coin chip — aynı sayfada yükleme paneli */
+  onCoinYukle?: () => void;
   onBitir?: () => void;
   onCikis?: () => void;
   onPk?: () => void;
   onMeta?: (patch: Partial<CanliYayinMeta>) => void;
   pkMac?: PkCanliMacDetay | null;
+  isGuest?: boolean;
 };
 
 const VideoKatmani = memo(function VideoKatmani({
@@ -93,11 +100,13 @@ export function CanliYayinTiyatro({
   walletCoins,
   onNeedUpgrade,
   onHediye,
+  onCoinYukle,
   onBitir,
   onCikis,
   onPk,
   onMeta,
   pkMac,
+  isGuest = false,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { yukseklik: klavyeH, acik: klavyeAcik } = useKlavyeYuksekligi(0);
@@ -105,10 +114,19 @@ export function CanliYayinTiyatro({
   const [burst, setBurst] = useState<{ id: string; x: number; y: number } | null>(
     null,
   );
-  const [altBarH, setAltBarH] = useState(72);
+  const [composerH, setComposerH] = useState(52);
   const [takipBusy, setTakipBusy] = useState(false);
   const [takipEdildi, setTakipEdildi] = useState(false);
+  const [kameraCevirBusy, setKameraCevirBusy] = useState(false);
   const [baglantiBanner, setBaglantiBanner] = useState<string | null>(null);
+  const [profilKart, setProfilKart] = useState<{
+    userId: string;
+    displayName?: string | null;
+    username?: string | null;
+    avatarUrl?: string | null;
+    bio?: string | null;
+    level?: number | null;
+  } | null>(null);
   const begeniKilit = useRef(false);
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -231,13 +249,67 @@ export function CanliYayinTiyatro({
     });
   };
 
+  const profilKartAc = useCallback(
+    (input: {
+      userId: string;
+      displayName?: string | null;
+      username?: string | null;
+      avatarUrl?: string | null;
+      bio?: string | null;
+      level?: number | null;
+    }) => {
+      if (!input.userId) return;
+      setProfilKart(input);
+      void ProfilGetir(input.userId)
+        .then((p) => {
+          if (!p) return;
+          setProfilKart((prev) =>
+            prev?.userId === p.id
+              ? {
+                  ...prev,
+                  displayName: p.display_name ?? prev.displayName,
+                  username: p.username ?? prev.username,
+                  avatarUrl: p.avatar_url ?? prev.avatarUrl,
+                  bio: p.bio ?? prev.bio,
+                  level: p.level ?? prev.level,
+                }
+              : prev,
+          );
+        })
+        .catch(() => undefined);
+    },
+    [],
+  );
+
+  const yorumProfilAc = useCallback(
+    (item: CanliSohbetMesajGorunum) => {
+      profilKartAc({
+        userId: item.user_id,
+        displayName: item.display_name,
+        username: item.username,
+        avatarUrl: item.avatar_url,
+        level: item.level,
+      });
+    },
+    [profilKartAc],
+  );
+
+  // Yorumlar yalnızca composer + klavyenin hemen üstünde dursun.
+  // Eski: altBarH (klavye pad dahil) + klavyeH tekrar eklenince üst çentiğe fırlıyordu.
   const yorumBottom =
-    altBarH + 12 + (klavyeAcik ? (Platform.OS === 'ios' ? klavyeH : 0) : 0);
+    10 +
+    composerH +
+    (klavyeAcik
+      ? Platform.OS === 'ios'
+        ? klavyeH
+        : 0
+      : Math.max(insets.bottom, 8));
   const altPad = klavyeAcik
     ? Platform.OS === 'android'
       ? 8
       : Math.max(8, klavyeH)
     : Math.max(insets.bottom, 8);
+  const yorumYukseklik = klavyeAcik ? 140 : 220;
 
   return (
     <View style={styles.root}>
@@ -287,7 +359,13 @@ export function CanliYayinTiyatro({
           <View style={styles.hostSatir} pointerEvents="box-none">
             <Pressable
               style={styles.hostKart}
-              onPress={() => router.push(`/kullanici/${meta.host_id}` as any)}
+              onPress={() =>
+                profilKartAc({
+                  userId: meta.host_id,
+                  displayName: meta.hostAd,
+                  avatarUrl: meta.hostAvatar,
+                })
+              }
             >
               <View style={styles.avatar}>
                 <Text style={styles.avatarHarf}>
@@ -332,6 +410,36 @@ export function CanliYayinTiyatro({
                   : meta.viewer_count}
               </Text>
             </View>
+            {rol === 'izleyici' ? (
+              <IcerikGuvenlikDugmesi
+                tur="live"
+                contentId={meta.id}
+                targetUserId={meta.host_id}
+                title={meta.title}
+                isGuest={isGuest}
+                varyant="metin"
+              />
+            ) : null}
+            {rol === 'host' ? (
+              <Pressable
+                onPress={() => {
+                  if (kameraCevirBusy) return;
+                  setKameraCevirBusy(true);
+                  void LiveKitBaglantiYoneticisi.kameraCevir().finally(() => {
+                    setKameraCevirBusy(false);
+                  });
+                }}
+                style={[
+                  styles.kameraCevirBtn,
+                  kameraCevirBusy ? styles.kameraCevirBusy : null,
+                ]}
+                disabled={kameraCevirBusy}
+                accessibilityLabel="Kamerayı çevir"
+                hitSlop={6}
+              >
+                <Ionicons name="camera-reverse" size={20} color="#fff" />
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={cikisIste}
               style={styles.kapatBtn}
@@ -350,12 +458,6 @@ export function CanliYayinTiyatro({
           <View style={styles.chip}>
             <Text style={styles.chipYazi}>🔥 Saatlik</Text>
           </View>
-          <Pressable
-            style={styles.chip}
-            onPress={() => router.push('/canli' as any)}
-          >
-            <Text style={styles.chipYazi}>Keşfet ›</Text>
-          </Pressable>
           <View style={styles.livePill}>
             <View style={styles.dot} />
             <Text style={styles.liveText}>CANLI</Text>
@@ -371,7 +473,10 @@ export function CanliYayinTiyatro({
 
       {/* Yorumlar — alt barın üstünde, input'u örtmez */}
       <View
-        style={[styles.yorumFloat, { bottom: yorumBottom }]}
+        style={[
+          styles.yorumFloat,
+          { bottom: yorumBottom, height: yorumYukseklik },
+        ]}
         pointerEvents="box-none"
       >
         <ModulHataSiniri modulAdi="canlı sohbet" varyant="kart">
@@ -383,6 +488,7 @@ export function CanliYayinTiyatro({
             baslikGizle
             maxMesaj={80}
             floatMod
+            onProfil={yorumProfilAc}
           />
         </ModulHataSiniri>
       </View>
@@ -390,12 +496,14 @@ export function CanliYayinTiyatro({
       {/* Alt etkileşim çubuğu — şeffaf */}
       <View
         style={[styles.altBar, { paddingBottom: altPad }]}
-        onLayout={(e) => {
-          const h = e.nativeEvent.layout.height;
-          if (h > 40 && Math.abs(h - altBarH) > 2) setAltBarH(h);
-        }}
       >
-        <View style={styles.composerRow}>
+        <View
+          style={styles.composerRow}
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (h > 30 && Math.abs(h - composerH) > 2) setComposerH(h);
+          }}
+        >
           <CanliYorumComposer
             sessionId={meta.id}
             canSend={canSend}
@@ -424,16 +532,55 @@ export function CanliYayinTiyatro({
                 </Pressable>
               ) : null}
               {walletCoins != null ? (
-                <View style={styles.coinChip}>
+                <Pressable
+                  style={styles.coinChip}
+                  onPress={() => {
+                    if (!canSend) {
+                      onNeedUpgrade?.();
+                      return;
+                    }
+                    onCoinYukle?.();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Coin yükle"
+                >
                   <Text style={styles.coinText}>
-                    {walletCoins.toLocaleString('tr-TR')}
+                    🪙 {walletCoins.toLocaleString('tr-TR')}
                   </Text>
-                </View>
+                  {onCoinYukle ? (
+                    <Ionicons name="add-circle" size={16} color="#F0B429" />
+                  ) : null}
+                </Pressable>
               ) : null}
             </View>
           ) : null}
         </View>
       </View>
+
+      <OdaProfilKartiPaneli
+        visible={!!profilKart}
+        onClose={() => setProfilKart(null)}
+        userId={profilKart?.userId}
+        viewerId={currentUserId}
+        isGuest={isGuest}
+        displayName={profilKart?.displayName}
+        username={profilKart?.username}
+        avatarUrl={profilKart?.avatarUrl}
+        bio={profilKart?.bio}
+        level={profilKart?.level}
+        baslik="Profil"
+        onNeedUpgrade={onNeedUpgrade}
+        yukseklikOrani={0.58}
+        onProfilAc={
+          profilKart?.userId
+            ? () => {
+                const uid = profilKart.userId;
+                setProfilKart(null);
+                router.push(`/kullanici/${uid}` as any);
+              }
+            : undefined
+        }
+      />
     </View>
   );
 }
@@ -580,6 +727,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  kameraCevirBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  kameraCevirBusy: {
+    opacity: 0.55,
+  },
   chipSatir: {
     position: 'absolute',
     left: 10,
@@ -676,6 +836,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(240,180,41,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 4,
   },
   coinText: {
     ...TipografiTokenlari.micro,

@@ -20,6 +20,8 @@ import {
   AdminCanliSesOdalari,
   AdminSesOdasiKapat,
   AdminSesOdasiKapatVeYaptirim,
+  AdminOrnekSesOdalariDoldur,
+  AdminOrnekSesOdalariKapat,
   COIN_CEZA_HIZLI,
   YAPTIRIM_SURE_SECENEKLERI,
 } from '../../src/moduller/admin/ses-odalari/AdminSesOdasiIslemleri';
@@ -264,6 +266,74 @@ export default function AdminOdalarEkrani() {
           Kapatınca içerik anında feed’den düşer. Ses odasında isteğe bağlı
           host yaptırımı da koyabilirsin.
         </Text>
+
+        <View style={styles.ornekKutu}>
+          <Text style={styles.ornekBaslik}>Örnek ses odaları</Text>
+          <Text style={styles.ornekNot}>
+            Bunlar örnektir — gerçek kullanıcı odası değildir. Feed’i doldurmak
+            için admin panelinden eklenir / kapatılır. Kartlarda “Örnek”
+            rozeti gösterilmez.
+          </Text>
+          <View style={styles.ornekAksiyon}>
+            <Pressable
+              style={styles.ornekBtn}
+              disabled={busy}
+              onPress={() => {
+                void (async () => {
+                  setBusy(true);
+                  const r = await AdminOrnekSesOdalariDoldur();
+                  setBusy(false);
+                  if (!r.ok) {
+                    Alert.alert('Örnek odalar', r.hata ?? 'Eklenemedi');
+                    return;
+                  }
+                  await yukle();
+                  Alert.alert(
+                    'Örnek odalar',
+                    `${r.oda_sayisi ?? 0} gerçekçi örnek oda feed’e eklendi.`,
+                  );
+                })();
+              }}
+            >
+              <Text style={styles.ornekBtnYazi}>Örnek odaları doldur</Text>
+            </Pressable>
+            <Pressable
+              style={styles.ornekKapatBtn}
+              disabled={busy}
+              onPress={() => {
+                Alert.alert(
+                  'Örnek odaları kapat',
+                  'Tüm örnek canlı odalar feed’den düşsün mü?',
+                  [
+                    { text: 'Vazgeç', style: 'cancel' },
+                    {
+                      text: 'Kapat',
+                      style: 'destructive',
+                      onPress: () => {
+                        void (async () => {
+                          setBusy(true);
+                          const r = await AdminOrnekSesOdalariKapat();
+                          setBusy(false);
+                          if (!r.ok) {
+                            Alert.alert('Örnek odalar', r.hata ?? 'Kapatılamadı');
+                            return;
+                          }
+                          await yukle();
+                          Alert.alert(
+                            'Kapatıldı',
+                            `${r.kapatilan ?? 0} örnek oda kapatıldı.`,
+                          );
+                        })();
+                      },
+                    },
+                  ],
+                );
+              }}
+            >
+              <Text style={styles.ornekKapatYazi}>Örnekleri kapat</Text>
+            </Pressable>
+          </View>
+        </View>
 
         <Text style={AdminStil.sectionLabel}>Ses odaları</Text>
         {yukleniyor && !odalar.length && !yayinlar.length ? (
@@ -660,5 +730,54 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginTop: 8,
+  },
+  ornekKutu: {
+    marginTop: 8,
+    marginBottom: 12,
+    padding: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.md,
+    borderWidth: 1,
+    borderColor: `${RenkTokenlari.violet}44`,
+    backgroundColor: `${RenkTokenlari.violet}14`,
+    gap: 8,
+  },
+  ornekBaslik: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.violet,
+    fontWeight: '800',
+  },
+  ornekNot: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    lineHeight: 18,
+  },
+  ornekAksiyon: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  ornekBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: RenkTokenlari.violet,
+  },
+  ornekBtnYazi: {
+    ...TipografiTokenlari.caption,
+    color: '#fff',
+    fontWeight: '700',
+  },
+  ornekKapatBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: YaricapTokenlari.pill,
+    borderWidth: 1,
+    borderColor: `${RenkTokenlari.danger}66`,
+  },
+  ornekKapatYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.danger,
+    fontWeight: '700',
   },
 });

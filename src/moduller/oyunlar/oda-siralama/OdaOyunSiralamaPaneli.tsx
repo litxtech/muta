@@ -24,6 +24,7 @@ import {
   OdaOyunSiralamasiniGetir,
   type OdaOyunSiralamaSatiri,
 } from './OdaOyunSiralamasiniGetir';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   roomId: string;
@@ -176,8 +177,11 @@ function SiralamaDetaySatiri({
         )}
       </View>
 
-      {satir.avatar_url ? (
-        <Image source={{ uri: satir.avatar_url }} style={styles.avatar} />
+      {MedyaUriGuvenli(satir.avatar_url) ? (
+        <Image
+          source={{ uri: MedyaUriGuvenli(satir.avatar_url)! }}
+          style={styles.avatar}
+        />
       ) : (
         <LinearGradient
           colors={[RenkTokenlari.primary, RenkTokenlari.accent]}

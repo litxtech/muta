@@ -60,16 +60,33 @@ export async function CuzdanUiCacheOku(): Promise<CuzdanUiCanliYanit | null> {
 }
 
 export function CuzdanUiCanliDinle(onChange: () => void): () => void {
-  const ch = supabase
-    .channel('wallet-ui-live')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'wallet_ui_live' },
-      () => onChange(),
-    )
-    .subscribe();
+  const imza = 'wallet-ui-live';
+  for (const mevcut of supabase.getChannels()) {
+    const topic = mevcut.topic ?? '';
+    if (
+      topic === imza ||
+      topic === `realtime:${imza}` ||
+      topic.includes(imza)
+    ) {
+      void supabase.removeChannel(mevcut);
+    }
+  }
+  const topic = `${imza}-${Date.now().toString(36)}`;
+  let ch: ReturnType<typeof supabase.channel> | null = null;
+  try {
+    ch = supabase
+      .channel(topic)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'wallet_ui_live' },
+        () => onChange(),
+      )
+      .subscribe();
+  } catch {
+    ch = null;
+  }
   return () => {
-    void supabase.removeChannel(ch);
+    if (ch) void supabase.removeChannel(ch);
   };
 }
 

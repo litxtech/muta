@@ -16,13 +16,15 @@ export type DurumOyunKazanciPayload = {
 export type DurumOggesi = {
   id: string;
   user_id: string;
-  media_type: 'image' | 'video' | 'card';
-  /** Boş string olabilir (oyun kartı / bozuk satır) — UI null uri ile Image açmaz */
+  media_type: 'image' | 'video' | 'card' | 'text';
+  /** Boş string olabilir (metin / oyun kartı) — UI null uri ile Image açmaz */
   media_url: string;
   caption: string | null;
   like_count: number;
   comment_count: number;
   gift_count: number;
+  view_count: number;
+  share_count?: number;
   post_kind: DurumPostKind;
   payload: DurumOyunKazanciPayload | Record<string, unknown> | null;
   created_at: string;
@@ -44,6 +46,8 @@ function normalizeDurum(row: DurumOggesi): DurumOggesi {
     ...row,
     media_url: mediaUrl,
     gift_count: Number(row.gift_count ?? 0),
+    view_count: Number(row.view_count ?? 0),
+    share_count: Number(row.share_count ?? 0),
     post_kind: (row.post_kind as DurumPostKind) || 'media',
     payload: (row.payload as DurumOggesi['payload']) ?? {},
   };
@@ -134,13 +138,13 @@ export async function DurumDetayGetir(id: string): Promise<DurumOggesi> {
 }
 
 export async function DurumOlustur(input: {
-  mediaType: 'image' | 'video';
-  mediaUrl: string;
+  mediaType: 'image' | 'video' | 'text';
+  mediaUrl?: string | null;
   caption?: string;
 }): Promise<{ ok: boolean; id?: string; hata?: string }> {
   const { data, error } = await supabase.rpc('durum_olustur', {
     p_media_type: input.mediaType,
-    p_media_url: input.mediaUrl,
+    p_media_url: input.mediaUrl ?? null,
     p_caption: input.caption ?? null,
   });
   if (error) return { ok: false, hata: error.message };
@@ -175,6 +179,29 @@ export async function DurumSil(
   return { ok: true };
 }
 
+/**
+ * Gönderi detayı açılınca çağır.
+ * Her hesap en fazla 1 kez sayılır; sahip kendi gönderisini artırmaz.
+ */
+export async function DurumGoruntulemeKaydet(
+  id: string,
+): Promise<{ ok: boolean; counted?: boolean; view_count?: number; hata?: string }> {
+  const { data, error } = await supabase.rpc('durum_goruntuleme_kaydet', {
+    p_status_id: id,
+  });
+  if (error) return { ok: false, hata: error.message };
+  const row = data as {
+    ok?: boolean;
+    counted?: boolean;
+    view_count?: number;
+  };
+  return {
+    ok: !!row?.ok,
+    counted: !!row?.counted,
+    view_count: Number(row?.view_count ?? 0),
+  };
+}
+
 export async function DurumGuncelle(
   id: string,
   caption?: string,
@@ -198,7 +225,13 @@ export async function DurumKullanicisiniGetir(
     p_before: null,
   });
   if (error) throw error;
-  return ((data as DurumOggesi[]) ?? []).map(normalizeDurum);
+  return ((data as DurumOggesi[]) ?? []).flatMap((row) => {
+    try {
+      return [normalizeDurum(row)];
+    } catch {
+      return [];
+    }
+  });
 }
 
 export async function DurumBegeniToggle(

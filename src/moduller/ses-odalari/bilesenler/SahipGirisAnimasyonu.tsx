@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Dimensions, Image, Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -13,6 +13,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { CamArkaplan } from '../../../bilesenler/yuzey/CamArkaplan';
@@ -28,7 +29,8 @@ type Props = {
 
 const { width: W, height: H } = Dimensions.get('window');
 const AVATAR = Math.min(128, W * 0.32);
-const TOPLAM_MS = 3400;
+/** Kısa ama vurgulu sahip girişi */
+const TOPLAM_MS = 2600;
 
 const PARCACIKLAR = [
   { x: -0.38, y: -0.42, s: 7, d: 0 },
@@ -166,6 +168,8 @@ export function SahipGirisAnimasyonu({
   const progress = useSharedValue(0);
   const orbit = useSharedValue(0);
   const pulse = useSharedValue(0);
+  const onBittiRef = useRef(onBitti);
+  onBittiRef.current = onBitti;
 
   useEffect(() => {
     if (!gorunur) {
@@ -176,7 +180,7 @@ export function SahipGirisAnimasyonu({
     }
 
     const bitir = () => {
-      onBitti?.();
+      onBittiRef.current?.();
     };
 
     const impact = () => {
@@ -193,22 +197,28 @@ export function SahipGirisAnimasyonu({
     );
 
     orbit.value = withRepeat(
-      withTiming(1, { duration: 5200, easing: Easing.linear }),
+      withTiming(1, { duration: 3600, easing: Easing.linear }),
       -1,
       false,
     );
     pulse.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 900, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration: 900, easing: Easing.inOut(Easing.sin) }),
+        withTiming(1, { duration: 700, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 700, easing: Easing.inOut(Easing.sin) }),
       ),
       -1,
       false,
     );
 
-    const t = setTimeout(impact, 620);
-    return () => clearTimeout(t);
-  }, [gorunur, ad, avatarUrl, progress, orbit, pulse, onBitti]);
+    const t = setTimeout(impact, 420);
+    const t2 = setTimeout(() => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }, 980);
+    return () => {
+      clearTimeout(t);
+      clearTimeout(t2);
+    };
+  }, [gorunur, progress, orbit, pulse]);
 
   const sahneStil = useAnimatedStyle(() => {
     const o = interpolate(
@@ -447,8 +457,8 @@ export function SahipGirisAnimasyonu({
 
           <Animated.View style={[styles.avatarWrap, avatarStil]}>
             <Animated.View style={[styles.avatarAura, avatarAuraStil]} />
-            {avatarUrl ? (
-              <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+            {MedyaUriGuvenli(avatarUrl) ? (
+              <Image source={{ uri: MedyaUriGuvenli(avatarUrl)! }} style={styles.avatar} />
             ) : (
               <LinearGradient
                 colors={[RenkTokenlari.accent, RenkTokenlari.primary, RenkTokenlari.magenta]}

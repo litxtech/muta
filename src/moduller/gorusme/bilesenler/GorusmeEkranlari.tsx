@@ -9,7 +9,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GorusmeVideoSahne } from './GorusmeVideoSahne';
+import { GorusmeArkaPlan } from './GorusmeArkaPlan';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -17,6 +19,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { GorusmeTuru, ThreadKarsiProfil } from '../tipler';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 export function sureMetni(saniye: number): string {
   const h = Math.floor(saniye / 3600);
@@ -70,10 +73,14 @@ type AktifProps = {
   onCamera?: () => void;
   onHangup: () => void;
   onFlip?: () => void;
+  /** Bağlı görüşmeyi küçült — session açık kalır */
+  onMinimize?: () => void;
 };
 
 /**
- * Profesyonel 1:1 gorusme — uzak tam ekran, yerel PiP, sure, kontroller.
+ * Ortak fullscreen call layout.
+ * Tek background: GorusmeArkaPlan (parent). Bu bileşen yalnızca transparent flex içerik.
+ * Yapı: Header → Main (flex:1) → Controls → Bitir
  */
 export function GorusmeAktifEkrani({
   peer,
@@ -91,104 +98,153 @@ export function GorusmeAktifEkrani({
   onCamera,
   onHangup,
   onFlip,
+  onMinimize,
 }: AktifProps) {
+  const insets = useSafeAreaInsets();
   const saniye = useGorusmeSuresi(baglandi, answeredAt);
   const ad =
     peer?.display_name?.trim() ||
     peer?.username?.trim() ||
     'Kullanıcı';
   const video = callType === 'video';
+  const avatarUri = MedyaUriGuvenli(peer?.avatar_url);
+  const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
 
   return (
-    <View style={styles.root}>
-      <GorusmeVideoSahne
-        video={video}
-        cameraOn={cameraOn}
-        mock={mock}
-        peerAvatar={peer?.avatar_url}
-        peerName={ad}
-      />
+    <View style={styles.root} collapsable={false}>
+      {/* Görüntülü: video katmanı absoluteFill — sesli'de yok (avatar flex main'de) */}
+      {video ? (
+        <View style={styles.sahne} pointerEvents="none" collapsable={false}>
+          <GorusmeVideoSahne
+            video
+            cameraOn={cameraOn}
+            mock={mock}
+            peerAvatar={peer?.avatar_url}
+            peerName={ad}
+          />
+        </View>
+      ) : null}
 
-      {/* Ust cam panel */}
-      <LinearGradient
-        colors={['rgba(0,0,0,0.72)', 'transparent']}
-        style={styles.ustGradient}
+      {/*
+        flex:1 kolon — absoluteFill UI KULLANILMAZ.
+        Önceki absoluteFill + boş uiOrta + üst/alt overlay gradient,
+        içeriği üst yarıya yığıp Bitir altında keskin renk sınırı bırakıyordu.
+      */}
+      <View
+        style={[
+          styles.icerik,
+          {
+            paddingTop: insets.top + 12,
+            paddingBottom: Math.max(insets.bottom, 10) + 8,
+          },
+        ]}
+        collapsable={false}
       >
-        <View style={styles.ust}>
-          <View style={styles.turPill}>
-            <View style={[styles.liveDot, baglandi && styles.liveDotOn]} />
-            <Text style={styles.tur}>
-              {video ? 'Görüntülü' : 'Sesli'}
-              {isCaller && !baglandi ? ' · Aranıyor' : ''}
-            </Text>
+        <View style={styles.ustBolum} pointerEvents="box-none">
+          <View style={styles.ustSatir}>
+            {onMinimize ? (
+              <Pressable
+                onPress={onMinimize}
+                style={styles.kucult}
+                accessibilityLabel="Görüşmeyi küçült"
+                hitSlop={10}
+              >
+                <Ionicons name="chevron-down" size={26} color="#fff" />
+              </Pressable>
+            ) : (
+              <View style={styles.kucultBos} />
+            )}
+            <View style={styles.ust}>
+              <View style={styles.turPill}>
+                <View style={[styles.liveDot, baglandi && styles.liveDotOn]} />
+                <Text style={styles.tur}>
+                  {video ? 'Görüntülü' : 'Sesli'}
+                  {isCaller && !baglandi ? ' · Aranıyor' : ''}
+                </Text>
+              </View>
+              <Text style={styles.ad} numberOfLines={1}>
+                {ad}
+              </Text>
+              <Text style={styles.durum}>
+                {baglandi ? sureMetni(saniye) : durumYazi}
+              </Text>
+              {baglandi ? (
+                <Text style={styles.sureEtiket}>Konuşma süresi</Text>
+              ) : null}
+            </View>
+            <View style={styles.kucultBos} />
           </View>
-          <Text style={styles.ad} numberOfLines={1}>
-            {ad}
-          </Text>
-          <Text style={styles.durum}>
-            {baglandi ? sureMetni(saniye) : durumYazi}
-          </Text>
-          {baglandi ? (
-            <Text style={styles.sureEtiket}>Konuşma süresi</Text>
-          ) : null}
         </View>
-      </LinearGradient>
 
-      {/* Alt kontroller */}
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.85)']}
-        style={styles.altGradient}
-      >
-        <View style={styles.kontroller}>
-          <Kontrol
-            icon={muted ? 'mic-off' : 'mic'}
-            label={muted ? 'Sessiz' : 'Mikrofon'}
-            aktif={muted}
-            onPress={onMute}
-          />
-          <Kontrol
-            icon={speaker ? 'volume-high' : 'volume-mute'}
-            label={speaker ? 'Hoparlör' : 'Kulaklık'}
-            aktif={speaker}
-            onPress={onSpeaker}
-          />
-          {video && onCamera ? (
-            <Kontrol
-              icon={cameraOn ? 'videocam' : 'videocam-off'}
-              label="Kamera"
-              aktif={!cameraOn}
-              onPress={onCamera}
-            />
-          ) : null}
-          {video && onFlip && cameraOn ? (
-            <Kontrol
-              icon="camera-reverse"
-              label="Çevir"
-              onPress={onFlip}
-            />
-          ) : !video ? (
-            <Kontrol
-              icon="ellipsis-horizontal"
-              label="Diğer"
-              onPress={() => undefined}
-            />
+        <View style={styles.orta} pointerEvents="none">
+          {!video ? (
+            <>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.ortaAvatar} />
+              ) : (
+                <View style={styles.ortaAvatarBos}>
+                  <Text style={styles.ortaHarf}>{harf}</Text>
+                </View>
+              )}
+              <Text style={styles.ortaHint}>
+                {baglandi ? 'Sesli görüşme' : 'Karşı taraf bekleniyor…'}
+              </Text>
+            </>
           ) : null}
         </View>
 
-        <Pressable
-          style={styles.bitir}
-          onPress={onHangup}
-          accessibilityLabel="Görüşmeyi bitir"
-        >
-          <Ionicons
-            name="call"
-            size={30}
-            color="#fff"
-            style={{ transform: [{ rotate: '135deg' }] }}
-          />
-        </Pressable>
-        <Text style={styles.bitirYazi}>Bitir</Text>
-      </LinearGradient>
+        <View style={styles.altBolum} pointerEvents="box-none">
+          <View style={styles.kontroller}>
+            <Kontrol
+              icon={muted ? 'mic-off' : 'mic'}
+              label={muted ? 'Sessiz' : 'Mikrofon'}
+              aktif={muted}
+              onPress={onMute}
+            />
+            <Kontrol
+              icon={speaker ? 'volume-high' : 'volume-mute'}
+              label={speaker ? 'Hoparlör' : 'Kulaklık'}
+              aktif={speaker}
+              onPress={onSpeaker}
+            />
+            {video && onCamera ? (
+              <Kontrol
+                icon={cameraOn ? 'videocam' : 'videocam-off'}
+                label="Kamera"
+                aktif={!cameraOn}
+                onPress={onCamera}
+              />
+            ) : null}
+            {video && onFlip && cameraOn ? (
+              <Kontrol
+                icon="camera-reverse"
+                label="Çevir"
+                onPress={onFlip}
+              />
+            ) : !video ? (
+              <Kontrol
+                icon="ellipsis-horizontal"
+                label="Diğer"
+                onPress={() => undefined}
+              />
+            ) : null}
+          </View>
+
+          <Pressable
+            style={styles.bitir}
+            onPress={onHangup}
+            accessibilityLabel="Görüşmeyi bitir"
+          >
+            <Ionicons
+              name="call"
+              size={30}
+              color="#fff"
+              style={{ transform: [{ rotate: '135deg' }] }}
+            />
+          </Pressable>
+          <Text style={styles.bitirYazi}>Bitir</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -201,7 +257,7 @@ type GelenProps = {
   onReject: () => void;
 };
 
-/** Gelen arama — arayan hemen gorunur */
+/** Gelen arama — ortak GorusmeArkaPlan + flex kolon */
 export function GorusmeGelenEkrani({
   peerName,
   peerAvatar,
@@ -209,60 +265,73 @@ export function GorusmeGelenEkrani({
   onAccept,
   onReject,
 }: GelenProps) {
+  const insets = useSafeAreaInsets();
   const harf = peerName.charAt(0).toLocaleUpperCase('tr-TR');
+  // Modal'da inset 0 gelebilir — notch için güvenli taban
+  const padTop = Math.max(insets.top, Platform.OS === 'ios' ? 54 : 28) + 20;
+  const padBottom = Math.max(insets.bottom, 16) + 20;
+
   return (
-    <View style={styles.gelenRoot}>
-      <LinearGradient
-        colors={['#1A1228', '#121018', '#0A0810']}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.gelenUst}>
-        <Text style={styles.gelenTur}>
-          {callType === 'video' ? 'Görüntülü arama' : 'Sesli arama'}
-        </Text>
-        <Text style={styles.gelenAlt}>Arıyor…</Text>
-        <Text style={styles.gelenAd}>{peerName}</Text>
-      </View>
-
-      <View style={styles.gelenAvatarWrap}>
-        {peerAvatar ? (
-          <Image source={{ uri: peerAvatar }} style={styles.gelenAvatar} />
-        ) : (
-          <LinearGradient
-            colors={[...RenkTokenlari.gradientPrimary]}
-            style={styles.gelenAvatar}
-          >
-            <Text style={styles.harfBuyuk}>{harf}</Text>
-          </LinearGradient>
-        )}
-        <View style={styles.gelenPulse} />
-        <View style={[styles.gelenPulse, styles.gelenPulse2]} />
-      </View>
-
-      <View style={styles.gelenAksiyonlar}>
-        <View style={styles.gelenAksiyon}>
-          <Pressable style={styles.red} onPress={onReject}>
-            <Ionicons
-              name="call"
-              size={30}
-              color="#fff"
-              style={{ transform: [{ rotate: '135deg' }] }}
-            />
-          </Pressable>
-          <Text style={styles.gelenLabel}>Reddet</Text>
+    <GorusmeArkaPlan>
+      <View
+        style={[
+          styles.gelenIcerik,
+          { paddingTop: padTop, paddingBottom: padBottom },
+        ]}
+      >
+        <View style={styles.gelenUst}>
+          <Text style={styles.gelenTur}>
+            {callType === 'video' ? 'Görüntülü arama' : 'Sesli arama'}
+          </Text>
+          <Text style={styles.gelenAlt}>Arıyor…</Text>
+          <Text style={styles.gelenAd}>{peerName}</Text>
         </View>
-        <View style={styles.gelenAksiyon}>
-          <Pressable style={styles.kabul} onPress={onAccept}>
-            <Ionicons
-              name={callType === 'video' ? 'videocam' : 'call'}
-              size={30}
-              color="#fff"
-            />
-          </Pressable>
-          <Text style={styles.gelenLabel}>Kabul et</Text>
+
+        <View style={styles.gelenOrta}>
+          <View style={styles.gelenAvatarWrap}>
+            {MedyaUriGuvenli(peerAvatar) ? (
+              <Image
+                source={{ uri: MedyaUriGuvenli(peerAvatar)! }}
+                style={styles.gelenAvatar}
+              />
+            ) : (
+              <LinearGradient
+                colors={[...RenkTokenlari.gradientPrimary]}
+                style={styles.gelenAvatar}
+              >
+                <Text style={styles.harfBuyuk}>{harf}</Text>
+              </LinearGradient>
+            )}
+            <View style={styles.gelenPulse} />
+            <View style={[styles.gelenPulse, styles.gelenPulse2]} />
+          </View>
+        </View>
+
+        <View style={styles.gelenAksiyonlar}>
+          <View style={styles.gelenAksiyon}>
+            <Pressable style={styles.red} onPress={onReject}>
+              <Ionicons
+                name="call"
+                size={30}
+                color="#fff"
+                style={{ transform: [{ rotate: '135deg' }] }}
+              />
+            </Pressable>
+            <Text style={styles.gelenLabel}>Reddet</Text>
+          </View>
+          <View style={styles.gelenAksiyon}>
+            <Pressable style={styles.kabul} onPress={onAccept}>
+              <Ionicons
+                name={callType === 'video' ? 'videocam' : 'call'}
+                size={30}
+                color="#fff"
+              />
+            </Pressable>
+            <Text style={styles.gelenLabel}>Kabul et</Text>
+          </View>
         </View>
       </View>
-    </View>
+    </GorusmeArkaPlan>
   );
 }
 
@@ -283,7 +352,7 @@ function Kontrol({
         <Ionicons
           name={icon}
           size={22}
-          color={aktif ? RenkTokenlari.textOnPrimary : RenkTokenlari.text}
+          color={aktif ? '#111' : '#fff'}
         />
       </View>
       <Text style={styles.kontrolYazi}>{label}</Text>
@@ -292,18 +361,43 @@ function Kontrol({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
-  ustGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingTop: Platform.OS === 'ios' ? 56 : 40,
-    paddingBottom: 48,
-    paddingHorizontal: BoslukTokenlari.lg,
-    zIndex: 2,
+  root: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: 'transparent',
   },
-  ust: { alignItems: 'center', gap: 4 },
+  sahne: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 0,
+  },
+  /** Tek kolon — absoluteFill değil; flex zinciri kırılmasın */
+  icerik: {
+    flex: 1,
+    width: '100%',
+    zIndex: 20,
+    elevation: Platform.OS === 'android' ? 24 : 0,
+    backgroundColor: 'transparent',
+  },
+  ustBolum: {
+    paddingHorizontal: BoslukTokenlari.md,
+    paddingBottom: 8,
+    backgroundColor: 'transparent',
+  },
+  ustSatir: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  kucult: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginTop: 2,
+  },
+  kucultBos: { width: 40 },
+  ust: { alignItems: 'center', gap: 4, flex: 1 },
   turPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -344,15 +438,31 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.55)',
     fontWeight: '600',
   },
-  altGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingBottom: Platform.OS === 'ios' ? 36 : 28,
-    paddingTop: 40,
+  orta: {
+    flex: 1,
     alignItems: 'center',
-    zIndex: 2,
+    justifyContent: 'center',
+    gap: 16,
+    backgroundColor: 'transparent',
+  },
+  ortaAvatar: { width: 120, height: 120, borderRadius: 60 },
+  ortaAvatarBos: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ortaHarf: { fontSize: 44, fontWeight: '800', color: '#fff' },
+  ortaHint: {
+    ...TipografiTokenlari.caption,
+    color: 'rgba(255,255,255,0.65)',
+  },
+  altBolum: {
+    alignItems: 'center',
+    paddingTop: 12,
+    backgroundColor: 'transparent',
   },
   kontroller: {
     flexDirection: 'row',
@@ -365,14 +475,14 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    backgroundColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  kontrolAktif: { backgroundColor: RenkTokenlari.text },
+  kontrolAktif: { backgroundColor: '#fff' },
   kontrolYazi: {
     ...TipografiTokenlari.micro,
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255,255,255,0.85)',
     fontWeight: '600',
   },
   bitir: {
@@ -382,24 +492,30 @@ const styles = StyleSheet.create({
     backgroundColor: RenkTokenlari.danger,
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: Platform.OS === 'android' ? 6 : 0,
   },
   bitirYazi: {
     ...TipografiTokenlari.caption,
-    color: 'rgba(255,255,255,0.65)',
+    color: 'rgba(255,255,255,0.75)',
     marginTop: 8,
     fontWeight: '600',
   },
-  gelenRoot: {
+  gelenIcerik: {
     flex: 1,
+    width: '100%',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 80 : 60,
-    paddingBottom: 56,
     justifyContent: 'space-between',
+    backgroundColor: 'transparent',
   },
-  gelenUst: { alignItems: 'center', gap: 6 },
+  gelenUst: {
+    alignItems: 'center',
+    gap: 6,
+    width: '100%',
+    paddingHorizontal: BoslukTokenlari.lg,
+  },
   gelenTur: {
     ...TipografiTokenlari.body,
-    color: RenkTokenlari.textMuted,
+    color: 'rgba(255,255,255,0.7)',
     fontWeight: '600',
   },
   gelenAlt: {
@@ -409,9 +525,16 @@ const styles = StyleSheet.create({
   },
   gelenAd: {
     ...TipografiTokenlari.title,
-    color: RenkTokenlari.text,
+    color: '#fff',
     fontSize: 32,
     marginTop: 4,
+    textAlign: 'center',
+  },
+  gelenOrta: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
   },
   gelenAvatarWrap: {
     alignItems: 'center',
@@ -427,7 +550,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 1,
   },
-  harfBuyuk: { fontSize: 56, fontWeight: '800', color: RenkTokenlari.textOnPrimary },
+  harfBuyuk: {
+    fontSize: 56,
+    fontWeight: '800',
+    color: RenkTokenlari.textOnPrimary,
+  },
   gelenPulse: {
     position: 'absolute',
     width: 180,
@@ -467,7 +594,7 @@ const styles = StyleSheet.create({
   },
   gelenLabel: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
+    color: 'rgba(255,255,255,0.75)',
     fontWeight: '600',
   },
 });

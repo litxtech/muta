@@ -33,6 +33,7 @@ import { useAuth } from '../../src/contexts/AuthContext';
 import { GirisLobiOturumGecmisi } from '../../src/moduller/kimlik-dogrulama/oturum-gecmisi/bilesenler/GirisLobiOturumGecmisi';
 import type { OturumGecmisiKaydi } from '../../src/moduller/kimlik-dogrulama/oturum-gecmisi/tipler';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { useTema } from '../../src/tasarim-sistemi/tema/TemaSaglayici';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -214,9 +215,9 @@ export default function LoginScreen() {
                 {heroVar ? (
                   <View style={styles.hero}>
                     {ayar.logo_goster ? (
-                      ayar.logo_url ? (
+                      MedyaUriGuvenli(ayar.logo_url) ? (
                         <Image
-                          source={{ uri: ayar.logo_url }}
+                          source={{ uri: MedyaUriGuvenli(ayar.logo_url)! }}
                           style={styles.logoImg}
                           resizeMode="contain"
                         />

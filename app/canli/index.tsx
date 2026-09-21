@@ -40,6 +40,7 @@ import { HediyeAnimasyonKatmani } from '../../src/moduller/hediyeler/bilesenler/
 import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
 import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediyeMagaza';
 import { useCanliHediyeCanlisi } from '../../src/moduller/hediyeler/gercek-zamanli/useCanliHediyeCanlisi';
+import { CoinYuklePaneli } from '../../src/moduller/cuzdan/bilesenler/CoinYuklePaneli';
 import { PkDavetPaneli } from '../../src/moduller/pk/bilesenler/PkDavetPaneli';
 import { PkDavetModal } from '../../src/moduller/pk/bilesenler/PkDavetModal';
 import { usePkDaveti } from '../../src/moduller/pk/kancalar/usePkDaveti';
@@ -134,9 +135,10 @@ export default function CanliYayinEkrani() {
       void CanliYayinOnHazirlik(videoEnabled);
       return () => {
         void (async () => {
+          // Aktif yayında blur'da sonlandırma — Keşfet vb. geri dönüşte görüntü kalsın
+          if (yayindaRef.current) return;
           const sid = sessionIdRef.current;
-          const aktif = yayindaRef.current || !!sid;
-          // Geri sayım / bağlanırken çıkılırsa temizle
+          const aktif = !!sid;
           if (aktif || CanliBaslatKilitliMi()) {
             await MedyaOdasiKes();
             if (sid) await CanliYayinBitir(sid).catch(() => undefined);
@@ -317,8 +319,16 @@ export default function CanliYayinEkrani() {
             medyaMock={medyaMock || !videoEnabled}
             currentUserId={user?.id}
             canSend={!isGuest}
+            isGuest={isGuest}
             walletCoins={wallet?.coins ?? null}
             onNeedUpgrade={upgradeAc}
+            onCoinYukle={() => {
+              if (isGuest) {
+                upgradeAc();
+                return;
+              }
+              magaza.coinYuklePaneli.ac();
+            }}
             onHediye={pkMac ? hediyeAc : undefined}
             onBitir={() => void bitir()}
             onMeta={(patch) => setMeta((m) => (m ? { ...m, ...patch } : m))}
@@ -362,11 +372,27 @@ export default function CanliYayinEkrani() {
             animasyon={false}
           />
           <HediyeAnimasyonKatmani />
+          <CoinYuklePaneli
+            visible={magaza.coinYuklePaneli.acik && !magaza.acik}
+            packages={magaza.coinYuklePaneli.packages}
+            locked={magaza.coinYuklePaneli.purchaseLocked}
+            coins={wallet?.coins}
+            onBuy={magaza.coinYuklePaneli.satinAl}
+            onClose={magaza.coinYuklePaneli.kapat}
+            upgradeAcik={magaza.coinYuklePaneli.upgradeAcik}
+            upgradeKapat={magaza.coinYuklePaneli.upgradeKapat}
+            onPaketleriYenile={magaza.coinYuklePaneli.paketleriYenile}
+          />
           <HesabiTamamlaKarti
-            visible={upgradeAcik || magaza.upgradeAcik}
+            visible={
+              upgradeAcik ||
+              magaza.upgradeAcik ||
+              magaza.coinYuklePaneli.upgradeAcik
+            }
             onClose={() => {
               upgradeKapat();
               magaza.upgradeKapat();
+              magaza.coinYuklePaneli.upgradeKapat();
             }}
             onCompleted={() => {
               void refreshProfile();

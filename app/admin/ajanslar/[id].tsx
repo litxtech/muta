@@ -30,6 +30,7 @@ import {
   type AjansProfil,
 } from '../../../src/moduller/ajanslar/okuma/AjansProfilGetir';
 import { AdminStil, SayiKisa } from '../../../src/moduller/admin/bilesenler/AdminStil';
+import { MedyaUriGuvenli } from '../../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { RenkTokenlari } from '../../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -51,10 +52,11 @@ function AvatarKucuk({
   size?: number;
 }) {
   const harf = (ad.trim() || '?').charAt(0).toLocaleUpperCase('tr-TR');
-  if (url) {
+  const safe = MedyaUriGuvenli(url);
+  if (safe) {
     return (
       <Image
-        source={{ uri: url }}
+        source={{ uri: safe }}
         style={{
           width: size,
           height: size,

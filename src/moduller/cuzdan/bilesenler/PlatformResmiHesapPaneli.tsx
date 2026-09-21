@@ -23,6 +23,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   acik: boolean;
@@ -76,10 +77,12 @@ export function PlatformResmiHesapPaneli({ acik, onKapat }: Props) {
                   Henüz atanmış resmi hesap yok. Admin panelinden yargıç atanmalı.
                 </Text>
               ) : (
-                liste.map((h) => (
+                liste.map((h) => {
+                  const avatar = MedyaUriGuvenli(h.avatar_url);
+                  return (
                   <View key={h.id} style={styles.satir}>
-                    {h.avatar_url ? (
-                      <Image source={{ uri: h.avatar_url }} style={styles.avatar} />
+                    {avatar ? (
+                      <Image source={{ uri: avatar }} style={styles.avatar} />
                     ) : (
                       <View style={[styles.avatar, styles.avatarBos]}>
                         <Ionicons name="person" size={18} color={RenkTokenlari.textDim} />
@@ -98,7 +101,8 @@ export function PlatformResmiHesapPaneli({ acik, onKapat }: Props) {
                       </Text>
                     </View>
                   </View>
-                ))
+                  );
+                })
               )}
             </ScrollView>
           )}

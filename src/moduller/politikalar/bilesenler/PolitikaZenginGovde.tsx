@@ -12,6 +12,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 export type PolitikaGovdeTema = {
   metin: string;
@@ -102,7 +103,9 @@ export function PolitikaZenginGovde({ govde, tema, stil, metinStil }: Props) {
                         textDecorationLine: 'underline',
                       }}
                       onPress={() => {
-                        void Linking.openURL(p.url).catch(() => undefined);
+                        const url = MedyaUriGuvenli(p.url);
+                        if (!url) return;
+                        void Linking.openURL(url).catch(() => undefined);
                       }}
                     >
                       {p.etiket}
@@ -111,15 +114,19 @@ export function PolitikaZenginGovde({ govde, tema, stil, metinStil }: Props) {
                 })}
               </Text>
             ) : null}
-            {gorseller.map((p, j) => (
-              <Image
-                key={`img-${i}-${j}`}
-                source={{ uri: p.url }}
-                style={styles.img}
-                resizeMode="contain"
-                accessibilityLabel={p.alt || 'Politika görseli'}
-              />
-            ))}
+            {gorseller.map((p, j) => {
+              const uri = MedyaUriGuvenli(p.url);
+              if (!uri) return null;
+              return (
+                <Image
+                  key={`img-${i}-${j}`}
+                  source={{ uri }}
+                  style={styles.img}
+                  resizeMode="contain"
+                  accessibilityLabel={p.alt || 'Politika görseli'}
+                />
+              );
+            })}
           </View>
         );
       })}

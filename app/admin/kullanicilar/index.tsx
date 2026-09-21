@@ -35,6 +35,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 function Avatar({
   url,
@@ -46,10 +47,11 @@ function Avatar({
   size?: number;
 }) {
   const harf = (ad.trim() || '?').charAt(0).toLocaleUpperCase('tr-TR');
-  if (url) {
+  const safe = MedyaUriGuvenli(url);
+  if (safe) {
     return (
       <Image
-        source={{ uri: url }}
+        source={{ uri: safe }}
         style={{
           width: size,
           height: size,
@@ -350,9 +352,6 @@ export default function AdminKullanicilarEkrani() {
                     {item.platform ? ` · ${item.platform}` : ''}
                   </Text>
                   <View style={styles.rozetSatir}>
-                    {item.is_sample ? (
-                      <Rozet label="Örnek" renk={RenkTokenlari.violet} />
-                    ) : null}
                     {item.is_admin ? (
                       <Rozet label="Admin" renk={RenkTokenlari.accent} />
                     ) : null}

@@ -73,6 +73,11 @@ export function BildirimHedefYolu(input: {
     return ham;
   }
 
+  const reportId = str('report_id');
+  if (reportId || type === 'report_status' || p.kind === 'report_status') {
+    return reportId ? `/raporlarim/${reportId}` : '/raporlarim';
+  }
+
   const thread = str('thread_id');
   if (thread) return `/mesaj/${thread}`;
 

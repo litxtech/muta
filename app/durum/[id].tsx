@@ -24,6 +24,7 @@ import { KullaniciGuvenlikMenusu } from '../../src/moduller/moderasyon/bilesenle
 import {
   DurumBegeniToggle,
   DurumDetayGetir,
+  DurumGoruntulemeKaydet,
   DurumMedyaHttpsMi,
   DurumMetinGonderisiMi,
   DurumOyunKazanciPayloadAl,
@@ -31,9 +32,11 @@ import {
   type DurumOggesi,
 } from '../../src/moduller/durum/islemler/DurumIslemleri';
 import { DurumOyunKazanciKart } from '../../src/moduller/durum/bilesenler/DurumOyunKazanciKart';
+import { DurumCaptionAcilir } from '../../src/moduller/durum/bilesenler/DurumCaptionAcilir';
 import { DurumTarihSaat } from '../../src/moduller/durum/islemler/DurumZaman';
 import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediyeMagaza';
 import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
+import { GonderiPaylasSheet } from '../../src/moduller/durum/paylasim/bilesenler/GonderiPaylasSheet';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -64,7 +67,6 @@ function VideoTamIc({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = true;
     p.muted = false;
-    p.play();
   });
 
   useFocusEffect(
@@ -75,15 +77,26 @@ function VideoTamIc({ uri }: { uri: string }) {
   );
 
   useEffect(() => {
-    try {
-      player.loop = true;
-      player.muted = false;
-      if (odakli) player.play();
-      else player.pause();
-    } catch {
-      /* native henüz hazır değilse */
-    }
+    let iptal = false;
+    void (async () => {
+      try {
+        await player.replaceAsync(uri);
+        if (iptal) return;
+        player.loop = true;
+        player.muted = false;
+        if (odakli) player.play();
+        else player.pause();
+      } catch {
+        try {
+          if (odakli) player.play();
+          else player.pause();
+        } catch {
+          /* native henüz hazır değilse */
+        }
+      }
+    })();
     return () => {
+      iptal = true;
       try {
         player.pause();
       } catch {
@@ -99,8 +112,8 @@ function VideoTamIc({ uri }: { uri: string }) {
         style={StyleSheet.absoluteFill}
         contentFit="contain"
         nativeControls
-        fullscreenOptions={{ enable: true }}
-        allowsPictureInPicture={false}
+        allowsPictureInPicture
+        startsPictureInPictureAutomatically
         playsInline
         {...(Platform.OS === 'android'
           ? { surfaceType: 'textureView' as const }
@@ -121,6 +134,7 @@ export default function DurumDetayEkrani() {
   const [yukleniyor, setYukleniyor] = useState(true);
   const [yorumAcik, setYorumAcik] = useState(false);
   const [bildirAcik, setBildirAcik] = useState(false);
+  const [paylasAcik, setPaylasAcik] = useState(false);
   const [lightboxAcik, setLightboxAcik] = useState(false);
 
   const kapat = useCallback(() => {
@@ -142,9 +156,18 @@ export default function DurumDetayEkrani() {
 
   useFocusEffect(
     useCallback(() => {
-      void yukle();
       setLightboxAcik(false);
-    }, [yukle]),
+      void (async () => {
+        await yukle();
+        if (!id) return;
+        const r = await DurumGoruntulemeKaydet(id);
+        if (r.ok && typeof r.view_count === 'number') {
+          setOge((p) =>
+            p ? { ...p, view_count: r.view_count ?? p.view_count } : p,
+          );
+        }
+      })();
+    }, [yukle, id]),
   );
 
   const begen = () => {
@@ -242,10 +265,12 @@ export default function DurumDetayEkrani() {
                 }
                 if (metinGonderisi) {
                   return (
-                    <View style={styles.metinGovde} pointerEvents="none">
-                      <Text style={styles.metinBaslik}>
-                        {oge.caption?.trim() || 'Durum'}
-                      </Text>
+                    <View style={styles.metinGovde}>
+                      <DurumCaptionAcilir
+                        metin={oge.caption?.trim() || 'Durum'}
+                        style={styles.metinBaslik}
+                        kapaliSatir={8}
+                      />
                     </View>
                   );
                 }
@@ -387,11 +412,24 @@ export default function DurumDetayEkrani() {
               ]}
             >
               {oge.caption && !metinGonderisi ? (
-                <Text style={styles.caption} numberOfLines={4}>
-                  {oge.caption}
-                </Text>
+                <DurumCaptionAcilir
+                  metin={oge.caption}
+                  style={styles.caption}
+                  kapaliSatir={4}
+                />
               ) : null}
               <View style={styles.aksiyonlar}>
+                <View style={styles.aksiyon}>
+                  <Ionicons name="eye-outline" size={26} color={ikonRenk} />
+                  <Text
+                    style={[
+                      styles.aksiyonYazi,
+                      metinGonderisi && { color: RenkTokenlari.text },
+                    ]}
+                  >
+                    {oge.view_count ?? 0}
+                  </Text>
+                </View>
                 <Pressable style={styles.aksiyon} onPress={begen} hitSlop={10}>
                   <Ionicons
                     name={oge.liked_by_me ? 'heart' : 'heart-outline'}
@@ -487,6 +525,28 @@ export default function DurumDetayEkrani() {
                     </Text>
                   </View>
                 )}
+                <Pressable
+                  style={styles.aksiyon}
+                  onPress={() =>
+                    islemiDene('mesaj_gonder', () => setPaylasAcik(true))
+                  }
+                  hitSlop={10}
+                  accessibilityLabel="Gönderiyi paylaş"
+                >
+                  <Ionicons
+                    name="paper-plane-outline"
+                    size={26}
+                    color={ikonRenk}
+                  />
+                  <Text
+                    style={[
+                      styles.aksiyonYazi,
+                      metinGonderisi && { color: RenkTokenlari.text },
+                    ]}
+                  >
+                    Paylaş
+                  </Text>
+                </Pressable>
                 {!oge.is_mine ? (
                   <Pressable
                     style={styles.aksiyon}
@@ -576,7 +636,15 @@ export default function DurumDetayEkrani() {
           />
         ) : null}
 
-        <HediyeMagazaBaglamasi magaza={magaza} misafirKart={false} />
+        {paylasAcik && oge ? (
+          <GonderiPaylasSheet
+            visible
+            statusId={oge.id}
+            onClose={() => setPaylasAcik(false)}
+          />
+        ) : null}
+
+      <HediyeMagazaBaglamasi magaza={magaza} misafirKart={false} />
 
         <HesabiTamamlaKarti
           visible={upgradeAcik || magaza.upgradeAcik}

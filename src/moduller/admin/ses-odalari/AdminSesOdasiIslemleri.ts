@@ -146,3 +146,27 @@ export const YAPTIRIM_SURE_SECENEKLERI = [
 ] as const;
 
 export const COIN_CEZA_HIZLI = [1_000, 5_000, 10_000, 50_000] as const;
+
+/** Örnek (demo) canlı ses odalarını yeniden kurar — admin only */
+export async function AdminOrnekSesOdalariDoldur(): Promise<{
+  ok: boolean;
+  oda_sayisi?: number;
+  hata?: string;
+}> {
+  const { data, error } = await supabase.rpc('admin_ornek_ses_odalari_seed');
+  if (error) return { ok: false, hata: error.message };
+  const row = (data ?? {}) as { ok?: boolean; oda_sayisi?: number };
+  return { ok: row.ok !== false, oda_sayisi: row.oda_sayisi };
+}
+
+/** Örnek canlı odaları feed’den kapatır — admin only */
+export async function AdminOrnekSesOdalariKapat(): Promise<{
+  ok: boolean;
+  kapatilan?: number;
+  hata?: string;
+}> {
+  const { data, error } = await supabase.rpc('admin_ornek_ses_odalari_kapat');
+  if (error) return { ok: false, hata: error.message };
+  const row = (data ?? {}) as { ok?: boolean; kapatilan?: number };
+  return { ok: row.ok !== false, kapatilan: row.kapatilan };
+}

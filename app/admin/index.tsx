@@ -153,6 +153,14 @@ const MODULLER: Modul[] = [
     bolum: 'Güvenlik',
   },
   {
+    icon: 'bulb-outline',
+    label: 'Fikir & Öneriler',
+    alt: 'Kuyruk · durum · ödül · kategori',
+    href: '/admin/fikirler',
+    tint: RenkTokenlari.accent,
+    bolum: 'Ürün',
+  },
+  {
     icon: 'radio-outline',
     label: 'Canlı odalar',
     alt: 'Ses odası · yayın · kapat · yaptırım',

@@ -5,6 +5,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { BANNER_BORDER_RADIUS } from '../core/BannerConstants';
 import { BannerImage } from './BannerImage';
 import { RenkTokenlari } from '../../tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   uri?: string | null;
@@ -31,17 +32,19 @@ export function BannerVideo({
   onComplete,
 }: Props) {
   const started = useRef(false);
+  const safeUri = MedyaUriGuvenli(uri);
+  const safeThumb = MedyaUriGuvenli(thumbnailUrl);
 
-  const player = useVideoPlayer(uri ?? null, (p) => {
+  const player = useVideoPlayer(safeUri, (p) => {
     p.loop = loop;
     p.muted = true;
-    if (autoplay && isActive && uri) {
+    if (autoplay && isActive && safeUri) {
       p.play();
     }
   });
 
   useEffect(() => {
-    if (!player || !uri) return;
+    if (!player || !safeUri) return;
     try {
       player.loop = loop;
       player.muted = true;
@@ -57,7 +60,7 @@ export function BannerVideo({
     } catch {
       /* */
     }
-  }, [player, uri, isActive, autoplay, loop, onStart]);
+  }, [player, safeUri, isActive, autoplay, loop, onStart]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
@@ -86,10 +89,10 @@ export function BannerVideo({
     };
   }, [player, onComplete]);
 
-  if (!uri) {
+  if (!safeUri) {
     return (
       <BannerImage
-        uri={thumbnailUrl}
+        uri={safeThumb}
         alt={alt}
         aspectRatio={aspectRatio}
       />
@@ -110,9 +113,9 @@ export function BannerVideo({
         style={styles.overlay}
         pointerEvents="none"
       />
-      {!isActive && thumbnailUrl ? (
+      {!isActive && safeThumb ? (
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          <BannerImage uri={thumbnailUrl} alt={alt} aspectRatio={aspectRatio} />
+          <BannerImage uri={safeThumb} alt={alt} aspectRatio={aspectRatio} />
         </View>
       ) : null}
     </View>

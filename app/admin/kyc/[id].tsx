@@ -22,6 +22,7 @@ import {
   type AdminKycDetay,
 } from '../../../src/moduller/admin/kyc/AdminKycIslemleri';
 import { ProfilMedyaBuyutucu } from '../../../src/moduller/kullanici-profili/bilesenler/ProfilMedyaBuyutucu';
+import { MedyaUriOnizlemeGuvenli } from '../../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { AdminStil } from '../../../src/moduller/admin/bilesenler/AdminStil';
 import { LedgerSebepEtiketi } from '../../../src/moduller/cuzdan/okuma/CuzdanLedgeriniGetir';
 import { RenkTokenlari } from '../../../src/tasarim-sistemi/RenkTokenlari';
@@ -241,15 +242,16 @@ export default function AdminKycDetayEkrani() {
                 { etiket: 'Ön yüz', uri: detay.belgeler.on },
                 { etiket: 'Arka yüz', uri: detay.belgeler.arka },
                 { etiket: 'Selfie', uri: detay.belgeler.selfie },
-              ].map((item) =>
-                item.uri ? (
+              ].map((item) => {
+                const belgeUri = MedyaUriOnizlemeGuvenli(item.uri);
+                return belgeUri ? (
                   <Pressable
                     key={item.etiket}
                     style={styles.belgeKart}
-                    onPress={() => setBuyutUri(item.uri)}
+                    onPress={() => setBuyutUri(belgeUri)}
                   >
                     <Image
-                      source={{ uri: item.uri }}
+                      source={{ uri: belgeUri }}
                       style={styles.belgeImg}
                       resizeMode="cover"
                     />
@@ -262,8 +264,8 @@ export default function AdminKycDetayEkrani() {
                     </View>
                     <Text style={styles.belgeEtiket}>{item.etiket}</Text>
                   </View>
-                ),
-              )}
+                );
+              })}
             </View>
           </Bolum>
 

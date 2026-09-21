@@ -1,4 +1,5 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { HataKurtarmaEkrani } from './HataKurtarmaEkrani';
 
 type Props = { children: ReactNode };
@@ -25,14 +26,16 @@ export class UygulamaHataSiniri extends Component<Props, State> {
   render() {
     if (this.state.hata) {
       return (
-        <HataKurtarmaEkrani
-          varyant="ekran"
-          baslik="Bir şeyler ters gitti"
-          aciklama="Uygulama bu ekranda takıldı. Ana sayfaya dönüp devam edebilirsin."
-          detay={__DEV__ ? this.state.hata.message : null}
-          onTekrarDene={this.sifirla}
-          fallbackHref="/(tabs)"
-        />
+        <View style={styles.dolgu}>
+          <HataKurtarmaEkrani
+            varyant="ekran"
+            baslik="Bir şeyler ters gitti"
+            aciklama="Uygulama bu ekranda takıldı. Ana sayfaya dönüp devam edebilirsin."
+            detay={__DEV__ ? this.state.hata.message : null}
+            onTekrarDene={this.sifirla}
+            fallbackHref="/(tabs)"
+          />
+        </View>
       );
     }
     return (
@@ -42,3 +45,11 @@ export class UygulamaHataSiniri extends Component<Props, State> {
     );
   }
 }
+
+const styles = StyleSheet.create({
+  dolgu: {
+    flex: 1,
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+});

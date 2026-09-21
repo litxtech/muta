@@ -111,6 +111,15 @@ export default function AdminModerasyonEkrani() {
                     {r.target?.banned_at ? ' · banlı' : ''}
                   </Text>
                 ) : null}
+                {r.content_type === 'room' || r.room_id ? (
+                  <Text style={AdminStil.kartAlt}>
+                    Ses odası
+                    {r.room?.title ? ` · ${r.room.title}` : ''}
+                  </Text>
+                ) : null}
+                {r.content_type === 'live' || r.content_type === 'live_session' ? (
+                  <Text style={AdminStil.kartAlt}>Canlı yayın bildirimi</Text>
+                ) : null}
                 {bildiren ? (
                   <Text style={AdminStil.kartAlt}>Bildiren: {bildiren}</Text>
                 ) : null}

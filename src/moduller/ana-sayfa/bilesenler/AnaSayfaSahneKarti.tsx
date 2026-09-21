@@ -17,6 +17,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { Room } from '../../../types/models';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 const MODE_LABEL: Record<Room['mode'], string> = {
   party: 'Parti',
@@ -34,7 +35,7 @@ type Props = {
 
 /** Ana viewport’un görsel çapa sahnesi — markanın ürün yüzü */
 export function AnaSayfaSahneKarti({ room, onPress, onKesfet }: Props) {
-  const kapak = room.cover_url ?? room.host?.avatar_url ?? null;
+  const kapak = MedyaUriGuvenli(room.cover_url ?? room.host?.avatar_url);
 
   return (
     <View style={styles.dis}>

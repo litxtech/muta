@@ -19,6 +19,7 @@ import {
   VOICE_DUCK_FACTOR,
 } from '../sabitler/KaskadSabitleri';
 import type { GameEventName, GameEventPayload } from '../animasyonlar/AnimationDirector';
+import { MedyaUriGuvenli } from '../../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 const STORAGE_KEY = 'tamuso.kozmik_kaskad.audio';
 
@@ -307,7 +308,9 @@ export async function playKaskadSfx(name: KaskadSfxName): Promise<void> {
 
 async function startPlaylistMusic(gen: number): Promise<void> {
   if (!musicCatalog || !playlistAktif()) return;
-  const tracks = musicCatalog.tracks.filter((t) => t.aktif !== false && !!t.publicUrl);
+  const tracks = musicCatalog.tracks.filter(
+    (t) => t.aktif !== false && !!MedyaUriGuvenli(t.publicUrl),
+  );
   if (tracks.length === 0) return;
 
   clearPlaylistAdvanceTimer();
@@ -323,7 +326,10 @@ async function startPlaylistMusic(gen: number): Promise<void> {
     if (createPl && tracks.every((t) => !t.durationMs || t.durationMs <= 0)) {
       if (!audioSessionActive || gen !== audioGeneration) return;
       const pl = createPl({
-        sources: tracks.map((t) => ({ uri: t.publicUrl, name: t.title })),
+        sources: tracks.map((t) => ({
+          uri: MedyaUriGuvenli(t.publicUrl)!,
+          name: t.title,
+        })),
         loop: musicCatalog.loop ? 'all' : 'none',
         updateInterval: 1000,
       });
@@ -359,10 +365,12 @@ async function startUriDurationPlaylist(
   if (!settings.music) return;
   const track = tracks[index];
   if (!track) return;
+  const trackUri = MedyaUriGuvenli(track.publicUrl);
+  if (!trackUri) return;
 
   clearPlaylistAdvanceTimer();
   stopBuiltinMusicOnly();
-  const player = await createPlayer({ uri: track.publicUrl, name: track.title });
+  const player = await createPlayer({ uri: trackUri, name: track.title });
   if (!player) return;
   if (!audioSessionActive || gen !== audioGeneration) {
     releasePlayer(player);

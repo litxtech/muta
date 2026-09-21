@@ -27,11 +27,15 @@ export const CanliYayinVideoSahne = React.memo(function CanliYayinVideoSahne({
   const VideoViewComp = LiveKitVideoViewAl();
   const [localVideo, setLocalVideo] = useState<LocalVideoTrack | null>(null);
   const [remoteVideo, setRemoteVideo] = useState<RemoteVideoTrack | null>(null);
+  const [kameraFacing, setKameraFacing] = useState<'user' | 'environment'>(
+    () => LiveKitBaglantiYoneticisi.kameraFacingAl(),
+  );
 
   useEffect(() => {
     return LiveKitBaglantiYoneticisi.videoDinle((s) => {
       setLocalVideo(s.localVideo);
       setRemoteVideo(s.remoteVideo);
+      setKameraFacing(s.kameraFacing);
     });
   }, []);
 
@@ -40,6 +44,8 @@ export const CanliYayinVideoSahne = React.memo(function CanliYayinVideoSahne({
       ? localVideo
       : remoteVideo ?? localVideo;
   const nativeOk = !mock && !!track && !!VideoViewComp;
+  // Ön kamera: ayna (selfie konforu). Arka kamera: düz (sağ/sol ters olmasın).
+  const mirrorLocal = rol === 'host' && kameraFacing === 'user';
 
   const baslik = mock
     ? 'Demo yayın'
@@ -61,7 +67,7 @@ export const CanliYayinVideoSahne = React.memo(function CanliYayinVideoSahne({
           style={StyleSheet.absoluteFill}
           videoTrack={track}
           objectFit="cover"
-          mirror={rol === 'host'}
+          mirror={mirrorLocal}
           zOrder={0}
         />
       ) : (

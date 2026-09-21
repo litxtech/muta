@@ -322,6 +322,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void CihazOturumuKaydet();
     // Cikis sonrasi lobi medyasi aninda gelsin
     void GirisLobisiOnbellekIsit();
+    // Uygulama tamamen kapatılıp açıldıysa takılı görüşmeleri bitir (1 kez / process)
+    void import('../moduller/gorusme/oturum/GorusmeOturumYoneticisi').then(
+      (m) => m.GorusmeUygulamaAcilisTemizligi(),
+    );
   }, [session?.user?.id, refreshProfile, refreshWallet]);
 
   const signIn = useCallback(async (kimlik: string, password: string) => {

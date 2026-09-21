@@ -1,0 +1,190 @@
+import React, { useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import {
+  IcerikBildirPaneli,
+  type IcerikBildirTuru,
+} from './IcerikBildirPaneli';
+import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
+import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import {
+  BoslukTokenlari,
+  YaricapTokenlari,
+} from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+
+type Props = {
+  tur: IcerikBildirTuru;
+  contentId: string;
+  roomId?: string | null;
+  targetUserId?: string | null;
+  title?: string | null;
+  isGuest?: boolean;
+  /** Kart üzerinde koyu overlay için */
+  koyu?: boolean;
+  /** Küçük sade metin buton (oda içi) */
+  varyant?: 'ucNokta' | 'metin';
+  hitSlop?: number;
+};
+
+/**
+ * Kart / oda / yayın — ⋮ menü veya sade “Bildir” butonu.
+ */
+export function IcerikGuvenlikDugmesi({
+  tur,
+  contentId,
+  roomId,
+  targetUserId,
+  title,
+  isGuest,
+  koyu = true,
+  varyant = 'ucNokta',
+  hitSlop = 8,
+}: Props) {
+  const [menuAcik, setMenuAcik] = useState(false);
+  const [bildirAcik, setBildirAcik] = useState(false);
+
+  const bildirAc = () => {
+    setMenuAcik(false);
+    setBildirAcik(true);
+  };
+
+  return (
+    <>
+      {varyant === 'metin' ? (
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation?.();
+            setBildirAcik(true);
+          }}
+          hitSlop={hitSlop}
+          accessibilityLabel="Bildir"
+          accessibilityRole="button"
+          style={styles.metinBtn}
+        >
+          <Text style={styles.metinYazi}>Bildir</Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation?.();
+            setMenuAcik(true);
+          }}
+          hitSlop={hitSlop}
+          accessibilityLabel="Daha fazla"
+          accessibilityRole="button"
+          style={[styles.ucNokta, koyu ? styles.ucNoktaKoyu : styles.ucNoktaAcik]}
+        >
+          <Ionicons
+            name="ellipsis-vertical"
+            size={14}
+            color={koyu ? RenkTokenlari.textOnOverlay : RenkTokenlari.text}
+          />
+        </Pressable>
+      )}
+
+      <Modal
+        visible={menuAcik}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuAcik(false)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setMenuAcik(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.sheetTitle} numberOfLines={1}>
+              {title ?? (tur === 'room' ? 'Ses odası' : 'Canlı yayın')}
+            </Text>
+            <Pressable style={styles.row} onPress={bildirAc}>
+              <Ionicons
+                name="flag-outline"
+                size={18}
+                color={RenkTokenlari.danger}
+              />
+              <Text style={[styles.rowText, styles.danger]}>Bildir</Text>
+            </Pressable>
+            <Pressable style={styles.row} onPress={() => setMenuAcik(false)}>
+              <Text style={styles.rowMuted}>Vazgeç</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <IcerikBildirPaneli
+        visible={bildirAcik}
+        onClose={() => setBildirAcik(false)}
+        tur={tur}
+        contentId={contentId}
+        roomId={roomId}
+        targetUserId={targetUserId}
+        title={title}
+        isGuest={isGuest}
+      />
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  ucNokta: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ucNoktaKoyu: {
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  ucNoktaAcik: {
+    backgroundColor: RenkTokenlari.pressFill,
+  },
+  metinBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  metinYazi: {
+    ...TipografiTokenlari.micro,
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.88)',
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: RenkTokenlari.bgCard,
+    borderTopLeftRadius: YaricapTokenlari.xl,
+    borderTopRightRadius: YaricapTokenlari.xl,
+    padding: BoslukTokenlari.xl,
+    paddingBottom: BoslukTokenlari.xxl,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+  },
+  sheetTitle: {
+    ...TipografiTokenlari.h2,
+    color: RenkTokenlari.text,
+    marginBottom: BoslukTokenlari.sm,
+    fontSize: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: BoslukTokenlari.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: RenkTokenlari.border,
+  },
+  rowText: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.text,
+    fontWeight: '600',
+  },
+  danger: { color: RenkTokenlari.danger },
+  rowMuted: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.textMuted,
+  },
+});

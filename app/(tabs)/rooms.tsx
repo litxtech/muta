@@ -36,12 +36,16 @@ export default function RoomsScreen() {
   const [filtre, setFiltre] = useState<OdalarFiltre>('all');
   const ilkYuklemeBitti = React.useRef(false);
   const loadNesil = React.useRef(0);
+  const filtreRef = React.useRef(filtre);
+  filtreRef.current = filtre;
 
   const load = useCallback(async (mod: 'ilk' | 'sessiz' | 'pull' = 'sessiz') => {
     const nesil = ++loadNesil.current;
+    const aktifFiltre = filtreRef.current;
     try {
       if (mod === 'pull') setRefreshing(true);
-      const data = await fetchLiveRooms(50);
+      const mode = aktifFiltre === 'all' ? null : aktifFiltre;
+      const data = await fetchLiveRooms(60, mode);
       if (nesil !== loadNesil.current) return;
       setRooms(data);
     } catch {
@@ -64,29 +68,65 @@ export default function RoomsScreen() {
     }, [load]),
   );
 
-  const filtrelenmis = useMemo(() => {
-    if (filtre === 'all') return rooms;
-    return rooms.filter((oda) => oda.mode === filtre);
-  }, [rooms, filtre]);
+  const filtreSec = useCallback(
+    (sonraki: OdalarFiltre) => {
+      setFiltre(sonraki);
+      filtreRef.current = sonraki;
+      void load('sessiz');
+    },
+    [load],
+  );
 
   const odaAc = useCallback((oda: Room) => {
     router.push(`/lobi/${oda.id}` as any);
   }, []);
 
+  const renderItem = useCallback(
+    ({ item }: { item: Room }) => (
+      <View style={styles.kartWrap}>
+        <RoomCard
+          room={item}
+          variant="avatar"
+          onPress={() => odaAc(item)}
+        />
+      </View>
+    ),
+    [odaAc],
+  );
+
+  const listeBaslik = useMemo(
+    () =>
+      rooms.length > 0 ? (
+        <View style={styles.listeBaslik}>
+          <View style={styles.accent} />
+          <Text style={styles.listeBaslikYazi}>
+            {filtre === 'all' ? 'Canlı odalar' : 'Seçili sahne'}
+          </Text>
+          <Text style={styles.listeSayi}>{rooms.length}</Text>
+        </View>
+      ) : null,
+    [rooms.length, filtre],
+  );
+
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="odalar">
         <OdalarMarkaBasligi canliSayisi={rooms.length} />
-        <OdalarModFiltresi secili={filtre} onSec={setFiltre} />
+        <OdalarModFiltresi secili={filtre} onSec={filtreSec} />
         <OdaHaftalikSiralamaSeridi />
 
         <FlatList
-          data={filtrelenmis}
+          data={rooms}
           keyExtractor={(item) => item.id}
           numColumns={3}
           columnWrapperStyle={styles.satir}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          initialNumToRender={12}
+          maxToRenderPerBatch={9}
+          updateCellsBatchingPeriod={50}
+          windowSize={7}
+          removeClippedSubviews
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -94,17 +134,7 @@ export default function RoomsScreen() {
               tintColor={RenkTokenlari.primary}
             />
           }
-          ListHeaderComponent={
-            filtrelenmis.length > 0 ? (
-              <View style={styles.listeBaslik}>
-                <View style={styles.accent} />
-                <Text style={styles.listeBaslikYazi}>
-                  {filtre === 'all' ? 'Canlı odalar' : 'Seçili sahne'}
-                </Text>
-                <Text style={styles.listeSayi}>{filtrelenmis.length}</Text>
-              </View>
-            ) : null
-          }
+          ListHeaderComponent={listeBaslik}
           ListEmptyComponent={
             <View style={styles.bosWrap}>
               <BosDurum
@@ -129,21 +159,13 @@ export default function RoomsScreen() {
                 </LinearGradient>
               </Pressable>
               {filtre !== 'all' ? (
-                <Pressable onPress={() => setFiltre('all')} hitSlop={8}>
+                <Pressable onPress={() => filtreSec('all')} hitSlop={8}>
                   <Text style={styles.tumuneDon}>Tüm sahneleri göster</Text>
                 </Pressable>
               ) : null}
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={styles.kartWrap}>
-              <RoomCard
-                room={item}
-                variant="avatar"
-                onPress={() => odaAc(item)}
-              />
-            </View>
-          )}
+          renderItem={renderItem}
         />
       </ModulHataSiniri>
     </Screen>

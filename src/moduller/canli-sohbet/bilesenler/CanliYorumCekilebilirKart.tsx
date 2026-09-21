@@ -60,13 +60,15 @@ export function CanliYorumCekilebilirKart({
 
   useEffect(() => {
     if (klavyeAcik) {
-      // Yazmaya geçince okunabilir boyuta aç; kullanıcı sonra sürükleyebilir
-      setGenis(true);
-      heightSv.value = withSpring(MID_KLAVYE, SPRING);
+      // Klavye açılınca kartı büyütme — sahne yukarı fırlamasın
+      const ust = EXPANDED_KLAVYE;
+      if (heightSv.value > ust) {
+        heightSv.value = withSpring(ust, SPRING);
+      }
       return;
     }
     heightSv.value = withSpring(genis ? EXPANDED : COLLAPSED, SPRING);
-  }, [klavyeAcik, heightSv]);
+  }, [klavyeAcik, heightSv, genis]);
 
   // klavye kapalıyken genis değişince snap
   useEffect(() => {

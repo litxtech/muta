@@ -17,6 +17,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { ArananKullanici } from '../../mesajlasma/okuma/KullanicilariAra';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 function sayi(n: number) {
   return new Intl.NumberFormat('tr-TR').format(n);
@@ -111,8 +112,8 @@ export function AjansCoinYukleKarti({
               style={styles.uyeChip}
               onPress={() => onHizliUye?.(u)}
             >
-              {u.avatar_url ? (
-                <Image source={{ uri: u.avatar_url }} style={styles.uyeAvatar} />
+              {MedyaUriGuvenli(u.avatar_url) ? (
+                <Image source={{ uri: MedyaUriGuvenli(u.avatar_url)! }} style={styles.uyeAvatar} />
               ) : (
                 <View style={[styles.uyeAvatar, styles.uyeAvatarBos]}>
                   <Ionicons
@@ -157,8 +158,8 @@ export function AjansCoinYukleKarti({
 
       {secili ? (
         <View style={styles.seciliKart}>
-          {secili.avatar_url ? (
-            <Image source={{ uri: secili.avatar_url }} style={styles.seciliAvatar} />
+          {MedyaUriGuvenli(secili.avatar_url) ? (
+            <Image source={{ uri: MedyaUriGuvenli(secili.avatar_url)! }} style={styles.seciliAvatar} />
           ) : (
             <View style={[styles.seciliAvatar, styles.uyeAvatarBos]}>
               <Ionicons name="person" size={16} color={RenkTokenlari.textDim} />
@@ -177,8 +178,8 @@ export function AjansCoinYukleKarti({
       ) : (
         sonuclar.slice(0, 5).map((k) => (
           <Pressable key={k.id} style={styles.sonucSatir} onPress={() => onSec(k)}>
-            {k.avatar_url ? (
-              <Image source={{ uri: k.avatar_url }} style={styles.sonucAvatar} />
+            {MedyaUriGuvenli(k.avatar_url) ? (
+              <Image source={{ uri: MedyaUriGuvenli(k.avatar_url)! }} style={styles.sonucAvatar} />
             ) : (
               <View style={[styles.sonucAvatar, styles.uyeAvatarBos]}>
                 <Ionicons name="person" size={14} color={RenkTokenlari.textDim} />

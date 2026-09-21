@@ -114,6 +114,8 @@ export type RoomSeat = {
   user_id: string | null;
   is_muted: boolean;
   is_locked: boolean;
+  /** Owner/admin: kullanıcı kendi mikrofonunu açamaz (koltuktan çıkmayı engellemez) */
+  is_mic_locked?: boolean;
   profile?: Profile | null;
   /** room_members.role — host/cohost rozeti için */
   member_role?: 'host' | 'cohost' | 'speaker' | 'listener' | null;

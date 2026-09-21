@@ -29,6 +29,7 @@ import {
 } from '../../src/moduller/giris-lobisi/tipler';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
+import { MedyaUriGuvenli } from '../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import {
   BoslukTokenlari,
   YaricapTokenlari,
@@ -208,8 +209,8 @@ export default function AdminGirisLobisiEkrani() {
         ) : (
           aktifMedya.map((m) => (
             <View key={m.id} style={styles.medyaKart}>
-              {m.tur === 'image' ? (
-                <Image source={{ uri: m.public_url }} style={styles.thumb} />
+              {m.tur === 'image' && MedyaUriGuvenli(m.public_url) ? (
+                <Image source={{ uri: MedyaUriGuvenli(m.public_url)! }} style={styles.thumb} />
               ) : (
                 <View style={[styles.thumb, styles.thumbVideo]}>
                   <Ionicons name="videocam" size={28} color="#fff" />

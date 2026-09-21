@@ -14,6 +14,11 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   /** FlatList görünürlük — false iken native player mount etme */
   aktif?: boolean;
+  /**
+   * oynat: sessiz döngü (feed)
+   * kare: ilk kareyi gösterip durdur (profil ızgarası — bellek dostu)
+   */
+  mod?: 'oynat' | 'kare';
 };
 
 function MedyaUriGecerliMi(uri: string | null | undefined): uri is string {
@@ -26,7 +31,12 @@ function MedyaUriGecerliMi(uri: string | null | undefined): uri is string {
  * Boş/geçersiz uri veya pasif hücrede player oluşturulmaz (feed crash + bellek).
  * file:// / content:// kabul edilmez — yalnızca https.
  */
-export function DurumVideoOnizleme({ uri, style, aktif = true }: Props) {
+export function DurumVideoOnizleme({
+  uri,
+  style,
+  aktif = true,
+  mod = 'oynat',
+}: Props) {
   if (!aktif || !MedyaUriGecerliMi(uri)) {
     return <View style={[styles.wrap, style]} pointerEvents="none" />;
   }
@@ -36,7 +46,7 @@ export function DurumVideoOnizleme({ uri, style, aktif = true }: Props) {
       varyant="kart"
       yedek={<View style={[styles.wrap, style, styles.hata]} pointerEvents="none" />}
     >
-      <DurumVideoOnizlemeIc uri={uri.trim()} style={style} />
+      <DurumVideoOnizlemeIc uri={uri.trim()} style={style} mod={mod} />
     </ModulHataSiniri>
   );
 }
@@ -44,32 +54,96 @@ export function DurumVideoOnizleme({ uri, style, aktif = true }: Props) {
 function DurumVideoOnizlemeIc({
   uri,
   style,
+  mod,
 }: {
   uri: string;
   style?: StyleProp<ViewStyle>;
+  mod: 'oynat' | 'kare';
 }) {
+  const kare = mod === 'kare';
   const player = useVideoPlayer(uri, (p) => {
-    p.loop = true;
+    p.loop = !kare;
     p.muted = true;
-    p.play();
+    if (!kare) p.play();
   });
 
   useEffect(() => {
     try {
       player.muted = true;
-      player.loop = true;
-      player.play();
+      player.loop = !kare;
     } catch {
       /* native player henüz hazır değilse yok say */
     }
+
+    if (!kare) {
+      try {
+        player.play();
+      } catch {
+        /* ignore */
+      }
+      return () => {
+        try {
+          player.pause();
+        } catch {
+          /* ignore */
+        }
+      };
+    }
+
+    let durdu = false;
+    const kareyiSabitle = () => {
+      if (durdu) return;
+      try {
+        if (player.currentTime < 0.05) player.currentTime = 0.08;
+        player.pause();
+        durdu = true;
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const statusSub = player.addListener('statusChange', ({ status }) => {
+      if (status === 'readyToPlay') {
+        try {
+          player.play();
+        } catch {
+          /* ignore */
+        }
+        setTimeout(kareyiSabitle, 120);
+      }
+    });
+    const playingSub = player.addListener('playingChange', ({ isPlaying }) => {
+      if (isPlaying) setTimeout(kareyiSabitle, 80);
+    });
+
+    try {
+      if (player.status === 'readyToPlay') {
+        player.play();
+        setTimeout(kareyiSabitle, 120);
+      }
+    } catch {
+      /* ignore */
+    }
+
     return () => {
+      durdu = true;
+      try {
+        statusSub.remove();
+      } catch {
+        /* ignore */
+      }
+      try {
+        playingSub.remove();
+      } catch {
+        /* ignore */
+      }
       try {
         player.pause();
       } catch {
         /* ignore */
       }
     };
-  }, [player, uri]);
+  }, [player, uri, kare]);
 
   return (
     <View style={[styles.wrap, style]} pointerEvents="none" collapsable={false}>

@@ -4,6 +4,7 @@ import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { OrtakTakipciOzeti } from '../TakipTipleri';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 export function OrtakTakipciler({ ozet }: { ozet: OrtakTakipciOzeti | null }) {
   if (!ozet || ozet.count <= 0) return null;
@@ -27,11 +28,12 @@ export function OrtakTakipciler({ ozet }: { ozet: OrtakTakipciOzeti | null }) {
   return (
     <View style={styles.wrap} accessibilityRole="text" accessibilityLabel={yazi}>
       <View style={styles.avatars}>
-        {ozet.previews.slice(0, 3).map((p, i) =>
-          p.avatar_url ? (
+        {ozet.previews.slice(0, 3).map((p, i) => {
+          const avatar = MedyaUriGuvenli(p.avatar_url);
+          return avatar ? (
             <Image
               key={p.user_id}
-              source={{ uri: p.avatar_url }}
+              source={{ uri: avatar }}
               style={[styles.av, { marginLeft: i === 0 ? 0 : -8, zIndex: 3 - i }]}
             />
           ) : (
@@ -43,8 +45,8 @@ export function OrtakTakipciler({ ozet }: { ozet: OrtakTakipciOzeti | null }) {
                 {(p.display_name || '?').slice(0, 1).toUpperCase()}
               </Text>
             </View>
-          ),
-        )}
+          );
+        })}
       </View>
       <Text style={styles.yazi} numberOfLines={2}>
         {yazi}

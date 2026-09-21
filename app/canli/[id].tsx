@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -26,11 +26,13 @@ import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediye
 import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
 import { HediyeAnimasyonKatmani } from '../../src/moduller/hediyeler/bilesenler/HediyeAnimasyonKatmani';
 import { useCanliHediyeCanlisi } from '../../src/moduller/hediyeler/gercek-zamanli/useCanliHediyeCanlisi';
+import { CoinYuklePaneli } from '../../src/moduller/cuzdan/bilesenler/CoinYuklePaneli';
 import { useCanliPkMac } from '../../src/moduller/pk/kancalar/useCanliPkMac';
 import { supabase } from '../../src/lib/supabase';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { SonGezileneKaydet } from '../../src/moduller/ana-sayfa/depolama/SonGezilenDepolama';
 
 /** Izleyici: tam ekran video + yorum + hediye + beğeni */
 export default function CanliIzleyiciEkrani() {
@@ -42,6 +44,8 @@ export default function CanliIzleyiciEkrani() {
   const [loading, setLoading] = useState(true);
   const [medyaDurum, setMedyaDurum] = useState('Bağlanıyor…');
   const [medyaMock, setMedyaMock] = useState(false);
+  const metaRef = useRef<CanliYayinMeta | null>(null);
+  const baglaniyorRef = useRef(false);
   const { mac: pkMac } = useCanliPkMac({
     liveSessionId: meta?.id ?? (typeof id === 'string' ? id : undefined),
     enabled: !!meta?.id,
@@ -54,98 +58,139 @@ export default function CanliIzleyiciEkrani() {
     enabled: !!meta?.id,
   });
 
-  const load = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('live_sessions')
-        .select(
-          '*, host:profiles!live_sessions_host_id_fkey(display_name, username, avatar_url)',
-        )
-        .eq('id', id)
-        .maybeSingle();
-      if (error) throw error;
-      if (!data || !data.is_live) {
+  useEffect(() => {
+    metaRef.current = meta;
+  }, [meta]);
+
+  const load = useCallback(
+    async (opts?: { soft?: boolean; iptal?: () => boolean }) => {
+      if (!id) return;
+      const soft = !!opts?.soft && !!metaRef.current;
+      const iptal = opts?.iptal ?? (() => false);
+
+      if (baglaniyorRef.current) return;
+      baglaniyorRef.current = true;
+
+      if (!soft) setLoading(true);
+      else setMedyaDurum('Görüntü yeniden bağlanıyor…');
+
+      try {
+        // Önceki blur disconnect yarışını kapat
+        await MedyaOdasiKes();
+        if (iptal()) return;
+
+        const { data, error } = await supabase
+          .from('live_sessions')
+          .select(
+            '*, host:profiles!live_sessions_host_id_fkey(display_name, username, avatar_url)',
+          )
+          .eq('id', id)
+          .maybeSingle();
+        if (error) throw error;
+        if (!data || !data.is_live) {
+          setMeta(null);
+          setMedyaDurum('Yayın sona erdi');
+          return;
+        }
+        const row = data as unknown as {
+          id: string;
+          host_id: string;
+          title: string;
+          viewer_count: number | null;
+          like_count?: number | null;
+          gift_count?: number | null;
+          total_coins_earned?: number | null;
+          livekit_room_name: string | null;
+          host?:
+            | {
+                display_name: string | null;
+                username: string | null;
+                avatar_url: string | null;
+              }
+            | {
+                display_name: string | null;
+                username: string | null;
+                avatar_url: string | null;
+              }[]
+            | null;
+        };
+        const hostRaw = row.host;
+        const host = Array.isArray(hostRaw) ? hostRaw[0] ?? null : hostRaw ?? null;
+        const hostAd =
+          host?.display_name?.trim() || host?.username?.trim() || 'Yayıncı';
+
+        if (iptal()) return;
+
+        setMeta({
+          id: row.id,
+          host_id: row.host_id,
+          title: row.title,
+          viewer_count: row.viewer_count ?? 0,
+          like_count: row.like_count ?? 0,
+          gift_count: row.gift_count ?? 0,
+          total_coins_earned: Number(row.total_coins_earned ?? 0),
+          hostAd,
+          hostAvatar: host?.avatar_url ?? null,
+        });
+
+        void SonGezileneKaydet({
+          id: row.id,
+          tur: 'canli',
+          title: row.title,
+          coverUrl: host?.avatar_url ?? null,
+          hostAd,
+          hostAvatar: host?.avatar_url ?? null,
+          mode: null,
+          href: `/canli/${row.id}`,
+        });
+
+        const gir = await CanliYayinIzleyiciGir(row.id);
+        if (iptal()) return;
+        if (!gir.ok) {
+          Alert.alert('Canlı', gir.hata);
+          setMeta(null);
+          return;
+        }
+        setMeta((m) => (m ? { ...m, viewer_count: gir.viewer_count } : m));
+
+        const roomName = row.livekit_room_name ?? `live_${row.id}`;
+        const medya = await MedyaOdasiBaglan({
+          roomName,
+          role: 'listener',
+          video: true,
+          zorla: soft,
+        });
+        if (iptal()) return;
+        setMedyaDurum(
+          medya.ok
+            ? medya.mock
+              ? `İzleme · mock`
+              : `İzleme`
+            : medya.hata,
+        );
+        setMedyaMock(!!(medya.ok && medya.mock));
+      } catch (e) {
+        if (iptal()) return;
+        Alert.alert(
+          'Canlı',
+          e instanceof Error ? e.message : 'Yayın açılamadı',
+        );
         setMeta(null);
-        setMedyaDurum('Yayın sona erdi');
-        return;
+      } finally {
+        baglaniyorRef.current = false;
+        if (!iptal()) setLoading(false);
       }
-      const row = data as unknown as {
-        id: string;
-        host_id: string;
-        title: string;
-        viewer_count: number | null;
-        like_count?: number | null;
-        gift_count?: number | null;
-        total_coins_earned?: number | null;
-        livekit_room_name: string | null;
-        host?:
-          | {
-              display_name: string | null;
-              username: string | null;
-              avatar_url: string | null;
-            }
-          | {
-              display_name: string | null;
-              username: string | null;
-              avatar_url: string | null;
-            }[]
-          | null;
-      };
-      const hostRaw = row.host;
-      const host = Array.isArray(hostRaw) ? hostRaw[0] ?? null : hostRaw ?? null;
-      const hostAd =
-        host?.display_name?.trim() || host?.username?.trim() || 'Yayıncı';
-
-      setMeta({
-        id: row.id,
-        host_id: row.host_id,
-        title: row.title,
-        viewer_count: row.viewer_count ?? 0,
-        like_count: row.like_count ?? 0,
-        gift_count: row.gift_count ?? 0,
-        total_coins_earned: Number(row.total_coins_earned ?? 0),
-        hostAd,
-      });
-
-      const gir = await CanliYayinIzleyiciGir(row.id);
-      if (!gir.ok) {
-        Alert.alert('Canlı', gir.hata);
-        setMeta(null);
-        return;
-      }
-      setMeta((m) => (m ? { ...m, viewer_count: gir.viewer_count } : m));
-
-      const roomName = row.livekit_room_name ?? `live_${row.id}`;
-      const medya = await MedyaOdasiBaglan({
-        roomName,
-        role: 'listener',
-        video: true,
-      });
-      setMedyaDurum(
-        medya.ok
-          ? medya.mock
-            ? `İzleme · mock`
-            : `İzleme`
-          : medya.hata,
-      );
-      setMedyaMock(!!(medya.ok && medya.mock));
-    } catch (e) {
-      Alert.alert(
-        'Canlı',
-        e instanceof Error ? e.message : 'Yayın açılamadı',
-      );
-      setMeta(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+    },
+    [id],
+  );
 
   useFocusEffect(
     useCallback(() => {
-      void load();
+      let iptal = false;
+      const soft = !!metaRef.current;
+      void load({ soft, iptal: () => iptal });
       return () => {
+        iptal = true;
         if (id) void CanliYayinIzleyiciCik(id).catch(() => undefined);
         void MedyaOdasiKes();
       };
@@ -200,7 +245,7 @@ export default function CanliIzleyiciEkrani() {
     };
   }, [id, user?.id]);
 
-  if (loading) {
+  if (loading && !meta) {
     return (
       <Screen koyuSahne>
         <ActivityIndicator
@@ -234,8 +279,16 @@ export default function CanliIzleyiciEkrani() {
           medyaMock={medyaMock}
           currentUserId={user?.id}
           canSend={!isGuest}
+          isGuest={isGuest}
           walletCoins={wallet?.coins ?? null}
           onNeedUpgrade={upgradeAc}
+          onCoinYukle={() => {
+            if (isGuest) {
+              upgradeAc();
+              return;
+            }
+            magaza.coinYuklePaneli.ac();
+          }}
           onCikis={() => router.back()}
           onMeta={(patch) => setMeta((m) => (m ? { ...m, ...patch } : m))}
           pkMac={pkMac}
@@ -282,9 +335,29 @@ export default function CanliIzleyiciEkrani() {
         <HediyeMagazaBaglamasi magaza={magaza} misafirKart={false} animasyon={false} />
         <HediyeAnimasyonKatmani />
 
+        <CoinYuklePaneli
+          visible={magaza.coinYuklePaneli.acik && !magaza.acik}
+          packages={magaza.coinYuklePaneli.packages}
+          locked={magaza.coinYuklePaneli.purchaseLocked}
+          coins={wallet?.coins}
+          onBuy={magaza.coinYuklePaneli.satinAl}
+          onClose={magaza.coinYuklePaneli.kapat}
+          upgradeAcik={magaza.coinYuklePaneli.upgradeAcik}
+          upgradeKapat={magaza.coinYuklePaneli.upgradeKapat}
+          onPaketleriYenile={magaza.coinYuklePaneli.paketleriYenile}
+        />
+
         <HesabiTamamlaKarti
-          visible={upgradeAcik}
-          onClose={upgradeKapat}
+          visible={
+            upgradeAcik ||
+            magaza.upgradeAcik ||
+            magaza.coinYuklePaneli.upgradeAcik
+          }
+          onClose={() => {
+            upgradeKapat();
+            magaza.upgradeKapat();
+            magaza.coinYuklePaneli.upgradeKapat();
+          }}
           onCompleted={() => {
             void refreshProfile();
             void refreshWallet();

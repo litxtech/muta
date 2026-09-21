@@ -84,14 +84,22 @@ function SlotOyunEkraniInner({
   useEffect(() => {
     registerNoxReels();
     let alive = true;
+    const failSafe = setTimeout(() => {
+      if (alive) setReady(true);
+    }, 3200);
     void (async () => {
-      await Promise.all([preloadNoxAssets(), preloadSlotAudio()]);
+      try {
+        await Promise.all([preloadNoxAssets(), preloadSlotAudio()]);
+      } catch {
+        /* preload hatası oyunu kilitlemesin */
+      }
       if (!alive) return;
       beginSlotAudioSession();
       setReady(true);
     })();
     return () => {
       alive = false;
+      clearTimeout(failSafe);
       stopAllSlotAudio();
     };
   }, []);
@@ -120,6 +128,18 @@ function SlotOyunEkraniInner({
     Math.min(78, Math.floor((cabinMax - 56) / 5)),
   );
 
+  const onDebug = useCallback((_kind: string) => {
+    if (!__DEV__) return;
+  }, []);
+
+  const onSpin = useCallback(() => {
+    playSlotSfx('button_press');
+    void game.spin();
+  }, [game]);
+
+  const padTop = embedded ? 6 : Math.max(insets.top, 10);
+  const padBottom = embedded ? 10 : Math.max(insets.bottom, 14);
+
   const spinning =
     game.machine.phase === 'REQUESTING' ||
     game.machine.phase === 'SPINNING' ||
@@ -139,23 +159,21 @@ function SlotOyunEkraniInner({
 
   const betLocked = !game.machine.canSpin;
 
-  const onDebug = useCallback((_kind: string) => {
-    if (!__DEV__) return;
-  }, []);
-
-  const onSpin = useCallback(() => {
-    playSlotSfx('button_press');
-    void game.spin();
-  }, [game]);
-
-  const padTop = embedded ? 6 : Math.max(insets.top, 10);
-  const padBottom = embedded ? 10 : Math.max(insets.bottom, 14);
-
   if (!ready) {
     return (
       <View style={[styles.rootFill, { minHeight: height * 0.55 }]}>
         <NoxArkaPlan quality={quality} />
         <OyunYukleniyor />
+        {onClose ? (
+          <Pressable
+            style={[styles.loadingClose, { top: padTop }]}
+            onPress={onClose}
+            hitSlop={12}
+            accessibilityLabel="Kapat"
+          >
+            <Ionicons name="close" size={24} color="#F7F2E8" />
+          </Pressable>
+        ) : null}
       </View>
     );
   }
@@ -302,6 +320,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#060412',
     overflow: 'hidden',
+  },
+  loadingClose: {
+    position: 'absolute',
+    right: 16,
+    zIndex: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   cabin: {
     flex: 1,

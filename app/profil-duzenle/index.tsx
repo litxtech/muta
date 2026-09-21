@@ -35,6 +35,7 @@ import {
   type ProfilMedyaTuru,
 } from '../../src/moduller/kullanici-profili/islemler/ProfilMedyasiYukle';
 import { ImagePickerOnIsit } from '../../src/ortak/medya/ImagePickerHazirMi';
+import { MedyaUriGuvenli } from '../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import {
   BolgeleriUlkeyeGore,
   ProfilKonumKatalogunuGetir,
@@ -431,13 +432,16 @@ export default function ProfilDuzenleEkrani() {
             disabled={medyaBusy !== null}
             accessibilityLabel="Kapak fotoğrafı"
           >
-            {profile?.cover_url ? (
-              <Image source={{ uri: profile.cover_url }} style={styles.cover} />
+            {MedyaUriGuvenli(profile?.cover_url) ? (
+              <Image
+                source={{ uri: MedyaUriGuvenli(profile?.cover_url)! }}
+                style={styles.cover}
+              />
             ) : (
               <LinearGradient colors={[...RenkTokenlari.gradientPlaceholder]} style={styles.cover} />
             )}
             <View style={styles.coverOverlay} pointerEvents="none">
-              {!profile?.cover_url ? (
+              {!MedyaUriGuvenli(profile?.cover_url) ? (
                 <>
                   <Ionicons name="image-outline" size={18} color="#fff" />
                   <Text style={styles.coverHint}>Kapak eklemek için dokun</Text>
@@ -471,8 +475,11 @@ export default function ProfilDuzenleEkrani() {
               disabled={medyaBusy !== null}
               accessibilityLabel="Profil fotoğrafı"
             >
-              {profile?.avatar_url ? (
-                <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+              {MedyaUriGuvenli(profile?.avatar_url) ? (
+                <Image
+                  source={{ uri: MedyaUriGuvenli(profile?.avatar_url)! }}
+                  style={styles.avatar}
+                />
               ) : (
                 <LinearGradient
                   colors={[...RenkTokenlari.gradientPrimary]}

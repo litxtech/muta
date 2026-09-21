@@ -11,6 +11,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 const MEDAL: Record<number, string[]> = {
   1: ['#F6D365', '#FDA085'],
@@ -29,7 +30,7 @@ export function SiralamaOdaSatiri({
     item.display_name?.trim() ||
     'Oda';
   const host = item.username?.trim() || null;
-  const kapak = item.room_cover_url || item.avatar_url || null;
+  const kapak = MedyaUriGuvenli(item.room_cover_url || item.avatar_url);
   const medal = MEDAL[rank];
   const odaId = item.room_id;
 

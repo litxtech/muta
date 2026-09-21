@@ -41,6 +41,8 @@ type Props = {
   maxMesaj?: number;
   /** TikTok tarzı şeffaf float — kart/fade yok */
   floatMod?: boolean;
+  /** Avatar / isme tık — profil sheet */
+  onProfil?: (item: CanliSohbetMesajGorunum) => void;
 };
 
 function mesajiKirp(
@@ -60,6 +62,7 @@ function CanliYorumAkisiInner({
   onClose,
   maxMesaj = VARSAYILAN_MAX,
   floatMod = false,
+  onProfil,
 }: Props) {
   const [messages, setMessages] = useState<CanliSohbetMesajGorunum[]>([]);
   const [hedef, setHedef] = useState<CanliSohbetMesajGorunum | null>(null);
@@ -264,6 +267,7 @@ function CanliYorumAkisiInner({
               mine={!!currentUserId && item.user_id === currentUserId}
               varyant="live"
               onLongPress={currentUserId ? () => uzunBas(item) : undefined}
+              onProfilPress={onProfil}
             />
           )}
         />

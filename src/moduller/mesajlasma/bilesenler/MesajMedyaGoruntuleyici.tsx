@@ -25,18 +25,27 @@ function MesajVideoOynatici({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, (p) => {
     p.loop = false;
     p.muted = false;
-    p.play();
   });
 
   useEffect(() => {
-    try {
-      player.muted = false;
-      player.loop = false;
-      player.play();
-    } catch {
-      /* native henüz hazır değilse */
-    }
+    let iptal = false;
+    void (async () => {
+      try {
+        await player.replaceAsync(uri);
+        if (iptal) return;
+        player.muted = false;
+        player.loop = false;
+        player.play();
+      } catch {
+        try {
+          player.play();
+        } catch {
+          /* native henüz hazır değilse */
+        }
+      }
+    })();
     return () => {
+      iptal = true;
       try {
         player.pause();
       } catch {
@@ -51,7 +60,8 @@ function MesajVideoOynatici({ uri }: { uri: string }) {
       style={styles.video}
       contentFit="contain"
       nativeControls
-      allowsPictureInPicture={false}
+      allowsPictureInPicture
+      startsPictureInPictureAutomatically
       playsInline
       {...(Platform.OS === 'android'
         ? { surfaceType: 'textureView' as const }

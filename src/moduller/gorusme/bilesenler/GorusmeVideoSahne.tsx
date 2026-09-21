@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import type { LocalVideoTrack, RemoteVideoTrack } from 'livekit-client';
 import { LiveKitBaglantiYoneticisi } from '../../livekit/baglanti/LiveKitBaglantiYoneticisi';
 import { LiveKitVideoViewAl } from '../../livekit/bilesenler/LiveKitVideoViewAl';
-import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 
 type Props = {
@@ -30,12 +29,19 @@ export function GorusmeVideoSahne({
   const [localVideo, setLocalVideo] = useState<LocalVideoTrack | null>(null);
   const [remoteVideo, setRemoteVideo] = useState<RemoteVideoTrack | null>(null);
   const [remoteIds, setRemoteIds] = useState<string[]>([]);
+  const [kameraFacing, setKameraFacing] = useState<'user' | 'environment'>(
+    () =>
+      typeof LiveKitBaglantiYoneticisi.kameraFacingAl === 'function'
+        ? LiveKitBaglantiYoneticisi.kameraFacingAl()
+        : 'user',
+  );
 
   useEffect(() => {
     return LiveKitBaglantiYoneticisi.videoDinle((s) => {
       setLocalVideo(s.localVideo);
       setRemoteVideo(s.remoteVideo);
       setRemoteIds(s.remoteIds);
+      setKameraFacing(s.kameraFacing);
     });
   }, []);
 
@@ -43,6 +49,8 @@ export function GorusmeVideoSahne({
   const nativeOk = !mock && video && !!VideoViewComp;
   const hasRemote = !!remoteVideo;
   const localHazir = nativeOk && cameraOn && !!localVideo && !!VideoViewComp;
+  // Ön: ayna; arka: düz — sağ/sol ters olmasın
+  const mirrorLocal = kameraFacing === 'user';
 
   return (
     <View style={styles.root}>
@@ -54,41 +62,35 @@ export function GorusmeVideoSahne({
           zOrder={0}
         />
       ) : localHazir && localVideo && VideoViewComp ? (
-        // Karşı taraf henüz yok — kendi kameran tam ekran (WhatsApp)
         <VideoViewComp
           style={StyleSheet.absoluteFill}
           videoTrack={localVideo}
           objectFit="cover"
-          mirror
+          mirror={mirrorLocal}
           zOrder={0}
         />
       ) : (
-        <LinearGradient
-          colors={['#0B1A14', '#122820', '#0A0810']}
-          style={StyleSheet.absoluteFill}
-        >
-          <View style={styles.uzakBos}>
-            {peerAvatar ? (
-              <Image source={{ uri: peerAvatar }} style={styles.uzakAvatar} />
-            ) : (
-              <View style={styles.uzakAvatarBos}>
-                <Text style={styles.harf}>{harf}</Text>
-              </View>
-            )}
-            <Text style={styles.uzakHint}>
-              {video
-                ? remoteIds.length > 0
-                  ? 'Kamera bağlanıyor…'
-                  : mock
-                    ? 'Demo görüntü'
-                    : 'Karşı taraf bekleniyor…'
-                : 'Sesli arama'}
-            </Text>
-          </View>
-        </LinearGradient>
+        // Tek arka plan katmanı GorusmeArkaPlan'da — burada ikinci gradient YOK
+        <View style={styles.uzakBos} pointerEvents="none">
+          {MedyaUriGuvenli(peerAvatar) ? (
+            <Image source={{ uri: MedyaUriGuvenli(peerAvatar)! }} style={styles.uzakAvatar} />
+          ) : (
+            <View style={styles.uzakAvatarBos}>
+              <Text style={styles.harf}>{harf}</Text>
+            </View>
+          )}
+          <Text style={styles.uzakHint}>
+            {video
+              ? remoteIds.length > 0
+                ? 'Kamera bağlanıyor…'
+                : mock
+                  ? 'Demo görüntü'
+                  : 'Karşı taraf bekleniyor…'
+              : 'Sesli arama'}
+          </Text>
+        </View>
       )}
 
-      {/* PiP: yalnızca uzak görüntü varken (çift VideoView yükü yok) */}
       {video && hasRemote ? (
         <View style={styles.pip}>
           {localHazir && localVideo && VideoViewComp ? (
@@ -96,7 +98,7 @@ export function GorusmeVideoSahne({
               style={StyleSheet.absoluteFill}
               videoTrack={localVideo}
               objectFit="cover"
-              mirror
+              mirror={mirrorLocal}
               zOrder={1}
             />
           ) : (
@@ -114,15 +116,11 @@ export function GorusmeVideoSahne({
 
 const styles = StyleSheet.create({
   root: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    backgroundColor: '#000',
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   uzakBos: {
-    flex: 1,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 16,
@@ -132,18 +130,19 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: RenkTokenlari.surface,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  harf: { fontSize: 44, fontWeight: '800', color: RenkTokenlari.text },
+  harf: { fontSize: 44, fontWeight: '800', color: '#fff' },
   uzakHint: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
+    color: 'rgba(255,255,255,0.65)',
   },
   pip: {
     position: 'absolute',
-    top: 56,
+    // Header satırının altında; SafeArea padding parent'ta
+    top: 100,
     right: 16,
     width: 110,
     height: 160,
@@ -151,7 +150,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.35)',
-    backgroundColor: '#111',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     elevation: 8,
     shadowColor: '#000',
     shadowOpacity: 0.4,
@@ -162,11 +161,11 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1A1624',
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
   pipYazi: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textDim,
+    color: 'rgba(255,255,255,0.55)',
     fontWeight: '700',
   },
 });

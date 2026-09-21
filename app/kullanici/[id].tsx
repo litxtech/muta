@@ -53,6 +53,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { useAktifSesOdasi } from '../../src/moduller/ses-odalari/oturum/useAktifSesOdasi';
 import { KullaniciAktifOdasiniGetir, type KullaniciAktifOda } from '../../src/moduller/ses-odalari/okuma/KullaniciAktifOdasiniGetir';
 import { ProfilSesOdasiButonu } from '../../src/moduller/ses-odalari/bilesenler/ProfilSesOdasiButonu';
@@ -61,9 +62,18 @@ const COVER_H = 168;
 const AVATAR = 96;
 
 function formatSayi(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
+  const v = Number(n);
+  if (!Number.isFinite(v) || v < 0) return '0';
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`;
+  return String(Math.floor(v));
+}
+
+function paramId(ham: string | string[] | undefined): string | null {
+  const v = Array.isArray(ham) ? ham[0] : ham;
+  if (typeof v !== 'string') return null;
+  const t = v.trim();
+  return t.length > 0 ? t : null;
 }
 
 const EMPTY_PRIVACY: GizlilikAyarlari = {
@@ -83,7 +93,8 @@ const EMPTY_PRIVACY: GizlilikAyarlari = {
 };
 
 export default function KullaniciProfilEkrani() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: idHam } = useLocalSearchParams<{ id: string }>();
+  const id = paramId(idHam);
   const insets = useSafeAreaInsets();
   const { user, isGuest } = useAuth();
   const [profil, setProfil] = useState<Profile | null>(null);
@@ -112,7 +123,11 @@ export default function KullaniciProfilEkrani() {
     : ustInset + BoslukTokenlari.sm;
 
   const yukle = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+      setYukleniyor(false);
+      setProfil(null);
+      return;
+    }
     setYukleniyor(true);
     setDurumYukleniyor(true);
     try {
@@ -124,7 +139,7 @@ export default function KullaniciProfilEkrani() {
       ]);
       setProfil(p);
       setStats(s);
-      setPrivacy(giz);
+      setPrivacy(giz ?? EMPTY_PRIVACY);
       setAktifOda(oda);
     } catch {
       setProfil(null);
@@ -154,14 +169,16 @@ export default function KullaniciProfilEkrani() {
     }, [yukle]),
   );
 
-  const kendi = user?.id === id;
+  const kendi = !!id && user?.id === id;
   const ad =
     profil?.display_name?.trim() ||
     profil?.username?.trim() ||
     'Kullanıcı';
+  const coverUri = MedyaUriGuvenli(profil?.cover_url);
+  const avatarUri = MedyaUriGuvenli(profil?.avatar_url);
 
   const medyaTikla = (tur: 'avatar' | 'cover') => {
-    const uri = tur === 'cover' ? profil?.cover_url : profil?.avatar_url;
+    const uri = tur === 'cover' ? coverUri : avatarUri;
     if (uri) setBuyut({ uri, tur });
   };
 
@@ -276,11 +293,11 @@ export default function KullaniciProfilEkrani() {
                 onPress={() => medyaTikla('cover')}
                 style={styles.coverPress}
                 accessibilityLabel="Kapak fotoğrafı"
-                disabled={!profil.cover_url}
+                disabled={!coverUri}
               >
-                {profil.cover_url ? (
+                {coverUri ? (
                   <Image
-                    source={{ uri: profil.cover_url }}
+                    source={{ uri: coverUri }}
                     style={[styles.cover, { height: coverH }]}
                   />
                 ) : (
@@ -323,31 +340,56 @@ export default function KullaniciProfilEkrani() {
             </View>
 
             <View style={styles.avatarBand}>
-              <ProfilAvatarCerceve
-                size={AVATAR}
-                level={gosterSeviye ? profil.level ?? 1 : 0}
-                gizli={!gosterTac}
+              <ModulHataSiniri
+                modulAdi="profil-avatar"
+                varyant="kart"
+                yedek={
+                  <Pressable
+                    onPress={() => medyaTikla('avatar')}
+                    style={styles.avatarHit}
+                    disabled={!avatarUri}
+                  >
+                    {avatarUri ? (
+                      <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                    ) : (
+                      <LinearGradient
+                        colors={[...RenkTokenlari.gradientPrimary]}
+                        style={styles.avatar}
+                      >
+                        <Text style={styles.avatarHarf}>
+                          {ad.slice(0, 1).toUpperCase()}
+                        </Text>
+                      </LinearGradient>
+                    )}
+                  </Pressable>
+                }
               >
-                <Pressable
-                  onPress={() => medyaTikla('avatar')}
-                  style={styles.avatarHit}
-                  accessibilityLabel="Profil fotoğrafı"
-                  disabled={!profil.avatar_url}
+                <ProfilAvatarCerceve
+                  size={AVATAR}
+                  level={gosterSeviye ? Number(profil.level) || 1 : 0}
+                  gizli={!gosterTac}
                 >
-                  {profil.avatar_url ? (
-                    <Image source={{ uri: profil.avatar_url }} style={styles.avatar} />
-                  ) : (
-                    <LinearGradient
-                      colors={[...RenkTokenlari.gradientPrimary]}
-                      style={styles.avatar}
-                    >
-                      <Text style={styles.avatarHarf}>
-                        {ad.slice(0, 1).toUpperCase()}
-                      </Text>
-                    </LinearGradient>
-                  )}
-                </Pressable>
-              </ProfilAvatarCerceve>
+                  <Pressable
+                    onPress={() => medyaTikla('avatar')}
+                    style={styles.avatarHit}
+                    accessibilityLabel="Profil fotoğrafı"
+                    disabled={!avatarUri}
+                  >
+                    {avatarUri ? (
+                      <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                    ) : (
+                      <LinearGradient
+                        colors={[...RenkTokenlari.gradientPrimary]}
+                        style={styles.avatar}
+                      >
+                        <Text style={styles.avatarHarf}>
+                          {ad.slice(0, 1).toUpperCase()}
+                        </Text>
+                      </LinearGradient>
+                    )}
+                  </Pressable>
+                </ProfilAvatarCerceve>
+              </ModulHataSiniri>
             </View>
 
             <View style={styles.identity}>
@@ -369,20 +411,22 @@ export default function KullaniciProfilEkrani() {
 
               {gosterHesapDegeri && stats ? (
                 <HesapDegeriRozeti
-                  value={stats.account_value ?? 0}
+                  value={Number(stats.account_value) || 0}
                   label={stats.account_value_label}
                 />
               ) : null}
 
               {gosterPrestige && stats ? (
                 <PrestigeRozetSatiri
-                  vipLevel={stats.vip_level ?? 0}
+                  vipLevel={Number(stats.vip_level) || 0}
                   gifterLevel={
                     kendi || !privacy.hide_gifter_rank ? stats.gifter_rank : null
                   }
-                  charmLevel={stats.charm_level ?? 0}
+                  charmLevel={Number(stats.charm_level) || 0}
                   rechargeLevel={
-                    kendi || !privacy.hide_recharge_rank ? stats.recharge_rank : null
+                    kendi || !privacy.hide_recharge_rank
+                      ? stats.recharge_rank
+                      : null
                   }
                 />
               ) : null}
@@ -519,20 +563,22 @@ export default function KullaniciProfilEkrani() {
             )}
 
             <View style={styles.gonderiBlok}>
-              <DurumProfilIzgarasi
-                items={durumlar}
-                yukleniyor={durumYukleniyor}
-                baslik="Gönderiler"
-                bosMetin="Bu kullanıcının henüz paylaşımı yok."
-                yatayPadding={false}
-                onPress={(oge) => router.push(`/durum/${oge.id}` as any)}
-                onUzunBas={kendi ? durumMenu : undefined}
-                onPaylas={
-                  kendi
-                    ? () => router.push('/durum/olustur' as any)
-                    : undefined
-                }
-              />
+              <ModulHataSiniri modulAdi="profil-gonderiler" varyant="kart">
+                <DurumProfilIzgarasi
+                  items={durumlar}
+                  yukleniyor={durumYukleniyor}
+                  baslik="Gönderiler"
+                  bosMetin="Bu kullanıcının henüz paylaşımı yok."
+                  yatayPadding={false}
+                  onPress={(oge) => router.push(`/durum/${oge.id}` as any)}
+                  onUzunBas={kendi ? durumMenu : undefined}
+                  onPaylas={
+                    kendi
+                      ? () => router.push('/durum/olustur' as any)
+                      : undefined
+                  }
+                />
+              </ModulHataSiniri>
             </View>
           </ScrollView>
         )}

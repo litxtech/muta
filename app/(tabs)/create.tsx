@@ -17,6 +17,7 @@ import { GradientButton } from '../../src/components/GradientButton';
 import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
 import {
   KlavyeAlanaKaydir,
+  KlavyeFocusKaydir,
   KlavyeScrollView,
   type KlavyeScrollHandle,
 } from '../../src/bilesenler/klavye/KlavyeScrollView';
@@ -32,8 +33,6 @@ import {
   CanliAcilisModKarti,
   type CanliAcilisMod,
 } from '../../src/moduller/oda-olusturma/bilesenler/CanliAcilisModKarti';
-import { OdaModSecimKarti } from '../../src/moduller/oda-olusturma/bilesenler/OdaModSecimKarti';
-import { ODA_MODLARI } from '../../src/moduller/oda-olusturma/katalog/OdaModKatalogu';
 import {
   ODA_KAPASITELER,
   OdaKapasitesiniCoz,
@@ -123,19 +122,14 @@ export default function CreateRoomScreen() {
   const [topic, setTopic] = useState('');
   const [kapakUri, setKapakUri] = useState<string | null>(null);
   const [kapakMime, setKapakMime] = useState<string | null>(null);
-  const [mode, setMode] = useState<Room['mode']>('dating');
-  const [temaKod, setTemaKod] = useState(() => MOD_VARSAYILAN.dating.tema);
+  const [mode] = useState<Room['mode']>('party');
+  const [temaKod, setTemaKod] = useState(() => MOD_VARSAYILAN.party.tema);
   const [kapasiteKod, setKapasiteKod] = useState('social');
   const [loading, setLoading] = useState(false);
 
   const kapasite = OdaKapasitesiniCoz(kapasiteKod);
   const varsayilan = MOD_VARSAYILAN[mode];
   const seciliTema = OdaTemasiniCoz(temaKod);
-
-  const modeSec = (kod: Room['mode']) => {
-    setMode(kod);
-    setTemaKod(MOD_VARSAYILAN[kod].tema);
-  };
 
   const baslikOnerisi = useMemo(() => {
     const ad = profile?.display_name?.trim() || profile?.username?.trim();
@@ -318,7 +312,7 @@ export default function CreateRoomScreen() {
               <OdaOlusturMarkaBasligi
                 baslik="Ses odası aç"
                 fisilti="SES ODASI"
-                ozet="Kapak, başlık ve mod — oda anında açılır."
+                ozet="Başlık ve kapak yaz — oda anında açılır."
                 geriMi
                 onGeri={() => setAdim('hub')}
               />
@@ -393,8 +387,6 @@ export default function CreateRoomScreen() {
                   onChangeText={setTitle}
                   placeholder={baslikOnerisi || 'Gece sohbeti...'}
                   maxLength={40}
-                  autoFocus
-                  onFocus={() => KlavyeAlanaKaydir(scrollRef.current, { delayMs: 50 })}
                 />
                 <TextField
                   label="Açıklama"
@@ -404,24 +396,11 @@ export default function CreateRoomScreen() {
                   maxLength={120}
                   multiline
                   numberOfLines={2}
-                  onFocus={() => KlavyeAlanaKaydir(scrollRef.current)}
+                  onFocus={(e) =>
+                    KlavyeFocusKaydir(scrollRef.current, e, { delayMs: 80 })
+                  }
                 />
                 </LinearGradient>
-
-                <View style={styles.bolumBlok}>
-                  <Text style={styles.bolum}>Mod</Text>
-                  <Text style={styles.bolumAlt}>Odanın ruhunu seç</Text>
-                  <View style={styles.modListe}>
-                    {ODA_MODLARI.map((m) => (
-                      <OdaModSecimKarti
-                        key={m.kod}
-                        mod={m}
-                        secili={mode === m.kod}
-                        onPress={() => modeSec(m.kod)}
-                      />
-                    ))}
-                  </View>
-                </View>
 
                 <View style={styles.bolumBlok}>
                   <Text style={styles.bolum}>Arka plan teması</Text>
@@ -543,9 +522,6 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
     marginBottom: BoslukTokenlari.sm,
-  },
-  modListe: {
-    gap: BoslukTokenlari.md,
   },
   chipSerit: {
     gap: BoslukTokenlari.sm,

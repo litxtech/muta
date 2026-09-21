@@ -11,6 +11,7 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { Room } from '../../../types/models';
 import { KesfetBolumBasligi } from './KesfetBolumBasligi';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   odalar: Room[];
@@ -34,7 +35,7 @@ export function KesfetTrendSeridi({ odalar, onSec, onHost }: Props) {
         decelerationRate="fast"
       >
         {odalar.map((oda, index) => {
-          const kapak = oda.cover_url ?? oda.host?.avatar_url ?? null;
+          const kapak = MedyaUriGuvenli(oda.cover_url ?? oda.host?.avatar_url);
           return (
             <Pressable
               key={oda.id}

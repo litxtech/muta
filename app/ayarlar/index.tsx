@@ -1,5 +1,14 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import {
+  Alert,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
@@ -17,6 +26,11 @@ import {
   GizlilikAyarlariniGetir,
   type GizlilikAyarlari,
 } from '../../src/moduller/ayarlar/islemler/GizlilikAyarlariniYonet';
+import {
+  SesOdasiPipAcikMi,
+  SesOdasiPipKaydet,
+} from '../../src/moduller/ses-odalari/depolama/SesOdasiPipTercihi';
+import { SesOdasiPipParamsKapat } from '../../src/moduller/ses-odalari/pip/useSesOdasiPip';
 import { useKullanimSuresi } from '../../src/moduller/kullanim-suresi/baglam/KullanimSuresiSaglayici';
 import { UygulamaKimligi } from '../../src/yapilandirma/UygulamaKimligi';
 import { OrtamDegiskenleri } from '../../src/yapilandirma/OrtamDegiskenleri';
@@ -47,10 +61,12 @@ const EMPTY_PRIVACY: GizlilikAyarlari = {
 export default function AyarlarEkrani() {
   const [push, setPush] = useState(true);
   const [dil, setDil] = useState('tr');
+  const [pipAcik, setPipAcik] = useState(true);
   const [privacy, setPrivacy] = useState<GizlilikAyarlari>(EMPTY_PRIVACY);
   const { formatli: kullanimFormatli, yenile: kullanimYenile } =
     useKullanimSuresi();
   const { palet } = useTema();
+  const androidMu = Platform.OS === 'android';
 
   useFocusEffect(
     useCallback(() => {
@@ -59,6 +75,9 @@ export default function AyarlarEkrani() {
         setDil(a.dil);
       });
       void GizlilikAyarlariniGetir().then(setPrivacy);
+      if (Platform.OS === 'android') {
+        void SesOdasiPipAcikMi().then(setPipAcik);
+      }
       void kullanimYenile();
     }, [kullanimYenile]),
   );
@@ -74,6 +93,12 @@ export default function AyarlarEkrani() {
     } catch {
       /* migration 022 yoksa yerel ayar yeterli */
     }
+  };
+
+  const pipDegistir = async (v: boolean) => {
+    setPipAcik(v);
+    await SesOdasiPipKaydet(v);
+    if (!v) SesOdasiPipParamsKapat();
   };
 
   const privacyDegistir = async (key: keyof GizlilikAyarlari, v: boolean) => {
@@ -142,6 +167,23 @@ export default function AyarlarEkrani() {
               thumbColor={palet.bgElevated}
             />
           </View>
+
+          {androidMu ? (
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Küçük ekran (Picture-in-Picture)</Text>
+                <Text style={styles.hint}>
+                  Ses odasındayken uygulamadan çıkınca köşede küçük pencere
+                </Text>
+              </View>
+              <Switch
+                value={pipAcik}
+                onValueChange={(v) => void pipDegistir(v)}
+                trackColor={{ true: RenkTokenlari.primary, false: RenkTokenlari.border }}
+                thumbColor={palet.bgElevated}
+              />
+            </View>
+          ) : null}
 
           <ListeGrubu title="Kullanım">
             <ListeSatiri

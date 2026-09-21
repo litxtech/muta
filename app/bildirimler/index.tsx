@@ -139,6 +139,23 @@ export default function BildirimMerkeziEkrani() {
             />
           </Pressable>
 
+          <Pressable
+            style={styles.ayarBanner}
+            onPress={() => router.push('/raporlarim' as any)}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ayarBaslik}>Raporlarım</Text>
+              <Text style={styles.ayarAlt}>
+                Bildirdiğin kullanıcılar · durum · ekip notu
+              </Text>
+            </View>
+            <Ionicons
+              name="flag-outline"
+              size={18}
+              color={RenkTokenlari.primarySoft}
+            />
+          </Pressable>
+
           {isAdmin ? (
             <GradientButton title="Test bildirimi" onPress={testPush} />
           ) : null}

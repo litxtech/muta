@@ -15,6 +15,21 @@ import {
 import { supabase } from '../../../lib/supabase';
 import type { CoinPackage } from '../../../types/models';
 
+const COIN_PAKET_KANAL_IMZA = 'coin-packages-live';
+
+function ayniCoinPaketKanaliniTemizle() {
+  for (const ch of supabase.getChannels()) {
+    const topic = ch.topic ?? '';
+    if (
+      topic === COIN_PAKET_KANAL_IMZA ||
+      topic === `realtime:${COIN_PAKET_KANAL_IMZA}` ||
+      topic.includes(COIN_PAKET_KANAL_IMZA)
+    ) {
+      void supabase.removeChannel(ch);
+    }
+  }
+}
+
 /**
  * Oyun / hediye yetersiz bakiyesinde açılan coin yükleme paneli.
  * Wallet sekmesindeki satın alma akışını paylaşır.
@@ -68,19 +83,28 @@ export function useCoinYuklePaneli() {
   }, [acik, paketleriYenile]);
 
   // Admin değişiklikleri — realtime
+  // Sabit topic + Strict Mode / çoklu mount → "after subscribe()" hatası;
+  // önce temizle, benzersiz topic kullan.
   useEffect(() => {
-    const ch = supabase
-      .channel('coin-packages-live')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'coin_packages' },
-        () => {
-          void paketleriYenile();
-        },
-      )
-      .subscribe();
+    ayniCoinPaketKanaliniTemizle();
+    const topic = `${COIN_PAKET_KANAL_IMZA}-${Date.now().toString(36)}`;
+    let ch: ReturnType<typeof supabase.channel> | null = null;
+    try {
+      ch = supabase
+        .channel(topic)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'coin_packages' },
+          () => {
+            void paketleriYenile();
+          },
+        )
+        .subscribe();
+    } catch {
+      ch = null;
+    }
     return () => {
-      void supabase.removeChannel(ch);
+      if (ch) void supabase.removeChannel(ch);
     };
   }, [paketleriYenile]);
 

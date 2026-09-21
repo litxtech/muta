@@ -20,6 +20,7 @@ import {
   type EngellenenKullanici,
 } from '../../src/moduller/moderasyon/islemler/ModerasyonIslemleri';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
@@ -98,10 +99,11 @@ export default function EngellenenKullanicilarEkrani() {
           renderItem={({ item }) => {
             const ad = item.display_name || item.username || 'Kullanıcı';
             const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
+            const avatar = MedyaUriGuvenli(item.avatar_url);
             return (
               <View style={styles.row}>
-                {item.avatar_url ? (
-                  <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+                {avatar ? (
+                  <Image source={{ uri: avatar }} style={styles.avatar} />
                 ) : (
                   <LinearGradient
                     colors={[RenkTokenlari.primary, RenkTokenlari.deepPlum]}

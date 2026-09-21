@@ -26,6 +26,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
   AnimasyonTokenlari,
@@ -340,9 +341,9 @@ export function AnaSayfaCekmeceMenu({
                   ]}
                   accessibilityLabel="Profilime git"
                 >
-                  {profil?.avatarUrl ? (
+                  {MedyaUriGuvenli(profil?.avatarUrl) ? (
                     <Image
-                      source={{ uri: profil.avatarUrl }}
+                      source={{ uri: MedyaUriGuvenli(profil?.avatarUrl)! }}
                       style={[styles.avatar, { borderColor: RenkTokenlari.border }]}
                     />
                   ) : (

@@ -41,22 +41,29 @@ type LiveRow = {
 };
 
 /** Canlı odalar + canlı yayınlar → tek ana akım listesi */
+const ODA_FEED_SELECT =
+  'id, host_id, title, topic, cover_url, mode, listener_count, total_coins_earned, created_at, host:profiles!rooms_host_id_fkey(id, display_name, username, avatar_url, level)';
+
+const CANLI_FEED_SELECT =
+  'id, title, mode, viewer_count, like_count, gift_count, total_coins_earned, score, started_at, created_at, host:profiles!live_sessions_host_id_fkey(id, display_name, username, public_user_id, level, avatar_url)';
+
 export async function CanliFeedGetir(limit = 40): Promise<FeedOggesi[]> {
+  const odaLimit = Math.min(Math.max(limit, 1), 60);
+  const canliLimit = Math.min(odaLimit, 20);
+
   const [odalarRes, canliRes] = await Promise.all([
     supabase
       .from('rooms')
-      .select('*, host:profiles!rooms_host_id_fkey(*)')
+      .select(ODA_FEED_SELECT)
       .eq('is_live', true)
       .order('listener_count', { ascending: false })
-      .limit(limit),
+      .limit(odaLimit),
     supabase
       .from('live_sessions')
-      .select(
-        '*, host:profiles!live_sessions_host_id_fkey(id, display_name, username, public_user_id, level, avatar_url)',
-      )
+      .select(CANLI_FEED_SELECT)
       .eq('is_live', true)
-      .order('started_at', { ascending: false })
-      .limit(Math.min(limit, 20)),
+      .order('viewer_count', { ascending: false, nullsFirst: false })
+      .limit(canliLimit),
   ]);
 
   const ogeler: FeedOggesi[] = [];

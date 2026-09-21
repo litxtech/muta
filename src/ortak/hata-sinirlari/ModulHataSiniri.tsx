@@ -1,4 +1,5 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
 import type { Href } from 'expo-router';
 import { HataKurtarmaEkrani } from './HataKurtarmaEkrani';
 
@@ -38,17 +39,31 @@ export class ModulHataSiniri extends Component<Props, State> {
     if (this.state.hata) {
       if (this.props.yedek) return this.props.yedek;
       const varyant = this.props.varyant ?? 'ekran';
-      return (
+      const ekran = (
         <HataKurtarmaEkrani
           varyant={varyant}
-          baslik={`${this.props.modulAdi} geçici olarak kullanılamıyor`}
-          aciklama="Bu özellik şu an yanıt vermiyor. Geri dönüp uygulamayı kullanmaya devam edebilirsin."
-          detay={__DEV__ ? this.state.hata.message : null}
+          baslik="Bu bölüm geçici olarak kullanılamıyor"
+          aciklama="Geri dönüp uygulamayı kullanmaya devam edebilirsin."
+          detay={__DEV__ ? `${this.props.modulAdi}: ${this.state.hata.message}` : null}
           onTekrarDene={this.sifirla}
           fallbackHref={this.props.fallbackHref ?? '/(tabs)'}
         />
       );
+      // Parent flex vermezse sol-üste yapışmasın
+      if (varyant === 'ekran') {
+        return <View style={styles.dolgu}>{ekran}</View>;
+      }
+      return ekran;
     }
     return this.props.children;
   }
 }
+
+const styles = StyleSheet.create({
+  dolgu: {
+    flex: 1,
+    alignSelf: 'stretch',
+    width: '100%',
+    minHeight: 320,
+  },
+});

@@ -31,6 +31,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 function Avatar({
   url,
@@ -42,10 +43,11 @@ function Avatar({
   size?: number;
 }) {
   const harf = (ad.trim() || '?').charAt(0).toLocaleUpperCase('tr-TR');
-  if (url) {
+  const safe = MedyaUriGuvenli(url);
+  if (safe) {
     return (
       <Image
-        source={{ uri: url }}
+        source={{ uri: safe }}
         style={{
           width: size,
           height: size,

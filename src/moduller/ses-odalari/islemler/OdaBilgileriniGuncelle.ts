@@ -9,19 +9,25 @@ export type OdaBilgiGuncelleGirdi = {
 };
 
 /**
- * Oda sahibi: başlık / açıklama / kapak / tema günceller.
- * RLS: Hosts update own rooms.
+ * Oda sahibi veya yönetici (cohost): başlık / açıklama / kapak / tema.
+ * Başlık: security definer RPC (cohost RLS dışı).
+ * Diğer alanlar: host RLS (cover/topic/theme).
  */
 export async function OdaBilgileriniGuncelle(
   girdi: OdaBilgiGuncelleGirdi,
 ): Promise<{ ok: true } | { ok: false; hata: string }> {
-  const patch: Record<string, string | null> = {};
   if (girdi.title !== undefined) {
     const t = girdi.title.trim();
     if (!t) return { ok: false, hata: 'Başlık boş olamaz' };
     if (t.length > 40) return { ok: false, hata: 'Başlık en fazla 40 karakter' };
-    patch.title = t;
+    const { error } = await supabase.rpc('oda_basligini_guncelle', {
+      p_room_id: girdi.roomId,
+      p_title: t,
+    });
+    if (error) return { ok: false, hata: error.message };
   }
+
+  const patch: Record<string, string | null> = {};
   if (girdi.topic !== undefined) {
     const topic = girdi.topic?.trim() || null;
     if (topic && topic.length > 120) {
@@ -41,6 +47,7 @@ export async function OdaBilgileriniGuncelle(
   }
 
   if (Object.keys(patch).length === 0) {
+    if (girdi.title !== undefined) return { ok: true };
     return { ok: false, hata: 'Güncellenecek alan yok' };
   }
 

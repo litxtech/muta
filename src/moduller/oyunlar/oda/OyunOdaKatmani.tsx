@@ -90,6 +90,9 @@ export function OyunOdaKatmani({
     void import('../zeus/assets/preloadZeusAssets').then((m) => {
       m.warmZeusAssetsEarly();
     });
+    void import('../slot/assets/preloadNoxAssets').then((m) => {
+      m.warmNoxAssetsEarly();
+    });
   }, [startModalVisible]);
 
   // Eski Match-3 davetleri (veya kapali oyunlar) sessizce kapatilir.
@@ -148,7 +151,9 @@ export function OyunOdaKatmani({
         topGap={topGap}
         bottomGap={bottomGap}
         oyunModu={oyunModu}
-        onGapPress={phase === 'idle' ? onStartModalClose : undefined}
+        onGapPress={
+          phase === 'idle' ? onStartModalClose : closeOverlay
+        }
       >
         <OyunBaslatModal
           visible={startModalVisible && phase === 'idle'}

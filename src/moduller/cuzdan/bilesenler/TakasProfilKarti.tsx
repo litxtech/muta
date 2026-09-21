@@ -20,6 +20,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 const GOLD = ['#F8E7A0', '#D4AF37', '#B8860B', '#F0D78C'] as const;
 
@@ -43,6 +44,7 @@ export function TakasProfilKarti({
   onMesaj,
 }: Props) {
   const parilti = useSharedValue(0.35);
+  const safeAvatar = MedyaUriGuvenli(avatarUrl);
 
   useEffect(() => {
     parilti.value = withRepeat(
@@ -90,8 +92,8 @@ export function TakasProfilKarti({
               accessibilityLabel="Profili aç"
             >
               <View style={styles.avatarHalka}>
-                {avatarUrl ? (
-                  <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                {safeAvatar ? (
+                  <Image source={{ uri: safeAvatar }} style={styles.avatar} />
                 ) : (
                   <View style={[styles.avatar, styles.avatarBos]}>
                     <Text style={styles.avatarHarf}>{basHarf}</Text>

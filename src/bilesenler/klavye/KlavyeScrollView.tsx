@@ -133,19 +133,18 @@ export function KlavyeAlanaKaydir(scroll: ScrollLike, opts?: KaydirOpts) {
     const etkinUst =
       metrics && metrics.screenY > 0 ? metrics.screenY : KlavyeUstY();
 
-    if (alan?.measureInWindow) {
-      alan.measureInWindow((_x, y, _w, h) => {
-        const alanAlt = y + h;
-        const hedefAlt = etkinUst - ustBosluk;
-        const fazla = alanAlt - hedefAlt;
-        if (fazla > 4) {
-          scrollToY(scroll, scrollYAl(scroll) + fazla, animated);
-        }
-      });
-      return;
-    }
+    // Ölçüm yoksa scrollToEnd yapma — tüm sayfa yukarı fırlar
+    if (!alan?.measureInWindow) return;
+    if (etkinUst <= 0) return;
 
-    scroll.scrollToEnd?.({ animated });
+    alan.measureInWindow((_x, y, _w, h) => {
+      const alanAlt = y + h;
+      const hedefAlt = etkinUst - ustBosluk;
+      const fazla = alanAlt - hedefAlt;
+      if (fazla > 4) {
+        scrollToY(scroll, scrollYAl(scroll) + fazla, animated);
+      }
+    });
   };
 
   setTimeout(kaydir, delay);

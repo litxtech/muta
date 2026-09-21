@@ -7,12 +7,22 @@ export type DirektMesaj = {
   body: string | null;
   message_type: string;
   media_url?: string | null;
+  /** shared_post → status_posts.id */
+  ref_id?: string | null;
   client_id?: string | null;
   created_at: string;
   deleted_at?: string | null;
   /** Optimistic UI */
   _localStatus?: 'sending' | 'failed' | 'sent';
 };
+
+export async function MesajThreadEngelliMi(threadId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('mesaj_thread_engelli_mi', {
+    p_thread_id: threadId,
+  });
+  if (error) return false;
+  return !!data;
+}
 
 export async function MesajlariGetir(input: {
   threadId: string;
@@ -29,10 +39,16 @@ export async function MesajlariGetir(input: {
     return ((data as DirektMesaj[]) ?? []).reverse();
   }
 
+  // Engelli iletişim — fallback ile geçmiş açma
+  const msg = (error?.message ?? '').toLowerCase();
+  if (msg.includes('engellen') || msg.includes('blocked')) {
+    throw new Error('Bu kullaniciyla iletisim engellenmis');
+  }
+
   let q = supabase
     .from('direct_messages')
     .select(
-      'id, thread_id, sender_id, body, message_type, media_url, client_id, created_at, deleted_at',
+      'id, thread_id, sender_id, body, message_type, media_url, ref_id, client_id, created_at, deleted_at',
     )
     .eq('thread_id', input.threadId)
     .is('deleted_at', null)

@@ -19,7 +19,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: displayName,
   slug: 'muta',
   owner: 'mutaq',
-  version: '1.1.0',
+  version: '1.2.1',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'dark',
@@ -37,15 +37,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       CFBundleDisplayName: displayName,
       CFBundleName: APP_NAME,
+      // audio: (1) ses odası LiveKit arka plan, (2) durum/DM video Picture-in-Picture
+      // İncelemede bulunabilir olmalı — bkz. docs/store-review/PIP_ARKA_PLAN_SES.md
       UIBackgroundModes: ['remote-notification', 'audio'],
       NSCameraUsageDescription:
-        'Allow $(PRODUCT_NAME) to access your camera for messages, live video and KYC.',
+        'Tamuso uses the camera for profile photos, direct messages, live video calls, and identity verification (KYC). For example, you can take a selfie for KYC or share a photo in chat.',
       NSMicrophoneUsageDescription:
-        'Allow $(PRODUCT_NAME) to access your microphone for voice rooms and live.',
+        'Tamuso uses the microphone for voice rooms, live streams, and video/voice calls. For example, when you join a voice room as a speaker, audio is sent to other participants. Background audio keeps the room connected if you briefly leave the app.',
       NSBluetoothAlwaysUsageDescription:
-        'Allow $(PRODUCT_NAME) to use Bluetooth audio devices during calls.',
+        'Tamuso uses Bluetooth to connect headphones and headsets during voice rooms and calls.',
       NSBluetoothPeripheralUsageDescription:
-        'Allow $(PRODUCT_NAME) to connect to Bluetooth headsets.',
+        'Tamuso uses Bluetooth to connect headphones and headsets during voice rooms and calls.',
       ITSAppUsesNonExemptEncryption: false,
       LSApplicationQueriesSchemes: ['whatsapp', 'whatsapp-business'],
     },
@@ -152,7 +154,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         sounds: ['./assets/sounds/mesaj_uc_ton.wav'],
       },
     ],
-    'expo-video',
+    [
+      'expo-video',
+      {
+        supportsBackgroundPlayback: true,
+        supportsPictureInPicture: true,
+      },
+    ],
+    [
+      'expo-pip',
+      {
+        // Ses odası PiP sistem aksiyonu — monokrom beyaz X
+        icons: ['./assets/pip/pip_close.png'],
+      },
+    ],
     [
       'expo-splash-screen',
       {

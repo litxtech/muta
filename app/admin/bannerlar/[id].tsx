@@ -52,6 +52,7 @@ import {
   YaricapTokenlari,
 } from '../../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { AdminStil } from '../../../src/moduller/admin/bilesenler/AdminStil';
+import { MedyaUriGuvenli } from '../../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 const MEDIA_TYPES: BannerMediaType[] = [
   'IMAGE',
@@ -513,12 +514,12 @@ export default function AdminBannerDuzenleEkrani() {
                 onPress={() => void pickMedia('video')}
               />
             </View>
-            {!!form.media_url && (
+            {MedyaUriGuvenli(form.thumbnail_url || form.media_url) ? (
               <Image
-                source={{ uri: form.thumbnail_url || form.media_url }}
+                source={{ uri: MedyaUriGuvenli(form.thumbnail_url || form.media_url)! }}
                 style={styles.previewImg}
               />
-            )}
+            ) : null}
             <Input
               value={form.media_url ?? ''}
               onChangeText={(media_url) => patch({ media_url })}
@@ -851,14 +852,15 @@ export default function AdminBannerDuzenleEkrani() {
 }
 
 function PreviewCard({ form }: { form: BannerAdminSavePayload }) {
+  const onizleme = MedyaUriGuvenli(form.thumbnail_url || form.media_url);
   return (
     <View style={styles.localPreview}>
-      {!!form.media_url && (
+      {onizleme ? (
         <Image
-          source={{ uri: form.thumbnail_url || form.media_url }}
+          source={{ uri: onizleme }}
           style={styles.localPreviewImg}
         />
-      )}
+      ) : null}
       <Text style={styles.localTitle}>{form.title || form.name}</Text>
       <Text style={styles.hint}>{form.subtitle || form.description}</Text>
     </View>

@@ -33,7 +33,9 @@ export async function KullanicilariAra(input: {
   });
 
   if (error) {
-    // Eski sunucu fallback
+    // Fallback: kendi engellediklerimizi ve bizi engelleyenleri çıkar
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth.user?.id;
     const desen = `${q}%`;
     let istek = supabase
       .from('profiles')
@@ -43,11 +45,24 @@ export async function KullanicilariAra(input: {
         `username.ilike.${desen},display_name.ilike.${desen},public_user_id.ilike.${desen}`,
       )
       .order('display_name', { ascending: true })
-      .limit(input.limit ?? 20);
+      .limit((input.limit ?? 20) + 30);
     if (input.haricUserId) istek = istek.neq('id', input.haricUserId);
     const fb = await istek;
     if (fb.error) throw fb.error;
-    return (fb.data as ArananKullanici[]) ?? [];
+    let rows = (fb.data as ArananKullanici[]) ?? [];
+    if (uid) {
+      const { data: blocks } = await supabase
+        .from('user_blocks')
+        .select('blocker_id, blocked_id')
+        .or(`blocker_id.eq.${uid},blocked_id.eq.${uid}`);
+      const engelli = new Set<string>();
+      for (const b of blocks ?? []) {
+        if (b.blocker_id === uid) engelli.add(b.blocked_id);
+        if (b.blocked_id === uid) engelli.add(b.blocker_id);
+      }
+      rows = rows.filter((r) => !engelli.has(r.id));
+    }
+    return rows.slice(0, input.limit ?? 20);
   }
 
   let rows = (data as ArananKullanici[]) ?? [];

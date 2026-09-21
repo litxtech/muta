@@ -5,15 +5,18 @@ import type { KesfetFiltresi } from '../filtreler/KesfetFiltreleri';
 /**
  * Kesfet oneri — canli odalari filtre/sirala.
  */
+const KESFET_ODA_SELECT =
+  'id, host_id, title, topic, cover_url, mode, max_seats, is_live, is_locked, listener_count, total_coins_earned, created_at, room_code, host:profiles!rooms_host_id_fkey(id, display_name, username, avatar_url, level)';
+
 export async function KesfetOneriGetir(input: {
   filtre: KesfetFiltresi;
   mode?: RoomMode | null;
   limit?: number;
 }): Promise<Room[]> {
-  const limit = input.limit ?? 48;
+  const limit = Math.min(Math.max(input.limit ?? 48, 1), 80);
   let q = supabase
     .from('rooms')
-    .select('*, host:profiles!rooms_host_id_fkey(*)')
+    .select(KESFET_ODA_SELECT)
     .eq('is_live', true)
     .limit(limit);
 

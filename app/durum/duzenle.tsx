@@ -167,14 +167,20 @@ export default function DurumDuzenleEkrani() {
                   style={styles.caption}
                   value={caption}
                   onChangeText={setCaption}
-                  placeholder="Açıklama yaz… (isteğe bağlı)"
+                  placeholder={
+                    oge?.media_type === 'text'
+                      ? 'Ne düşünüyorsun?'
+                      : 'Açıklama yaz… (isteğe bağlı)'
+                  }
                   placeholderTextColor={RenkTokenlari.textDim}
                   multiline
-                  maxLength={500}
+                  maxLength={oge?.media_type === 'text' ? undefined : 500}
                   onFocus={metneKaydir}
                 />
               </View>
-              <Text style={styles.sayac}>{caption.length}/500</Text>
+              {oge?.media_type === 'text' ? null : (
+                <Text style={styles.sayac}>{caption.length}/500</Text>
+              )}
 
               {busy ? (
                 <ActivityIndicator color={RenkTokenlari.primarySoft} />

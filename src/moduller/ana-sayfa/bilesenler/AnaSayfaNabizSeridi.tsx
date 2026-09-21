@@ -17,6 +17,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { Room } from '../../../types/models';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 const MODE_LABEL: Record<Room['mode'], string> = {
   party: 'Parti',
@@ -44,7 +45,7 @@ export function AnaSayfaNabizSeridi({ odalar, onOdaPress }: Props) {
       snapToInterval={156}
     >
       {odalar.map((oda, index) => {
-        const kapak = oda.cover_url ?? oda.host?.avatar_url ?? null;
+        const kapak = MedyaUriGuvenli(oda.cover_url ?? oda.host?.avatar_url);
         return (
           <Pressable
             key={oda.id}

@@ -15,6 +15,7 @@ import type { PkMacZengin } from '../skor/PkSkorOku';
 import { PkKalanSaniye } from '../skor/PkSkorOlaylariniGetir';
 import { useGecikmeliPkOnizleme } from '../onizleme/useGecikmeliPkOnizleme';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
@@ -38,7 +39,7 @@ function tarafAd(mac: PkMacZengin, side: 'a' | 'b') {
 
 function tarafKapak(mac: PkMacZengin, side: 'a' | 'b') {
   const r = side === 'a' ? mac.side_a : mac.side_b;
-  return r?.cover_url ?? r?.avatar_url ?? null;
+  return MedyaUriGuvenli(r?.cover_url ?? r?.avatar_url);
 }
 
 /**
@@ -209,8 +210,8 @@ function TarafOnizleme({
   return (
     <View style={styles.taraf}>
       <View style={[styles.tarafCam, { borderColor: `${renk}66` }]}>
-        {kapak ? (
-          <Image source={{ uri: kapak }} style={styles.tarafImg} />
+        {MedyaUriGuvenli(kapak) ? (
+          <Image source={{ uri: MedyaUriGuvenli(kapak)! }} style={styles.tarafImg} />
         ) : (
           <LinearGradient
             colors={

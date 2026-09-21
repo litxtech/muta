@@ -8,6 +8,7 @@ import React, {
   useState,
 } from 'react';
 import { Modal, Keyboard } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -17,6 +18,7 @@ import {
 } from '../islemler/GorusmeIslemleri';
 import { KullanicilarEngelliMi } from '../../moderasyon/islemler/ModerasyonIslemleri';
 import type { DirectCall } from '../tipler';
+import { GorusmeOturumAl } from '../oturum/GorusmeOturumYoneticisi';
 
 /** LiveKit VideoView zincirini app acilisinda yukleme */
 function GorusmeGelenEkraniLazy(
@@ -76,6 +78,9 @@ export function GorusmeGelenSaglayici({
     const goster = async (c: DirectCall) => {
       if (c.status !== 'ringing') return;
       if (gelenIdRef.current === c.id) return;
+      // Aktif görüşme varken ikinci arama UI'sı açma
+      const aktif = GorusmeOturumAl();
+      if (aktif && aktif.callId !== c.id) return;
 
       // Once UI — profili bekleme
       setGelen(c);
@@ -212,17 +217,22 @@ export function GorusmeGelenSaglayici({
         visible={!!gelen}
         animationType="fade"
         presentationStyle="fullScreen"
+        statusBarTranslucent
+        transparent={false}
         onRequestClose={() => void red()}
       >
-        {gelen ? (
-          <GorusmeGelenEkraniLazy
-            peerName={peerName}
-            peerAvatar={peerAvatar}
-            callType={gelen.call_type}
-            onAccept={() => void kabul()}
-            onReject={() => void red()}
-          />
-        ) : null}
+        {/* Modal kendi window'unda inset kaybeder — provider şart */}
+        <SafeAreaProvider>
+          {gelen ? (
+            <GorusmeGelenEkraniLazy
+              peerName={peerName}
+              peerAvatar={peerAvatar}
+              callType={gelen.call_type}
+              onAccept={() => void kabul()}
+              onReject={() => void red()}
+            />
+          ) : null}
+        </SafeAreaProvider>
       </Modal>
     </GorusmeCtx.Provider>
   );

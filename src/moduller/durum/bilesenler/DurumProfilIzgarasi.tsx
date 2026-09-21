@@ -9,8 +9,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { DurumOggesi } from '../islemler/DurumIslemleri';
-import { DurumOyunKazanciPayloadAl } from '../islemler/DurumIslemleri';
+import {
+  DurumMedyaHttpsMi,
+  DurumOyunKazanciPayloadAl,
+} from '../islemler/DurumIslemleri';
 import { DurumOyunKazanciKart } from './DurumOyunKazanciKart';
+import { DurumVideoOnizleme } from './DurumVideoOnizleme';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -63,7 +67,9 @@ export function DurumProfilIzgarasi({
         <Text style={styles.bos}>{bosMetin}</Text>
       ) : (
         <View style={styles.grid}>
-          {items.map((oge) => {
+          {items
+            .filter((oge) => oge && typeof oge.id === 'string' && oge.id.length > 0)
+            .map((oge) => {
             const kazanc = DurumOyunKazanciPayloadAl(oge);
             return (
               <Pressable
@@ -81,14 +87,20 @@ export function DurumProfilIzgarasi({
                 {kazanc ? (
                   <DurumOyunKazanciKart payload={kazanc} compact />
                 ) : oge.media_type === 'video' ? (
-                  // Profil ızgarasında native VideoPlayer mount etme — çoklu
-                  // player çökme / hata ekranı riski. Statik kare + play.
                   <View style={[styles.img, styles.imgBos]}>
-                    <Ionicons
-                      name="play-circle"
-                      size={28}
-                      color="rgba(255,255,255,0.75)"
+                    <DurumVideoOnizleme
+                      uri={oge.media_url}
+                      style={StyleSheet.absoluteFill}
+                      aktif={DurumMedyaHttpsMi(oge.media_url)}
+                      mod="kare"
                     />
+                    {!DurumMedyaHttpsMi(oge.media_url) ? (
+                      <Ionicons
+                        name="play-circle"
+                        size={28}
+                        color="rgba(255,255,255,0.75)"
+                      />
+                    ) : null}
                   </View>
                 ) : typeof oge.media_url === 'string' &&
                   /^https?:\/\//i.test(oge.media_url.trim()) ? (
@@ -97,7 +109,11 @@ export function DurumProfilIzgarasi({
                     style={styles.img}
                   />
                 ) : (
-                  <View style={[styles.img, styles.imgBos]} />
+                  <View style={[styles.img, styles.imgBos, styles.imgMetin]}>
+                    <Text style={styles.metinOnizleme} numberOfLines={4}>
+                      {oge.caption?.trim() || 'Durum'}
+                    </Text>
+                  </View>
                 )}
                 {oge.media_type === 'video' && !kazanc ? (
                   <View style={styles.videoBadge} pointerEvents="none">
@@ -170,6 +186,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a22',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  imgMetin: {
+    padding: 8,
+    backgroundColor: RenkTokenlari.bgCard,
+  },
+  metinOnizleme: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 14,
   },
   videoBadge: {
     position: 'absolute',

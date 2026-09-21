@@ -9,6 +9,9 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { IcerikGuvenlikDugmesi } from '../moduller/moderasyon/bilesenler/IcerikGuvenlikDugmesi';
+import { useAuth } from '../contexts/AuthContext';
 import type { Room } from '../types/models';
 
 const MODE_LABEL: Record<Room['mode'], string> = {
@@ -26,15 +29,18 @@ type Props = {
   variant?: 'avatar' | 'kart';
 };
 
-export function RoomCard({ room, onPress, variant = 'kart' }: Props) {
+function RoomCardBase({ room, onPress, variant = 'kart' }: Props) {
   if (variant === 'avatar') {
     return <AvatarKart room={room} onPress={onPress} />;
   }
   return <KapakKart room={room} onPress={onPress} />;
 }
 
+export const RoomCard = React.memo(RoomCardBase);
+
 function AvatarKart({ room, onPress }: { room: Room; onPress: () => void }) {
-  const kapak = room.cover_url ?? room.host?.avatar_url ?? null;
+  const { isGuest } = useAuth();
+  const kapak = MedyaUriGuvenli(room.cover_url ?? room.host?.avatar_url);
 
   return (
     <Pressable
@@ -65,6 +71,18 @@ function AvatarKart({ room, onPress }: { room: Room; onPress: () => void }) {
           <Ionicons name="headset" size={9} color={RenkTokenlari.text} />
           <Text style={styles.avatarDinleyiciYazi}>{room.listener_count}</Text>
         </View>
+        <View style={styles.avatarMenu}>
+          <IcerikGuvenlikDugmesi
+            tur="room"
+            contentId={room.id}
+            roomId={room.id}
+            targetUserId={room.host_id ?? room.host?.id}
+            title={room.title}
+            isGuest={isGuest}
+            koyu
+            hitSlop={6}
+          />
+        </View>
       </View>
 
       <Text style={styles.avatarBaslik} numberOfLines={2}>
@@ -80,7 +98,8 @@ function AvatarKart({ room, onPress }: { room: Room; onPress: () => void }) {
 }
 
 function KapakKart({ room, onPress }: { room: Room; onPress: () => void }) {
-  const kapak = room.cover_url ?? room.host?.avatar_url ?? null;
+  const { isGuest } = useAuth();
+  const kapak = MedyaUriGuvenli(room.cover_url ?? room.host?.avatar_url);
 
   return (
     <Pressable onPress={onPress} style={styles.press}>
@@ -105,7 +124,18 @@ function KapakKart({ room, onPress }: { room: Room; onPress: () => void }) {
             <AnaSayfaCanliNokta boyut={5} />
             <Text style={styles.liveText}>CANLI</Text>
           </View>
-          <Text style={styles.mode}>{MODE_LABEL[room.mode]}</Text>
+          <View style={styles.topSag}>
+            <Text style={styles.mode}>{MODE_LABEL[room.mode]}</Text>
+            <IcerikGuvenlikDugmesi
+              tur="room"
+              contentId={room.id}
+              roomId={room.id}
+              targetUserId={room.host_id ?? room.host?.id}
+              title={room.title}
+              isGuest={isGuest}
+              koyu
+            />
+          </View>
         </View>
 
         <View style={styles.copy}>
@@ -210,6 +240,12 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
   },
+  avatarMenu: {
+    position: 'absolute',
+    top: -4,
+    left: -6,
+    zIndex: 2,
+  },
   avatarBaslik: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.text,
@@ -247,6 +283,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: BoslukTokenlari.sm + 2,
     paddingTop: BoslukTokenlari.sm + 2,
+  },
+  topSag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   livePill: {
     flexDirection: 'row',

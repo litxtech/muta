@@ -1,14 +1,17 @@
 /**
- * Ses odası — profil kartı (aşağıdan yukarı kayar).
- * Kendi profil veya oda sahibi / yorum yazarı için kullanılır.
+ * Profil kartı sheet — aşağıdan yukarı kayar (~ekranın yarısından biraz fazla).
+ * Ses odası / canlı yayın yorum avatar-isim tıklarında kullanılır.
  */
 
-import React, { memo } from 'react';
+import React, { memo, useCallback, useEffect, useState } from 'react';
 import {
+  Alert,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,14 +24,26 @@ import Animated, {
   SlideOutDown,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { ProfilAvatarKucuk } from '../../canli-sohbet/bilesenler/ProfilAvatarKucuk';
+import { ProfilMedyaBuyutucu } from '../../kullanici-profili/bilesenler/ProfilMedyaBuyutucu';
+import { ProfilIstatistikleriniGetir } from '../../kullanici-profili/istatistik/ProfilIstatistikleriniGetir';
 import { SeviyeTaci } from './SeviyeTaci';
+import { TakipButonu } from '../../takip/bilesenler/TakipButonu';
+import { useTakipDurumu } from '../../takip/kancalar/useTakipDurumu';
+import { useTakipMutasyonu } from '../../takip/kancalar/useTakipEt';
+import { takiptenCikOnayi } from '../../takip/bilesenler/TakipOnaySheet';
+import { TakipHataMesaji } from '../../takip/TakipHataMesajlari';
+import { TakipSayaciniFormatla } from '../../takip/TakipSayacFormat';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 type Props = {
   visible: boolean;
   onClose: () => void;
+  userId?: string | null;
+  viewerId?: string | null;
+  isGuest?: boolean;
   displayName?: string | null;
   username?: string | null;
   avatarUrl?: string | null;
@@ -36,9 +51,14 @@ type Props = {
   level?: number | null;
   coins?: number | null;
   diamonds?: number | null;
+  followersCount?: number | null;
+  followingCount?: number | null;
   /** Sheet başlığı — örn. "Oda sahibi" */
   baslik?: string;
   onProfilAc?: () => void;
+  onNeedUpgrade?: () => void;
+  /** Ekran yüksekliğinin oranı — varsayılan ~0.58 (yarıdan biraz fazla) */
+  yukseklikOrani?: number;
 };
 
 const SHEET_GIRIS = SlideInDown.duration(300).easing(Easing.out(Easing.cubic));
@@ -57,6 +77,9 @@ function formatSayi(n: number) {
 function OdaProfilKartiPaneliInner({
   visible,
   onClose,
+  userId,
+  viewerId,
+  isGuest,
   displayName,
   username,
   avatarUrl,
@@ -64,144 +87,300 @@ function OdaProfilKartiPaneliInner({
   level,
   coins,
   diamonds,
+  followersCount: followersProp,
+  followingCount: followingProp,
   baslik = 'Profil bilgileri',
   onProfilAc,
+  onNeedUpgrade,
+  yukseklikOrani = 0.58,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { height: ekranH } = useWindowDimensions();
   const ad = displayName?.trim() || username?.trim() || 'Profil';
   const handle = username?.trim() ? `@${username.trim()}` : null;
   const seviye = level && level > 0 ? level : 0;
   const cuzdanGoster = coins != null || diamonds != null;
+  const kendi = !!userId && !!viewerId && userId === viewerId;
+
+  const [avatarBuyuk, setAvatarBuyuk] = useState<string | null>(null);
+  const [followers, setFollowers] = useState(followersProp ?? 0);
+  const [following, setFollowing] = useState(followingProp ?? 0);
+
+  const { durum, setDurum } = useTakipDurumu(
+    visible && userId && !kendi ? userId : null,
+  );
+  const { calistir, isleniyor } = useTakipMutasyonu({
+    targetUserId: userId ?? '',
+    viewerId,
+    durum,
+    setDurum,
+  });
+
+  useEffect(() => {
+    if (!visible) {
+      setAvatarBuyuk(null);
+      return;
+    }
+    setFollowers(followersProp ?? 0);
+    setFollowing(followingProp ?? 0);
+  }, [visible, followersProp, followingProp]);
+
+  useEffect(() => {
+    if (!visible || !userId) return;
+    let iptal = false;
+    void ProfilIstatistikleriniGetir(userId)
+      .then((s) => {
+        if (iptal || !s) return;
+        setFollowers(s.followers_count ?? 0);
+        setFollowing(s.following_count ?? 0);
+      })
+      .catch(() => undefined);
+    return () => {
+      iptal = true;
+    };
+  }, [visible, userId]);
+
+  useEffect(() => {
+    if (durum?.followers_count != null) setFollowers(durum.followers_count);
+    if (durum?.following_count != null) setFollowing(durum.following_count);
+  }, [durum?.followers_count, durum?.following_count]);
+
+  const takipBas = useCallback(() => {
+    if (!userId) return;
+    if (isGuest) {
+      onNeedUpgrade?.();
+      Alert.alert('Takip', 'Takip için hesabını tamamla.');
+      return;
+    }
+    const st = durum?.state;
+    if (st === 'FOLLOWING' || st === 'MUTUAL') {
+      takiptenCikOnayi(username, () => {
+        void calistir('unfollow').then((r) => {
+          if (!r.ok) Alert.alert('Takip', r.hata ?? TakipHataMesaji(r.code));
+        });
+      });
+      return;
+    }
+    if (st === 'REQUEST_PENDING') {
+      void calistir('cancel').then((r) => {
+        if (!r.ok) Alert.alert('Takip', r.hata ?? TakipHataMesaji(r.code));
+      });
+      return;
+    }
+    void calistir('follow').then((r) => {
+      if (!r.ok) Alert.alert('Takip', r.hata ?? TakipHataMesaji(r.code));
+    });
+  }, [userId, isGuest, onNeedUpgrade, durum?.state, username, calistir]);
+
+  const listeAc = (tur: 'followers' | 'following') => {
+    if (!userId) return;
+    onClose();
+    const path =
+      tur === 'followers'
+        ? `/takip/takipciler?userId=${userId}`
+        : `/takip/takip-edilenler?userId=${userId}`;
+    router.push(path as any);
+  };
 
   if (!visible) return null;
 
+  const sheetH = Math.round(ekranH * yukseklikOrani);
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={onClose}
-    >
-      <View style={styles.root} pointerEvents="box-none">
-        <Animated.View
-          entering={PERDE_GIRIS}
-          exiting={PERDE_CIKIS}
-          style={styles.perde}
-        >
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel="Kapat"
-          />
-        </Animated.View>
-
-        <Animated.View
-          entering={SHEET_GIRIS}
-          exiting={SHEET_CIKIS}
-          style={[
-            styles.sheet,
-            { paddingBottom: Math.max(insets.bottom, 16) + 8 },
-          ]}
-        >
-          <LinearGradient
-            colors={['#2A1C08', '#141018', '#0C0A10']}
-            style={StyleSheet.absoluteFill}
-          />
-          <View style={styles.handle} />
-
-          <View style={styles.baslikSatir}>
-            <Text style={styles.baslik}>{baslik}</Text>
-            <Pressable
-              onPress={onClose}
-              style={styles.kapatBtn}
-              accessibilityLabel="Kapat"
-              hitSlop={8}
-            >
-              <Ionicons name="close" size={20} color="#FFE08A" />
-            </Pressable>
-          </View>
-
-          <LinearGradient
-            colors={[...ALTIN]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.kartCerceve}
+    <>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+        onRequestClose={onClose}
+      >
+        <View style={styles.root} pointerEvents="box-none">
+          <Animated.View
+            entering={PERDE_GIRIS}
+            exiting={PERDE_CIKIS}
+            style={styles.perde}
           >
-            <View style={styles.kartIc}>
-              <View style={styles.avatarWrap}>
-                <SeviyeTaci level={seviye} size="lg" avatarBoy={72}>
-                  <ProfilAvatarKucuk
-                    size={72}
-                    displayName={displayName}
-                    username={username}
-                    avatarUrl={avatarUrl}
-                  />
-                </SeviyeTaci>
-              </View>
-
-              <Text style={styles.ad}>{ad}</Text>
-              {handle ? <Text style={styles.handle}>{handle}</Text> : null}
-
-              {seviye > 0 ? (
-                <View style={styles.seviyePill}>
-                  <Text style={styles.seviyeText}>Seviye {seviye}</Text>
-                </View>
-              ) : null}
-
-              {bio?.trim() ? (
-                <Text style={styles.bio} numberOfLines={3}>
-                  {bio.trim()}
-                </Text>
-              ) : null}
-
-              {cuzdanGoster ? (
-                <View style={styles.istatistikler}>
-                  <View style={styles.stat}>
-                    <Text style={styles.statEmoji}>🪙</Text>
-                    <Text style={styles.statDeger}>
-                      {formatSayi(Math.max(0, coins ?? 0))}
-                    </Text>
-                    <Text style={styles.statEtiket}>Coin</Text>
-                  </View>
-                  <View style={styles.statAyir} />
-                  <View style={styles.stat}>
-                    <Text style={styles.statEmoji}>💎</Text>
-                    <Text style={styles.statDeger}>
-                      {formatSayi(Math.max(0, diamonds ?? 0))}
-                    </Text>
-                    <Text style={styles.statEtiket}>Elmas</Text>
-                  </View>
-                </View>
-              ) : null}
-            </View>
-          </LinearGradient>
-
-          {onProfilAc ? (
             <Pressable
-              onPress={() => {
-                onClose();
-                onProfilAc();
-              }}
-              style={styles.cta}
+              style={StyleSheet.absoluteFill}
+              onPress={onClose}
               accessibilityRole="button"
-              accessibilityLabel="Tam profili aç"
+              accessibilityLabel="Kapat"
+            />
+          </Animated.View>
+
+          <Animated.View
+            entering={SHEET_GIRIS}
+            exiting={SHEET_CIKIS}
+            style={[
+              styles.sheet,
+              {
+                height: sheetH,
+                paddingBottom: Math.max(insets.bottom, 16) + 8,
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={['#2A1C08', '#141018', '#0C0A10']}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.handle} />
+
+            <View style={styles.baslikSatir}>
+              <Text style={styles.baslik}>{baslik}</Text>
+              <Pressable
+                onPress={onClose}
+                style={styles.kapatBtn}
+                accessibilityLabel="Kapat"
+                hitSlop={8}
+              >
+                <Ionicons name="close" size={20} color="#FFE08A" />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.scrollIc}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
             >
               <LinearGradient
                 colors={[...ALTIN]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={styles.ctaIc}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.kartCerceve}
               >
-                <Text style={styles.ctaText}>Profil sayfasına git</Text>
-                <Ionicons name="arrow-forward" size={18} color="#2A1800" />
+                <View style={styles.kartIc}>
+                  <Pressable
+                    onPress={() => {
+                      if (avatarUrl?.trim()) setAvatarBuyuk(avatarUrl.trim());
+                    }}
+                    style={styles.avatarWrap}
+                    accessibilityRole="button"
+                    accessibilityLabel="Profil fotoğrafını büyüt"
+                    disabled={!avatarUrl?.trim()}
+                  >
+                    <SeviyeTaci level={seviye} size="lg" avatarBoy={72}>
+                      <ProfilAvatarKucuk
+                        size={72}
+                        displayName={displayName}
+                        username={username}
+                        avatarUrl={avatarUrl}
+                      />
+                    </SeviyeTaci>
+                    {avatarUrl?.trim() ? (
+                      <View style={styles.buyutRozet}>
+                        <Ionicons name="expand-outline" size={12} color="#2A1800" />
+                      </View>
+                    ) : null}
+                  </Pressable>
+
+                  <Text style={styles.ad}>{ad}</Text>
+                  {handle ? <Text style={styles.handle}>{handle}</Text> : null}
+
+                  {seviye > 0 ? (
+                    <View style={styles.seviyePill}>
+                      <Text style={styles.seviyeText}>Seviye {seviye}</Text>
+                    </View>
+                  ) : null}
+
+                  {bio?.trim() ? (
+                    <Text style={styles.bio} numberOfLines={4}>
+                      {bio.trim()}
+                    </Text>
+                  ) : null}
+
+                  <View style={styles.sosyalSatir}>
+                    <Pressable
+                      style={styles.sosyalStat}
+                      onPress={() => listeAc('following')}
+                      accessibilityRole="button"
+                      accessibilityLabel="Takip edilenler"
+                    >
+                      <Text style={styles.sosyalDeger}>
+                        {TakipSayaciniFormatla(following)}
+                      </Text>
+                      <Text style={styles.sosyalEtiket}>Takip</Text>
+                    </Pressable>
+                    <View style={styles.statAyir} />
+                    <Pressable
+                      style={styles.sosyalStat}
+                      onPress={() => listeAc('followers')}
+                      accessibilityRole="button"
+                      accessibilityLabel="Takipçiler"
+                    >
+                      <Text style={styles.sosyalDeger}>
+                        {TakipSayaciniFormatla(followers)}
+                      </Text>
+                      <Text style={styles.sosyalEtiket}>Takipçi</Text>
+                    </Pressable>
+                  </View>
+
+                  {cuzdanGoster ? (
+                    <View style={styles.istatistikler}>
+                      <View style={styles.stat}>
+                        <Text style={styles.statEmoji}>🪙</Text>
+                        <Text style={styles.statDeger}>
+                          {formatSayi(Math.max(0, coins ?? 0))}
+                        </Text>
+                        <Text style={styles.statEtiket}>Coin</Text>
+                      </View>
+                      <View style={styles.statAyir} />
+                      <View style={styles.stat}>
+                        <Text style={styles.statEmoji}>💎</Text>
+                        <Text style={styles.statDeger}>
+                          {formatSayi(Math.max(0, diamonds ?? 0))}
+                        </Text>
+                        <Text style={styles.statEtiket}>Elmas</Text>
+                      </View>
+                    </View>
+                  ) : null}
+                </View>
               </LinearGradient>
-            </Pressable>
-          ) : null}
-        </Animated.View>
-      </View>
-    </Modal>
+
+              {userId && !kendi ? (
+                <View style={styles.takipWrap}>
+                  <TakipButonu
+                    state={durum?.state ?? 'NOT_FOLLOWING'}
+                    displayName={ad}
+                    loading={isleniyor}
+                    onPress={takipBas}
+                  />
+                </View>
+              ) : null}
+
+              {onProfilAc ? (
+                <Pressable
+                  onPress={() => {
+                    onClose();
+                    onProfilAc();
+                  }}
+                  style={styles.cta}
+                  accessibilityRole="button"
+                  accessibilityLabel="Tam profili aç"
+                >
+                  <LinearGradient
+                    colors={[...ALTIN]}
+                    start={{ x: 0, y: 0.5 }}
+                    end={{ x: 1, y: 0.5 }}
+                    style={styles.ctaIc}
+                  >
+                    <Text style={styles.ctaText}>Profil sayfasına git</Text>
+                    <Ionicons name="arrow-forward" size={18} color="#2A1800" />
+                  </LinearGradient>
+                </Pressable>
+              ) : null}
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      <ProfilMedyaBuyutucu
+        uri={avatarBuyuk}
+        onKapat={() => setAvatarBuyuk(null)}
+        tur="avatar"
+      />
+    </>
   );
 }
 
@@ -237,7 +416,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   baslik: {
     ...TipografiTokenlari.title,
@@ -255,6 +434,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(240,180,41,0.28)',
   },
+  scroll: { flex: 1 },
+  scrollIc: { paddingBottom: 8, gap: 12 },
   kartCerceve: {
     borderRadius: 20,
     padding: 1.5,
@@ -269,6 +450,19 @@ const styles = StyleSheet.create({
   avatarWrap: {
     marginBottom: 12,
     position: 'relative',
+  },
+  buyutRozet: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F0B429',
+    borderWidth: 1.5,
+    borderColor: '#2A1800',
   },
   ad: {
     ...TipografiTokenlari.title,
@@ -305,10 +499,34 @@ const styles = StyleSheet.create({
     marginTop: 12,
     lineHeight: 20,
   },
-  istatistikler: {
+  sosyalSatir: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 18,
+    gap: 8,
+  },
+  sosyalStat: {
+    alignItems: 'center',
+    minWidth: 88,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: 'rgba(240,180,41,0.1)',
+  },
+  sosyalDeger: {
+    ...TipografiTokenlari.body,
+    color: '#FFE08A',
+    fontWeight: '800',
+  },
+  sosyalEtiket: {
+    ...TipografiTokenlari.micro,
+    color: 'rgba(255,224,138,0.6)',
+    marginTop: 2,
+  },
+  istatistikler: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 14,
     gap: 8,
   },
   stat: {
@@ -338,8 +556,11 @@ const styles = StyleSheet.create({
     color: 'rgba(255,224,138,0.6)',
     marginTop: 2,
   },
+  takipWrap: {
+    marginTop: 4,
+  },
   cta: {
-    marginTop: 16,
+    marginTop: 4,
     borderRadius: 16,
     overflow: 'hidden',
   },

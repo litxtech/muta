@@ -39,7 +39,9 @@ function olayAdi(type: string): string {
   const map: Record<string, string> = {
     report_submitted: 'Rapor gönderildi',
     child_safety_report: 'Çocuk koruma raporu',
+    user_block: 'Kullanıcı engellendi',
     user_blocked: 'Kullanıcı engellendi',
+    user_unblock: 'Engel kaldırıldı',
     user_unblocked: 'Engel kaldırıldı',
     account_restricted: 'Hesap kısıtlandı',
     login_anomaly: 'Şüpheli giriş',
@@ -251,6 +253,18 @@ export default function GuvenlikMerkeziEkrani() {
 
           <Text style={AdminStil.sectionLabel}>Araçlar</Text>
           <View style={AdminStil.kart}>
+            <LinkSatir
+              icon="flag-outline"
+              label="Kullanıcı bildir"
+              hint="Ara · sebep seç · raporla"
+              onPress={() => router.push('/bildir' as any)}
+            />
+            <LinkSatir
+              icon="documents-outline"
+              label="Raporlarım"
+              hint="Durum takibi"
+              onPress={() => router.push('/raporlarim' as any)}
+            />
             <LinkSatir
               icon="document-text-outline"
               label="Çocuk koruma politikası"

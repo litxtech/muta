@@ -30,6 +30,9 @@ import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { TamusoBanner } from '../../src/banner';
+import { GorusmeGecmisPaneli } from '../../src/moduller/gorusme/bilesenler/GorusmeGecmisPaneli';
+
+type Sekme = 'sohbet' | 'arsiv' | 'gorusme';
 
 export default function MessagesScreen() {
   const acik = OzellikBayragiAktifMi('messages_enabled');
@@ -37,7 +40,8 @@ export default function MessagesScreen() {
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
   const { sayfayiAcincaTemizle, yenile: mesajRozetYenile } = useMesajOkunmamis();
   const [konular, setKonular] = useState<MesajKonusu[]>([]);
-  const [arsivModu, setArsivModu] = useState(false);
+  const [sekme, setSekme] = useState<Sekme>('sohbet');
+  const arsivModu = sekme === 'arsiv';
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const ilkYuklemeBitti = React.useRef(false);
@@ -149,16 +153,18 @@ export default function MessagesScreen() {
     ? 'Mesajlaşma şu an kapalı'
     : isGuest
       ? 'Mesaj göndermek için hesabını tamamla'
-      : arsivModu
+      : sekme === 'arsiv'
         ? 'Arşivlenmiş sohbetler'
-        : 'Anlık mesajlaşma · foto & video';
+        : sekme === 'gorusme'
+          ? 'Devam eden ve geçmiş görüşmeler'
+          : 'Anlık mesajlaşma · foto & video';
 
   return (
     <Screen edges={['top']} tabSayfaKaydir>
       <ModulHataSiniri modulAdi="mesajlasma">
         <MesajMarkaBasligi
           altYazi={altYazi}
-          sohbetSayisi={konular.length}
+          sohbetSayisi={sekme === 'gorusme' ? 0 : konular.length}
           onYeniSohbet={yeniSohbet}
         />
 
@@ -172,57 +178,78 @@ export default function MessagesScreen() {
 
         <View style={styles.tabs}>
           <Pressable
-            style={[styles.tab, !arsivModu && styles.tabAktif]}
-            onPress={() => setArsivModu(false)}
+            style={[styles.tab, sekme === 'sohbet' && styles.tabAktif]}
+            onPress={() => setSekme('sohbet')}
           >
-            <Text style={[styles.tabText, !arsivModu && styles.tabTextAktif]}>
+            <Text
+              style={[styles.tabText, sekme === 'sohbet' && styles.tabTextAktif]}
+            >
               Sohbetler
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.tab, arsivModu && styles.tabAktif]}
-            onPress={() => setArsivModu(true)}
+            style={[styles.tab, sekme === 'gorusme' && styles.tabAktif]}
+            onPress={() => setSekme('gorusme')}
           >
-            <Text style={[styles.tabText, arsivModu && styles.tabTextAktif]}>
+            <Text
+              style={[
+                styles.tabText,
+                sekme === 'gorusme' && styles.tabTextAktif,
+              ]}
+            >
+              Görüşmeler
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.tab, sekme === 'arsiv' && styles.tabAktif]}
+            onPress={() => setSekme('arsiv')}
+          >
+            <Text
+              style={[styles.tabText, sekme === 'arsiv' && styles.tabTextAktif]}
+            >
               Arşiv
             </Text>
           </Pressable>
         </View>
 
-        <FlatList
-          data={konular}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => void load('pull')}
-              tintColor={RenkTokenlari.primary}
-            />
-          }
-          contentContainerStyle={[
-            styles.list,
-            konular.length === 0 && styles.listEmpty,
-          ]}
-          ItemSeparatorComponent={() => <View style={styles.sep} />}
-          ListEmptyComponent={
-            <MesajBosDurum
-              misafir={isGuest}
-              kapali={!acik}
-              onAksiyon={yeniSohbet}
-            />
-          }
-          renderItem={({ item }) => (
-            <MesajKonuKarti
-              konu={item}
-              onPress={() => {
-                if (!item?.id) return;
-                router.push(`/mesaj/${item.id}` as any);
-              }}
-              onLongPress={() => konuMenu(item)}
-            />
-          )}
-        />
+        {sekme === 'gorusme' ? (
+          <GorusmeGecmisPaneli misafir={isGuest} />
+        ) : (
+          <FlatList
+            data={konular}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => void load('pull')}
+                tintColor={RenkTokenlari.primary}
+              />
+            }
+            contentContainerStyle={[
+              styles.list,
+              konular.length === 0 && styles.listEmpty,
+            ]}
+            ItemSeparatorComponent={() => <View style={styles.sep} />}
+            ListEmptyComponent={
+              <MesajBosDurum
+                misafir={isGuest}
+                kapali={!acik}
+                onAksiyon={yeniSohbet}
+              />
+            }
+            renderItem={({ item }) => (
+              <MesajKonuKarti
+                konu={item}
+                onPress={() => {
+                  if (!item?.id) return;
+                  router.push(`/mesaj/${item.id}` as any);
+                }}
+                onLongPress={() => konuMenu(item)}
+              />
+            )}
+          />
+        )}
 
         <HesabiTamamlaKarti
           visible={upgradeAcik}

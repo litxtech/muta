@@ -67,6 +67,7 @@ export type AdminRapor = {
   content_id?: string | null;
   context?: Record<string, unknown> | null;
   admin_note?: string | null;
+  reporter_note?: string | null;
   ozet?: string | null;
   reporter?: AdminRaporKisi | null;
   target?: AdminRaporKisi | null;
@@ -96,7 +97,49 @@ export type AdminRaporDetay = {
     mode?: string;
     is_live?: boolean;
     host_id?: string;
+    listener_count?: number;
+    cover_url?: string | null;
+    topic?: string | null;
+    room_code?: string | null;
   } | null;
+  live_session?: {
+    id: string;
+    title: string | null;
+    mode?: string | null;
+    is_live?: boolean;
+    host_id?: string;
+    viewer_count?: number | null;
+    like_count?: number | null;
+    gift_count?: number | null;
+    started_at?: string | null;
+    ended_at?: string | null;
+  } | null;
+  konusmacilar?: Array<{
+    user_id: string;
+    seat_index: number;
+    is_muted?: boolean;
+    is_mic_locked?: boolean;
+    display_name?: string | null;
+    username?: string | null;
+    avatar_url?: string | null;
+    role?: string | null;
+  }>;
+  uyeler?: Array<{
+    user_id: string;
+    role: string;
+    display_name?: string | null;
+    username?: string | null;
+    avatar_url?: string | null;
+  }>;
+  son_sohbet?: Array<{
+    id: string;
+    body: string | null;
+    user_id: string;
+    display_name?: string | null;
+    created_at: string;
+    removed_at?: string | null;
+  }>;
+  href?: string | null;
   icerik: {
     canli: Record<string, unknown> | null;
     snapshot: Record<string, unknown> | null;

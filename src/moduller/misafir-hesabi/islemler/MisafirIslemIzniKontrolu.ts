@@ -18,6 +18,7 @@ export type MisafirEngelliIslem =
   | 'takas'
   | 'kyc'
   | 'destek'
+  | 'fikir'
   | 'pk_baslat'
   | 'oyun_baslat';
 
@@ -37,6 +38,7 @@ const ENGELLI: Record<MisafirEngelliIslem, true> = {
   takas: true,
   kyc: true,
   destek: true,
+  fikir: true,
   pk_baslat: true,
   oyun_baslat: true,
 };

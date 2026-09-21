@@ -55,6 +55,7 @@ import {
 } from '../../src/moduller/cuzdan/katalog/CoinTryOrani';
 import { AjansNoQrPayload } from '../../src/moduller/cuzdan/takas/CuzdanTakasIslemleri';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
@@ -149,8 +150,8 @@ function UyeKart({ uye }: { uye: AjansUyeOzet }) {
       onPress={() => router.push(`/kullanici/${uye.user_id}` as any)}
     >
       <View style={styles.uyeSol}>
-        {uye.avatar_url ? (
-          <Image source={{ uri: uye.avatar_url }} style={styles.avatar} />
+        {MedyaUriGuvenli(uye.avatar_url) ? (
+          <Image source={{ uri: MedyaUriGuvenli(uye.avatar_url)! }} style={styles.avatar} />
         ) : (
           <View style={[styles.avatar, styles.avatarBos]}>
             <Ionicons name="person" size={18} color={RenkTokenlari.textDim} />
@@ -294,8 +295,8 @@ export default function AjansPanelEkrani() {
       setProfilSlogan(d.agency.slogan ?? '');
       setProfilUlke(d.agency.country ?? '');
       setProfilAciklama(d.agency.description ?? '');
-      setLogoUrl(d.agency.logo_url ?? null);
-      setBannerUrl(d.agency.banner_url ?? null);
+      setLogoUrl(MedyaUriGuvenli(d.agency.logo_url));
+      setBannerUrl(MedyaUriGuvenli(d.agency.banner_url));
       const { data: autoRow } = await supabase
         .from('agencies')
         .select('coin_auto_message')
@@ -816,8 +817,8 @@ export default function AjansPanelEkrani() {
         if (!r.iptal) Alert.alert('Medya', r.hata);
         return;
       }
-      if (tur === 'logo') setLogoUrl(r.url);
-      else setBannerUrl(r.url);
+      if (tur === 'logo') setLogoUrl(MedyaUriGuvenli(r.url));
+      else setBannerUrl(MedyaUriGuvenli(r.url));
       Alert.alert('Tamam', tur === 'logo' ? 'Logo güncellendi.' : 'Banner güncellendi.');
       await yukle();
     })();
@@ -1199,7 +1200,7 @@ export default function AjansPanelEkrani() {
                           >
                             {b.avatar_url ? (
                               <Image
-                                source={{ uri: b.avatar_url }}
+                                source={{ uri: MedyaUriGuvenli(b.avatar_url)! }}
                                 style={styles.avatar}
                               />
                             ) : (
@@ -1265,7 +1266,7 @@ export default function AjansPanelEkrani() {
                           >
                             {u.avatar_url ? (
                               <Image
-                                source={{ uri: u.avatar_url }}
+                                source={{ uri: MedyaUriGuvenli(u.avatar_url)! }}
                                 style={styles.uyeChipAvatar}
                               />
                             ) : null}

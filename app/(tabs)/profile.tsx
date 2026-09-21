@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import {
   Alert,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -30,7 +31,6 @@ import { useGorunurOyunKodlari } from '../../src/moduller/oyunlar/ortak/hooks/us
 import { KillSwitchAktifMi, OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import { PrestigeRozetSatiri } from '../../src/moduller/vip/bilesenler/PrestigeRozetSatiri';
 import { HesapDegeriRozeti } from '../../src/moduller/kullanici-profili/bilesenler/HesapDegeriRozeti';
-import { useAjansYonetim } from '../../src/moduller/ajanslar/kancalar/useAjansYonetim';
 import { useAjansUyeligi } from '../../src/moduller/ajanslar/kancalar/useAjansUyeligi';
 import { AjansProfilRozeti } from '../../src/moduller/ajanslar/bilesenler/AjansProfilRozeti';
 import { ProfilAvatarCerceve } from '../../src/moduller/kullanici-profili/bilesenler/ProfilAvatarCerceve';
@@ -76,9 +76,9 @@ const EMPTY_PRIVACY: GizlilikAyarlari = {
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { profile, wallet, user, isGuest, refreshProfile, refreshWallet } = useAuth();
-  const { yetkili: ajansYetkili, yonetimHref } = useAjansYonetim();
   const { uyelik: ajansUyelik, yukleniyor: ajansYukleniyor } = useAjansUyeligi(!isGuest);
   const [upgradeAcik, setUpgradeAcik] = useState(false);
+  const [oyunKartAcik, setOyunKartAcik] = useState(false);
   const coverH = COVER_H + insets.top;
   const [stats, setStats] = useState<KullaniciProfilIstatistikleri | null>(null);
   const [privacy, setPrivacy] = useState<GizlilikAyarlari>(EMPTY_PRIVACY);
@@ -216,33 +216,58 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
 
-          {/* Avatar — ortalı, taçlı çerçeve; yükleme profil düzenlemede */}
+          {/* Avatar — taç çökerse düz avatar yedek */}
           <View style={styles.avatarBand}>
-            <View style={styles.avatarHit}>
-              <ProfilAvatarCerceve
-                size={AVATAR}
-                level={Number(profile?.level) || 1}
-                gizli={privacy.hide_crown}
-              >
-                <Pressable
-                  onPress={() => medyaTikla('avatar')}
-                  style={styles.avatarWrap}
-                  accessibilityLabel="Profil fotoğrafı"
-                  disabled={!avatarUri}
+            <ModulHataSiniri
+              modulAdi="profil-avatar"
+              varyant="kart"
+              yedek={
+                <View style={styles.avatarHit}>
+                  <Pressable
+                    onPress={() => medyaTikla('avatar')}
+                    style={styles.avatarWrap}
+                    disabled={!avatarUri}
+                  >
+                    {avatarUri ? (
+                      <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                    ) : (
+                      <LinearGradient
+                        colors={[...RenkTokenlari.gradientPrimary]}
+                        style={styles.avatar}
+                      >
+                        <Ionicons name="person" size={40} color="#12040C" />
+                      </LinearGradient>
+                    )}
+                  </Pressable>
+                </View>
+              }
+            >
+              <View style={styles.avatarHit}>
+                <ProfilAvatarCerceve
+                  size={AVATAR}
+                  level={Number(profile?.level) || 1}
+                  gizli={privacy.hide_crown}
                 >
-                  {avatarUri ? (
-                    <Image source={{ uri: avatarUri }} style={styles.avatar} />
-                  ) : (
-                    <LinearGradient
-                      colors={[...RenkTokenlari.gradientPrimary]}
-                      style={styles.avatar}
-                    >
-                      <Ionicons name="person" size={40} color="#12040C" />
-                    </LinearGradient>
-                  )}
-                </Pressable>
-              </ProfilAvatarCerceve>
-            </View>
+                  <Pressable
+                    onPress={() => medyaTikla('avatar')}
+                    style={styles.avatarWrap}
+                    accessibilityLabel="Profil fotoğrafı"
+                    disabled={!avatarUri}
+                  >
+                    {avatarUri ? (
+                      <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                    ) : (
+                      <LinearGradient
+                        colors={[...RenkTokenlari.gradientPrimary]}
+                        style={styles.avatar}
+                      >
+                        <Ionicons name="person" size={40} color="#12040C" />
+                      </LinearGradient>
+                    )}
+                  </Pressable>
+                </ProfilAvatarCerceve>
+              </View>
+            </ModulHataSiniri>
           </View>
 
           <TamusoBanner placement="PROFILE_TOP" screen="PROFILE" compact />
@@ -258,6 +283,59 @@ export default function ProfileScreen() {
               ) : null}
             </View>
             <Text style={styles.username}>@{username}</Text>
+
+            {(stats?.pending_follow_requests_count ?? 0) > 0 ? (
+              <Pressable
+                onPress={() => router.push('/takip/istekler' as any)}
+                style={({ pressed }) => [
+                  styles.followRow,
+                  styles.followRowIstek,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.followN}>{stats?.pending_follow_requests_count}</Text>
+                <Text style={styles.followL}>Takip isteği</Text>
+              </Pressable>
+            ) : null}
+            <View style={styles.followRow}>
+              <Pressable
+                style={styles.followItem}
+                onPress={() =>
+                  user?.id &&
+                  router.push(`/takip/takip-edilenler?userId=${user.id}` as any)
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Takip edilenler"
+              >
+                <Text style={styles.followN}>
+                  {TakipSayaciniFormatla(stats?.following_count ?? 0)}
+                </Text>
+                <Text style={styles.followL}>Takip</Text>
+              </Pressable>
+              <View style={styles.followDivider} />
+              <Pressable
+                style={styles.followItem}
+                onPress={() =>
+                  user?.id &&
+                  router.push(`/takip/takipciler?userId=${user.id}` as any)
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Takipçiler"
+              >
+                <Text style={styles.followN}>
+                  {TakipSayaciniFormatla(stats?.followers_count ?? 0)}
+                </Text>
+                <Text style={styles.followL}>Takipçi</Text>
+              </Pressable>
+              <View style={styles.followDivider} />
+              <View style={styles.followItem}>
+                <Text style={styles.followN}>
+                  {TakipSayaciniFormatla(stats?.posts_count ?? 0)}
+                </Text>
+                <Text style={styles.followL}>Gönderi</Text>
+              </View>
+            </View>
+
             {profile?.public_user_id ? (
               <Text style={styles.publicId}>ID {profile.public_user_id}</Text>
             ) : null}
@@ -327,43 +405,6 @@ export default function ProfileScreen() {
 
           <TamusoBanner placement="PROFILE_MIDDLE" screen="PROFILE" compact />
 
-          {/* Takip */}
-          {(stats?.pending_follow_requests_count ?? 0) > 0 ? (
-            <Pressable
-              onPress={() => router.push('/takip/istekler' as any)}
-              style={({ pressed }) => [styles.followRow, { marginBottom: 8 }, pressed && styles.pressed]}
-            >
-              <Text style={styles.followN}>{stats?.pending_follow_requests_count}</Text>
-              <Text style={styles.followL}>Takip isteği</Text>
-            </Pressable>
-          ) : null}
-          <View style={styles.followRow}>
-            <Pressable
-              style={styles.followItem}
-              onPress={() => user?.id && router.push(`/takip/takip-edilenler?userId=${user.id}` as any)}
-              accessibilityRole="button"
-              accessibilityLabel="Takip edilenler"
-            >
-              <Text style={styles.followN}>{TakipSayaciniFormatla(stats?.following_count ?? 0)}</Text>
-              <Text style={styles.followL}>Takip</Text>
-            </Pressable>
-            <View style={styles.followDivider} />
-            <Pressable
-              style={styles.followItem}
-              onPress={() => user?.id && router.push(`/takip/takipciler?userId=${user.id}` as any)}
-              accessibilityRole="button"
-              accessibilityLabel="Takipçiler"
-            >
-              <Text style={styles.followN}>{TakipSayaciniFormatla(stats?.followers_count ?? 0)}</Text>
-              <Text style={styles.followL}>Takipçi</Text>
-            </Pressable>
-            <View style={styles.followDivider} />
-            <View style={styles.followItem}>
-              <Text style={styles.followN}>{TakipSayaciniFormatla(stats?.posts_count ?? 0)}</Text>
-              <Text style={styles.followL}>Gönderi</Text>
-            </View>
-          </View>
-
           {/* Cüzdan — yan yana düz bakiye kutuları */}
           <Pressable
             onPress={cuzdanaGit}
@@ -400,6 +441,46 @@ export default function ProfileScreen() {
             </View>
           </Pressable>
 
+          {/* Oyun — cüzdan kartı düzeni; tıkla detay kartı */}
+          {oyunProfiliAcik ? (
+            <Pressable
+              onPress={() => setOyunKartAcik(true)}
+              style={({ pressed }) => [styles.walletPress, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Oyun profili"
+            >
+              <View style={styles.walletUst}>
+                <View style={styles.walletSol}>
+                  <Text style={styles.walletBaslik}>Oyun</Text>
+                  <Text style={styles.walletAlt}>
+                    {oyunStats?.leagueLabel ?? 'Lig'} · profil kartın
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={RenkTokenlari.textDim} />
+              </View>
+              <View style={styles.walletBakiyeRow}>
+                <View style={styles.walletBakiyeKart}>
+                  <View style={[styles.walletDot, { backgroundColor: RenkTokenlari.accent }]} />
+                  <View style={styles.walletBakiyeCopy}>
+                    <Text style={styles.walletBakiyeEtiket}>Kupa</Text>
+                    <Text style={styles.walletBakiyeDeger} numberOfLines={1}>
+                      {formatSayi(oyunStats?.trophies ?? 0)}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.walletBakiyeKart}>
+                  <View style={[styles.walletDot, { backgroundColor: RenkTokenlari.mint }]} />
+                  <View style={styles.walletBakiyeCopy}>
+                    <Text style={styles.walletBakiyeEtiket}>Galibiyet</Text>
+                    <Text style={styles.walletBakiyeDeger} numberOfLines={1}>
+                      {oyunStats?.wins ?? 0}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </Pressable>
+          ) : null}
+
           {/* Metrikler */}
           <View style={styles.metrics}>
             <Metric
@@ -423,48 +504,6 @@ export default function ProfileScreen() {
               tint={RenkTokenlari.accent}
             />
           </View>
-
-          {oyunStats && oyunProfiliAcik ? (
-            <View style={styles.oyunKart}>
-              <Text style={styles.oyunBaslik}>Oyun profili</Text>
-              <Text style={styles.oyunLig}>{oyunStats.leagueLabel}</Text>
-              <View style={styles.oyunGrid}>
-                <View style={styles.oyunHucre}>
-                  <Text style={styles.oyunDeger}>{formatSayi(oyunStats.trophies)}</Text>
-                  <Text style={styles.oyunEtiket}>Kupa</Text>
-                </View>
-                <View style={styles.oyunHucre}>
-                  <Text style={styles.oyunDeger}>{formatSayi(oyunStats.xp)}</Text>
-                  <Text style={styles.oyunEtiket}>Oyun XP</Text>
-                </View>
-                <View style={styles.oyunHucre}>
-                  <Text style={styles.oyunDeger}>{oyunStats.totalGames}</Text>
-                  <Text style={styles.oyunEtiket}>Maç</Text>
-                </View>
-                <View style={styles.oyunHucre}>
-                  <Text style={styles.oyunDeger}>{oyunStats.wins}</Text>
-                  <Text style={styles.oyunEtiket}>Galibiyet</Text>
-                </View>
-                <View style={styles.oyunHucre}>
-                  <Text style={styles.oyunDeger}>{formatSayi(oyunStats.highestScore)}</Text>
-                  <Text style={styles.oyunEtiket}>En yüksek</Text>
-                </View>
-                <View style={styles.oyunHucre}>
-                  <Text style={styles.oyunDeger}>×{oyunStats.highestCombo}</Text>
-                  <Text style={styles.oyunEtiket}>Combo</Text>
-                </View>
-              </View>
-              {oyunStats.totalGames > 0 ? (
-                <Text style={styles.oyunAlt}>
-                  Galibiyet oranı %{oyunStats.winRate}
-                </Text>
-              ) : (
-                <Text style={styles.oyunAlt}>
-                  Ses odasında oyun oyna — XP ve kupa kazan.
-                </Text>
-              )}
-            </View>
-          ) : null}
 
           {isGuest ? (
             <View style={styles.guestCta}>
@@ -493,79 +532,6 @@ export default function ProfileScreen() {
               }
             />
           </ModulHataSiniri>
-
-          {/* Keşfet — düz modern satırlar */}
-          <View style={styles.menu}>
-            <Text style={styles.menuBaslik}>Keşfet</Text>
-            <View style={styles.menuGrup}>
-              <MenuSatiri
-                icon="share-social-outline"
-                label="Uygulamayı paylaş"
-                alt="Davet linki · indirme"
-                onPress={() => {
-                  if (isGuest) {
-                    setUpgradeAcik(true);
-                    return;
-                  }
-                  router.push('/paylasim' as any);
-                }}
-              />
-              <View style={styles.menuCizgi} />
-              <MenuSatiri
-                icon="radio-outline"
-                label="Canlı yayın"
-                alt="Yayına çık"
-                onPress={() => router.push('/canli' as any)}
-              />
-              <View style={styles.menuCizgi} />
-              <MenuSatiri
-                icon="location-outline"
-                label="Şehir"
-                alt="Şehir odaları & lig"
-                onPress={() => router.push('/sehir' as any)}
-              />
-              <View style={styles.menuCizgi} />
-              <MenuSatiri
-                icon="mic-outline"
-                label="Ev sahibi"
-                alt="Ev sahibi başvurusu"
-                onPress={() => router.push('/host' as any)}
-              />
-              {ajansUyelik.role !== 'none' ? (
-                <>
-                  <View style={styles.menuCizgi} />
-                  <MenuSatiri
-                    icon="people-outline"
-                    label="Ajansım"
-                    alt={
-                      ajansUyelik.role === 'pending'
-                        ? 'Başvuru bekleniyor'
-                        : 'Yayın · oda · panel'
-                    }
-                    onPress={() => router.push('/ajans/uye' as any)}
-                  />
-                </>
-              ) : null}
-              {ajansYetkili ? (
-                <>
-                  <View style={styles.menuCizgi} />
-                  <MenuSatiri
-                    icon="briefcase-outline"
-                    label="Ajans Yönetim"
-                    alt="Kurallar · ödeme · coin"
-                    onPress={() => router.push(yonetimHref as any)}
-                  />
-                </>
-              ) : null}
-              <View style={styles.menuCizgi} />
-              <MenuSatiri
-                icon="compass-outline"
-                label="Keşfet"
-                alt="Odalar & yaratıcılar"
-                onPress={() => router.push('/kesfet' as any)}
-              />
-            </View>
-          </View>
         </ScrollView>
 
         <HesabiTamamlaKarti
@@ -576,6 +542,12 @@ export default function ProfileScreen() {
             void refreshWallet();
             Alert.alert('Tamam', 'Hesabın güncellendi.');
           }}
+        />
+
+        <OyunProfilKartModal
+          visible={oyunKartAcik && oyunProfiliAcik}
+          stats={oyunStats}
+          onKapat={() => setOyunKartAcik(false)}
         />
 
         <ProfilMedyaBuyutucu
@@ -613,29 +585,85 @@ function Metric({
   );
 }
 
-function MenuSatiri({
-  icon,
-  label,
-  alt,
-  onPress,
+function OyunProfilKartModal({
+  visible,
+  stats,
+  onKapat,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  alt: string;
-  onPress: () => void;
+  visible: boolean;
+  stats: OyunOyuncuIstatistik | null;
+  onKapat: () => void;
 }) {
+  const hucreler = [
+    { etiket: 'Kupa', deger: formatSayi(stats?.trophies ?? 0), tint: RenkTokenlari.accent },
+    { etiket: 'Oyun XP', deger: formatSayi(stats?.xp ?? 0), tint: RenkTokenlari.violet },
+    { etiket: 'Maç', deger: String(stats?.totalGames ?? 0), tint: RenkTokenlari.text },
+    { etiket: 'Galibiyet', deger: String(stats?.wins ?? 0), tint: RenkTokenlari.mint },
+    {
+      etiket: 'En yüksek',
+      deger: formatSayi(stats?.highestScore ?? 0),
+      tint: RenkTokenlari.accent,
+    },
+    {
+      etiket: 'Combo',
+      deger: `×${stats?.highestCombo ?? 0}`,
+      tint: RenkTokenlari.violet,
+    },
+  ] as const;
+
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.menuSatir, pressed && styles.menuSatirPressed]}
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onKapat}
+      statusBarTranslucent
     >
-      <Ionicons name={icon} size={20} color={RenkTokenlari.primarySoft} />
-      <View style={styles.menuCopy}>
-        <Text style={styles.menuLabel}>{label}</Text>
-        <Text style={styles.menuAlt}>{alt}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={16} color={RenkTokenlari.textDim} />
-    </Pressable>
+      <Pressable style={styles.oyunModalMaske} onPress={onKapat}>
+        <Pressable
+          style={styles.oyunModalKart}
+          onPress={(e) => e.stopPropagation()}
+          accessibilityLabel="Oyun profil kartı"
+        >
+          <View style={styles.walletUst}>
+            <View style={styles.walletSol}>
+              <Text style={styles.walletBaslik}>Oyun profili</Text>
+              <Text style={[styles.walletAlt, { color: RenkTokenlari.accent }]}>
+                {stats?.leagueLabel ?? 'Lig'}
+              </Text>
+            </View>
+            <Pressable
+              onPress={onKapat}
+              hitSlop={10}
+              accessibilityLabel="Kapat"
+              style={styles.oyunModalKapat}
+            >
+              <Ionicons name="close" size={18} color={RenkTokenlari.textMuted} />
+            </Pressable>
+          </View>
+
+          <View style={styles.oyunModalGrid}>
+            {hucreler.map((h) => (
+              <View key={h.etiket} style={[styles.walletBakiyeKart, styles.oyunModalHucre]}>
+                <View style={[styles.walletDot, { backgroundColor: h.tint }]} />
+                <View style={styles.walletBakiyeCopy}>
+                  <Text style={styles.walletBakiyeEtiket}>{h.etiket}</Text>
+                  <Text style={styles.walletBakiyeDeger} numberOfLines={1}>
+                    {h.deger}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          <Text style={styles.oyunModalAlt}>
+            {(stats?.totalGames ?? 0) > 0
+              ? `Galibiyet oranı %${stats?.winRate ?? 0}`
+              : 'Ses odasında oyun oyna — XP ve kupa kazan.'}
+          </Text>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -771,13 +799,18 @@ const styles = StyleSheet.create({
   followRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: BoslukTokenlari.xl,
-    marginTop: BoslukTokenlari.lg,
+    alignSelf: 'stretch',
+    marginTop: BoslukTokenlari.sm,
     paddingVertical: BoslukTokenlari.md,
     borderRadius: YaricapTokenlari.lg,
     borderWidth: 1,
     borderColor: 'rgba(212,175,55,0.28)',
     backgroundColor: RenkTokenlari.bgCard,
+  },
+  followRowIstek: {
+    marginBottom: 0,
+    justifyContent: 'center',
+    gap: 6,
   },
   followItem: {
     flex: 1,
@@ -874,99 +907,44 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.textDim,
     fontSize: 9,
   },
-  oyunKart: {
-    marginHorizontal: BoslukTokenlari.xl,
-    marginTop: BoslukTokenlari.lg,
+  oyunModalMaske: {
+    flex: 1,
+    backgroundColor: 'rgba(8,6,14,0.72)',
+    justifyContent: 'center',
+    paddingHorizontal: BoslukTokenlari.xl,
+  },
+  oyunModalKart: {
     padding: BoslukTokenlari.md,
-    borderRadius: YaricapTokenlari.md,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
+    borderRadius: YaricapTokenlari.lg,
     backgroundColor: RenkTokenlari.bgCard,
-    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.28)',
+    gap: BoslukTokenlari.md,
   },
-  oyunBaslik: {
-    ...TipografiTokenlari.h2,
-    color: RenkTokenlari.text,
+  oyunModalKapat: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: RenkTokenlari.surface,
   },
-  oyunLig: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.accent,
-    fontWeight: '700',
-  },
-  oyunGrid: {
+  oyunModalGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: BoslukTokenlari.sm,
   },
-  oyunHucre: {
-    width: '30%',
-    flexGrow: 1,
-    backgroundColor: RenkTokenlari.surface,
-    borderRadius: YaricapTokenlari.sm,
-    paddingVertical: 10,
-    alignItems: 'center',
+  oyunModalHucre: {
+    flexGrow: 0,
+    flexBasis: '47%',
+    maxWidth: '48%',
   },
-  oyunDeger: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.text,
-    fontWeight: '800',
-  },
-  oyunEtiket: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textDim,
-    fontSize: 9,
-    marginTop: 2,
-  },
-  oyunAlt: {
+  oyunModalAlt: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textMuted,
   },
   guestCta: {
     paddingHorizontal: BoslukTokenlari.xl,
     paddingTop: BoslukTokenlari.lg,
-  },
-  menu: {
-    marginHorizontal: BoslukTokenlari.xl,
-    marginTop: BoslukTokenlari.xl,
-    gap: BoslukTokenlari.sm,
-  },
-  menuBaslik: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textDim,
-    letterSpacing: 1.2,
-    marginBottom: 2,
-    marginLeft: 4,
-  },
-  menuGrup: {
-    borderRadius: YaricapTokenlari.lg,
-    backgroundColor: RenkTokenlari.bgCard,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-    overflow: 'hidden',
-  },
-  menuSatir: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: BoslukTokenlari.md,
-    paddingVertical: 14,
-    paddingHorizontal: BoslukTokenlari.md,
-  },
-  menuSatirPressed: {
-    backgroundColor: RenkTokenlari.pressFill,
-  },
-  menuCizgi: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: RenkTokenlari.border,
-    marginLeft: 48,
-  },
-  menuCopy: { flex: 1, minWidth: 0, gap: 2 },
-  menuLabel: {
-    ...TipografiTokenlari.body,
-    fontWeight: '600',
-    color: RenkTokenlari.text,
-  },
-  menuAlt: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
   },
 });

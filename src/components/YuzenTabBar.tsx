@@ -20,6 +20,7 @@ import { router, usePathname, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { useMesajOkunmamis } from '../moduller/mesajlasma/baglam/MesajOkunmamisSaglayici';
+import { MedyaUriGuvenli } from '../moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { RenkTokenlari } from '../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../tasarim-sistemi/TipografiTokenlari';
 import { useTemayaAboneOl } from '../tasarim-sistemi/tema/useTemayaAboneOl';
@@ -127,7 +128,7 @@ function YuzenTabBarIc() {
   const { width: windowWidth } = useWindowDimensions();
   const { profile, session } = useAuth();
   const { okunmamis: mesajOkunmamis } = useMesajOkunmamis();
-  const avatarUrl = profile?.avatar_url ?? null;
+  const avatarUrl = MedyaUriGuvenli(profile?.avatar_url);
   const [, setTick] = useState(0);
 
   useEffect(() => {

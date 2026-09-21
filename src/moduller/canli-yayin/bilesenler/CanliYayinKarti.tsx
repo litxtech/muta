@@ -24,6 +24,9 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { IcerikGuvenlikDugmesi } from '../../moderasyon/bilesenler/IcerikGuvenlikDugmesi';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export const CANLI_KATEGORI_ETIKET: Record<string, string> = {
   sohbet: 'Sohbet',
@@ -48,6 +51,7 @@ export type CanliYayinKartVeri = {
   total_coins_earned?: number | null;
   score?: number | null;
   host?: {
+    id?: string;
     display_name?: string | null;
     username?: string | null;
     avatar_url?: string | null;
@@ -63,13 +67,14 @@ type Props = {
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function CanliYayinKarti({ item, onPress, index = 0 }: Props) {
+  const { isGuest } = useAuth();
   const olcek = useSharedValue(1);
   const host = item.host;
   const ad =
     host?.display_name?.trim() ||
     host?.username?.trim() ||
     'Yayıncı';
-  const kapak = host?.avatar_url ?? null;
+  const kapak = MedyaUriGuvenli(host?.avatar_url);
   const viewers = item.viewer_count ?? 0;
   const gifts = item.gift_count ?? 0;
   const coins = item.total_coins_earned ?? item.score ?? 0;
@@ -121,9 +126,19 @@ export function CanliYayinKarti({ item, onPress, index = 0 }: Props) {
               color={RenkTokenlari.primarySoft}
             />
           </View>
-          <View style={styles.viewerChip}>
-            <Ionicons name="eye" size={11} color={RenkTokenlari.mint} />
-            <Text style={styles.viewerText}>{viewers}</Text>
+          <View style={styles.topSag}>
+            <View style={styles.viewerChip}>
+              <Ionicons name="eye" size={11} color={RenkTokenlari.mint} />
+              <Text style={styles.viewerText}>{viewers}</Text>
+            </View>
+            <IcerikGuvenlikDugmesi
+              tur="live"
+              contentId={item.id}
+              targetUserId={host?.id}
+              title={item.title}
+              isGuest={isGuest}
+              koyu
+            />
           </View>
         </View>
 
@@ -185,6 +200,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: BoslukTokenlari.md,
     paddingTop: BoslukTokenlari.md,
+  },
+  topSag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   livePill: {
     flexDirection: 'row',

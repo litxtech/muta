@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { MedyaUriOnizlemeGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   uri: string | null;
@@ -25,15 +26,16 @@ type Props = {
 export function ProfilMedyaBuyutucu({ uri, onKapat, tur = 'avatar' }: Props) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const acik = Boolean(uri);
+  const safeUri = MedyaUriOnizlemeGuvenli(uri);
+  const acik = Boolean(safeUri);
   const [boyut, setBoyut] = useState({ w: width * 0.92, h: height * 0.55 });
 
   useEffect(() => {
-    if (!uri) return;
+    if (!safeUri) return;
     const maxW = width;
     const maxH = height - insets.top - insets.bottom - 48;
     Image.getSize(
-      uri,
+      safeUri,
       (iw, ih) => {
         if (iw <= 0 || ih <= 0) return;
         const scale = Math.min(maxW / iw, maxH / ih);
@@ -52,7 +54,7 @@ export function ProfilMedyaBuyutucu({ uri, onKapat, tur = 'avatar' }: Props) {
         }
       },
     );
-  }, [uri, width, height, insets.top, insets.bottom, tur]);
+  }, [safeUri, width, height, insets.top, insets.bottom, tur]);
 
   return (
     <Modal
@@ -73,7 +75,7 @@ export function ProfilMedyaBuyutucu({ uri, onKapat, tur = 'avatar' }: Props) {
           accessibilityLabel="Kapat"
         />
 
-        {uri ? (
+        {safeUri ? (
           <View
             style={[styles.imageWrap, { width: boyut.w, height: boyut.h }]}
             pointerEvents="box-none"
@@ -81,7 +83,7 @@ export function ProfilMedyaBuyutucu({ uri, onKapat, tur = 'avatar' }: Props) {
             {/* Fotoğraf — dokunuşu yutar, kapanmaz */}
             <View style={styles.imageHit} pointerEvents="auto">
               <Image
-                source={{ uri }}
+                source={{ uri: safeUri }}
                 style={{ width: boyut.w, height: boyut.h }}
                 resizeMode="contain"
                 accessibilityLabel={

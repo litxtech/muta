@@ -21,6 +21,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   haricUserId?: string | null;
@@ -152,6 +153,7 @@ function KullaniciSatiri({
     kullanici.username ||
     'Kullanıcı';
   const handle = kullanici.username ? `@${kullanici.username}` : null;
+  const avatar = MedyaUriGuvenli(kullanici.avatar_url);
 
   return (
     <Pressable
@@ -163,8 +165,8 @@ function KullaniciSatiri({
         disabled && styles.disabled,
       ]}
     >
-      {kullanici.avatar_url ? (
-        <Image source={{ uri: kullanici.avatar_url }} style={styles.avatar} />
+      {avatar ? (
+        <Image source={{ uri: avatar }} style={styles.avatar} />
       ) : (
         <LinearGradient
           colors={[...RenkTokenlari.gradientPrimary]}

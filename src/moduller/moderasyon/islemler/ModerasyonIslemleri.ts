@@ -1,7 +1,15 @@
 import { supabase } from '../../../lib/supabase';
 import { OzellikBayragiAktifMiSunucu } from '../../ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
 
-export type ModerasyonAksiyonu = 'mute' | 'unmute' | 'kick' | 'ban' | 'unban';
+export type ModerasyonAksiyonu =
+  | 'mute'
+  | 'unmute'
+  | 'mic_lock'
+  | 'mic_unlock'
+  | 'unseat'
+  | 'kick'
+  | 'ban'
+  | 'unban';
 
 export type EngellenenKullanici = {
   blocked_id: string;
@@ -44,6 +52,7 @@ export async function KullaniciBildir(input: {
     | 'room_chat'
     | 'live_chat'
     | 'room'
+    | 'live'
     | 'profile'
     | 'status_post'
     | 'status_comment'

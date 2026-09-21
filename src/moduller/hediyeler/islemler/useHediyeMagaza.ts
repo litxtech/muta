@@ -135,8 +135,8 @@ export function useHediyeMagaza() {
       }
 
       if (maliyet > bakiye) {
-        // Panel içi coin modu — ikinci Modal açma
-        paketleriYenile?.();
+        // HediyeMagazaPaneli yetmez → panel içi coin moda geçer
+        paketleriYenile?.(true);
         return;
       }
 

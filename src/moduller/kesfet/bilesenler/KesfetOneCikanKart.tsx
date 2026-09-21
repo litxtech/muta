@@ -10,6 +10,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { Room } from '../../../types/models';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   room: Room;
@@ -18,7 +19,7 @@ type Props = {
 
 /** Keşfet — listenin en üstünde geniş "öne çıkan" oda kartı */
 export function KesfetOneCikanKart({ room, onPress }: Props) {
-  const kapak = room.cover_url ?? room.host?.avatar_url ?? null;
+  const kapak = MedyaUriGuvenli(room.cover_url ?? room.host?.avatar_url);
 
   return (
     <Pressable

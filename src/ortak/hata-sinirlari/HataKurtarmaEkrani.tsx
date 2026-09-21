@@ -23,6 +23,7 @@ type Props = {
 
 /**
  * Ozellik bozulunca kullanici sayfada takilmaz — tekrar dene / geri don.
+ * Tam sayfada içerik ve butonlar her zaman ortalanır.
  */
 export function HataKurtarmaEkrani({
   baslik = 'Bu bölüm geçici olarak kullanılamıyor',
@@ -45,9 +46,11 @@ export function HataKurtarmaEkrani({
     }
   };
 
+  const ekran = varyant === 'ekran';
+
   return (
-    <View style={[styles.wrap, varyant === 'ekran' && styles.wrapEkran]}>
-      <View style={[styles.kart, varyant === 'ekran' && styles.kartEkran]}>
+    <View style={[styles.wrap, ekran && styles.wrapEkran]}>
+      <View style={[styles.kart, ekran && styles.kartEkran]}>
         <View style={styles.ikonWrap}>
           <Ionicons
             name="warning-outline"
@@ -55,15 +58,20 @@ export function HataKurtarmaEkrani({
             color={RenkTokenlari.primarySoft}
           />
         </View>
-        <Text style={styles.baslik}>{baslik}</Text>
-        <Text style={styles.aciklama}>{aciklama}</Text>
+        <Text style={[styles.baslik, ekran && styles.metinOrtala]}>{baslik}</Text>
+        <Text style={[styles.aciklama, ekran && styles.metinOrtala]}>
+          {aciklama}
+        </Text>
         {detay ? (
-          <Text style={styles.detay} numberOfLines={3}>
+          <Text
+            style={[styles.detay, ekran && styles.metinOrtala]}
+            numberOfLines={3}
+          >
             {detay}
           </Text>
         ) : null}
 
-        <View style={styles.aksiyonlar}>
+        <View style={[styles.aksiyonlar, ekran && styles.aksiyonlarOrtala]}>
           {onTekrarDene ? (
             <Pressable
               onPress={onTekrarDene}
@@ -106,6 +114,7 @@ export function HataKurtarmaEkrani({
           hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel="Ana sayfaya git"
+          style={styles.anaLinkHit}
         >
           <Text style={styles.anaLink}>Ana sayfaya git</Text>
         </Pressable>
@@ -120,10 +129,13 @@ const styles = StyleSheet.create({
   },
   wrapEkran: {
     flex: 1,
-    minHeight: 280,
+    alignSelf: 'stretch',
+    width: '100%',
+    minHeight: 320,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: BoslukTokenlari.xl,
+    paddingHorizontal: BoslukTokenlari.xl,
+    paddingVertical: BoslukTokenlari.xxl,
     backgroundColor: RenkTokenlari.bg,
   },
   kart: {
@@ -138,6 +150,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     padding: BoslukTokenlari.xl,
+    alignItems: 'center',
   },
   ikonWrap: {
     width: 52,
@@ -145,6 +158,7 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
     backgroundColor: 'rgba(232, 64, 145, 0.14)',
     marginBottom: 4,
   },
@@ -162,11 +176,20 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.textDim,
     marginTop: 4,
   },
+  metinOrtala: {
+    textAlign: 'center',
+    alignSelf: 'stretch',
+  },
   aksiyonlar: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: BoslukTokenlari.sm,
     marginTop: BoslukTokenlari.md,
+  },
+  aksiyonlarOrtala: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'stretch',
   },
   btnPrimary: {
     paddingHorizontal: BoslukTokenlari.lg,
@@ -196,10 +219,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   pressed: { opacity: 0.85 },
+  anaLinkHit: {
+    marginTop: BoslukTokenlari.md,
+    alignSelf: 'center',
+  },
   anaLink: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textDim,
-    marginTop: BoslukTokenlari.md,
     textAlign: 'center',
   },
 });

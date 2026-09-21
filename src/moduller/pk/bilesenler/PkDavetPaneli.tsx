@@ -14,6 +14,7 @@ import { CamArkaplan } from '../../../bilesenler/yuzey/CamArkaplan';
 import { CanliYayinlariGetir } from '../../canli-yayin/islemler/CanliYayinIslemleri';
 import { PkDavetGonder } from '../islemler/PkDavetIslemleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
@@ -143,8 +144,8 @@ export function PkDavetPaneli({
                   disabled={gonderen === item.id}
                   onPress={() => void davetEt(item.id)}
                 >
-                  {item.avatar ? (
-                    <Image source={{ uri: item.avatar }} style={styles.avatar} />
+                  {MedyaUriGuvenli(item.avatar) ? (
+                    <Image source={{ uri: MedyaUriGuvenli(item.avatar)! }} style={styles.avatar} />
                   ) : (
                     <View style={[styles.avatar, styles.avatarBos]}>
                       <Ionicons name="person" size={18} color={RenkTokenlari.textMuted} />

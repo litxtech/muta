@@ -17,6 +17,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   ogeler: FeedOggesi[];
@@ -56,17 +57,20 @@ export function AnaSayfaCanliOdakSeridi({ ogeler, onPress }: Props) {
               ]}
             >
               <View style={styles.kart}>
-                {oge.cover_url ? (
-                  <Image
-                    source={{ uri: oge.cover_url }}
-                    style={StyleSheet.absoluteFill}
-                  />
-                ) : (
-                  <LinearGradient
-                    colors={[...RenkTokenlari.gradientPlaceholder]}
-                    style={StyleSheet.absoluteFill}
-                  />
-                )}
+                {(() => {
+                  const kapak = MedyaUriGuvenli(oge.cover_url);
+                  return kapak ? (
+                    <Image
+                      source={{ uri: kapak }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  ) : (
+                    <LinearGradient
+                      colors={[...RenkTokenlari.gradientPlaceholder]}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  );
+                })()}
                 <LinearGradient
                   colors={[...RenkTokenlari.overlayGradient]}
                   locations={[0.15, 0.5, 1]}

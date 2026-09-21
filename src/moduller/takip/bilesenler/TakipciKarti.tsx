@@ -11,6 +11,7 @@ import {
 import { IliskiEtiketi } from './IliskiEtiketi';
 import { TakipButonu } from './TakipButonu';
 import type { TakipKullaniciKarti } from '../TakipTipleri';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   kart: TakipKullaniciKarti;
@@ -31,6 +32,7 @@ export function TakipciKarti({
 }: Props) {
   const ad = kart.display_name;
   const handle = kart.username ? `@${kart.username}` : null;
+  const avatar = MedyaUriGuvenli(kart.avatar_url);
 
   return (
     <Pressable
@@ -39,8 +41,8 @@ export function TakipciKarti({
       accessibilityRole="button"
       accessibilityLabel={ad}
     >
-      {kart.avatar_url ? (
-        <Image source={{ uri: kart.avatar_url }} style={styles.avatar} />
+      {avatar ? (
+        <Image source={{ uri: avatar }} style={styles.avatar} />
       ) : (
         <LinearGradient
           colors={[...RenkTokenlari.gradientPrimary]}

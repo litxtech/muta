@@ -1,5 +1,6 @@
 /**
  * Odaya yeni katılan seviye 10+ kullanıcılar için giriş animasyonu kuyruğu.
+ * Aynı oda oturumunda kişi başına en fazla 1 kez.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -8,10 +9,17 @@ import {
   SeviyeGirisKademesiniCoz,
   type SeviyeGirisOgesi,
 } from '../animasyon/SeviyeGirisKatalogu';
+import {
+  OdaGirisAnimAnahtari,
+  OdaGirisAnimasyonuGosterildiMi,
+  OdaGirisAnimasyonuIsaretle,
+} from '../animasyon/OdaGirisAnimasyonOturumu';
 
 type Opts = {
   roomId?: string | null;
   enabled?: boolean;
+  /** Host kendi sahip girişini oynatır — seviye self atlanır */
+  hostMu?: boolean;
   /** Kendi profil — odaya ilk girince animasyon (sv≥10) */
   self?: {
     userId: string;
@@ -21,12 +29,19 @@ type Opts = {
   } | null;
 };
 
-export function useOdaSeviyeGiris({ roomId, enabled = true, self }: Opts) {
+export function useOdaSeviyeGiris({
+  roomId,
+  enabled = true,
+  hostMu = false,
+  self,
+}: Opts) {
   const [aktif, setAktif] = useState<SeviyeGirisOgesi | null>(null);
   const kuyrukRef = useRef<SeviyeGirisOgesi[]>([]);
-  const gorulenRef = useRef<Set<string>>(new Set());
   const oynuyorRef = useRef(false);
-  const selfGosterildiRef = useRef(false);
+  const selfUserId = self?.userId ?? null;
+  const selfLevel = self?.level ?? 0;
+  const selfAd = self?.ad ?? 'Sen';
+  const selfAvatar = self?.avatarUrl ?? null;
 
   const sonraki = useCallback(() => {
     if (oynuyorRef.current) return;
@@ -40,13 +55,15 @@ export function useOdaSeviyeGiris({ roomId, enabled = true, self }: Opts) {
   }, []);
 
   const kuyrugaEkle = useCallback(
-    (oge: SeviyeGirisOgesi) => {
-      if (gorulenRef.current.has(oge.userId)) return;
-      gorulenRef.current.add(oge.userId);
+    (oge: SeviyeGirisOgesi, tur: 'seviye' | 'sahip' = 'seviye') => {
+      if (!roomId) return;
+      const key = OdaGirisAnimAnahtari(roomId, tur, oge.userId);
+      if (OdaGirisAnimasyonuGosterildiMi(key)) return;
+      OdaGirisAnimasyonuIsaretle(key);
       kuyrukRef.current.push(oge);
       sonraki();
     },
-    [sonraki],
+    [roomId, sonraki],
   );
 
   const bitti = useCallback(() => {
@@ -55,21 +72,28 @@ export function useOdaSeviyeGiris({ roomId, enabled = true, self }: Opts) {
     requestAnimationFrame(() => sonraki());
   }, [sonraki]);
 
-  /** Kendi giriş animasyonu (bir kez) */
+  /** Kendi giriş animasyonu — oda başına 1 kez (host hariç) */
   useEffect(() => {
-    if (!enabled || !roomId || !self?.userId) return;
-    if (selfGosterildiRef.current) return;
-    const kademe = SeviyeGirisKademesiniCoz(self.level);
+    if (!enabled || !roomId || !selfUserId || hostMu) return;
+    const kademe = SeviyeGirisKademesiniCoz(selfLevel);
     if (!kademe) return;
-    selfGosterildiRef.current = true;
     kuyrugaEkle({
-      userId: self.userId,
-      ad: self.ad,
-      avatarUrl: self.avatarUrl,
-      level: self.level,
+      userId: selfUserId,
+      ad: selfAd,
+      avatarUrl: selfAvatar,
+      level: selfLevel,
       kademe,
     });
-  }, [enabled, roomId, self, kuyrugaEkle]);
+  }, [
+    enabled,
+    roomId,
+    hostMu,
+    selfUserId,
+    selfLevel,
+    selfAd,
+    selfAvatar,
+    kuyrugaEkle,
+  ]);
 
   /** Başkalarının odaya katılması */
   useEffect(() => {
@@ -94,8 +118,9 @@ export function useOdaSeviyeGiris({ roomId, enabled = true, self }: Opts) {
         (payload) => {
           const row = payload.new as { user_id?: string } | null;
           const uid = row?.user_id;
-          if (!uid || uid === self?.userId) return;
-          if (gorulenRef.current.has(uid)) return;
+          if (!uid || uid === selfUserId) return;
+          const key = OdaGirisAnimAnahtari(roomId, 'seviye', uid);
+          if (OdaGirisAnimasyonuGosterildiMi(key)) return;
 
           void (async () => {
             const { data } = await supabase
@@ -126,13 +151,11 @@ export function useOdaSeviyeGiris({ roomId, enabled = true, self }: Opts) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [enabled, roomId, self?.userId, kuyrugaEkle]);
+  }, [enabled, roomId, selfUserId, kuyrugaEkle]);
 
   useEffect(() => {
-    gorulenRef.current = new Set();
     kuyrukRef.current = [];
     oynuyorRef.current = false;
-    selfGosterildiRef.current = false;
     setAktif(null);
   }, [roomId]);
 

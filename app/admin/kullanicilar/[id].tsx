@@ -22,6 +22,7 @@ import type { AdminTakipIstatistikleri } from '../../../src/moduller/takip/Takip
 import {
   AdminIhtarKaldir,
   AdminIhtarVer,
+  AdminKullaniciAdminYetkiAyarla,
   AdminKullaniciBanKaldir,
   AdminKullaniciBanla,
   AdminKullaniciSifreDegistir,
@@ -331,6 +332,47 @@ export default function AdminKullaniciDosyaEkrani() {
                 </Text>
               </Pressable>
             )}
+            <Pressable
+              style={styles.aksiyon}
+              onPress={() => {
+                const next = !p.is_admin;
+                Alert.alert(
+                  next ? 'Admin yetkisi ver' : 'Admin yetkisini kaldır',
+                  next
+                    ? `${ad} tam platform admin olsun mu? Yetki yalnızca bu panelden verilir.`
+                    : `${ad} admin yetkisi kaldırılsın mı?`,
+                  [
+                    { text: 'Vazgeç', style: 'cancel' },
+                    {
+                      text: next ? 'Yetki ver' : 'Kaldır',
+                      style: next ? 'default' : 'destructive',
+                      onPress: () => {
+                        void (async () => {
+                          const r = await AdminKullaniciAdminYetkiAyarla(
+                            id!,
+                            next,
+                          );
+                          if (!r.ok) Alert.alert('Yetki', r.hata);
+                          else {
+                            Alert.alert(
+                              'Tamam',
+                              next
+                                ? 'Admin yetkisi verildi.'
+                                : 'Admin yetkisi kaldırıldı.',
+                            );
+                            await yukle();
+                          }
+                        })();
+                      },
+                    },
+                  ],
+                );
+              }}
+            >
+              <Text style={styles.aksiyonYazi}>
+                {p.is_admin ? 'Admin kaldır' : 'Admin yap'}
+              </Text>
+            </Pressable>
             <Pressable style={[styles.aksiyon, styles.tehlike]} onPress={sil}>
               <Text style={[styles.aksiyonYazi, { color: RenkTokenlari.danger }]}>
                 Sil

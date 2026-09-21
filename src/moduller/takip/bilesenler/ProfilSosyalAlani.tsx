@@ -164,7 +164,13 @@ export function ProfilSosyalAlani({
           ) : null}
         </View>
       ) : (
-        <Text style={styles.engel}>Bu hesapla ilişkin engellenmiş.</Text>
+        <View style={styles.engelKutu}>
+          <Text style={styles.engel}>Bu hesapla ilişkin engellenmiş.</Text>
+          <Text style={styles.engelAlt}>
+            Mesaj, arama ve takip kapalı. Engeli Ayarlar → Engellenen kullanıcılar’dan
+            kaldırabilirsin.
+          </Text>
+        </View>
       )}
     </View>
   );
@@ -205,7 +211,23 @@ const styles = StyleSheet.create({
   },
   engel: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
+    color: RenkTokenlari.danger,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  engelKutu: {
     marginTop: BoslukTokenlari.md,
+    width: '100%',
+    padding: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: RenkTokenlari.danger + '55',
+    backgroundColor: RenkTokenlari.danger + '12',
+    gap: 6,
+  },
+  engelAlt: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    textAlign: 'center',
   },
 });

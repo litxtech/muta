@@ -115,8 +115,12 @@ export function ProfilSesOdasiButonu({ oda, onPress }: Props) {
         >
           {/* Kapak / ikon */}
           <View style={styles.kapakWrap}>
-            {oda.coverUrl ? (
-              <Image source={{ uri: oda.coverUrl }} style={styles.kapak} />
+            {typeof oda.coverUrl === 'string' &&
+            /^https?:\/\//i.test(oda.coverUrl.trim()) ? (
+              <Image
+                source={{ uri: oda.coverUrl.trim() }}
+                style={styles.kapak}
+              />
             ) : (
               <LinearGradient
                 colors={[RenkTokenlari.primary, RenkTokenlari.deepPlum]}

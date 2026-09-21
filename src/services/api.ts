@@ -1,14 +1,27 @@
 import { supabase } from '../lib/supabase';
 import type { CoinPackage, Gift, Room, RoomSeat } from '../types/models';
 
-export async function fetchLiveRooms(limit = 30): Promise<Room[]> {
-  const { data, error } = await supabase
+/** Feed/liste için dar kolon seti — tam profil/join yükünü taşımaz */
+const CANLI_ODA_LISTE_SELECT =
+  'id, host_id, title, topic, cover_url, mode, max_seats, is_live, is_locked, listener_count, total_coins_earned, created_at, room_code, host:profiles!rooms_host_id_fkey(id, display_name, username, avatar_url, level)';
+
+export async function fetchLiveRooms(
+  limit = 30,
+  mode?: Room['mode'] | null,
+): Promise<Room[]> {
+  const safeLimit = Math.min(Math.max(limit, 1), 80);
+  let q = supabase
     .from('rooms')
-    .select('*, host:profiles!rooms_host_id_fkey(*)')
+    .select(CANLI_ODA_LISTE_SELECT)
     .eq('is_live', true)
     .order('listener_count', { ascending: false })
-    .limit(limit);
+    .limit(safeLimit);
 
+  if (mode) {
+    q = q.eq('mode', mode);
+  }
+
+  const { data, error } = await q;
   if (error) throw error;
   return (data as Room[]) ?? [];
 }

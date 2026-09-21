@@ -223,13 +223,17 @@ export function AvatarTacHalkasi({
   yogunluk = 'profil',
   children,
 }: Props) {
+  const safeSize =
+    Number.isFinite(Number(size)) && Number(size) > 0 ? Number(size) : 64;
   const seviye = Math.max(0, Math.floor(Number(level) || 0));
   const profilMi = yogunluk === 'profil';
   const ringKal = profilMi ? 9 : 4;
-  const peakH = profilMi ? Math.round(size * 0.28) : Math.round(size * 0.2);
+  const peakH = profilMi
+    ? Math.round(safeSize * 0.28)
+    : Math.round(safeSize * 0.2);
   const pad = peakH + (profilMi ? 14 : 6);
-  const outer = size + ringKal * 2 + pad * 2;
-  const ringSize = size + ringKal * 2;
+  const outer = safeSize + ringKal * 2 + pad * 2;
+  const ringSize = safeSize + ringKal * 2;
   /** Tam geometrik merkez — kayma olmasın */
   const cx = outer / 2;
   const cy = outer / 2;
@@ -296,9 +300,9 @@ export function AvatarTacHalkasi({
     return (
       <View
         style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
+          width: safeSize,
+          height: safeSize,
+          borderRadius: safeSize / 2,
           overflow: 'hidden',
         }}
       >
@@ -309,8 +313,8 @@ export function AvatarTacHalkasi({
 
   const murassaBoy = profilMi ? 8 : 4;
   const kivilcimSay = profilMi ? 8 : 4;
-  const avatarLeft = cx - size / 2;
-  const avatarTop = cy - size / 2;
+  const avatarLeft = cx - safeSize / 2;
+  const avatarTop = cy - safeSize / 2;
   const orbitR = ringR + (profilMi ? 6 : 2);
   const orbitBox = orbitR * 2 + 12;
 
@@ -322,10 +326,8 @@ export function AvatarTacHalkasi({
         alignItems: 'center',
         justifyContent: 'center',
       }}
-      // Scroll sırasında compositing — titremeyi azaltır
+      // Hardware texture + Reanimated bazı Android cihazlarda profil çökertir
       collapsable={false}
-      renderToHardwareTextureAndroid
-      shouldRasterizeIOS
     >
       {/* Aura — sabit boyut, sadece opacity (scale yok) */}
       <Animated.View
@@ -407,9 +409,9 @@ export function AvatarTacHalkasi({
           position: 'absolute',
           left: avatarLeft,
           top: avatarTop,
-          width: size,
-          height: size,
-          borderRadius: size / 2,
+          width: safeSize,
+          height: safeSize,
+          borderRadius: safeSize / 2,
           overflow: 'hidden',
           zIndex: 20,
           elevation: 8,
@@ -423,11 +425,11 @@ export function AvatarTacHalkasi({
         pointerEvents="none"
         style={{
           position: 'absolute',
-          width: size + 2,
-          height: size + 2,
-          borderRadius: (size + 2) / 2,
-          left: cx - (size + 2) / 2,
-          top: cy - (size + 2) / 2,
+          width: safeSize + 2,
+          height: safeSize + 2,
+          borderRadius: (safeSize + 2) / 2,
+          left: cx - (safeSize + 2) / 2,
+          top: cy - (safeSize + 2) / 2,
           borderWidth: 1.5,
           borderColor: 'rgba(255,255,255,0.5)',
           zIndex: 21,

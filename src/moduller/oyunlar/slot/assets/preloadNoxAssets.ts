@@ -17,26 +17,46 @@ export async function preloadNoxAssets(): Promise<void> {
     UiImages.spinButton,
     UiImages.cover,
   ];
+  const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T | void> =>
+    Promise.race([
+      p,
+      new Promise<void>((resolve) => setTimeout(resolve, ms)),
+    ]);
+
   try {
-    await Asset.loadAsync(sources as number[]);
+    await withTimeout(Asset.loadAsync(sources as number[]), 2500);
   } catch {
     /* native preload opsiyonel */
   }
   try {
-    await Promise.all(
-      sources.map(
-        (s) =>
-          new Promise<void>((resolve) => {
-            const uri = Image.resolveAssetSource(s as number)?.uri;
-            if (!uri) {
-              resolve();
-              return;
-            }
-            Image.prefetch(uri).finally(() => resolve());
-          }),
+    await withTimeout(
+      Promise.all(
+        sources.map(
+          (s) =>
+            new Promise<void>((resolve) => {
+              const uri = Image.resolveAssetSource(s as number)?.uri;
+              if (!uri) {
+                resolve();
+                return;
+              }
+              Image.prefetch(uri).finally(() => resolve());
+            }),
+        ),
       ),
+      2500,
     );
   } catch {
     /* prefetch opsiyonel */
   }
+}
+
+/** Modal açılınca ısıt — ana ekran mount’ta bekleme azalır */
+let warmStarted = false;
+export function warmNoxAssetsEarly(): void {
+  if (warmStarted) return;
+  warmStarted = true;
+  void preloadNoxAssets();
+  void import('../ses/SlotSesYoneticisi').then((m) => {
+    void m.preloadSlotAudio();
+  });
 }

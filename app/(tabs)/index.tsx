@@ -35,6 +35,13 @@ import {
   type FeedFiltreOgesi,
 } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaFiltreCipleri';
 import { AnaSayfaIskelet } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaIskelet';
+import { AnaSayfaSonGezilenSeridi } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaSonGezilenSeridi';
+import {
+  SonGezilenleriCanliIleBirles,
+  SonGezilenleriGetir,
+  type SonGezilenGorunum,
+  type SonGezilenKayit,
+} from '../../src/moduller/ana-sayfa/depolama/SonGezilenDepolama';
 import {
   AnaSayfaCekmeceMenu,
   AnaSayfaHamburgerDugmesi,
@@ -84,7 +91,9 @@ function bolumHedef(kod: string): string {
   return '/kesfet';
 }
 
-const YENILE_MS = 18000;
+/** Sessiz yenile — binlerce yayın/oda güncellemesinde realtime fırtınasını önler */
+const YENILE_MS = 25_000;
+const REALTIME_DEBOUNCE_MS = 4_000;
 
 /** Ana akım — yayın ve ses odası kartları 2'li ızgarada aşağı akar */
 export default function HomeScreen() {
@@ -94,6 +103,7 @@ export default function HomeScreen() {
   const { okunmamis, yenile: bildirimYenile } = useBildirimler();
   const { yonetimHref } = useAjansYonetim();
   const [feed, setFeed] = useState<FeedOggesi[]>([]);
+  const [sonGezilen, setSonGezilen] = useState<SonGezilenKayit[]>([]);
   /** İlk açılış iskeleti — odak dönüşünde tekrar açılmaz */
   const [loading, setLoading] = useState(true);
   /** Sadece kullanıcı aşağı çekince */
@@ -111,18 +121,27 @@ export default function HomeScreen() {
       if (mod === 'ilk') setLoading(true);
       if (mod === 'pull') setRefreshing(true);
 
-      const data = await Promise.race([
-        CanliFeedGetir(40),
-        new Promise<FeedOggesi[]>((_, reject) => {
-          setTimeout(() => reject(new Error('feed-timeout')), 12_000);
-        }),
+      const [data, gezilen] = await Promise.all([
+        Promise.race([
+          CanliFeedGetir(40),
+          new Promise<FeedOggesi[]>((_, reject) => {
+            setTimeout(() => reject(new Error('feed-timeout')), 12_000);
+          }),
+        ]),
+        SonGezilenleriGetir().catch(() => [] as SonGezilenKayit[]),
       ]);
       if (nesil !== loadNesil.current) return;
       setFeed(data);
+      setSonGezilen(gezilen);
       if (mod === 'ilk') void CihazPushTokeniniKaydet();
     } catch {
       if (nesil !== loadNesil.current) return;
       if (mod === 'ilk') setFeed([]);
+      void SonGezilenleriGetir()
+        .then((g) => {
+          if (nesil === loadNesil.current) setSonGezilen(g);
+        })
+        .catch(() => undefined);
     } finally {
       if (nesil !== loadNesil.current) return;
       if (mod === 'ilk') setLoading(false);
@@ -185,8 +204,41 @@ export default function HomeScreen() {
       }
     }
 
-    const yenile = () => {
-      if (odakli.current) void loadRef.current('sessiz');
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const anlamliMi = (payload: {
+      eventType?: string;
+      old?: Record<string, unknown> | null;
+      new?: Record<string, unknown> | null;
+    }) => {
+      const tip = payload.eventType;
+      if (tip === 'INSERT' || tip === 'DELETE') return true;
+      if (tip !== 'UPDATE') return true;
+      const o = payload.old ?? {};
+      const n = payload.new ?? {};
+      const eskiLive = Boolean(o.is_live);
+      const yeniLive = Boolean(n.is_live);
+      if (eskiLive !== yeniLive) return true;
+      if (!yeniLive) return false;
+      const eskiSayi = Number(o.listener_count ?? o.viewer_count ?? 0);
+      const yeniSayi = Number(n.listener_count ?? n.viewer_count ?? 0);
+      if (Math.abs(yeniSayi - eskiSayi) >= 8) return true;
+      if (o.title !== n.title || o.cover_url !== n.cover_url) return true;
+      return false;
+    };
+
+    const yenile = (payload: {
+      eventType?: string;
+      old?: Record<string, unknown> | null;
+      new?: Record<string, unknown> | null;
+    }) => {
+      if (!odakli.current) return;
+      if (!anlamliMi(payload)) return;
+      if (debounceTimer) return;
+      debounceTimer = setTimeout(() => {
+        debounceTimer = null;
+        if (odakli.current) void loadRef.current('sessiz');
+      }, REALTIME_DEBOUNCE_MS);
     };
 
     const kanal = supabase
@@ -204,6 +256,7 @@ export default function HomeScreen() {
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       void supabase.removeChannel(kanal);
     };
   }, []);
@@ -291,12 +344,28 @@ export default function HomeScreen() {
         href: '/siralamalar',
       },
       {
+        key: 'fikir',
+        baslik: 'Fikir & Öneri',
+        alt: "Tamuso'yu birlikte geliştirelim",
+        icon: 'bulb-outline',
+        tint: RenkTokenlari.accent,
+        href: '/fikirler',
+      },
+      {
         key: 'destek',
         baslik: 'Canlı destek',
         alt: 'Temsilci Toprak',
         icon: 'headset-outline',
         tint: RenkTokenlari.primarySoft,
         href: '/destek',
+      },
+      {
+        key: 'bildir',
+        baslik: 'Bildir',
+        alt: 'Kullanıcı ara · rapor et',
+        icon: 'flag-outline',
+        tint: RenkTokenlari.danger,
+        href: '/bildir',
       },
       ...(isAdmin
         ? [
@@ -326,6 +395,11 @@ export default function HomeScreen() {
 
   const yayinSayisi = useMemo(() => feed.filter((o) => o.tur === 'canli').length, [feed]);
   const sesSayisi = useMemo(() => feed.filter((o) => o.tur === 'oda').length, [feed]);
+
+  const sonGezilenGorunum = useMemo(
+    () => SonGezilenleriCanliIleBirles(sonGezilen, feed),
+    [sonGezilen, feed],
+  );
 
   const izgara = useMemo(() => feedIzgarasiniKur(feed, filtre), [feed, filtre]);
 
@@ -362,6 +436,10 @@ export default function HomeScreen() {
 
   const kartAc = useCallback((oge: FeedIzgaraOgesi) => {
     router.push(oge.oge.href as any);
+  }, []);
+
+  const sonGezilenAc = useCallback((oge: SonGezilenGorunum) => {
+    router.push(oge.href as any);
   }, []);
 
   const bosMesaj =
@@ -420,6 +498,7 @@ export default function HomeScreen() {
                 initialNumToRender={4}
                 windowSize={5}
                 maxToRenderPerBatch={4}
+                updateCellsBatchingPeriod={50}
                 removeClippedSubviews
                 refreshControl={
                   <RefreshControl
@@ -427,6 +506,14 @@ export default function HomeScreen() {
                     onRefresh={() => void load('pull')}
                     tintColor={RenkTokenlari.primary}
                   />
+                }
+                ListHeaderComponent={
+                  sonGezilenGorunum.length > 0 ? (
+                    <AnaSayfaSonGezilenSeridi
+                      ogeler={sonGezilenGorunum}
+                      onPress={sonGezilenAc}
+                    />
+                  ) : null
                 }
                 ListFooterComponent={
                   <View style={styles.footer}>

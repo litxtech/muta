@@ -25,6 +25,7 @@ import {
 } from '../islemler/DurumIslemleri';
 import { DurumMedyasiSecVeYukle } from '../islemler/DurumMedyasiYukle';
 import { DurumTarihSaat } from '../islemler/DurumZaman';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { DurumResimLightbox } from './DurumResimLightbox';
 import { KullaniciGuvenlikMenusu } from '../../moderasyon/bilesenler/KullaniciGuvenlikMenusu';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
@@ -131,7 +132,7 @@ export function DurumYorumPaneli({
       if (!r.iptal) Alert.alert('Medya', r.hata);
       return;
     }
-    setMedyaUrl(r.url);
+    setMedyaUrl(MedyaUriGuvenli(r.url));
   };
 
   const sil = (y: DurumYorum) => {

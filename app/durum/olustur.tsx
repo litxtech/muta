@@ -84,36 +84,46 @@ export default function DurumOlusturEkrani() {
   };
 
   const yayinla = () => {
-    if (!mediaUrl && !caption.trim() && !mood) {
-      Alert.alert('Durum', 'Medya, mood veya kısa bir metin ekle.');
+    const moodEtiket = MOODLAR.find((m) => m.kod === mood);
+    const birlesik = [
+      moodEtiket ? `${moodEtiket.emoji} ${moodEtiket.etiket}` : null,
+      caption.trim() || null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+
+    if (!mediaUrl && !birlesik) {
+      Alert.alert('Durum', 'Kısa bir metin yaz, mood seç veya medya ekle.');
       return;
     }
-    if (!mediaUrl || !DurumMedyaHttpsMi(mediaUrl)) {
-      Alert.alert('Durum', 'Önizleme için fotoğraf veya video seç.');
+
+    const medyaVar = !!mediaUrl && DurumMedyaHttpsMi(mediaUrl);
+    if (mediaUrl && !medyaVar) {
+      Alert.alert('Durum', 'Medya adresi geçersiz. Yeniden seç veya kaldır.');
       return;
     }
+
     islemiDene('durum_paylas', () => {
       void (async () => {
         setBusy(true);
-        const moodEtiket = MOODLAR.find((m) => m.kod === mood);
-        const birlesik = [
-          moodEtiket ? `${moodEtiket.emoji} ${moodEtiket.etiket}` : null,
-          caption.trim() || null,
-        ]
-          .filter(Boolean)
-          .join(' · ');
-        const r = await DurumOlustur({
-          mediaType,
-          mediaUrl: mediaUrl.trim(),
-          caption: birlesik || undefined,
-        });
+        const r = await DurumOlustur(
+          medyaVar
+            ? {
+                mediaType,
+                mediaUrl: mediaUrl!.trim(),
+                caption: birlesik || undefined,
+              }
+            : {
+                mediaType: 'text',
+                mediaUrl: null,
+                caption: birlesik,
+              },
+        );
         setBusy(false);
         if (!r.ok) {
           Alert.alert('Durum', r.hata ?? 'Paylaşılamadı');
           return;
         }
-        // Detaya otomatik push etme — fullScreenModal siyah ekranda
-        // takılıyor; paylaşım zaten oluştu, feed'e dön.
         try {
           router.replace('/(tabs)/durum' as any);
         } catch {
@@ -141,7 +151,7 @@ export default function DurumOlusturEkrani() {
       <ModulHataSiniri modulAdi="durum">
         <EkranBasligi
           title="Anlık durum"
-          subtitle="Mood · medya · kısa metin · önizleme"
+          subtitle="Metin · mood · isteğe bağlı foto/video"
           fallbackHref={'/(tabs)/durum' as any}
         />
         <KlavyeGuvenliAlan style={styles.flex}>
@@ -240,6 +250,11 @@ export default function DurumOlusturEkrani() {
                 </Pressable>
               </View>
             )}
+            {!mediaUrl ? (
+              <Text style={styles.istegeBagli}>
+                Medya isteğe bağlı — sadece metin veya mood ile de paylaşabilirsin.
+              </Text>
+            ) : null}
 
             <View
               onLayout={(e) => {
@@ -250,12 +265,19 @@ export default function DurumOlusturEkrani() {
                 style={styles.caption}
                 value={caption}
                 onChangeText={setCaption}
-                placeholder="Bir şeyler yaz… (isteğe bağlı)"
+                placeholder={
+                  mediaUrl
+                    ? 'Açıklama yaz… (isteğe bağlı)'
+                    : 'Ne düşünüyorsun?'
+                }
                 placeholderTextColor={RenkTokenlari.textDim}
                 multiline
-                maxLength={500}
+                maxLength={mediaUrl ? 500 : undefined}
                 onFocus={metneKaydir}
               />
+              {mediaUrl ? (
+                <Text style={styles.sayac}>{caption.length}/500</Text>
+              ) : null}
             </View>
 
             {busy ? (
@@ -348,6 +370,12 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.text,
     fontWeight: '700',
   },
+  istegeBagli: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textDim,
+    marginTop: 4,
+    lineHeight: 18,
+  },
   onizleme: {
     borderRadius: YaricapTokenlari.lg,
     overflow: 'hidden',
@@ -413,6 +441,12 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.text,
     ...TipografiTokenlari.body,
     textAlignVertical: 'top',
+  },
+  sayac: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    alignSelf: 'flex-end',
+    marginTop: 4,
   },
   bosAlan: {
     minHeight: 160,

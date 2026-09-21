@@ -92,11 +92,13 @@ export async function AdminRaporDurumGuncelle(
   id: string,
   status: string,
   adminNote?: string,
+  reporterNote?: string,
 ): Promise<void> {
   const { error } = await supabase.rpc('admin_rapor_durum_guncelle', {
     p_id: id,
     p_status: status,
     p_admin_note: adminNote ?? null,
+    p_reporter_note: reporterNote ?? null,
   });
   if (error) rpcHata(error);
 }

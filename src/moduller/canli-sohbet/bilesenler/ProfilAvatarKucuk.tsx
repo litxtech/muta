@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   size?: number;
@@ -19,11 +20,12 @@ export function ProfilAvatarKucuk({
 }: Props) {
   const ad = (displayName?.trim() || username?.trim() || '?').charAt(0);
   const harf = ad.toLocaleUpperCase('tr-TR');
+  const uri = MedyaUriGuvenli(avatarUrl);
 
-  if (avatarUrl) {
+  if (uri) {
     return (
       <Image
-        source={{ uri: avatarUrl }}
+        source={{ uri }}
         style={{ width: size, height: size, borderRadius: size / 2 }}
       />
     );

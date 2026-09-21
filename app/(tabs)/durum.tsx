@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  type ViewToken,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -26,11 +27,13 @@ import {
   DurumAkisiniGetir,
   DurumTakipAkisiniGetir,
   DurumBegeniToggle,
+  DurumGoruntulemeKaydet,
   DurumSil,
   type DurumOggesi,
 } from '../../src/moduller/durum/islemler/DurumIslemleri';
 import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediyeMagaza';
 import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
+import { GonderiPaylasSheet } from '../../src/moduller/durum/paylasim/bilesenler/GonderiPaylasSheet';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -45,6 +48,11 @@ export default function DurumAkisEkrani() {
   const [bildirOge, setBildirOge] = useState<DurumOggesi | null>(null);
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
   const [sekme, setSekme] = useState<'sana' | 'takip'>('sana');
+  const [ekranOdak, setEkranOdak] = useState(true);
+  const [gorunurIds, setGorunurIds] = useState<Set<string>>(() => new Set());
+  const [paylasStatusId, setPaylasStatusId] = useState<string | null>(null);
+  /** Bu oturumda görüntülenme isteği atılan id'ler (duplicate tap / scroll) */
+  const goruntulemeIstek = useRef(new Set<string>());
 
   const yukle = useCallback(async () => {
     try {
@@ -62,9 +70,51 @@ export default function DurumAkisEkrani() {
 
   useFocusEffect(
     useCallback(() => {
+      setEkranOdak(true);
       void yukle();
+      return () => {
+        setEkranOdak(false);
+      };
     }, [yukle]),
   );
+
+  const onViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const next = new Set<string>();
+      for (const v of viewableItems) {
+        const id = (v.item as DurumOggesi | undefined)?.id;
+        if (typeof id === 'string' && id) next.add(id);
+      }
+      setGorunurIds(next);
+    },
+  ).current;
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 55,
+    minimumViewTime: 120,
+  }).current;
+
+  /** Feed'de görünen gönderiler → hesap başına 1 kez say */
+  useEffect(() => {
+    if (!ekranOdak || isGuest || gorunurIds.size === 0) return;
+    const adaylar = Array.from(gorunurIds).filter(
+      (id) => !goruntulemeIstek.current.has(id),
+    );
+    if (adaylar.length === 0) return;
+
+    for (const id of adaylar) {
+      goruntulemeIstek.current.add(id);
+      void (async () => {
+        const r = await DurumGoruntulemeKaydet(id);
+        if (!r.ok || typeof r.view_count !== 'number') return;
+        setItems((prev) =>
+          prev.map((x) =>
+            x.id === id ? { ...x, view_count: r.view_count ?? x.view_count } : x,
+          ),
+        );
+      })();
+    }
+  }, [gorunurIds, ekranOdak, isGuest]);
 
   const begen = (oge: DurumOggesi) => {
     islemiDene('yorum_yap', () => {
@@ -229,6 +279,12 @@ export default function DurumAkisEkrani() {
             renderItem={({ item }) => (
               <DurumKart
                 oge={item}
+                videoAktif={
+                  ekranOdak &&
+                  !yorumStatusId &&
+                  !lightboxUri &&
+                  gorunurIds.has(item.id)
+                }
                 onPress={() => router.push(`/durum/${item.id}` as any)}
                 onResimPress={() => {
                   if (item.media_type === 'video') return;
@@ -243,12 +299,17 @@ export default function DurumAkisEkrani() {
                   islemiDene('yorum_yap', () => setYorumStatusId(item.id))
                 }
                 onHediye={() => hediyeAc(item)}
+                onPaylas={() =>
+                  islemiDene('mesaj_gonder', () => setPaylasStatusId(item.id))
+                }
                 onProfil={() =>
                   router.push(`/kullanici/${item.user_id}` as any)
                 }
                 onMenu={() => menuAc(item)}
               />
             )}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
             windowSize={7}
             maxToRenderPerBatch={6}
             initialNumToRender={5}
@@ -278,6 +339,14 @@ export default function DurumAkisEkrani() {
           <DurumResimLightbox
             uri={lightboxUri}
             onClose={() => setLightboxUri(null)}
+          />
+        ) : null}
+
+        {paylasStatusId ? (
+          <GonderiPaylasSheet
+            visible
+            statusId={paylasStatusId}
+            onClose={() => setPaylasStatusId(null)}
           />
         ) : null}
 

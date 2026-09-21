@@ -10,3 +10,18 @@ export function MedyaUriGuvenli(
 ): string | null {
   return MedyaUriGecerliMi(uri) ? uri.trim() : null;
 }
+
+/**
+ * Tam ekran / galeri önizleme — https + yerel picker (file/content/ph).
+ * Video / uzak feed için MedyaUriGuvenli kullan.
+ */
+export function MedyaUriOnizlemeGuvenli(
+  uri: string | null | undefined,
+): string | null {
+  if (typeof uri !== 'string') return null;
+  const t = uri.trim();
+  if (!t) return null;
+  if (/^https?:\/\//i.test(t)) return t;
+  if (/^(file|content|ph|assets-library):/i.test(t)) return t;
+  return null;
+}

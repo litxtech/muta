@@ -14,6 +14,9 @@ import type { DirektMesaj } from '../okuma/MesajlariGetir';
 import { HostBasvurusuOlustur } from '../../hostlar/islemler/HostBasvuruIslemleri';
 import { AjansDavetMesajindanKoduCikar } from '../../ajanslar/yardimcilar/AjansDavetMesajindanKoduCikar';
 import { MedyaUriGuvenli } from '../yardimcilar/MedyaUriGecerliMi';
+import { DurumVideoOnizleme } from '../../durum/bilesenler/DurumVideoOnizleme';
+import { PaylasilanGonderiKarti } from '../../durum/paylasim/bilesenler/PaylasilanGonderiKarti';
+import type { PaylasilanDurumOnizleme } from '../../durum/paylasim/tipler';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -26,6 +29,9 @@ type Props = {
   onLongPress?: () => void;
   /** Tek ekran-seviyesi goruntuleyici — baloncuk basina Modal yok */
   onMedyaAc?: (uri: string, tur: 'image' | 'video') => void;
+  /** shared_post önizleme (batch) */
+  sharedPostOnizleme?: PaylasilanDurumOnizleme | null;
+  sharedPostYukleniyor?: boolean;
 };
 
 function saat(iso: string): string {
@@ -54,6 +60,8 @@ export function MesajBaloncugu({
   peerLastReadAt,
   onLongPress,
   onMedyaAc,
+  sharedPostOnizleme,
+  sharedPostYukleniyor,
 }: Props) {
   const sending = item._localStatus === 'sending';
   const failed = item._localStatus === 'failed';
@@ -65,6 +73,7 @@ export function MesajBaloncugu({
     !safeMediaUri;
   const isMedya = isImage || isVideo;
   const isSystem = item.message_type === 'system';
+  const isSharedPost = item.message_type === 'shared_post';
   const davet = AjansDavetMesajindanKoduCikar(item.body);
   const [davetBusy, setDavetBusy] = useState(false);
   const [davetGonderildi, setDavetGonderildi] = useState(false);
@@ -116,6 +125,46 @@ export function MesajBaloncugu({
     return (
       <View style={styles.system}>
         <Text style={styles.systemText}>{item.body}</Text>
+      </View>
+    );
+  }
+
+  if (isSharedPost) {
+    return (
+      <View style={[styles.sharedWrap, mine ? styles.sharedMine : styles.sharedTheirs, sending && styles.sending]}>
+        <PaylasilanGonderiKarti
+          onizleme={sharedPostOnizleme}
+          note={item.body}
+          mine={mine}
+          onLongPress={onLongPress}
+          yukleniyor={sharedPostYukleniyor}
+        />
+        <View style={styles.sharedMeta}>
+          <Text style={mine ? styles.timeMine : styles.time}>
+            {saat(item.created_at)}
+          </Text>
+          {mine ? (
+            <Ionicons
+              name={
+                failed
+                  ? 'alert-circle'
+                  : sending
+                    ? 'time-outline'
+                    : goruldu
+                      ? 'checkmark-done'
+                      : 'checkmark'
+              }
+              size={14}
+              color={
+                failed
+                  ? RenkTokenlari.danger
+                  : goruldu
+                    ? RenkTokenlari.mint
+                    : 'rgba(18,4,12,0.55)'
+              }
+            />
+          ) : null}
+        </View>
       </View>
     );
   }
@@ -210,8 +259,15 @@ export function MesajBaloncugu({
               accessibilityRole="button"
               accessibilityLabel="Videoyu aç"
             >
-              <Ionicons name="play-circle" size={52} color="#fff" />
-              <Text style={styles.videoHint}>Videoyu aç</Text>
+              <DurumVideoOnizleme
+                uri={safeMediaUri}
+                style={StyleSheet.absoluteFill}
+                aktif
+                mod="kare"
+              />
+              <View style={styles.videoOverlay} pointerEvents="none">
+                <Ionicons name="play-circle" size={48} color="#fff" />
+              </View>
             </Pressable>
           )}
           {!item.body ? metaSatiri(true) : null}
@@ -305,6 +361,18 @@ export function MesajBaloncugu({
 }
 
 const styles = StyleSheet.create({
+  sharedWrap: {
+    maxWidth: '86%',
+    gap: 4,
+  },
+  sharedMine: { alignSelf: 'flex-end', alignItems: 'flex-end' },
+  sharedTheirs: { alignSelf: 'flex-start', alignItems: 'flex-start' },
+  sharedMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 4,
+  },
   bubble: {
     maxWidth: '82%',
     paddingVertical: 8,
@@ -353,7 +421,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  videoOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.16)',
   },
   medyaCaptionWrap: {
     paddingHorizontal: 8,

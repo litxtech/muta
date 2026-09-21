@@ -120,6 +120,57 @@ export async function GorusmeGetir(callId: string): Promise<DirectCall> {
   return data as DirectCall;
 }
 
+/** Uygulama process yeniden acildi — DB'deki takili ringing/active bitir */
+export async function GorusmeBenimAktifleriBitir(
+  reason = 'app_closed',
+): Promise<number> {
+  const { data, error } = await supabase.rpc('gorusme_benim_aktifleri_bitir', {
+    p_reason: reason,
+  });
+  if (error) {
+    console.warn('[Gorusme] aktifleri_bitir', error.message);
+    return 0;
+  }
+  return typeof data === 'number' ? data : 0;
+}
+
+export type GorusmeGecmisKayit = {
+  id: string;
+  thread_id: string;
+  call_type: GorusmeTuru;
+  status: string;
+  started_at: string;
+  answered_at: string | null;
+  ended_at: string | null;
+  end_reason: string | null;
+  is_outgoing: boolean;
+  is_ongoing: boolean;
+  peer_id: string;
+  peer_display_name: string | null;
+  peer_username: string | null;
+  peer_avatar_url: string | null;
+};
+
+export async function GorusmeGecmisiniGetir(
+  limit = 100,
+): Promise<GorusmeGecmisKayit[]> {
+  const { data, error } = await supabase.rpc('benim_gorusme_gecmisim', {
+    p_limit: limit,
+  });
+  if (error) throw error;
+  return (data ?? []) as GorusmeGecmisKayit[];
+}
+
+export async function GorusmeGecmisSil(
+  callId: string,
+): Promise<{ ok: boolean; hata?: string }> {
+  const { error } = await supabase.rpc('gorusme_gecmis_sil', {
+    p_call_id: callId,
+  });
+  if (error) return { ok: false, hata: error.message };
+  return { ok: true };
+}
+
 export async function GorusmeGuvenlikOlayi(input: {
   callId: string;
   eventType: 'screenshot' | 'screen_record' | 'capture_blocked' | 'capture_attempt';

@@ -28,6 +28,7 @@ import {
   type SehirSecimGidisat,
 } from '../../../src/moduller/sehir-secimleri/islemler/SehirSecimIslemleri';
 import { RenkTokenlari } from '../../../src/tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { TipografiTokenlari } from '../../../src/tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
@@ -203,9 +204,9 @@ export default function SehirSecimDetayEkrani() {
               <Text style={styles.winnerLabel}>Seçilen lider</Text>
               <Text style={styles.winnerName}>{data.winner.display_name}</Text>
             </View>
-            {data.winner.avatar_url ? (
+            {MedyaUriGuvenli(data.winner.avatar_url) ? (
               <Image
-                source={{ uri: data.winner.avatar_url }}
+                source={{ uri: MedyaUriGuvenli(data.winner.avatar_url)! }}
                 style={styles.winnerAvatar}
               />
             ) : null}
@@ -247,8 +248,8 @@ export default function SehirSecimDetayEkrani() {
             return (
               <View style={[styles.cand, selected && styles.candMine]}>
                 <Text style={styles.rank}>{index + 1}</Text>
-                {item.avatar_url ? (
-                  <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+                {MedyaUriGuvenli(item.avatar_url) ? (
+                  <Image source={{ uri: MedyaUriGuvenli(item.avatar_url)! }} style={styles.avatar} />
                 ) : (
                   <View style={[styles.avatar, styles.avatarBos]}>
                     <Ionicons name="person" size={16} color={RenkTokenlari.textMuted} />

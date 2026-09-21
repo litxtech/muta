@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { CuzdanUiIcon, CuzdanCoinDisplay } from '../ui-config/CuzdanUiTipleri';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   icon: CuzdanUiIcon | CuzdanCoinDisplay;
@@ -24,7 +25,7 @@ export function CuzdanDinamikSimge({
   const opacity = 'opacity' in icon ? Number(icon.opacity ?? 1) : 1;
   const bg = 'background' in icon ? icon.background : undefined;
   const radius = 'radius' in icon ? Number(icon.radius ?? 12) : 12;
-  const url = icon.url?.trim();
+  const url = MedyaUriGuvenli(icon.url);
   const ionRaw = icon.ionicon;
   const ion: keyof typeof Ionicons.glyphMap =
     ionRaw && ionRaw in Ionicons.glyphMap

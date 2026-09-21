@@ -11,6 +11,9 @@ import { AnaSayfaCanliNokta } from './AnaSayfaCanliNokta';
 import { FeedPencereCerceve } from './FeedPencereCerceve';
 import { FEED_KART_ORANI } from '../sabitler/FeedKartOrani';
 import type { FeedOggesi } from '../okuma/AnaSayfaIcerikleriniGetir';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { IcerikGuvenlikDugmesi } from '../../moderasyon/bilesenler/IcerikGuvenlikDugmesi';
+import { useAuth } from '../../../contexts/AuthContext';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -42,11 +45,15 @@ function sayacBicimle(n: number): string {
 }
 
 export function AnaSayfaFeedKart({ oge, onPress, index = 0, aktif = false }: Props) {
+  const { isGuest } = useAuth();
   const ses = oge.tur === 'oda';
+  const contentId = oge.id.includes(':') ? oge.id.split(':')[1]! : oge.id;
   const hostAd =
     oge.host?.display_name ??
     (oge.host?.username ? `@${oge.host.username}` : 'Ev sahibi');
   const mod = oge.mode && MODE_LABEL[oge.mode] ? MODE_LABEL[oge.mode] : null;
+  const kapak = MedyaUriGuvenli(oge.cover_url);
+  const hostAvatar = MedyaUriGuvenli(oge.host?.avatar_url);
 
   const ana = ses ? RenkTokenlari.mint : oge.popular ? RenkTokenlari.accent : RenkTokenlari.primary;
   const anaYumusak = ses
@@ -70,9 +77,9 @@ export function AnaSayfaFeedKart({ oge, onPress, index = 0, aktif = false }: Pro
           style={styles.press}
         >
           <View style={styles.kart}>
-            {oge.cover_url ? (
+            {kapak ? (
               <Image
-                source={{ uri: oge.cover_url }}
+                source={{ uri: kapak }}
                 style={StyleSheet.absoluteFill}
                 resizeMode="cover"
               />
@@ -115,16 +122,29 @@ export function AnaSayfaFeedKart({ oge, onPress, index = 0, aktif = false }: Pro
                   {ses ? 'SES' : 'CANLI'}
                 </Text>
               </View>
-              {oge.listener_count > 0 ? (
-                <View style={styles.sayac}>
-                  <Ionicons
-                    name={ses ? 'headset' : 'eye'}
-                    size={10}
-                    color={RenkTokenlari.textOnOverlay}
-                  />
-                  <Text style={styles.sayacYazi}>{sayacBicimle(oge.listener_count)}</Text>
-                </View>
-              ) : null}
+              <View style={styles.ustSag}>
+                {oge.listener_count > 0 ? (
+                  <View style={styles.sayac}>
+                    <Ionicons
+                      name={ses ? 'headset' : 'eye'}
+                      size={10}
+                      color={RenkTokenlari.textOnOverlay}
+                    />
+                    <Text style={styles.sayacYazi}>
+                      {sayacBicimle(oge.listener_count)}
+                    </Text>
+                  </View>
+                ) : null}
+                <IcerikGuvenlikDugmesi
+                  tur={ses ? 'room' : 'live'}
+                  contentId={contentId}
+                  roomId={ses ? contentId : null}
+                  targetUserId={oge.host?.id}
+                  title={oge.title}
+                  isGuest={isGuest}
+                  koyu
+                />
+              </View>
             </View>
 
             <View style={styles.alt}>
@@ -141,8 +161,8 @@ export function AnaSayfaFeedKart({ oge, onPress, index = 0, aktif = false }: Pro
               </Text>
               <View style={styles.host}>
                 <View style={[styles.avatarHalka, { borderColor: `${anaYumusak}AA` }]}>
-                  {oge.host?.avatar_url ? (
-                    <Image source={{ uri: oge.host.avatar_url }} style={styles.avatar} />
+                  {hostAvatar ? (
+                    <Image source={{ uri: hostAvatar }} style={styles.avatar} />
                   ) : (
                     <LinearGradient
                       colors={[...RenkTokenlari.gradientPrimary]}
@@ -199,6 +219,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  ustSag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   rozet: {
     flexDirection: 'row',

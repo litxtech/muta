@@ -5,11 +5,20 @@ import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 
 type Props = {
-  vipLevel: number;
-  gifterLevel?: number | null;
-  charmLevel?: number;
-  rechargeLevel?: number | null;
+  vipLevel: number | string | null | undefined;
+  gifterLevel?: number | string | null;
+  charmLevel?: number | string | null;
+  rechargeLevel?: number | string | null;
 };
+
+function chipMetin(onEk: string, deger: number | string | null | undefined) {
+  if (deger == null || deger === '') return null;
+  const n = Number(deger);
+  if (Number.isFinite(n) && n <= 0) return null;
+  const yazi = Number.isFinite(n) ? String(Math.floor(n)) : String(deger).trim();
+  if (!yazi) return null;
+  return `${onEk} ${yazi}`;
+}
 
 export function PrestigeRozetSatiri({
   vipLevel,
@@ -18,10 +27,14 @@ export function PrestigeRozetSatiri({
   rechargeLevel,
 }: Props) {
   const chips: Array<{ label: string; hot?: boolean }> = [];
-  if (vipLevel > 0) chips.push({ label: `VIP ${vipLevel}`, hot: true });
-  if (gifterLevel) chips.push({ label: `Hediye ${gifterLevel}` });
-  if (charmLevel) chips.push({ label: `Çekicilik ${charmLevel}` });
-  if (rechargeLevel) chips.push({ label: `Yükleme ${rechargeLevel}` });
+  const vip = chipMetin('VIP', vipLevel);
+  if (vip) chips.push({ label: vip, hot: true });
+  const hediye = chipMetin('Hediye', gifterLevel);
+  if (hediye) chips.push({ label: hediye });
+  const cekicilik = chipMetin('Çekicilik', charmLevel);
+  if (cekicilik) chips.push({ label: cekicilik });
+  const yukleme = chipMetin('Yükleme', rechargeLevel);
+  if (yukleme) chips.push({ label: yukleme });
   if (chips.length === 0) return null;
 
   return (

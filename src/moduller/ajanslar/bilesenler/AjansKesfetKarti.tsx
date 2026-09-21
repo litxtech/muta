@@ -9,6 +9,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { AjansListeKart } from '../okuma/AjansProfilGetir';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 function sayi(n: number) {
   return new Intl.NumberFormat('tr-TR').format(n);
@@ -27,21 +28,23 @@ type Props = {
 };
 
 export function AjansKesfetKarti({ ajans, sahipMi, onPress }: Props) {
+  const banner = MedyaUriGuvenli(ajans.banner_url);
+  const logo = MedyaUriGuvenli(ajans.logo_url);
   return (
     <Pressable onPress={onPress} style={styles.wrap}>
       <LinearGradient
         colors={[...RenkTokenlari.gradientCard]}
         style={styles.kart}
       >
-        {ajans.banner_url ? (
-          <Image source={{ uri: ajans.banner_url }} style={styles.banner} />
+        {banner ? (
+          <Image source={{ uri: banner }} style={styles.banner} />
         ) : (
           <View style={[styles.banner, styles.bannerBos]} />
         )}
         <View style={styles.govde}>
           <View style={styles.ust}>
-            {ajans.logo_url ? (
-              <Image source={{ uri: ajans.logo_url }} style={styles.logo} />
+            {logo ? (
+              <Image source={{ uri: logo }} style={styles.logo} />
             ) : (
               <View style={[styles.logo, styles.logoBos]}>
                 <Ionicons

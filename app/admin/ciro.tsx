@@ -29,6 +29,7 @@ import { AdminCiroBelgesiOlustur } from '../../src/moduller/belge-paylasim/Belge
 import type { BelgeIcerik } from '../../src/moduller/belge-paylasim/BelgeSablonlari';
 import { supabase } from '../../src/lib/supabase';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
@@ -205,7 +206,7 @@ export default function AdminCiroEkrani() {
               >
                 <View style={styles.satir}>
                   {k.avatar_url ? (
-                    <Image source={{ uri: k.avatar_url }} style={styles.avatar} />
+                    <Image source={{ uri: MedyaUriGuvenli(k.avatar_url)! }} style={styles.avatar} />
                   ) : (
                     <View style={[styles.avatar, styles.avatarBos]}>
                       <Ionicons

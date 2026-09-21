@@ -19,6 +19,7 @@ import {
   type MikrofonIstegi,
 } from '../mikrofon/MikrofonIstekleriniGetir';
 import { MikrofonIstegiYanitla } from '../mikrofon/MikrofonIstegiYanitla';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -191,9 +192,11 @@ export function MikrofonIstekPaneli({ roomId, onDegisti }: Props) {
                       : 'İlk boş koltuk';
                   return (
                     <View key={istek.id} style={styles.satir}>
-                      {istek.profile?.avatar_url ? (
+                      {MedyaUriGuvenli(istek.profile?.avatar_url) ? (
                         <Image
-                          source={{ uri: istek.profile.avatar_url }}
+                          source={{
+                            uri: MedyaUriGuvenli(istek.profile?.avatar_url)!,
+                          }}
                           style={styles.avatar}
                         />
                       ) : (

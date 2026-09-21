@@ -215,10 +215,10 @@ const styles = StyleSheet.create({
   },
   liveBody: {
     ...TipografiTokenlari.body,
-    color: RenkTokenlari.text,
+    color: '#FFFFFF',
     fontWeight: '500',
-    fontSize: 14,
-    lineHeight: 19,
+    fontSize: 16,
+    lineHeight: 22,
     textShadowColor: 'rgba(0,0,0,0.65)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,

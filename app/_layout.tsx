@@ -11,7 +11,10 @@ import { MesajOkunmamisSaglayici } from '../src/moduller/mesajlasma/baglam/Mesaj
 import { GorusmeGelenSaglayici } from '../src/moduller/gorusme/bilesenler/GorusmeGelenSaglayici';
 import { KullanimSuresiSaglayici } from '../src/moduller/kullanim-suresi/baglam/KullanimSuresiSaglayici';
 import { AktifSesOdasiMiniBar } from '../src/moduller/ses-odalari/bilesenler/AktifSesOdasiMiniBar';
+import { AktifSesOdasiPipKart } from '../src/moduller/ses-odalari/bilesenler/AktifSesOdasiPipKart';
 import { SesOdasiArkaPlanKurulum } from '../src/moduller/ses-odalari/arka-plan/SesOdasiArkaPlanServisi';
+import { SesOdasiPipKurulum } from '../src/moduller/ses-odalari/pip/useSesOdasiPip';
+import { GorusmeGlobalKatman } from '../src/moduller/gorusme/bilesenler/GorusmeGlobalKatman';
 import { OyunKazancBalonuSaglayici } from '../src/moduller/oyunlar/kazanc-balonu/OyunKazancBalonuSaglayici';
 import { UygulamaHataSiniri } from '../src/ortak/hata-sinirlari/UygulamaHataSiniri';
 import { ModulHataSiniri } from '../src/ortak/hata-sinirlari/ModulHataSiniri';
@@ -65,6 +68,13 @@ try {
   /* native yok / Expo Go */
 }
 
+/** Android ses odası PiP aksiyonları */
+try {
+  SesOdasiPipKurulum();
+} catch {
+  /* native yok / Expo Go */
+}
+
 /** Deep link / yenilemede tab gecmisi index'e dusmesin */
 export const unstable_settings = {
   initialRouteName: '(tabs)',
@@ -110,7 +120,8 @@ function KokIcerik() {
                 screenOptions={{
                   headerShown: false,
                   contentStyle: { backgroundColor: palet.bg },
-                  animation: 'fade',
+                  // fade: eski + yeni başlık üst üste biner; slide temiz
+                  animation: 'slide_from_right',
                 }}
               >
           <Stack.Screen
@@ -130,6 +141,16 @@ function KokIcerik() {
           <Stack.Screen name="takip/takip-edilenler" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="takip/istekler" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="destek/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="fikirler/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="fikirler/olustur" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="fikirler/benim" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="fikirler/[id]" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="admin/fikirler/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="admin/fikirler/[id]" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen
+            name="admin/fikirler/kategoriler"
+            options={{ animation: 'slide_from_right' }}
+          />
           <Stack.Screen name="lobi/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="canli/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
@@ -174,6 +195,9 @@ function KokIcerik() {
             options={{ animation: 'slide_from_right' }}
           />
           <Stack.Screen name="bildirimler/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="bildir/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="raporlarim/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="raporlarim/[id]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="durum/olustur" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="durum/duzenle" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen
@@ -277,7 +301,15 @@ function KokIcerik() {
           />
           <Stack.Screen
             name="gorusme/[id]"
-            options={{ animation: 'fade', presentation: 'fullScreenModal' }}
+            options={{
+              animation: 'fade',
+              presentation: 'fullScreenModal',
+              // Tema bg sızmasın — sahne gradient üst tonu
+              contentStyle: { backgroundColor: '#0B1A14' },
+              statusBarTranslucent: true,
+              statusBarStyle: 'light',
+              navigationBarHidden: true,
+            }}
           />
           <Stack.Screen
             name="admin/gorusme-guvenlik"
@@ -290,6 +322,8 @@ function KokIcerik() {
               </Stack>
               <YuzenTabBar />
               <AktifSesOdasiMiniBar />
+              <AktifSesOdasiPipKart />
+              <GorusmeGlobalKatman />
               <OyunKazancBalonuSaglayici />
             </GorusmeGelenSaglayici>
           </ModulHataSiniri>

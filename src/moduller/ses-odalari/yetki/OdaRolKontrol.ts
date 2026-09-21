@@ -1,0 +1,74 @@
+/**
+ * Ses odası yetki hiyerarşisi — OWNER > ADMIN(cohost) > MEMBER.
+ * UI menü filtresi; gerçek yetki RPC/RLS tarafında doğrulanır.
+ */
+
+export type OdaRolu = 'owner' | 'admin' | 'member';
+
+export function OdaRoluHesapla(input: {
+  userId?: string | null;
+  hostId?: string | null;
+  memberRole?: string | null;
+  isCohostSeat?: boolean;
+  /** Platform admin — oda izni olmadan tam yetki */
+  isPlatformAdmin?: boolean;
+}): OdaRolu {
+  if (!input.userId) return 'member';
+  if (input.isPlatformAdmin) return 'owner';
+  if (input.hostId && input.userId === input.hostId) return 'owner';
+  if (input.memberRole === 'cohost' || input.isCohostSeat) return 'admin';
+  return 'member';
+}
+
+export type KatilimciMenuAksiyonu =
+  | 'profil'
+  | 'mute'
+  | 'mic_lock'
+  | 'mic_unlock'
+  | 'unseat'
+  | 'admin_ata'
+  | 'admin_kaldir'
+  | 'lider_devret'
+  | 'kick'
+  | 'ban'
+  | 'koltuktan_ayril';
+
+/** Actor'ün hedef üzerinde görebileceği yönetim aksiyonları */
+export function KatilimciMenuAksiyonlari(input: {
+  actorRole: OdaRolu;
+  targetIsOwner: boolean;
+  targetIsAdmin: boolean;
+  targetOnSeat: boolean;
+  targetMicLocked: boolean;
+  targetIsSelf: boolean;
+}): KatilimciMenuAksiyonu[] {
+  if (input.targetIsSelf) {
+    const self: KatilimciMenuAksiyonu[] = ['profil'];
+    if (input.targetOnSeat) self.push('koltuktan_ayril');
+    return self;
+  }
+
+  const ops: KatilimciMenuAksiyonu[] = ['profil'];
+  if (input.actorRole === 'member') return ops;
+
+  // OWNER hedefi: sadece profil
+  if (input.targetIsOwner) return ops;
+
+  // ADMIN başka ADMIN'e: sadece profil (owner hariç)
+  if (input.actorRole === 'admin' && input.targetIsAdmin) return ops;
+
+  ops.push('mute');
+  if (input.targetMicLocked) ops.push('mic_unlock');
+  else ops.push('mic_lock');
+  if (input.targetOnSeat) ops.push('unseat');
+  ops.push('kick');
+
+  if (input.actorRole === 'owner') {
+    if (input.targetIsAdmin) ops.push('admin_kaldir');
+    else ops.push('admin_ata');
+    ops.push('lider_devret');
+    ops.push('ban');
+  }
+
+  return ops;
+}

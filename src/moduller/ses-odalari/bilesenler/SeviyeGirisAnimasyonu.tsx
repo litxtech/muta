@@ -4,7 +4,7 @@
  * Altın/Efsane: tam ekran sinematik sahne (Sahip girişi kalitesinde).
  */
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Dimensions, Image, Platform, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -33,6 +33,7 @@ import {
   SeviyeGirisSuresiMs,
   type SeviyeGirisKademe,
 } from '../animasyon/SeviyeGirisKatalogu';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   gorunur: boolean;
@@ -507,8 +508,8 @@ function SinematikSahne({
               avatarAuraStil,
             ]}
           />
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={[styles.avatarHero, { borderColor: renkler[0] }]} />
+          {MedyaUriGuvenli(avatarUrl) ? (
+            <Image source={{ uri: MedyaUriGuvenli(avatarUrl)! }} style={[styles.avatarHero, { borderColor: renkler[0] }]} />
           ) : (
             <LinearGradient
               colors={[renkler[0], renkler[1], renkler[2]]}
@@ -665,8 +666,8 @@ function BannerSahne({
               />
             </Animated.View>
             <View style={styles.avatarWrapBanner}>
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} style={[styles.avatarBanner, { borderColor: renkler[0] }]} />
+              {MedyaUriGuvenli(avatarUrl) ? (
+                <Image source={{ uri: MedyaUriGuvenli(avatarUrl)! }} style={[styles.avatarBanner, { borderColor: renkler[0] }]} />
               ) : (
                 <LinearGradient colors={[renkler[0], renkler[2]]} style={styles.avatarBanner}>
                   <Text style={styles.harfBanner}>{harf}</Text>
@@ -698,11 +699,20 @@ export function SeviyeGirisAnimasyonu({
   avatarUrl,
   onBitti,
 }: Props) {
+  const safeAvatar = MedyaUriGuvenli(avatarUrl);
   const progress = useSharedValue(0);
   const orbit = useSharedValue(0);
   const pulse = useSharedValue(0);
   const sure = SeviyeGirisSuresiMs(kademe);
   const sinematik = SeviyeGirisSinematikMi(kademe);
+  const onBittiRef = useRef(onBitti);
+  onBittiRef.current = onBitti;
+  const sureRef = useRef(sure);
+  sureRef.current = sure;
+  const kademeRef = useRef(kademe);
+  kademeRef.current = kademe;
+  const sinematikRef = useRef(sinematik);
+  sinematikRef.current = sinematik;
 
   useEffect(() => {
     if (!gorunur) {
@@ -712,26 +722,30 @@ export function SeviyeGirisAnimasyonu({
       return;
     }
 
-    const bitir = () => onBitti?.();
+    const bitir = () => onBittiRef.current?.();
+    const sureMs = sureRef.current;
+    const k = kademeRef.current;
+    const sin = sinematikRef.current;
+
     progress.value = 0;
     progress.value = withTiming(
       1,
-      { duration: sure, easing: Easing.linear },
+      { duration: sureMs, easing: Easing.linear },
       (finished) => {
         if (finished) runOnJS(bitir)();
       },
     );
 
-    if (sinematik) {
+    if (sin) {
       orbit.value = withRepeat(
-        withTiming(1, { duration: 4800, easing: Easing.linear }),
+        withTiming(1, { duration: 3200, easing: Easing.linear }),
         -1,
         false,
       );
       pulse.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 850, easing: Easing.inOut(Easing.sin) }),
-          withTiming(0, { duration: 850, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1, { duration: 650, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0, { duration: 650, easing: Easing.inOut(Easing.sin) }),
         ),
         -1,
         false,
@@ -740,23 +754,23 @@ export function SeviyeGirisAnimasyonu({
 
     const impact = () => {
       void Haptics.impactAsync(
-        kademe === 'efsane' || kademe === 'altin'
+        k === 'efsane' || k === 'altin'
           ? Haptics.ImpactFeedbackStyle.Heavy
           : Haptics.ImpactFeedbackStyle.Medium,
       );
     };
-    const t = setTimeout(impact, sinematik ? 580 : 120);
+    const t = setTimeout(impact, sin ? 380 : 100);
     let t2: ReturnType<typeof setTimeout> | undefined;
-    if (kademe === 'efsane') {
+    if (k === 'efsane') {
       t2 = setTimeout(() => {
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }, 860);
+      }, 720);
     }
     return () => {
       clearTimeout(t);
       if (t2) clearTimeout(t2);
     };
-  }, [gorunur, ad, level, kademe, sure, sinematik, progress, orbit, pulse, onBitti]);
+  }, [gorunur, progress, orbit, pulse]);
 
   if (!gorunur) return null;
 
@@ -767,7 +781,7 @@ export function SeviyeGirisAnimasyonu({
           ad={ad}
           level={level}
           kademe={kademe}
-          avatarUrl={avatarUrl}
+          avatarUrl={safeAvatar}
           progress={progress}
           orbit={orbit}
           pulse={pulse}
@@ -777,7 +791,7 @@ export function SeviyeGirisAnimasyonu({
           ad={ad}
           level={level}
           kademe={kademe}
-          avatarUrl={avatarUrl}
+          avatarUrl={safeAvatar}
           progress={progress}
         />
       )}

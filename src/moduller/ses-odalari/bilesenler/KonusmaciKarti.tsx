@@ -6,6 +6,7 @@ import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari'
 import { KonusmaciAktiflikEfekti } from './KonusmaciAktiflikEfekti';
 import { KoltukTahti } from './KoltukTahti';
 import { SeviyeTaci } from './SeviyeTaci';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import type { RoomSeat } from '../../../types/models';
 
 type Props = {
@@ -19,10 +20,11 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
   const dolu = !!seat.user_id;
   const hostMu = !!seat.user_id && !!hostId && seat.user_id === hostId;
   const yardimciMu = !hostMu && !!seat.is_cohost;
-  const seviye = seat.profile?.level ?? 0;
+  const seviye = Number(seat.profile?.level) || 0;
   const avatarBoy = tahtMi ? 58 : 40;
   const efektBoy = tahtMi ? 66 : 46;
   const muted = !!seat.is_muted;
+  const micKilitli = !!seat.is_mic_locked;
   const koltukNo = seat.seat_index + 1;
 
   const ad =
@@ -30,7 +32,7 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
     seat.profile?.username?.trim() ||
     (tahtMi || seat.seat_index === 0 ? 'Ev sahibi' : `Koltuk ${koltukNo}`);
   const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
-  const avatarUrl = seat.profile?.avatar_url;
+  const avatarUrl = MedyaUriGuvenli(seat.profile?.avatar_url);
 
   return (
     <Pressable
@@ -110,9 +112,13 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
             </View>
           </KonusmaciAktiflikEfekti>
         )}
-        {dolu && muted ? (
+        {dolu && (muted || micKilitli) ? (
           <View style={styles.micBadge} pointerEvents="none">
-            <Ionicons name="mic-off" size={9} color="#fff" />
+            <Ionicons
+              name={micKilitli ? 'lock-closed' : 'mic-off'}
+              size={9}
+              color="#fff"
+            />
           </View>
         ) : null}
       </View>
@@ -140,12 +146,12 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
       {hostMu ? (
         <View style={styles.hostRozet}>
           <Ionicons name="ribbon" size={8} color={RenkTokenlari.accent} />
-          <Text style={styles.hostYazi}>LİDER</Text>
+          <Text style={styles.hostYazi}>SAHİP</Text>
         </View>
       ) : yardimciMu ? (
         <View style={styles.cohostRozet}>
           <Ionicons name="shield-checkmark" size={8} color="#8ec8ff" />
-          <Text style={styles.cohostYazi}>YARDIMCI</Text>
+          <Text style={styles.cohostYazi}>ADMIN</Text>
         </View>
       ) : null}
     </Pressable>
@@ -160,6 +166,7 @@ function ayniKart(a: Props, b: Props) {
     a.seat.id === b.seat.id &&
     a.seat.user_id === b.seat.user_id &&
     a.seat.is_muted === b.seat.is_muted &&
+    a.seat.is_mic_locked === b.seat.is_mic_locked &&
     a.seat.is_cohost === b.seat.is_cohost &&
     a.seat.seat_index === b.seat.seat_index &&
     a.seat.profile?.avatar_url === b.seat.profile?.avatar_url &&

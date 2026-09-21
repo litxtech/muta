@@ -140,6 +140,8 @@ type VideoDinleyici = (state: {
   localVideo: LocalVideoTrack | null;
   remoteVideo: RemoteVideoTrack | null;
   remoteIds: string[];
+  /** user = ön (ayna), environment = arka (düz) */
+  kameraFacing: 'user' | 'environment';
 }) => void;
 
 function globalsKaydet() {
@@ -289,6 +291,7 @@ class LiveKitBaglantiYoneticisiImpl {
       localVideo: this.localVideoTrack(),
       remoteVideo: this.remoteVideoTrack(),
       remoteIds: this.remoteParticipantIds(),
+      kameraFacing: this.kameraFacing,
     };
   }
 
@@ -1051,6 +1054,8 @@ class LiveKitBaglantiYoneticisiImpl {
   async kameraCevir(): Promise<void> {
     this.kameraFacing =
       this.kameraFacing === 'user' ? 'environment' : 'user';
+    // Ayna/düz önizleme hemen güncellensin (track restart bitmeden)
+    this.yayinlaVideo();
     const track = this.localVideoTrack();
     try {
       if (track) {
@@ -1063,6 +1068,10 @@ class LiveKitBaglantiYoneticisiImpl {
       await this.kameraGucluAc().catch(() => undefined);
     }
     this.yayinlaVideo();
+  }
+
+  kameraFacingAl(): 'user' | 'environment' {
+    return this.kameraFacing;
   }
 
   muteLocalAudio(mute: boolean) {
@@ -1344,6 +1353,16 @@ export const LiveKitBaglantiYoneticisi =
   (globalKayit.__tamusoLiveKitYoneticisi =
     new LiveKitBaglantiYoneticisiImpl());
 
+// Fast Refresh: global singleton eski prototipte kalırsa yeni metotları bağla
+if (
+  typeof (LiveKitBaglantiYoneticisi as { kameraFacingAl?: unknown })
+    .kameraFacingAl !== 'function'
+) {
+  Object.setPrototypeOf(
+    LiveKitBaglantiYoneticisi,
+    LiveKitBaglantiYoneticisiImpl.prototype,
+  );
+}
 if (Platform.OS !== 'web' && !globalKayit.__tamusoLiveKitAppState) {
   globalKayit.__tamusoLiveKitAppState = true;
   AppState.addEventListener('change', (state) => {
@@ -1360,6 +1379,8 @@ const hmr =
     : undefined;
 hmr?.dispose(() => {
   void LiveKitBaglantiYoneticisi.baglantiyiKes();
+  // Fast Refresh: eski singleton prototipte yeni metotlar olmaz
+  globalKayit.__tamusoLiveKitYoneticisi = undefined;
 });
 
 /** UI icin VideoView track tipi */

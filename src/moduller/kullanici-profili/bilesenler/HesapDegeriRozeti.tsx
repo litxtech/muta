@@ -6,7 +6,7 @@ import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari'
 
 type Props = {
   value: number;
-  label?: string | null;
+  label?: string | number | null;
 };
 
 const GOLD = ['#FFF6D1', '#F5E6A8', '#D4AF37', '#B8860B'] as const;
@@ -14,8 +14,17 @@ const GOLD_EDGE = ['#FFE9A0', '#C9A227', '#8B6914'] as const;
 
 /** Profilde altın kaplama hesap değeri rozeti (güven / kalite skoru). */
 export function HesapDegeriRozeti({ value, label }: Props) {
-  const skor = Math.max(0, Math.min(1000, Math.round(value || 0)));
-  const etiket = (label?.trim() || HesapDegeriEtiketi(skor)).toUpperCase();
+  const skor = Math.max(
+    0,
+    Math.min(1000, Math.round(Number(value) || 0)),
+  );
+  const ham =
+    typeof label === 'string'
+      ? label.trim()
+      : label != null
+        ? String(label).trim()
+        : '';
+  const etiket = (ham || HesapDegeriEtiketi(skor)).toUpperCase();
 
   return (
     <View style={styles.wrap} accessibilityLabel={`Hesap değeri ${skor}, ${etiket}`}>

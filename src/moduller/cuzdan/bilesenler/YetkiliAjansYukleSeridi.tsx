@@ -32,6 +32,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 type Props = {
   /** Mağaza kilitliyken mesaj yine açık kalabilir */
@@ -135,6 +136,7 @@ export function YetkiliAjansYukleSeridi({ locked, onPaketleriYenile }: Props) {
         <View style={styles.liste}>
           {liste.map((a) => {
             const aktif = secili?.id === a.id;
+            const logo = MedyaUriGuvenli(a.logo_url);
             return (
               <Pressable
                 key={a.id}
@@ -142,8 +144,8 @@ export function YetkiliAjansYukleSeridi({ locked, onPaketleriYenile }: Props) {
                 onPress={() => ajansSec(a)}
               >
                 <View style={styles.sol}>
-                  {a.logo_url ? (
-                    <Image source={{ uri: a.logo_url }} style={styles.logo} />
+                  {logo ? (
+                    <Image source={{ uri: logo }} style={styles.logo} />
                   ) : (
                     <LinearGradient
                       colors={[...RenkTokenlari.gradientPrimary]}

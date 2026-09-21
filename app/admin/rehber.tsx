@@ -29,6 +29,7 @@ import {
 } from '../../src/moduller/admin/rehber/AdminRehberIslemleri';
 import type { AdminRehberKisi } from '../../src/moduller/admin/rehber/tipler';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
+import { MedyaUriGuvenli } from '../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
@@ -44,7 +45,7 @@ function Avatar({ kisi, buyuk }: { kisi: AdminRehberKisi; buyuk?: boolean }) {
   if (kisi.avatar_url) {
     return (
       <Image
-        source={{ uri: kisi.avatar_url }}
+        source={{ uri: MedyaUriGuvenli(kisi.avatar_url)! }}
         style={{
           width: size,
           height: size,

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -19,6 +19,7 @@ import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan
 import { useAuth } from '../../src/contexts/AuthContext';
 import {
   MesajlariGetir,
+  MesajThreadEngelliMi,
   type DirektMesaj,
 } from '../../src/moduller/mesajlasma/okuma/MesajlariGetir';
 import {
@@ -54,6 +55,7 @@ import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/H
 import { MaviTikRozeti } from '../../src/moduller/mesajlasma/bilesenler/MaviTikRozeti';
 import { MesajHizliAksiyonSeridi } from '../../src/moduller/mesajlasma/bilesenler/MesajHizliAksiyonSeridi';
 import { PlatformResmiHesapPaneli } from '../../src/moduller/cuzdan/bilesenler/PlatformResmiHesapPaneli';
+import { usePaylasilanDurumOnizleme } from '../../src/moduller/durum/paylasim/usePaylasilanDurumOnizleme';
 import {
   TakasMahkemeKaraAc,
   TakasMahkemeKapat,
@@ -98,6 +100,7 @@ export default function MesajDetayEkrani() {
   const [gonderiyor, setGonderiyor] = useState(false);
   const [aciliyor, setAciliyor] = useState(false);
   const [peer, setPeer] = useState<ThreadKarsiProfil | null>(null);
+  const [engelli, setEngelli] = useState(false);
   const [peerLastReadAt, setPeerLastReadAt] = useState<string | null>(null);
   const [medyaSecimAcik, setMedyaSecimAcik] = useState(false);
   const [guvenlikAcik, setGuvenlikAcik] = useState(false);
@@ -114,6 +117,16 @@ export default function MesajDetayEkrani() {
   const listRef = useRef<FlatList<DirektMesaj>>(null);
   const mahkemeMi = peer?.thread_kind === 'mahkeme';
   const mahkemeKapali = !!peer?.closed_at;
+
+  const sharedStatusIds = useMemo(
+    () =>
+      mesajlar
+        .filter((m) => m.message_type === 'shared_post' && !!m.ref_id)
+        .map((m) => m.ref_id as string),
+    [mesajlar],
+  );
+  const { map: sharedPostMap, yukleniyor: sharedPostYukleniyor } =
+    usePaylasilanDurumOnizleme(sharedStatusIds);
 
   useEffect(() => {
     ImagePickerOnIsit({ izinIste: true });
@@ -158,8 +171,9 @@ export default function MesajDetayEkrani() {
   }, []);
 
   useMesajKanali(
-    threadId,
+    engelli ? undefined : threadId,
     (msg, event) => {
+      if (engelli) return;
       if (event === 'DELETE') {
         setMesajlar((p) => p.filter((m) => m.id !== msg.id));
         return;
@@ -178,6 +192,7 @@ export default function MesajDetayEkrani() {
       }
     },
     (at, fromUserId) => {
+      if (engelli) return;
       if (fromUserId && fromUserId === user?.id) return;
       setPeerLastReadAt((prev) => {
         if (!prev) return at;
@@ -189,18 +204,26 @@ export default function MesajDetayEkrani() {
   const load = useCallback(async () => {
     if (!threadId) return;
     try {
-      const [msgs, karsi, peerRead] = await Promise.all([
-        MesajlariGetir({ threadId, limit: 60 }),
+      const bloklu = await MesajThreadEngelliMi(threadId);
+      setEngelli(bloklu);
+      const [karsi, peerRead] = await Promise.all([
         MesajThreadKarsiProfil(threadId).catch(() => null),
         MesajPeerLastReadGet(threadId),
       ]);
+      setPeer(karsi);
+      setPeerLastReadAt(peerRead);
+
+      if (bloklu) {
+        setMesajlar([]);
+        return;
+      }
+
+      const msgs = await MesajlariGetir({ threadId, limit: 60 });
       setMesajlar(
         msgs
           .filter((m) => typeof m?.id === 'string' && m.id.length > 0)
           .map((m) => ({ ...m, _localStatus: 'sent' as const })),
       );
-      setPeer(karsi);
-      setPeerLastReadAt(peerRead);
       const at = new Date().toISOString();
       void MesajThreadOkundu(threadId).then(() => {
         void MesajPeerOkunduYayinla(threadId, at, user?.id);
@@ -208,7 +231,13 @@ export default function MesajDetayEkrani() {
       requestAnimationFrame(() => {
         listRef.current?.scrollToEnd({ animated: false });
       });
-    } catch {
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '';
+      if (msg.toLowerCase().includes('engellen')) {
+        setEngelli(true);
+        setMesajlar([]);
+        return;
+      }
       setMesajlar([]);
     }
   }, [threadId, user?.id]);
@@ -221,13 +250,49 @@ export default function MesajDetayEkrani() {
 
   const ara = async (tur: 'audio' | 'video') => {
     if (!id || id === 'yeni') return;
+    if (engelli) {
+      Alert.alert('Engelli', 'Bu kullanıcıyla iletişim engellenmiş.');
+      return;
+    }
     if (isGuest) {
       Alert.alert('Misafir', 'Arama için hesabını tamamla.');
       return;
     }
     Keyboard.dismiss();
+    // Yerelde aynı thread görüşmesi varsa yenisini başlatma — devam et
+    try {
+      const { GorusmeOturumAl, GorusmeOturumSunumAyarla } = await import(
+        '../../src/moduller/gorusme/oturum/GorusmeOturumYoneticisi'
+      );
+      const mevcut = GorusmeOturumAl();
+      if (mevcut && mevcut.call.thread_id === id) {
+        GorusmeOturumSunumAyarla('fullscreen');
+        router.push(`/gorusme/${mevcut.callId}` as any);
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
     const r = await GorusmeBaslat(id, tur);
     if (!r.ok) {
+      const msg = (r.hata || '').toLowerCase();
+      const ghost =
+        msg.includes('zaten aktif') || msg.includes('aktif bir gorusme');
+      if (ghost) {
+        try {
+          const { GorusmeBenimAktifleriBitir } = await import(
+            '../../src/moduller/gorusme/islemler/GorusmeIslemleri'
+          );
+          await GorusmeBenimAktifleriBitir('client_ghost_clear');
+          const tekrar = await GorusmeBaslat(id, tur);
+          if (tekrar.ok) {
+            router.push(`/gorusme/${tekrar.call.id}` as any);
+            return;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
       Alert.alert('Arama', r.hata);
       return;
     }
@@ -417,7 +482,11 @@ export default function MesajDetayEkrani() {
         onPress: () => {
           setRaporIcerik({
             contentId: item.id,
-            preview: item.body || `[${item.message_type}]`,
+            preview: item.body || (
+              item.message_type === 'shared_post'
+                ? 'Bir gönderi paylaştı'
+                : `[${item.message_type}]`
+            ),
             mediaUrl: item.media_url,
           });
           setGuvenlikAcik(true);
@@ -554,7 +623,7 @@ export default function MesajDetayEkrani() {
                 onPress: () => router.push(`/kullanici/${peer.id}` as any),
               }
             : undefined,
-        peer?.id
+        peer?.id && !engelli
           ? {
               text: 'Hediye gönder',
               onPress: () =>
@@ -729,7 +798,7 @@ export default function MesajDetayEkrani() {
               </Text>
             </Pressable>
             <View style={styles.aramaBtnlar}>
-              {!mahkemeMi ? (
+              {!mahkemeMi && !engelli ? (
                 <>
                   <Pressable style={styles.aramaBtn} onPress={() => void ara('audio')}>
                     <Ionicons name="call" size={20} color={RenkTokenlari.mint} />
@@ -783,11 +852,48 @@ export default function MesajDetayEkrani() {
                 peerLastReadAt={peerLastReadAt}
                 onLongPress={() => mesajMenu(item)}
                 onMedyaAc={(uri, tur) => setMedyaGoruntule({ uri, tur })}
+                sharedPostOnizleme={
+                  item.message_type === 'shared_post' && item.ref_id
+                    ? sharedPostMap[item.ref_id]
+                    : null
+                }
+                sharedPostYukleniyor={
+                  item.message_type === 'shared_post' && sharedPostYukleniyor
+                }
               />
             )}
           />
 
-          {mahkemeKapali ? (
+          {engelli ? (
+            <View
+              style={[
+                styles.composer,
+                { paddingBottom: Math.max(insets.bottom, BoslukTokenlari.md) },
+              ]}
+            >
+              <Text style={styles.kapaliUyari}>
+                Bu kullanıcıyla iletişim engellenmiş. Mesaj, arama ve hediye
+                kapalı.
+              </Text>
+              <Pressable
+                onPress={() =>
+                  router.push('/engellenen-kullanicilar' as any)
+                }
+                style={{ marginTop: 8 }}
+              >
+                <Text
+                  style={{
+                    ...TipografiTokenlari.caption,
+                    color: RenkTokenlari.primarySoft,
+                    textAlign: 'center',
+                    fontWeight: '700',
+                  }}
+                >
+                  Engellenenleri yönet
+                </Text>
+              </Pressable>
+            </View>
+          ) : mahkemeKapali ? (
             <View
               style={[
                 styles.composer,
@@ -906,11 +1012,14 @@ export default function MesajDetayEkrani() {
             contentId={raporIcerik?.contentId}
             contentPreview={raporIcerik?.preview}
             contentMediaUrl={MedyaUriGuvenli(raporIcerik?.mediaUrl)}
+            isGuest={isGuest}
             onClose={() => {
               setGuvenlikAcik(false);
               setRaporIcerik(null);
             }}
             onBlocked={() => {
+              setEngelli(true);
+              setMesajlar([]);
               setGuvenlikAcik(false);
               setRaporIcerik(null);
               router.back();

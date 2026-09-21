@@ -24,6 +24,8 @@ import {
   AdminRaporDurumGuncelle,
   AdminRaporIcerikKaldir,
 } from '../../../src/moduller/admin/platform/AdminPlatformIslemleri';
+import { AdminSesOdasiKapat } from '../../../src/moduller/admin/ses-odalari/AdminSesOdasiIslemleri';
+import { AdminCanliYayinKapat } from '../../../src/moduller/admin/canli-yayin/AdminCanliYayinIslemleri';
 import {
   AdminIhtarVer,
   AdminKullaniciBanKaldir,
@@ -41,6 +43,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { MedyaUriGuvenli } from '../../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 function kisiAd(k?: {
   display_name?: string | null;
@@ -66,7 +69,10 @@ function icerikTurEtiket(tur?: string | null) {
     case 'profile':
       return 'Profil';
     case 'room':
-      return 'Oda';
+      return 'Ses odası';
+    case 'live':
+    case 'live_session':
+      return 'Canlı yayın';
     case 'user':
       return 'Kullanıcı';
     case 'status_post':
@@ -88,6 +94,7 @@ export default function AdminRaporDetayEkrani() {
   const [busy, setBusy] = useState(false);
   const [uyari, setUyari] = useState('');
   const [not, setNot] = useState('');
+  const [bildirenNot, setBildirenNot] = useState('');
   const [tamEkran, setTamEkran] = useState(false);
 
   const yukle = useCallback(async () => {
@@ -97,6 +104,7 @@ export default function AdminRaporDetayEkrani() {
       const d = await AdminRaporDetayGetir(id);
       setDetay(d);
       setNot(d.rapor.admin_note ?? '');
+      setBildirenNot(d.rapor.reporter_note ?? '');
       setUyari(
         d.rapor.reason
           ? `Rapor nedeniyle uyarı: ${d.rapor.reason}`
@@ -126,7 +134,7 @@ export default function AdminRaporDetayEkrani() {
   if (!admin) return null;
 
   const hedefId = detay?.target?.id ?? detay?.rapor.target_user_id ?? null;
-  const mediaUrl = detay?.icerik.media_url ?? null;
+  const mediaUrl = MedyaUriGuvenli(detay?.icerik.media_url);
   const metin =
     detay?.icerik.metin ||
     detay?.rapor.details ||
@@ -146,9 +154,17 @@ export default function AdminRaporDetayEkrani() {
     }
   };
 
+  const durumGuncelle = (st: string, adminNot?: string) =>
+    AdminRaporDurumGuncelle(
+      id!,
+      st,
+      adminNot ?? (not.trim() || undefined),
+      bildirenNot.trim() || undefined,
+    );
+
   const durum = (st: string) =>
     void calistir(
-      () => AdminRaporDurumGuncelle(id!, st, not.trim() || undefined),
+      () => durumGuncelle(st),
       st === 'resolved'
         ? 'Rapor çözüldü'
         : st === 'dismissed'
@@ -173,7 +189,7 @@ export default function AdminRaporDetayEkrani() {
         notes: `report:${id}`,
       });
       if (!r.ok) throw new Error(r.hata);
-      await AdminRaporDurumGuncelle(id!, 'reviewing', not.trim() || undefined);
+      await durumGuncelle('reviewing');
     }, 'Uyarı gönderildi');
   };
 
@@ -191,7 +207,7 @@ export default function AdminRaporDetayEkrani() {
               detay?.rapor.reason || 'report_ban',
             );
             if (!r.ok) throw new Error(r.hata);
-            await AdminRaporDurumGuncelle(id!, 'resolved', not.trim() || 'Ban');
+            await durumGuncelle('resolved', not.trim() || 'Ban');
           }, 'Kullanıcı banlandı'),
       },
     ]);
@@ -216,11 +232,7 @@ export default function AdminRaporDetayEkrani() {
           void calistir(async () => {
             const r = await AdminKullaniciSil(hedefId, 'report_delete');
             if (!r.ok) throw new Error(r.hata);
-            await AdminRaporDurumGuncelle(
-              id!,
-              'resolved',
-              not.trim() || 'Hesap silindi',
-            );
+            await durumGuncelle('resolved', not.trim() || 'Hesap silindi');
           }, 'Hesap silindi'),
       },
     ]);
@@ -235,8 +247,7 @@ export default function AdminRaporDetayEkrani() {
         onPress: () =>
           void calistir(async () => {
             await AdminRaporIcerikKaldir(id!);
-            await AdminRaporDurumGuncelle(
-              id!,
+            await durumGuncelle(
               'reviewing',
               not.trim() || 'İçerik kaldırıldı',
             );
@@ -325,17 +336,185 @@ export default function AdminRaporDetayEkrani() {
             ) : null}
           </View>
 
-          {detay.room ? (
+          {detay.room || detay.live_session ? (
             <View style={AdminStil.kart}>
-              <Text style={styles.kisiEtiket}>Oda</Text>
+              <Text style={styles.kisiEtiket}>
+                {detay.live_session ? 'Canlı yayın' : 'Ses odası'}
+              </Text>
               <Text style={AdminStil.kartBaslik}>
-                {detay.room.title || detay.room.id}
+                {detay.live_session?.title ||
+                  detay.room?.title ||
+                  detay.room?.id ||
+                  detay.live_session?.id}
               </Text>
               <Text style={AdminStil.kartAlt}>
-                {detay.room.mode}
-                {detay.room.is_live ? ' · canlı' : ''}
+                {detay.live_session
+                  ? `${detay.live_session.mode ?? ''} · ${
+                      detay.live_session.is_live ? 'canlı' : 'bitti'
+                    } · izleyici ${detay.live_session.viewer_count ?? 0}`
+                  : `${detay.room?.mode ?? ''}${
+                      detay.room?.is_live ? ' · canlı' : ''
+                    } · dinleyici ${detay.room?.listener_count ?? 0}`}
               </Text>
+              <View style={AdminStil.aksiyonSatir}>
+                {detay.href ? (
+                  <Pressable
+                    style={[AdminStil.aksiyon, styles.aksiyonOnemli]}
+                    onPress={() => router.push(detay.href as any)}
+                  >
+                    <Text
+                      style={[
+                        AdminStil.aksiyonYazi,
+                        { color: RenkTokenlari.primarySoft },
+                      ]}
+                    >
+                      {detay.live_session ? 'Yayına git' : 'Odaya git'}
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {detay.room?.id && detay.room.is_live ? (
+                  <Pressable
+                    style={[AdminStil.aksiyon, styles.aksiyonTehlike]}
+                    disabled={busy}
+                    onPress={() =>
+                      Alert.alert(
+                        'Odayı kapat',
+                        'Bu ses odası anında kapatılsın mı? (Admin — izin gerekmez)',
+                        [
+                          { text: 'Vazgeç', style: 'cancel' },
+                          {
+                            text: 'Kapat',
+                            style: 'destructive',
+                            onPress: () =>
+                              void calistir(async () => {
+                                await AdminSesOdasiKapat(detay.room!.id);
+                                await durumGuncelle(
+                                  'reviewing',
+                                  not.trim() || 'Oda kapatıldı',
+                                );
+                              }, 'Oda kapatıldı'),
+                          },
+                        ],
+                      )
+                    }
+                  >
+                    <Text
+                      style={[
+                        AdminStil.aksiyonYazi,
+                        { color: RenkTokenlari.danger },
+                      ]}
+                    >
+                      Odayı kapat
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {detay.live_session?.id && detay.live_session.is_live ? (
+                  <Pressable
+                    style={[AdminStil.aksiyon, styles.aksiyonTehlike]}
+                    disabled={busy}
+                    onPress={() =>
+                      Alert.alert(
+                        'Yayını bitir',
+                        'Bu canlı yayın anında sonlandırılsın mı? (Admin — izin gerekmez)',
+                        [
+                          { text: 'Vazgeç', style: 'cancel' },
+                          {
+                            text: 'Bitir',
+                            style: 'destructive',
+                            onPress: () =>
+                              void calistir(async () => {
+                                await AdminCanliYayinKapat(detay.live_session!.id);
+                                await durumGuncelle(
+                                  'reviewing',
+                                  not.trim() || 'Yayın kapatıldı',
+                                );
+                              }, 'Yayın kapatıldı'),
+                          },
+                        ],
+                      )
+                    }
+                  >
+                    <Text
+                      style={[
+                        AdminStil.aksiyonYazi,
+                        { color: RenkTokenlari.danger },
+                      ]}
+                    >
+                      Yayını bitir
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
             </View>
+          ) : null}
+
+          {(detay.konusmacilar?.length ?? 0) > 0 ? (
+            <>
+              <Text style={AdminStil.sectionLabel}>
+                Konuşanlar / koltuklar ({detay.konusmacilar!.length})
+              </Text>
+              {detay.konusmacilar!.map((k) => (
+                <Pressable
+                  key={`${k.user_id}-${k.seat_index}`}
+                  style={AdminStil.kart}
+                  onPress={() =>
+                    router.push(`/admin/kullanicilar/${k.user_id}` as any)
+                  }
+                >
+                  <Text style={AdminStil.kartBaslik}>
+                    {k.display_name ||
+                      (k.username ? `@${k.username}` : k.user_id.slice(0, 8))}
+                  </Text>
+                  <Text style={AdminStil.kartAlt}>
+                    Koltuk {k.seat_index}
+                    {k.role ? ` · ${k.role}` : ''}
+                    {k.is_muted ? ' · sessiz' : ''}
+                    {k.is_mic_locked ? ' · mic kilit' : ''}
+                  </Text>
+                </Pressable>
+              ))}
+            </>
+          ) : null}
+
+          {(detay.uyeler?.length ?? 0) > 0 ? (
+            <>
+              <Text style={AdminStil.sectionLabel}>
+                Odadaki üyeler ({detay.uyeler!.length})
+              </Text>
+              {detay.uyeler!.slice(0, 24).map((u) => (
+                <Pressable
+                  key={u.user_id}
+                  style={AdminStil.kart}
+                  onPress={() =>
+                    router.push(`/admin/kullanicilar/${u.user_id}` as any)
+                  }
+                >
+                  <Text style={AdminStil.kartBaslik}>
+                    {u.display_name ||
+                      (u.username ? `@${u.username}` : u.user_id.slice(0, 8))}
+                  </Text>
+                  <Text style={AdminStil.kartAlt}>{u.role}</Text>
+                </Pressable>
+              ))}
+            </>
+          ) : null}
+
+          {(detay.son_sohbet?.length ?? 0) > 0 ? (
+            <>
+              <Text style={AdminStil.sectionLabel}>Son sohbet / yorumlar</Text>
+              {detay.son_sohbet!.map((m) => (
+                <View key={m.id} style={AdminStil.kart}>
+                  <Text style={AdminStil.kartBaslik} numberOfLines={3}>
+                    {m.body || '—'}
+                  </Text>
+                  <Text style={AdminStil.kartAlt}>
+                    {m.display_name || m.user_id.slice(0, 8)} ·{' '}
+                    {new Date(m.created_at).toLocaleString('tr-TR')}
+                    {m.removed_at ? ' · kaldırıldı' : ''}
+                  </Text>
+                </View>
+              ))}
+            </>
           ) : null}
 
           <Text style={AdminStil.sectionLabel}>İlgili içerik</Text>
@@ -393,13 +572,27 @@ export default function AdminRaporDetayEkrani() {
             </>
           ) : null}
 
-          <Text style={AdminStil.sectionLabel}>Admin notu</Text>
+          <Text style={AdminStil.sectionLabel}>Admin notu (iç)</Text>
           <TextInput
             value={not}
             onChangeText={setNot}
-            placeholder="İç not (isteğe bağlı)"
+            placeholder="Sadece admin görür"
             placeholderTextColor={RenkTokenlari.textDim}
             style={[AdminStil.input, { minHeight: 64 }]}
+            multiline
+          />
+
+          <Text style={AdminStil.sectionLabel}>Bildirene not / durum</Text>
+          <Text style={AdminStil.kartAlt}>
+            Raporlayan kullanıcı Raporlarım’da görür; durum güncellemesinde
+            bildirilir.
+          </Text>
+          <TextInput
+            value={bildirenNot}
+            onChangeText={setBildirenNot}
+            placeholder="Örn: İnceledik, gerekli işlem yapıldı."
+            placeholderTextColor={RenkTokenlari.textDim}
+            style={[AdminStil.input, { minHeight: 72, marginTop: 8 }]}
             multiline
           />
 
