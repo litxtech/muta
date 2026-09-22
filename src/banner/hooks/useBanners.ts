@@ -124,19 +124,9 @@ export function useBanners(placement: string) {
       const events = filtered.filter((b) => b.id.startsWith('auto-event-'));
       const promo = filtered.filter((b) => b.id.startsWith('promo-'));
 
-      // Olay bannerları yan yana (carousel kaydırma); admin kampanyaları önde
-      const karisik = [...admin, ...events];
-      if (karisik.length > 0) {
-        setBanners(karisik.slice(0, 8));
-      } else {
-        const tercih =
-          placement.includes('14')
-            ? promo.find((b) => b.name === 'auto_canli')
-            : placement.includes('BOTTOM')
-              ? promo.find((b) => b.name === 'auto_oyun')
-              : promo.find((b) => b.name === 'auto_oda');
-        setBanners(tercih ? [tercih] : promo.slice(0, 1));
-      }
+      // Tüm uygun bannerlar yatay carousel — 3 sn kaydırma
+      const karisik = [...admin, ...events, ...promo];
+      setBanners(karisik.slice(0, 8));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Banner yüklenemedi');
       setBanners([]);

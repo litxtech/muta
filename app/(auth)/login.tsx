@@ -341,12 +341,15 @@ export default function LoginScreen() {
                       ) : null}
                     </View>
                   ) : null}
-                  <GradientButton
-                    title="Misafir olarak devam et"
-                    variant="ghost"
-                    onPress={onGuest}
-                    loading={guestLoading}
-                  />
+                  {/* Apple 1.2: production’da misafir = anonim UGC riski — kapalı */}
+                  {env.appEnv !== 'production' ? (
+                    <GradientButton
+                      title="Misafir olarak devam et"
+                      variant="ghost"
+                      onPress={onGuest}
+                      loading={guestLoading}
+                    />
+                  ) : null}
                   <Link href="/(auth)/register" asChild>
                     <Pressable
                       style={styles.switchRow}
@@ -383,6 +386,9 @@ export default function LoginScreen() {
                     </React.Fragment>
                   ))}
                 </View>
+                <Text style={styles.destekAlt}>
+                  Destek: support@litxtech.com
+                </Text>
               </ScrollView>
             </KlavyeKapatan>
           </KlavyeGuvenliAlan>
@@ -549,5 +555,11 @@ const styles = StyleSheet.create({
   politikaLinkCocuk: {
     color: RenkTokenlari.primarySoft,
     fontWeight: '600',
+  },
+  destekAlt: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textDim,
+    textAlign: 'center',
+    paddingBottom: BoslukTokenlari.md,
   },
 });

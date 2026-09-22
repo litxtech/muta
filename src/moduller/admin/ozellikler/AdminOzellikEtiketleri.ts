@@ -137,6 +137,22 @@ const OZELLIK_METINLERI: Record<string, AdminOzellikMetni> = {
     baslik: 'NOX REELS',
     aciklama: 'NOX REELS slot oyununu açar veya kapatır.',
   },
+  voice_room_music_enabled: {
+    baslik: 'Ses odası müziği',
+    aciklama: 'Ses odalarında arka plan müziği kütüphanesi ve mini oynatıcıyı açar.',
+  },
+  music_ducking_enabled: {
+    baslik: 'Müzik ducking',
+    aciklama: 'Konuşma varken arka plan müziğini otomatik kısar (ActiveSpeakers).',
+  },
+  music_playlists_enabled: {
+    baslik: 'Müzik çalma listeleri',
+    aciklama: 'Kullanıcı çalma listesi oluşturma ve odaya uygulama özelliğini açar.',
+  },
+  music_favorites_enabled: {
+    baslik: 'Müzik favorileri',
+    aciklama: 'Müzik kütüphanesinde favori ekleme / filtreleme özelliğini açar.',
+  },
 };
 
 const KILL_METINLERI: Record<string, AdminOzellikMetni> = {

@@ -145,6 +145,14 @@ const MODULLER: Modul[] = [
     bolum: 'Güvenlik',
   },
   {
+    icon: 'accessibility-outline',
+    label: 'Çocuk Koruma',
+    alt: 'Onaylayanlar · vermeyenler · 18+',
+    href: '/admin/cocuk-koruma',
+    tint: RenkTokenlari.danger,
+    bolum: 'Güvenlik',
+  },
+  {
     icon: 'headset-outline',
     label: 'Canlı destek',
     alt: 'Toprak · oturum · temsilci ata',
@@ -167,6 +175,14 @@ const MODULLER: Modul[] = [
     href: '/admin/odalar',
     tint: RenkTokenlari.live,
     bolum: 'Güvenlik',
+  },
+  {
+    icon: 'musical-notes-outline',
+    label: 'Müzik Merkezi',
+    alt: 'Oda BGM · yükle · yayınla · arşiv',
+    href: '/admin/muzik',
+    tint: RenkTokenlari.violet,
+    bolum: 'Ürün',
   },
   {
     icon: 'gift-outline',
@@ -206,6 +222,22 @@ const MODULLER: Modul[] = [
     alt: 'Kampanya · yerleştirme · CTR',
     href: '/admin/bannerlar',
     tint: RenkTokenlari.magenta,
+    bolum: 'Büyüme',
+  },
+  {
+    icon: 'flash-outline',
+    label: 'Otomatik bannerlar',
+    alt: 'Hediye eşik · yağmur · sabitle',
+    href: '/admin/bannerlar/otomatik',
+    tint: RenkTokenlari.accent,
+    bolum: 'Büyüme',
+  },
+  {
+    icon: 'call-outline',
+    label: 'Kurumsal iletişim',
+    alt: 'E-posta · WhatsApp · hamburger',
+    href: '/admin/iletisim',
+    tint: RenkTokenlari.mint,
     bolum: 'Büyüme',
   },
   {

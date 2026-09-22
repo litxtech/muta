@@ -20,51 +20,24 @@ import {
   PushBildirimAyariniKaydet,
 } from '../../src/moduller/ayarlar/islemler/KullaniciAyarlariniYonet';
 import {
-  GIZLILIK_ALAN_ETIKETLERI,
-  PROFIL_GOSTERGE_GIZLILIK,
-  GizlilikAyariKaydet,
-  GizlilikAyarlariniGetir,
-  type GizlilikAyarlari,
-} from '../../src/moduller/ayarlar/islemler/GizlilikAyarlariniYonet';
-import {
   SesOdasiPipAcikMi,
   SesOdasiPipKaydet,
 } from '../../src/moduller/ses-odalari/depolama/SesOdasiPipTercihi';
 import { SesOdasiPipParamsKapat } from '../../src/moduller/ses-odalari/pip/useSesOdasiPip';
-import { useKullanimSuresi } from '../../src/moduller/kullanim-suresi/baglam/KullanimSuresiSaglayici';
 import { UygulamaKimligi } from '../../src/yapilandirma/UygulamaKimligi';
-import { OrtamDegiskenleri } from '../../src/yapilandirma/OrtamDegiskenleri';
 import { GorunumSecimKartlari } from '../../src/moduller/gorunum/bilesenler/GorunumSecimKartlari';
 import { useTema } from '../../src/tasarim-sistemi/tema/TemaSaglayici';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
-  YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-const EMPTY_PRIVACY: GizlilikAyarlari = {
-  hide_recharge_rank: false,
-  hide_gifter_rank: false,
-  hide_current_room: false,
-  hide_last_seen: false,
-  hide_agency: false,
-  hide_gift_collection: false,
-  hide_top_supporter: false,
-  hide_level: false,
-  hide_topup_coin: false,
-  hide_prestige: false,
-  hide_account_value: false,
-  is_private: false,
-};
-
+/** Uygulama tercihleri — kısa hub; gizlilik ayrı ekranda */
 export default function AyarlarEkrani() {
   const [push, setPush] = useState(true);
   const [dil, setDil] = useState('tr');
   const [pipAcik, setPipAcik] = useState(true);
-  const [privacy, setPrivacy] = useState<GizlilikAyarlari>(EMPTY_PRIVACY);
-  const { formatli: kullanimFormatli, yenile: kullanimYenile } =
-    useKullanimSuresi();
   const { palet } = useTema();
   const androidMu = Platform.OS === 'android';
 
@@ -74,12 +47,10 @@ export default function AyarlarEkrani() {
         setPush(a.pushEnabled);
         setDil(a.dil);
       });
-      void GizlilikAyarlariniGetir().then(setPrivacy);
       if (Platform.OS === 'android') {
         void SesOdasiPipAcikMi().then(setPipAcik);
       }
-      void kullanimYenile();
-    }, [kullanimYenile]),
+    }, []),
   );
 
   const pushDegistir = async (v: boolean) => {
@@ -91,7 +62,7 @@ export default function AyarlarEkrani() {
       );
       await PushTercihiniKaydet('all_enabled', v);
     } catch {
-      /* migration 022 yoksa yerel ayar yeterli */
+      /* migration yoksa yerel ayar yeterli */
     }
   };
 
@@ -101,14 +72,8 @@ export default function AyarlarEkrani() {
     if (!v) SesOdasiPipParamsKapat();
   };
 
-  const privacyDegistir = async (key: keyof GizlilikAyarlari, v: boolean) => {
-    setPrivacy((p) => ({ ...p, [key]: v }));
-    const r = await GizlilikAyariKaydet(key, v);
-    if (!r.ok) Alert.alert('Gizlilik', r.hata ?? 'Kaydedilemedi');
-  };
-
   const dilSec = () => {
-    Alert.alert('Dil', 'Arayüz dili (yerel ayar)', [
+    Alert.alert('Dil', 'Arayüz dili', [
       {
         text: 'Türkçe',
         onPress: async () => {
@@ -127,20 +92,13 @@ export default function AyarlarEkrani() {
     ]);
   };
 
-  const ac = async (url: string) => {
-    try {
-      await Linking.openURL(url);
-    } catch {
-      Alert.alert('Link açılamadı', url);
-    }
-  };
-
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="ayarlar">
         <EkranBasligi
-          title="Ayarlar"
-          subtitle={`${UygulamaKimligi.APP_NAME} · ${OrtamDegiskenleri.ortam}`}
+          title="Tercihler"
+          subtitle="Görünüm · bildirim · dil"
+          fallbackHref="/profil-ayarlar"
         />
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -149,147 +107,83 @@ export default function AyarlarEkrani() {
           <Text style={[styles.sectionLabel, { color: palet.textDim }]}>
             Görünüm
           </Text>
-          <Text style={[styles.sectionHint, { color: palet.textMuted }]}>
-            Temayı sekmeden seç. Varsayılan koyu; seçimin tüm uygulamaya uygulanır.
-          </Text>
           <GorunumSecimKartlari />
           <View style={{ height: BoslukTokenlari.lg }} />
 
-          <View style={styles.row}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.label}>Push bildirimleri</Text>
-              <Text style={styles.hint}>Mesaj · hediye · canlı · cüzdan</Text>
-            </View>
-            <Switch
-              value={push}
-              onValueChange={(v) => void pushDegistir(v)}
-              trackColor={{ true: RenkTokenlari.primary, false: RenkTokenlari.border }}
-              thumbColor={palet.bgElevated}
-            />
-          </View>
-
-          {androidMu ? (
-            <View style={styles.row}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Küçük ekran (Picture-in-Picture)</Text>
-                <Text style={styles.hint}>
-                  Ses odasındayken uygulamadan çıkınca köşede küçük pencere
-                </Text>
+          <ListeGrubu title="Bildirimler">
+            <View style={styles.switchRow}>
+              <View style={styles.switchCopy}>
+                <Text style={styles.switchLabel}>Push bildirimleri</Text>
+                <Text style={styles.switchHint}>Ana anahtar</Text>
               </View>
               <Switch
-                value={pipAcik}
-                onValueChange={(v) => void pipDegistir(v)}
-                trackColor={{ true: RenkTokenlari.primary, false: RenkTokenlari.border }}
+                value={push}
+                onValueChange={(v) => void pushDegistir(v)}
+                trackColor={{
+                  true: RenkTokenlari.primary,
+                  false: RenkTokenlari.border,
+                }}
                 thumbColor={palet.bgElevated}
               />
             </View>
-          ) : null}
-
-          <ListeGrubu title="Kullanım">
             <ListeSatiri
-              icon="time-outline"
-              label="Uygulamada geçirdiğin süre"
-              value={kullanimFormatli}
-              showChevron={false}
+              icon="notifications-outline"
+              label="Kategori ayarları"
+              onPress={() => router.push('/bildirim-ayarlari' as any)}
               last
             />
           </ListeGrubu>
 
-          <ListeGrubu>
-            <ListeSatiri
-              icon="notifications-outline"
-              label="Bildirim kategorileri"
-              value="Aç / kapat"
-              onPress={() => router.push('/bildirim-ayarlari' as any)}
-            />
+          <ListeGrubu title="Uygulama">
             <ListeSatiri
               icon="language-outline"
               label="Dil"
-              value={dil.toUpperCase()}
+              value={dil === 'tr' ? 'Türkçe' : 'English'}
               onPress={dilSec}
+              last={!androidMu}
+            />
+            {androidMu ? (
+              <View style={[styles.switchRow, styles.switchRowLast]}>
+                <View style={styles.switchCopy}>
+                  <Text style={styles.switchLabel}>Küçük ekran (PiP)</Text>
+                  <Text style={styles.switchHint}>
+                    Ses odasından çıkınca köşe penceresi
+                  </Text>
+                </View>
+                <Switch
+                  value={pipAcik}
+                  onValueChange={(v) => void pipDegistir(v)}
+                  trackColor={{
+                    true: RenkTokenlari.primary,
+                    false: RenkTokenlari.border,
+                  }}
+                  thumbColor={palet.bgElevated}
+                />
+              </View>
+            ) : null}
+          </ListeGrubu>
+
+          <ListeGrubu title="Gizlilik ve güvenlik">
+            <ListeSatiri
+              icon="eye-off-outline"
+              label="Gizlilik ayarları"
+              value="Kim ne görür"
+              onPress={() => router.push('/ayarlar/gizlilik' as any)}
+            />
+            <ListeSatiri
+              icon="shield-checkmark-outline"
+              label="Güvenlik merkezi"
+              onPress={() => router.push('/guvenlik' as any)}
+            />
+            <ListeSatiri
+              icon="ban-outline"
+              label="Engellenen hesaplar"
+              onPress={() => router.push('/engellenen-kullanicilar' as any)}
               last
             />
           </ListeGrubu>
 
-          <ListeGrubu title="Profil göstergeleri">
-            <Text style={[styles.sectionHint, { marginBottom: 0, paddingTop: BoslukTokenlari.sm }]}>
-              Kapalı olanlar profilini ziyaret edenlere görünmez.
-            </Text>
-            {PROFIL_GOSTERGE_GIZLILIK.map((item, index) => (
-              <View
-                key={item.key}
-                style={[
-                  styles.privacyRow,
-                  index < PROFIL_GOSTERGE_GIZLILIK.length - 1 && styles.privacyBorder,
-                ]}
-              >
-                <View style={styles.privacyCopy}>
-                  <Text style={styles.labelSmall}>{item.label}</Text>
-                  {item.aciklama ? (
-                    <Text style={styles.hint}>{item.aciklama}</Text>
-                  ) : null}
-                </View>
-                <Switch
-                  value={privacy[item.key]}
-                  onValueChange={(v) => void privacyDegistir(item.key, v)}
-                  trackColor={{ true: RenkTokenlari.primary, false: RenkTokenlari.border }}
-                  thumbColor={palet.bgElevated}
-                />
-              </View>
-            ))}
-          </ListeGrubu>
-
-          <ListeGrubu title="Gizlilik">
-            {GIZLILIK_ALAN_ETIKETLERI.map((item, index) => (
-              <View
-                key={item.key}
-                style={[
-                  styles.privacyRow,
-                  index < GIZLILIK_ALAN_ETIKETLERI.length - 1 && styles.privacyBorder,
-                ]}
-              >
-                <View style={styles.privacyCopy}>
-                  <Text style={styles.labelSmall}>{item.label}</Text>
-                  {item.aciklama ? (
-                    <Text style={styles.hint}>{item.aciklama}</Text>
-                  ) : null}
-                </View>
-                <Switch
-                  value={privacy[item.key]}
-                  onValueChange={(v) => void privacyDegistir(item.key, v)}
-                  trackColor={{ true: RenkTokenlari.primary, false: RenkTokenlari.border }}
-                  thumbColor={palet.bgElevated}
-                />
-              </View>
-            ))}
-          </ListeGrubu>
-
-          <ListeGrubu title="Yasal ve destek">
-            <ListeSatiri
-              icon="document-text-outline"
-              label="Politikalar"
-              onPress={() => router.push('/politika' as any)}
-            />
-            <ListeSatiri
-              icon="reader-outline"
-              label="Kullanım şartları"
-              onPress={() => router.push('/politika/tos' as any)}
-            />
-            <ListeSatiri
-              icon="lock-closed-outline"
-              label="Gizlilik politikası"
-              onPress={() => router.push('/politika/privacy' as any)}
-            />
-            <ListeSatiri
-              icon="shield-checkmark-outline"
-              label="Çocuk koruma (af yok)"
-              onPress={() => router.push('/politika/child_safety' as any)}
-            />
-            <ListeSatiri
-              icon="megaphone-outline"
-              label="Duyurular"
-              onPress={() => router.push('/duyuru' as any)}
-            />
+          <ListeGrubu title="Yardım">
             <ListeSatiri
               icon="headset-outline"
               label="Canlı destek"
@@ -297,13 +191,25 @@ export default function AyarlarEkrani() {
             />
             <ListeSatiri
               icon="mail-outline"
-              label="Destek e-posta"
-              onPress={() => void ac(`mailto:${UygulamaKimligi.SUPPORT_EMAIL}`)}
+              label="Bize ulaşın"
+              value={UygulamaKimligi.SUPPORT_EMAIL}
+              onPress={() => {
+                void Linking.openURL(
+                  `mailto:${UygulamaKimligi.SUPPORT_EMAIL}?subject=${encodeURIComponent('Tamuso destek')}`,
+                ).catch(() =>
+                  Alert.alert('İletişim', UygulamaKimligi.SUPPORT_EMAIL),
+                );
+              }}
             />
             <ListeSatiri
-              icon="phone-portrait-outline"
-              label="Cihaz oturumları"
-              onPress={() => router.push('/cihazlar' as any)}
+              icon="document-text-outline"
+              label="Politikalar"
+              onPress={() => router.push('/politika' as any)}
+            />
+            <ListeSatiri
+              icon="people-outline"
+              label="Topluluk kuralları"
+              onPress={() => router.push('/politika/community_rules' as any)}
               last
             />
           </ListeGrubu>
@@ -320,58 +226,32 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textDim,
     paddingHorizontal: BoslukTokenlari.sm,
     textTransform: 'uppercase',
-    marginBottom: 6,
+    marginBottom: 8,
+    letterSpacing: 0.8,
   },
-  sectionHint: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
-    paddingHorizontal: BoslukTokenlari.sm,
-    marginBottom: BoslukTokenlari.md,
-    lineHeight: 18,
-  },
-  row: {
+  switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: BoslukTokenlari.md,
     paddingHorizontal: BoslukTokenlari.md,
-    borderRadius: YaricapTokenlari.md,
-    backgroundColor: RenkTokenlari.bgCard,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
     gap: BoslukTokenlari.md,
-    marginBottom: BoslukTokenlari.md,
-  },
-  label: { ...TipografiTokenlari.body, color: RenkTokenlari.text, flex: 1 },
-  hint: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textDim,
-    marginTop: 2,
-  },
-  labelSmall: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.text,
-    paddingRight: BoslukTokenlari.sm,
-  },
-  privacyCopy: {
-    flex: 1,
-    paddingRight: BoslukTokenlari.sm,
-    gap: 2,
-  },
-  privacyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: BoslukTokenlari.md,
-    paddingHorizontal: BoslukTokenlari.md,
-    minHeight: 52,
-    gap: BoslukTokenlari.md,
-  },
-  privacyBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: RenkTokenlari.border,
+  },
+  switchRowLast: {
+    borderBottomWidth: 0,
+  },
+  switchCopy: { flex: 1, gap: 2 },
+  switchLabel: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.text,
+    fontWeight: '600',
+  },
+  switchHint: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
   },
 });

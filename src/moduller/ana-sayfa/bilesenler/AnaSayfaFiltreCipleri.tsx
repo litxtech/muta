@@ -1,5 +1,5 @@
 /**
- * Feed filtre çipleri — Tümü / Canlı / Ses. Seçili çip degrade dolgu + sayaç.
+ * Feed filtre çipleri — Tümü / Canlı / Ses. Seçili: pink→purple gradient + soft glow.
  */
 
 import React from 'react';
@@ -13,6 +13,8 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { kullaniciTemaKodunuAl } from '../../../tasarim-sistemi/tema/TemaDurumu';
+import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
 
 export type FeedFiltre = 'tumu' | 'canli' | 'ses';
 
@@ -31,6 +33,9 @@ type Props = {
 };
 
 export function AnaSayfaFiltreCipleri({ ogeler, secili, onSec }: Props) {
+  useTemayaAboneOl();
+  const acik = kullaniciTemaKodunuAl() === 'acik';
+
   return (
     <Animated.View entering={FadeIn.duration(260)}>
       <ScrollView
@@ -50,7 +55,7 @@ export function AnaSayfaFiltreCipleri({ ogeler, secili, onSec }: Props) {
             >
               {aktif ? (
                 <LinearGradient
-                  colors={[oge.tint, `${oge.tint}99`]}
+                  colors={[...RenkTokenlari.gradientPrimary]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={[styles.cip, styles.cipAktif]}
@@ -64,7 +69,16 @@ export function AnaSayfaFiltreCipleri({ ogeler, secili, onSec }: Props) {
                   ) : null}
                 </LinearGradient>
               ) : (
-                <View style={[styles.cip, styles.cipPasif]}>
+                <View
+                  style={[
+                    styles.cip,
+                    styles.cipPasif,
+                    {
+                      backgroundColor: acik ? RenkTokenlari.bgElevated : RenkTokenlari.bgCard,
+                      borderColor: RenkTokenlari.border,
+                    },
+                  ]}
+                >
                   <Ionicons name={oge.icon} size={13} color={oge.tint} />
                   <Text style={styles.yazi}>{oge.etiket}</Text>
                   {oge.sayi != null && oge.sayi > 0 ? (
@@ -94,23 +108,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 13,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
     borderRadius: YaricapTokenlari.pill,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   cipAktif: {
-    borderColor: RenkTokenlari.borderAccent,
+    borderColor: 'transparent',
     shadowColor: RenkTokenlari.primary,
-    shadowOpacity: 0.28,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
-  cipPasif: {
-    backgroundColor: RenkTokenlari.bgCard,
-    borderColor: RenkTokenlari.border,
-  },
+  cipPasif: {},
   yazi: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.text,

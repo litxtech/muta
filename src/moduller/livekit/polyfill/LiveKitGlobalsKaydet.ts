@@ -6,9 +6,11 @@ import { LiveKitNativeVarMi } from '../bilesenler/LiveKitVideoViewAl';
  * mixWithOthers: expo-audio SFX ile çakışmayı azaltır.
  * allowBluetooth: HFP (kendi AEC).
  */
+/** Konuşmacı kayıt — VPIO / yankı iptali + Bluetooth HFP/A2DP */
 const IOS_KAYIT_SECENEK = [
   'mixWithOthers',
   'allowBluetooth',
+  'allowBluetoothA2DP',
   'defaultToSpeaker',
 ] as const;
 
@@ -104,11 +106,12 @@ export function LiveKitGlobalsKaydet(): boolean {
 
     if (Platform.OS === 'ios' && typeof native.setupIOSAudioManagement === 'function') {
       try {
+        // preferSpeaker=true → BT yokken hoparlör; BT varsa sistem rotası
         native.setupIOSAudioManagement(true, {
-          // Mic açık (konuşmacı): AEC + exclusive call profili
+          // Mic açık (konuşmacı/yayıncı): AEC + Bluetooth HFP
           recording: IOS_SES_ODA_AYAR,
           recordingWithoutVoiceProcessing: IOS_KAYIT_VPIO_KAPALI,
-          // Mic kapalı (misafir): playAndRecord + duck — müzik kesilmez
+          // Mic kapalı (misafir/izleyici): duck + A2DP kulaklık
           playout: IOS_SES_ODA_MISAFIR,
           deactivateOnStop: false,
         });

@@ -47,12 +47,13 @@ export function autoBannerKampanyaya(
     id: `auto-event-${row.id}`,
     name: `auto_event_${row.kind}`,
     internal_name: row.source_key,
-    title: row.title,
-    subtitle: row.subtitle,
+    // Görsel banner — title/subtitle/badge UI’da yok (kodsal etiket sızmasın)
+    title: null,
+    subtitle: null,
     description: null,
-    badge: row.badge,
+    badge: null,
     label: null,
-    media_type: medya ? 'IMAGE_TEXT' : 'GRADIENT',
+    media_type: medya ? 'IMAGE' : 'GRADIENT',
     media_url: medya,
     thumbnail_url: null,
     media_alt: null,
@@ -73,8 +74,8 @@ export function autoBannerKampanyaya(
     shimmer_enabled: false,
     autoplay_video: false,
     loop_video: false,
-    carousel_auto_slide_ms: 4500,
-    tags: ['HOT', 'PROMOTION'],
+    carousel_auto_slide_ms: 3000,
+    tags: [],
     created_by: null,
     created_at: row.created_at,
     updated_at: now,
@@ -84,12 +85,7 @@ export function autoBannerKampanyaya(
       {
         slot: 0,
         action_type: row.action_type as BannerActionType,
-        button_text:
-          row.kind === 'live_coins'
-            ? 'İzle'
-            : row.kind === 'game_coins'
-              ? 'Git'
-              : 'Katıl',
+        button_text: null,
         target: row.action_target,
       },
     ],
@@ -245,4 +241,66 @@ export async function AdminAutoBannerKapat(id: string): Promise<void> {
   const { error } = await supabase.rpc('admin_auto_banner_kapat', { p_id: id });
   if (error) throw new Error(error.message);
   OlayBannerCacheTemizle();
+}
+
+export async function AdminAutoBannerPin(
+  id: string,
+  pinned = true,
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_auto_banner_pin', {
+    p_id: id,
+    p_pinned: pinned,
+  });
+  if (error) throw new Error(error.message);
+  OlayBannerCacheTemizle();
+}
+
+export async function AdminAutoBannerOncelik(
+  id: string,
+  priority: number,
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_auto_banner_oncelik', {
+    p_id: id,
+    p_priority: priority,
+  });
+  if (error) throw new Error(error.message);
+  OlayBannerCacheTemizle();
+}
+
+export async function AdminAutoBannerTtlUzat(
+  id: string,
+  hours = 12,
+): Promise<void> {
+  const { error } = await supabase.rpc('admin_auto_banner_ttl_uzat', {
+    p_id: id,
+    p_hours: hours,
+  });
+  if (error) throw new Error(error.message);
+  OlayBannerCacheTemizle();
+}
+
+export async function AdminAutoBannerHepsiniKapat(): Promise<number> {
+  const { data, error } = await supabase.rpc('admin_auto_banner_hepsini_kapat', {
+    p_reason: 'admin_bulk',
+  });
+  if (error) throw new Error(error.message);
+  OlayBannerCacheTemizle();
+  return Number(data ?? 0);
+}
+
+export async function AdminAutoBannerCooldownTemizle(): Promise<number> {
+  const { data, error } = await supabase.rpc(
+    'admin_auto_banner_cooldown_temizle',
+    {},
+  );
+  if (error) throw new Error(error.message);
+  OlayBannerCacheTemizle();
+  return Number(data ?? 0);
+}
+
+export async function AdminAutoBannerTaraYenile(): Promise<number> {
+  const { data, error } = await supabase.rpc('admin_auto_banner_tara_yenile');
+  if (error) throw new Error(error.message);
+  OlayBannerCacheTemizle();
+  return Number(data ?? 0);
 }

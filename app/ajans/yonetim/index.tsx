@@ -7,12 +7,14 @@ import {
   Text,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../../src/components/Screen';
 import { EkranBasligi } from '../../../src/components/EkranBasligi';
 import { BosDurum } from '../../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../../src/ortak/hata-sinirlari/ModulHataSiniri';
+import { AjansAtmosfer } from '../../../src/moduller/ajanslar/bilesenler/AjansAtmosfer';
 import {
   AjansYonetimAjanslarim,
   type AjansYonetimOzet,
@@ -24,9 +26,15 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useTemayaAboneOl } from '../../../src/tasarim-sistemi/tema/useTemayaAboneOl';
+
+function seviyeEtiket(code: string | null | undefined) {
+  return (code ?? '—').toUpperCase();
+}
 
 /** Ajans yetkisi olan kullanıcı — yönetim hub */
 export default function AjansYonetimHubEkrani() {
+  useTemayaAboneOl();
   const [liste, setListe] = useState<AjansYonetimOzet[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
 
@@ -85,80 +93,120 @@ export default function AjansYonetimHubEkrani() {
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="ajans-yonetim" varyant="ekran" fallbackHref="/ajans">
-        <EkranBasligi
-          title="Ajansım"
-          subtitle="Üyeler · ciro · davet · oda"
-          fallbackHref={"/(tabs)/profile" as any}
-        />
-        {yukleniyor ? (
-          <ActivityIndicator
-            color={RenkTokenlari.primarySoft}
-            style={{ marginTop: 40 }}
+        <View style={styles.root}>
+          <AjansAtmosfer />
+          <EkranBasligi
+            title="Ajanslarım"
+            subtitle="Komuta merkezi"
+            fallbackHref={'/(tabs)/profile' as any}
           />
-        ) : liste.length === 0 ? (
-          <View style={styles.bosWrap}>
-            <BosDurum
-              title="Ajansın yok"
-              body="Başvuru gönder; admin onayından sonra buradan yönetirsin."
+          {yukleniyor ? (
+            <ActivityIndicator
+              color={RenkTokenlari.primarySoft}
+              style={{ marginTop: 40 }}
             />
-            <Pressable
-              style={styles.bosBtn}
-              onPress={() => router.push('/ajans' as any)}
-            >
-              <Text style={styles.bosBtnYazi}>Ajans kur</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <FlatList
-            data={liste}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.liste}
-            renderItem={({ item }) => (
+          ) : liste.length === 0 ? (
+            <View style={styles.bosWrap}>
+              <BosDurum
+                title="Ajansın yok"
+                body="Başvuru gönder; admin onayından sonra buradan yönetirsin."
+              />
               <Pressable
-                style={styles.kart}
-                onPress={() => router.push(`/ajans/${item.id}` as any)}
+                style={styles.bosBtn}
+                onPress={() => router.push('/ajans' as any)}
               >
-                <View style={styles.kartSol}>
-                  <Text style={styles.ad}>{item.name}</Text>
-                  <Text style={styles.alt}>
-                    {item.agency_public_id} · {item.level_code ?? '—'} ·{' '}
-                    {item.host_count} host
-                  </Text>
-                  <Text style={styles.chip}>
-                    {item.is_coin_distributor ? 'Coin yetkisi açık' : 'Coin yetkisi kapalı'}
-                    {' · '}
-                    {item.status}
-                  </Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={RenkTokenlari.textDim}
-                />
+                <Text style={styles.bosBtnYazi}>Ajans kur</Text>
               </Pressable>
-            )}
-          />
-        )}
+            </View>
+          ) : (
+            <FlatList
+              data={liste}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.liste}
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => router.push(`/ajans/${item.id}` as any)}
+                  style={styles.kartPress}
+                >
+                  <LinearGradient
+                    colors={[...RenkTokenlari.gradientCard]}
+                    style={styles.kart}
+                  >
+                    <View style={styles.logo}>
+                      <Text style={styles.logoHarf}>
+                        {(item.name || 'A').charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={styles.kartSol}>
+                      <Text style={styles.ad} numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                      <Text style={styles.alt} numberOfLines={1}>
+                        {item.agency_public_id} · {item.host_count} üye
+                      </Text>
+                      <View style={styles.chipSatir}>
+                        <View style={styles.chip}>
+                          <Text style={styles.chipYazi}>
+                            {seviyeEtiket(item.level_code)}
+                          </Text>
+                        </View>
+                        {item.is_coin_distributor ? (
+                          <View style={[styles.chip, styles.chipCoin]}>
+                            <Text style={styles.chipYazi}>Coin</Text>
+                          </View>
+                        ) : null}
+                        <View style={styles.chip}>
+                          <Text style={styles.chipYazi}>{item.status}</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={RenkTokenlari.textDim}
+                    />
+                  </LinearGradient>
+                </Pressable>
+              )}
+            />
+          )}
+        </View>
       </ModulHataSiniri>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   liste: {
     paddingHorizontal: BoslukTokenlari.lg,
     paddingBottom: BoslukTokenlari.xxxl,
-    gap: BoslukTokenlari.sm,
+    gap: BoslukTokenlari.md,
   },
+  kartPress: { borderRadius: YaricapTokenlari.lg, overflow: 'hidden' },
   kart: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
     padding: BoslukTokenlari.lg,
-    borderRadius: YaricapTokenlari.md,
-    backgroundColor: RenkTokenlari.bgCard,
+    borderRadius: YaricapTokenlari.lg,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
+  },
+  logo: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: RenkTokenlari.pressFill,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.borderAccent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoHarf: {
+    ...TipografiTokenlari.h2,
+    color: RenkTokenlari.primarySoft,
+    fontWeight: '800',
   },
   kartSol: { flex: 1, gap: 4 },
   ad: {
@@ -170,10 +218,20 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textMuted,
   },
+  chipSatir: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
   chip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: RenkTokenlari.surface,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+  },
+  chipCoin: { borderColor: RenkTokenlari.borderAccent },
+  chipYazi: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.primarySoft,
-    marginTop: 4,
+    fontWeight: '700',
   },
   bosWrap: { paddingTop: 24, gap: 16, alignItems: 'center' },
   bosBtn: {
@@ -184,7 +242,7 @@ const styles = StyleSheet.create({
   },
   bosBtnYazi: {
     ...TipografiTokenlari.body,
-    color: '#12040C',
+    color: RenkTokenlari.textOnPrimary,
     fontWeight: '800',
   },
 });

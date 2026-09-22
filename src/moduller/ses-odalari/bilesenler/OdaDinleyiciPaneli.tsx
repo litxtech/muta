@@ -42,6 +42,11 @@ type Props = {
   onProfil?: (userId: string) => void;
   /** dock: alt bar 40px · ust: üst bar 36px */
   boyut?: 'dock' | 'ust';
+  /** false: tetik butonu gizle (ör. dinleyici sayısı pill üzerinden aç) */
+  gosterButon?: boolean;
+  /** Kontrollü açılış */
+  acikDis?: boolean;
+  onAcikChange?: (acik: boolean) => void;
 };
 
 const DEMO_DINLEYICILER: OdaDinleyici[] = [
@@ -115,6 +120,9 @@ export function OdaDinleyiciPaneli({
   koltukUserIds = [],
   onProfil,
   boyut = 'dock',
+  gosterButon = true,
+  acikDis,
+  onAcikChange,
 }: Props) {
   const insets = useSafeAreaInsets();
   const btnPx = boyut === 'ust' ? ODA_UST_BTN : ODA_DOCK_BTN;
@@ -122,7 +130,12 @@ export function OdaDinleyiciPaneli({
   const [uyeler, setUyeler] = useState<OdaDinleyici[]>(
     demoMi ? DEMO_DINLEYICILER : [],
   );
-  const [acik, setAcik] = useState(false);
+  const [acikIc, setAcikIc] = useState(false);
+  const acik = acikDis ?? acikIc;
+  const setAcik = (v: boolean) => {
+    if (acikDis === undefined) setAcikIc(v);
+    onAcikChange?.(v);
+  };
   const [yukleniyor, setYukleniyor] = useState(false);
 
   const yukle = useCallback(async () => {
@@ -193,11 +206,19 @@ export function OdaDinleyiciPaneli({
     }
   };
 
+  useEffect(() => {
+    if (acik && !demoMi) {
+      setYukleniyor(true);
+      void yukle().finally(() => setYukleniyor(false));
+    }
+  }, [acik, demoMi, yukle]);
+
   const sayi = liste.length;
   const rozetYazi = sayi > 99 ? '99+' : String(sayi);
 
   return (
     <View>
+      {gosterButon ? (
       <Pressable
         onPress={acik ? () => setAcik(false) : ac}
         style={[
@@ -224,6 +245,7 @@ export function OdaDinleyiciPaneli({
           </View>
         ) : null}
       </Pressable>
+      ) : null}
 
       <TamusoModal
         visible={acik}

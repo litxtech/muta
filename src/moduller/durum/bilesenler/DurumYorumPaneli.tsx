@@ -405,12 +405,7 @@ export function DurumYorumPaneli({
           contentPreview={bildirYorum.body}
           contentMediaUrl={bildirYorum.media_url}
           onClose={() => setBildirYorum(null)}
-          onReported={() =>
-            Alert.alert(
-              'Bildirim alındı',
-              'Raporunuz incelenecek. Teşekkürler.',
-            )
-          }
+          onReported={() => setBildirYorum(null)}
         />
       ) : null}
 

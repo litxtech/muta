@@ -627,12 +627,7 @@ export default function DurumDetayEkrani() {
             contentPreview={oge.caption}
             contentMediaUrl={oge.media_url}
             onClose={() => setBildirAcik(false)}
-            onReported={() =>
-              Alert.alert(
-                'Bildirim alındı',
-                'Raporunuz incelenecek. Teşekkürler — güvenli bir topluluk için bildiriminiz önemli.',
-              )
-            }
+            onReported={() => setBildirAcik(false)}
           />
         ) : null}
 

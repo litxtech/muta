@@ -28,21 +28,19 @@ export default function TabsLayout() {
   const tabsKoruma = TabsBirKezMountMu() || !!session;
 
   if (!tabsKoruma) {
-    if (loading) {
-      return (
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: RenkTokenlari.bg,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <ActivityIndicator color={RenkTokenlari.primary} size="large" />
-        </View>
-      );
-    }
-    return <View style={{ flex: 1, backgroundColor: RenkTokenlari.bg }} />;
+    // Oturum yokken boş View gösterme — login yönlendirmesi gelene kadar spinner
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: RenkTokenlari.bg,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <ActivityIndicator color={RenkTokenlari.primary} size="large" />
+      </View>
+    );
   }
 
   return (
@@ -70,7 +68,10 @@ export default function TabsLayout() {
           tabBarShowLabel: false,
         }}
       >
-        <Tabs.Screen name="index" options={{ title: 'Ana Sayfa', lazy: false }} />
+        <Tabs.Screen
+          name="index"
+          options={{ title: 'Ana Sayfa', lazy: false, freezeOnBlur: false }}
+        />
         <Tabs.Screen name="durum" options={{ title: 'Durum', lazy: true }} />
         <Tabs.Screen name="create" options={{ title: 'Oluştur', lazy: true }} />
         <Tabs.Screen

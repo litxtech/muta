@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -73,8 +73,16 @@ const SPOTIFY_GREEN = '#1DB954';
 
 export default function RegisterScreen() {
   const { signUp, signInWithSpotify, refreshProfile } = useAuth();
-  const [ayar, setAyar] = useState<KayitAlanAyarlari>(
+  const [ayarHam, setAyarHam] = useState<KayitAlanAyarlari>(
     () => KayitAlanAyarlariOnbellektenAl() ?? VARSAYILAN_KAYIT_ALAN_AYARLARI,
+  );
+  /** Apple 1.2: doğum tarihi her zaman zorunlu (18+ kanıtı) */
+  const ayar = useMemo<KayitAlanAyarlari>(
+    () => ({
+      ...ayarHam,
+      alanlar: { ...ayarHam.alanlar, birth_date: 'required' },
+    }),
+    [ayarHam],
   );
   const [ayarYukleniyor, setAyarYukleniyor] = useState(
     !KayitAlanAyarlariOnbellektenAl(),
@@ -97,6 +105,8 @@ export default function RegisterScreen() {
   );
   const [onaylar, setOnaylar] = useState<Record<string, boolean>>({});
   const [okunan, setOkunan] = useState<PolitikaGorunum | null>(null);
+  /** Beyan edilen yaş — kimlik doğrulanmış yaş değildir */
+  const [yas18Beyani, setYas18Beyani] = useState(false);
 
   const ayarlariYukle = useCallback(async () => {
     setAyarYukleniyor(true);
@@ -104,7 +114,7 @@ export default function RegisterScreen() {
       KayitAlanAyarlariPublicGet(),
       PolitikalariListele('register').catch(() => [] as PolitikaGorunum[]),
     ]);
-    setAyar(d);
+    setAyarHam(d);
     setKayitPolitikalari(pol);
     setOnaylar((prev) => {
       const next: Record<string, boolean> = {};
@@ -136,6 +146,13 @@ export default function RegisterScreen() {
       );
       return;
     }
+    if (!yas18Beyani) {
+      Alert.alert(
+        'Yaş beyanı',
+        'Tamuso 18+ platformudur. Devam etmek için 18 yaşında veya daha büyük olduğunu beyan etmelisin.',
+      );
+      return;
+    }
     setSpotifyLoading(true);
     const { error, cancelled } = await signInWithSpotify();
     setSpotifyLoading(false);
@@ -144,7 +161,12 @@ export default function RegisterScreen() {
       Alert.alert('Spotify kaydı', error);
       return;
     }
-    void KayitPolitikaKabulKaydet(kayitPolitikalari.map((p) => p.kod));
+    const kabul = await KayitPolitikaKabulKaydet(
+      kayitPolitikalari.map((p) => p.kod),
+    );
+    if (!kabul.ok) {
+      Alert.alert('Yasal onay', kabul.hata ?? 'Politika kaydı başarısız.');
+    }
     router.replace('/(tabs)');
   };
 
@@ -173,6 +195,13 @@ export default function RegisterScreen() {
       );
       return;
     }
+    if (!yas18Beyani) {
+      Alert.alert(
+        'Yaş beyanı',
+        'Tamuso 18+ platformudur. Devam etmek için 18 yaşında veya daha büyük olduğunu beyan etmelisin.',
+      );
+      return;
+    }
     setLoading(true);
     const result = await signUp({
       phone: dogrulama.phone,
@@ -185,7 +214,27 @@ export default function RegisterScreen() {
       customFields: dogrulama.customFields,
     });
     if (!result.error) {
-      void KayitPolitikaKabulKaydet(kayitPolitikalari.map((p) => p.kod));
+      const kabul = await KayitPolitikaKabulKaydet(
+        kayitPolitikalari.map((p) => p.kod),
+      );
+      if (!kabul.ok) {
+        setLoading(false);
+        Alert.alert(
+          'Yasal onay',
+          kabul.hata ??
+            'Politikalar kaydedilemedi. İnternet bağlantını kontrol edip tekrar dene.',
+        );
+        return;
+      }
+      try {
+        const { supabase } = await import('../../src/lib/supabase');
+        await supabase
+          .from('profiles')
+          .update({ age_confirmed_at: new Date().toISOString() })
+          .eq('id', (await supabase.auth.getUser()).data.user?.id ?? '');
+      } catch {
+        /* kolon yoksa sessiz */
+      }
     }
     if (result.error) {
       setLoading(false);
@@ -330,9 +379,8 @@ export default function RegisterScreen() {
                   )}
                 </Text>
                 <Text style={styles.yasHint}>
-                  {AlanZorunluMu(ayar.alanlar.birth_date)
-                    ? 'Platform yalnızca 18 yaş ve üzeri içindir. Yanlış beyan hesap kapatılmasına yol açar.'
-                    : 'Doldurursan 18+ doğrulanır. Boş bırakabilirsin.'}
+                  Platform yalnızca 18 yaş ve üzeri içindir. Yanlış beyan hesap
+                  kapatılmasına yol açar.
                 </Text>
                 <View style={styles.dogumSatir}>
                   <View style={styles.dogumKol}>
@@ -480,6 +528,23 @@ export default function RegisterScreen() {
               );
             })}
 
+            <Pressable
+              onPress={() => setYas18Beyani((v) => !v)}
+              style={styles.yasBeyan}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: yas18Beyani }}
+            >
+              <View style={[styles.yasKutu, yas18Beyani && styles.yasKutuAktif]}>
+                {yas18Beyani ? (
+                  <Ionicons name="checkmark" size={14} color="#fff" />
+                ) : null}
+              </View>
+              <Text style={styles.yasBeyanEtiket}>
+                18 yaşında veya daha büyüğüm. (Beyan — kimlik doğrulanmış yaş
+                değildir. Platform 18+’tır.)
+              </Text>
+            </Pressable>
+
             <PolitikaOnayKutulari
               politikalar={kayitPolitikalari}
               onaylar={onaylar}
@@ -547,6 +612,36 @@ const styles = StyleSheet.create({
   formWrap: {
     flexGrow: 1,
     gap: BoslukTokenlari.lg,
+  },
+  yasBeyan: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: BoslukTokenlari.md,
+    padding: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.md,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    backgroundColor: RenkTokenlari.bgCard,
+  },
+  yasKutu: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: RenkTokenlari.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  yasKutuAktif: {
+    backgroundColor: RenkTokenlari.primary,
+    borderColor: RenkTokenlari.primary,
+  },
+  yasBeyanEtiket: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.text,
+    flex: 1,
+    lineHeight: 18,
   },
   avatarBlok: {
     alignItems: 'center',

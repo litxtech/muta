@@ -22,5 +22,5 @@ export function feedIzgarasiniKur(
   return out;
 }
 
-/** İlk N kart hafif nabız tutar; gerisi tamamen statik (CPU/GPU) */
-export const FEED_AKTIF_ANIMASYON_KART_SAYISI = 2;
+/** Feed kaydırırken aura kapalı — 0 = titreme yok */
+export const FEED_AKTIF_ANIMASYON_KART_SAYISI = 0;

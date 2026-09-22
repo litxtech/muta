@@ -8,6 +8,7 @@
 
 import React, { memo, useEffect, useMemo, useState } from 'react';
 import {
+  DeviceEventEmitter,
   Image,
   Pressable,
   StyleSheet,
@@ -15,6 +16,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +26,7 @@ import { MedyaUriGuvenli } from '../moduller/mesajlasma/yardimcilar/MedyaUriGece
 import { RenkTokenlari } from '../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../tasarim-sistemi/TipografiTokenlari';
 import { useTemayaAboneOl } from '../tasarim-sistemi/tema/useTemayaAboneOl';
+import { kullaniciTemaKodunuAl } from '../tasarim-sistemi/tema/TemaDurumu';
 import {
   YUZEN_TAB_SHELL_H,
   guvenliTabAltInset,
@@ -75,6 +78,9 @@ const HREF: Record<GorunurTabAdi, string> = {
   messages: '/(tabs)/messages',
   profile: '/(tabs)/profile',
 };
+
+/** Ana sekmesine tekrar basınca feed en üste — index dinler */
+export const ANA_TAB_YENIDEN_EVENT = 'tamuso.anaTabYeniden';
 
 const ICON_SIZE = 26;
 const CREATE_SIZE = 30;
@@ -130,6 +136,7 @@ function YuzenTabBarIc() {
   const { okunmamis: mesajOkunmamis } = useMesajOkunmamis();
   const avatarUrl = MedyaUriGuvenli(profile?.avatar_url);
   const [, setTick] = useState(0);
+  const acikTema = kullaniciTemaKodunuAl() === 'acik';
 
   useEffect(() => {
     TabBarGuvenlikKur();
@@ -165,7 +172,9 @@ function YuzenTabBarIc() {
             width: barW,
             height: toplamH,
             paddingBottom: bottomPad,
-            backgroundColor: RenkTokenlari.bg,
+            backgroundColor: acikTema
+              ? RenkTokenlari.tabBarOverlay
+              : RenkTokenlari.tabBarFallback,
             borderTopColor: RenkTokenlari.border,
           },
         ]}
@@ -178,7 +187,7 @@ function YuzenTabBarIc() {
             const isProfile = name === 'profile';
             const isMessages = name === 'messages';
             const color = secili
-              ? RenkTokenlari.text
+              ? RenkTokenlari.primarySoft
               : RenkTokenlari.textMuted;
             const badge =
               isMessages && !secili && mesajOkunmamis > 0
@@ -196,21 +205,42 @@ function YuzenTabBarIc() {
                     : meta.label
                 }
                 onPress={() => {
-                  if (secili) return;
+                  if (secili) {
+                    if (name === 'index') {
+                      DeviceEventEmitter.emit(ANA_TAB_YENIDEN_EVENT);
+                    }
+                    return;
+                  }
                   tabGit(HREF[name]);
                 }}
                 style={styles.slot}
                 hitSlop={8}
               >
-                <View style={styles.iconWrap}>
-                  {isProfile && avatarUrl ? (
+                <View style={[styles.iconWrap, isCreate && styles.createWrap]}>
+                  {isCreate ? (
+                    <LinearGradient
+                      colors={[...RenkTokenlari.gradientPrimary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={[
+                        styles.createBtn,
+                        secili && styles.createBtnAktif,
+                      ]}
+                    >
+                      <Ionicons
+                        name="add"
+                        size={CREATE_SIZE}
+                        color={RenkTokenlari.textOnPrimary}
+                      />
+                    </LinearGradient>
+                  ) : isProfile && avatarUrl ? (
                     <Image
                       source={{ uri: avatarUrl }}
                       style={[
                         styles.avatar,
                         {
                           borderColor: secili
-                            ? RenkTokenlari.text
+                            ? RenkTokenlari.primarySoft
                             : 'transparent',
                           borderWidth: secili ? 2 : 1.5,
                         },
@@ -219,12 +249,8 @@ function YuzenTabBarIc() {
                   ) : (
                     <Ionicons
                       name={secili ? meta.active : meta.idle}
-                      size={isCreate ? CREATE_SIZE : ICON_SIZE}
-                      color={
-                        isCreate && secili
-                          ? RenkTokenlari.primarySoft
-                          : color
-                      }
+                      size={ICON_SIZE}
+                      color={color}
                     />
                   )}
                   {badge > 0 ? (
@@ -276,6 +302,26 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  createWrap: {
+    width: 48,
+    height: 48,
+    marginTop: -10,
+  },
+  createBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: RenkTokenlari.primary,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  createBtnAktif: {
+    shadowOpacity: 0.55,
   },
   avatar: {
     width: AVATAR,

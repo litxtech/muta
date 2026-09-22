@@ -1,23 +1,16 @@
 import { useEffect } from 'react';
 import { router } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
 import { useAuth } from '../src/contexts/AuthContext';
 import { AcilisEkrani } from '../src/bilesenler/acilis/AcilisEkrani';
 import { useTema } from '../src/tasarim-sistemi/tema/TemaSaglayici';
 
-void SplashScreen.preventAutoHideAsync().catch(() => undefined);
-
 /**
  * Giriş kapısı — marka açılış + oturum yönlendirme.
- * Görünüm varsayılan koyu; seçim ayarlardan yapılır.
+ * Native splash auto-hide (expo-splash-screen native modülü bu build'de yok).
  */
 export default function Index() {
   const { session, loading } = useAuth();
   const { hazir } = useTema();
-
-  useEffect(() => {
-    void SplashScreen.hideAsync().catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     if (loading || !hazir) return;

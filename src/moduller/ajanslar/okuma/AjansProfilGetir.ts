@@ -45,6 +45,8 @@ export type AjansProfil = {
     id: string;
     agency_public_id: string;
     name: string;
+    username?: string | null;
+    is_verified?: boolean;
     logo_url: string | null;
     banner_url: string | null;
     slogan: string | null;

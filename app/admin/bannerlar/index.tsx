@@ -6,7 +6,6 @@ import {
   RefreshControl,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   View,
 } from 'react-native';
@@ -17,10 +16,6 @@ import { EkranBasligi } from '../../../src/components/EkranBasligi';
 import { GradientButton } from '../../../src/components/GradientButton';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { AdminYetkisiVarMi } from '../../../src/moduller/admin/yetki/AdminYetkisiVarMi';
-import { AdminOzellikBayragiAyarla } from '../../../src/moduller/admin/platform/AdminPlatformIslemleri';
-import { OzellikBayragiAktifMiSunucu } from '../../../src/moduller/ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
-import { OtomatikPromoCacheTemizle } from '../../../src/banner/services/PromoBannerAdapter';
-import { AdminOtomatikBannerPaneli } from '../../../src/banner/admin/AdminOtomatikBannerPaneli';
 import { BannerAdminService } from '../../../src/banner/admin/BannerAdminService';
 import {
   BANNER_STATUS_LABELS,
@@ -39,18 +34,12 @@ export default function AdminBannerlarEkrani() {
   const admin = AdminYetkisiVarMi(profile);
   const [liste, setListe] = useState<BannerCampaign[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
-  const [otomatikAcik, setOtomatikAcik] = useState(true);
-  const [otomatikKaydediyor, setOtomatikKaydediyor] = useState(false);
 
   const load = useCallback(async () => {
     setYukleniyor(true);
     try {
-      const [kampanyalar, auto] = await Promise.all([
-        BannerAdminService.list(),
-        OzellikBayragiAktifMiSunucu('auto_promo_banners_enabled'),
-      ]);
+      const kampanyalar = await BannerAdminService.list();
       setListe(kampanyalar);
-      setOtomatikAcik(auto);
     } catch (e) {
       Alert.alert('Hata', e instanceof Error ? e.message : 'Liste alınamadı');
       setListe([]);
@@ -98,24 +87,6 @@ export default function AdminBannerlarEkrani() {
     ]);
   };
 
-  const otomatikDegistir = async (v: boolean) => {
-    const onceki = otomatikAcik;
-    setOtomatikAcik(v);
-    setOtomatikKaydediyor(true);
-    try {
-      await AdminOzellikBayragiAyarla('auto_promo_banners_enabled', v);
-      OtomatikPromoCacheTemizle();
-    } catch (e) {
-      setOtomatikAcik(onceki);
-      Alert.alert(
-        'Hata',
-        e instanceof Error ? e.message : 'Otomatik banner ayarı kaydedilemedi',
-      );
-    } finally {
-      setOtomatikKaydediyor(false);
-    }
-  };
-
   return (
     <Screen edges={['top']}>
       <EkranBasligi
@@ -133,26 +104,19 @@ export default function AdminBannerlarEkrani() {
           />
         }
       >
-        <View style={styles.toggleCard}>
-          <View style={{ flex: 1, gap: 4 }}>
-            <Text style={styles.name}>Popülerlik promo bannerları</Text>
-            <Text style={styles.meta}>
-              Admin kampanyası yokken en popüler oda / canlı / oyun şeridi
+        <View style={styles.sekme}>
+          <Pressable style={[styles.sekmeBtn, styles.sekmeAktif]}>
+            <Text style={[styles.sekmeYazi, styles.sekmeYaziAktif]}>
+              Kampanyalar
             </Text>
-          </View>
-          <Switch
-            value={otomatikAcik}
-            onValueChange={(v) => void otomatikDegistir(v)}
-            disabled={otomatikKaydediyor}
-            trackColor={{
-              false: RenkTokenlari.surface,
-              true: RenkTokenlari.primary,
-            }}
-            thumbColor={RenkTokenlari.text}
-          />
+          </Pressable>
+          <Pressable
+            style={styles.sekmeBtn}
+            onPress={() => router.push('/admin/bannerlar/otomatik' as never)}
+          >
+            <Text style={styles.sekmeYazi}>Otomatik</Text>
+          </Pressable>
         </View>
-
-        <AdminOtomatikBannerPaneli />
 
         <GradientButton
           title="Yeni banner"
@@ -273,15 +237,30 @@ function ActionChip({
 }
 
 const styles = StyleSheet.create({
-  toggleCard: {
+  sekme: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: BoslukTokenlari.md,
+    gap: 8,
+  },
+  sekmeBtn: {
+    flex: 1,
+    paddingVertical: 10,
     borderRadius: YaricapTokenlari.md,
+    alignItems: 'center',
+    backgroundColor: RenkTokenlari.surface,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
-    backgroundColor: RenkTokenlari.bgCard,
+  },
+  sekmeAktif: {
+    backgroundColor: 'rgba(232,64,145,0.22)',
+    borderColor: RenkTokenlari.borderAccent,
+  },
+  sekmeYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    fontWeight: '700',
+  },
+  sekmeYaziAktif: {
+    color: RenkTokenlari.text,
   },
   card: {
     padding: BoslukTokenlari.md,

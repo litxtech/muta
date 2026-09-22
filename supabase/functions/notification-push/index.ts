@@ -29,17 +29,27 @@ type FirebaseSa = {
   private_key: string;
 };
 
+type PushOpts = {
+  channelId?: string;
+  sound?: string;
+  badge?: number;
+};
+
 let cachedFcmToken: { token: string; exp: number } | null = null;
 
 function dataStringMap(
   deepLink: string | null,
   outboxId: string,
   payload: Record<string, unknown> | null,
+  badge?: number,
 ): Record<string, string> {
   const out: Record<string, string> = {
     outbox_id: outboxId,
   };
   if (deepLink) out.deep_link = deepLink;
+  if (typeof badge === 'number' && Number.isFinite(badge)) {
+    out.badge = String(Math.max(0, Math.floor(badge)));
+  }
   for (const [k, v] of Object.entries(payload ?? {})) {
     if (v == null) continue;
     out[k] = typeof v === 'string' ? v : JSON.stringify(v);
@@ -93,10 +103,15 @@ async function fcmGonder(
   title: string,
   body: string | null,
   data: Record<string, string>,
-  opts?: { channelId?: string; sound?: string },
+  opts?: PushOpts,
 ): Promise<{ ok: boolean; error?: string }> {
   const access = await fcmAccessToken(sa);
   const channelId = opts?.channelId ?? 'genel';
+  const badge =
+    typeof opts?.badge === 'number' && Number.isFinite(opts.badge)
+      ? Math.max(0, Math.floor(opts.badge))
+      : undefined;
+
   const res = await fetch(
     `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`,
     {
@@ -118,6 +133,7 @@ async function fcmGonder(
             notification: {
               channel_id: channelId,
               ...(opts?.sound ? { sound: opts.sound } : {}),
+              ...(badge !== undefined ? { notification_count: badge } : {}),
               default_vibrate_timings: true,
             },
           },
@@ -125,6 +141,7 @@ async function fcmGonder(
             payload: {
               aps: {
                 sound: opts?.sound ?? 'default',
+                ...(badge !== undefined ? { badge } : {}),
               },
             },
           },
@@ -143,10 +160,15 @@ async function expoGonder(
   title: string,
   body: string | null,
   data: Record<string, string>,
-  opts?: { channelId?: string; sound?: string },
+  opts?: PushOpts,
 ): Promise<{ ok: boolean; error?: string }> {
   const sound = opts?.sound ?? 'default';
   const channelId = opts?.channelId ?? 'genel';
+  const badge =
+    typeof opts?.badge === 'number' && Number.isFinite(opts.badge)
+      ? Math.max(0, Math.floor(opts.badge))
+      : undefined;
+
   const messages = tokens.map((to) => ({
     to,
     title,
@@ -155,6 +177,7 @@ async function expoGonder(
     sound,
     channelId,
     priority: 'high' as const,
+    ...(badge !== undefined ? { badge } : {}),
   }));
 
   const pushRes = await fetch('https://exp.host/--/api/v2/push/send', {
@@ -190,6 +213,34 @@ function mesajBildirimiMi(
   return false;
 }
 
+/** Kullanıcı başına okunmamış gelen kutu sayısı (ikon rozeti) */
+async function okunmamisSayilariAl(
+  admin: ReturnType<typeof createClient>,
+  userIds: string[],
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  for (const id of userIds) map.set(id, 0);
+  if (userIds.length === 0) return map;
+
+  const { data, error } = await admin
+    .from('user_notifications')
+    .select('user_id')
+    .in('user_id', userIds)
+    .is('read_at', null);
+
+  if (error) {
+    console.warn('[push] unread count', error.message);
+    return map;
+  }
+
+  for (const row of data ?? []) {
+    const uid = (row as { user_id?: string }).user_id;
+    if (!uid) continue;
+    map.set(uid, (map.get(uid) ?? 0) + 1);
+  }
+  return map;
+}
+
 /** Mesaj bildirimi — native ses dosyası (app.config sounds) */
 const MESAJ_SESI = 'mesaj_uc_ton.wav';
 const MESAJ_KANAL = 'mesaj';
@@ -208,6 +259,7 @@ function loadFirebaseSa(): FirebaseSa | null {
 
 /**
  * notification_outbox → Android FCM (Firebase) + Expo Push.
+ * iOS ikon rozeti: aps.badge / Expo badge = okunmamış user_notifications.
  * Secret: FIREBASE_SERVICE_ACCOUNT_JSON (FCM V1 service account JSON string)
  * Opsiyonel: PUSH_WORKER_SECRET
  */
@@ -292,6 +344,8 @@ Deno.serve(async (req) => {
       .in('push_provider', ['fcm', 'expo'])
       .not('push_token', 'is', null);
 
+    const unreadByUser = await okunmamisSayilariAl(admin, userIds);
+
     const fcmByUser = new Map<string, string[]>();
     const expoByUser = new Map<string, string[]>();
     for (const t of (tokens as PushTokenRow[]) ?? []) {
@@ -316,7 +370,8 @@ Deno.serve(async (req) => {
       const uid = row.user_id;
       const fcmTargets = uid ? fcmByUser.get(uid) ?? [] : [];
       const expoTargets = uid ? expoByUser.get(uid) ?? [] : [];
-      const data = dataStringMap(row.deep_link, row.id, row.payload);
+      const badge = uid ? unreadByUser.get(uid) ?? 1 : 1;
+      const data = dataStringMap(row.deep_link, row.id, row.payload, badge);
 
       if (fcmTargets.length === 0 && expoTargets.length === 0) {
         await admin
@@ -337,9 +392,12 @@ Deno.serve(async (req) => {
       const errors: string[] = [];
       let anyOk = false;
       const isMesaj = mesajBildirimiMi(row.deep_link, row.payload);
-      const pushOpts = isMesaj
-        ? { channelId: MESAJ_KANAL, sound: MESAJ_SESI }
-        : { channelId: 'genel', sound: 'default' };
+      const pushOpts: PushOpts = {
+        ...(isMesaj
+          ? { channelId: MESAJ_KANAL, sound: MESAJ_SESI }
+          : { channelId: 'genel', sound: 'default' }),
+        badge,
+      };
 
       // Android Firebase FCM (öncelik)
       if (fcmTargets.length > 0) {

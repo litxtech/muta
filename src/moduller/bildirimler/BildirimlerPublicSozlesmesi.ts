@@ -8,6 +8,11 @@ export {
   ExpoPushTokeniniAl,
 } from './kayit/ExpoPushTokeniniAl';
 export {
+  BildirimIzniIste,
+  BildirimIzniDurumuAl,
+  MesajPushIzniGerekirseIste,
+} from './kayit/BildirimIzniIste';
+export {
   PushTercihleriniGetir,
   PushTercihiniKaydet,
   PushTercihleriniTopluKaydet,

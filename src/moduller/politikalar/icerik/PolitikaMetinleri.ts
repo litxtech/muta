@@ -3,7 +3,7 @@
  * DB policy_versions ile senkron (migration 039 + 072).
  */
 
-export type PolitikaKodu = 'tos' | 'privacy' | 'child_safety';
+export type PolitikaKodu = 'tos' | 'privacy' | 'child_safety' | 'community_rules';
 
 export type PolitikaTanimi = {
   kod: PolitikaKodu;
@@ -292,17 +292,21 @@ Platformu kullanarak bu Gizlilik Politikası’nı kabul etmiş sayılırsınız
     baslik: 'Çocuk Koruma Politikası',
     kisa: '18+ · sıfır tolerans · af yok',
     onayEtiketi: 'Çocuk Koruma Politikası’nı okudum ve kabul ediyorum',
-    govde: `TAMUSO ÇOCUK KORUMA POLİTİKASI
+    govde: `TAMUSO ÇOCUK KORUMA POLİTİKASI / CHILD PROTECTION POLICY
 
-Son güncelleme: 15 Eylül 2026
-Sürüm: 3.0
+Son güncelleme / Last updated: 22 Eylül 2026
+Sürüm / Version: 4.0
+
+════════════════════════════════
+TÜRKÇE
+════════════════════════════════
 
 KESİN UYARI — AF YOKTUR
 Tamuso’da çocukların cinsel istismarı, sömürüsü, cinselleştirilmesi veya reşit olmayanların Platforma katılımına ilişkin her türlü ihlalde AF YOKTUR, “ikinci şans” YOKTUR, pazarlık YOKTUR.
 Tespit edilen hesaplar DERHAL ve KALICI olarak KAPATILIR; ilgili içerikler kaldırılır; gerekli hallerde yasal mercilere ve çocuk koruma kanallarına BİLDİRİM yapılır.
 Ban kaçırmak için yeni hesap açmak da aynı kapsamdadır; yeni hesaplar da kapatılır.
 
-Bu politika, Kullanım Şartları ve Gizlilik Politikası’nın ayrılmaz parçasıdır. Lobide, kayıtta ve Politikalar ekranında her zaman erişilebilir.
+Bu politika, Kullanım Şartları ve Gizlilik Politikası’nın ayrılmaz parçasıdır. Lobide, kayıtta, Politikalar ekranında ve tek seferlik Çocuk Koruma onay kartında her zaman erişilebilir.
 
 ────────────────────────────────
 1. TEMEL İLKE VE KAPSAM
@@ -313,7 +317,16 @@ Bu politika, Kullanım Şartları ve Gizlilik Politikası’nın ayrılmaz parç
 1.4. Bu politika; sesli odalar, canlı yayın, mesajlaşma, aramalar, durum paylaşımları, profil medyası, hediyeler, oyunlar ve tüm diğer özellikler için geçerlidir.
 
 ────────────────────────────────
-2. SIFIR TOLERANS — YASAK DAVRANIŞLAR
+2. TEK SEFERLİK ONAY KARTI (18+)
+────────────────────────────────
+2.1. Yeni ve mevcut tüm hesaplar, uygulamaya girişte bir kez Çocuk Koruma onay kartını görür.
+2.2. Kart Türkçe ve İngilizce sunulur; metinde karakter sınırı uygulanmaz.
+2.3. “18 yaşından büyüğüm” seçeneği, kullanıcının 18+ olduğunu beyan eder; onay sonrası kart bir daha gösterilmez.
+2.4. “18 yaşından değilim” seçeneğinde ek onay istenir. Onay verildiği anda hesap kapatılır ve kullanıcı giriş lobisine yönlendirilir.
+2.5. Her hesap için karar tek seferliktir. Onaylayanlar ve onay vermeyenler (hesabı kapananlar) admin panelinde listelenir.
+
+────────────────────────────────
+3. SIFIR TOLERANS — YASAK DAVRANIŞLAR
 ────────────────────────────────
 Aşağıdakilerin tamamına sıfır tolerans uygulanır:
 • Çocuk cinsel istismarı materyali (CSAM) üretmek, paylaşmak, istemek, muhafaza etmek, linklemek veya tartışmak
@@ -327,71 +340,71 @@ Aşağıdakilerin tamamına sıfır tolerans uygulanır:
 Bu listeler örnek niteliğindedir; ruhu itibarıyla benzer davranışlar da kapsamdadır.
 
 ────────────────────────────────
-3. AF YOK · HESAPLAR KAPATILIR · KALICI YASAK
+4. AF YOK · HESAPLAR KAPATILIR · KALICI YASAK
 ────────────────────────────────
-3.1. Yukarıdaki ihlallerden herhangi birinde:
+4.1. Yukarıdaki ihlallerden herhangi birinde:
 • Hesap DERHAL askıya alınır ve ardından KALICI olarak KAPATILIR.
 • AF, indirim, “ilk seferde uyarı”, “özür kabulü” veya “hesap iadesi” UYGULANMAZ.
 • Coin, elmas, VIP, ajans bakiyesi ve benzeri avantajlar güvenlik incelemesi kapsamında dondurulabilir / iptal edilebilir.
 • Aynı kişiye ait veya bağlantılı olduğu tespit edilen diğer hesaplar da kapatılabilir.
-3.2. “Bilmiyordum”, “yanlışlıkla”, “başkası kullandı”, “sadece izledim” savunmaları bu kategoride af sebebi oluşturmaz.
-3.3. Moderasyon ekibinin çocuk koruma kararları nihaidir; lobi veya destek üzerinden af talebi kabul edilmez.
-3.4. Yasal mercilere bildirim sonrası süreç mercilerin yetkisindedir; Platform affedici ara karar veremez.
+4.2. “Bilmiyordum”, “yanlışlıkla”, “başkası kullandı”, “sadece izledim” savunmaları bu kategoride af sebebi oluşturmaz.
+4.3. Moderasyon ekibinin çocuk koruma kararları nihaidir; lobi veya destek üzerinden af talebi kabul edilmez.
+4.4. Yasal mercilere bildirim sonrası süreç mercilerin yetkisindedir; Platform affedici ara karar veremez.
 
 ────────────────────────────────
-4. YAŞ DOĞRULAMA VE HESAP
+5. YAŞ DOĞRULAMA VE HESAP
 ────────────────────────────────
-4.1. Kayıtta 18+ olduğunuzu beyan edersiniz. Bu beyan sözleşmesel taahhüttür.
-4.2. Şüphe halinde ek doğrulama istenebilir. Doğrulama reddi veya yetersizliği erişimin kısıtlanması / hesabın silinmesi sonucunu doğurur.
-4.3. Reşit olmadığı anlaşılan hesaplar kapatılır; ilgili veriler Gizlilik Politikası çerçevesinde silinir veya anonimleştirilir (yasal saklama istisnaları saklı).
+5.1. Kayıtta ve tek seferlik onay kartında 18+ olduğunuzu beyan edersiniz. Bu beyan sözleşmesel taahhüttür.
+5.2. Şüphe halinde ek doğrulama istenebilir. Doğrulama reddi veya yetersizliği erişimin kısıtlanması / hesabın silinmesi sonucunu doğurur.
+5.3. Reşit olmadığı anlaşılan veya kartta “18 yaşından değilim” diyen hesaplar kapatılır; ilgili veriler Gizlilik Politikası çerçevesinde silinir veya anonimleştirilir (yasal saklama istisnaları saklı).
 
 ────────────────────────────────
-5. RAPORLAMA YÜKÜMLÜLÜĞÜ
+6. RAPORLAMA YÜKÜMLÜLÜĞÜ
 ────────────────────────────────
-5.1. Kullanıcılar şüpheli içerik veya davranışı derhal bildirmelidir:
+6.1. Kullanıcılar şüpheli içerik veya davranışı derhal bildirmelidir:
 • Uygulama içi “Bildir / Engelle”
 • Canlı Destek
 • Politikalar ekranı üzerinden yönlendirmeler
-5.2. Raporlar çocuk koruma kuyruğunda öncelikli incelenir.
-5.3. İyi niyetli raporlar korunur. Kötü niyetli / asılsız raporlama ayrı yaptırıma tabidir; ancak çocuk koruma bildirimlerini engellemez.
-5.4. Acil tehlike varsa yerel kolluk ve çocuk koruma hatlarını da arayın; yalnızca uygulama içi rapor yeterli olmayabilir.
+6.2. Raporlar çocuk koruma kuyruğunda öncelikli incelenir.
+6.3. İyi niyetli raporlar korunur. Kötü niyetli / asılsız raporlama ayrı yaptırıma tabidir; ancak çocuk koruma bildirimlerini engellemez.
+6.4. Acil tehlike varsa yerel kolluk ve çocuk koruma hatlarını da arayın; yalnızca uygulama içi rapor yeterli olmayabilir.
 
 ────────────────────────────────
-6. MODERASYON VE TEKNİK TEDBİRLER
+7. MODERASYON VE TEKNİK TEDBİRLER
 ────────────────────────────────
-6.1. Otomatik filtreler, kullanıcı raporları ve insan incelemesi birlikte kullanılır.
-6.2. İçerik kaldırma, hesap kapatma, IP / cihaz sinyali incelemesi ve delil saklama uygulanabilir.
-6.3. Ciddi olaylarda yetkili makamlara, mağaza politikalarına ve sektör çocuk koruma kanallarına bildirim yapılabilir.
-6.4. Güvenlik incelemeleri sırasında ilgili içeriklere erişim sınırlı personel ile ihtiyaç esasına göre yapılır.
+7.1. Otomatik filtreler, kullanıcı raporları ve insan incelemesi birlikte kullanılır.
+7.2. İçerik kaldırma, hesap kapatma, IP / cihaz sinyali incelemesi ve delil saklama uygulanabilir.
+7.3. Ciddi olaylarda yetkili makamlara, mağaza politikalarına ve sektör çocuk koruma kanallarına bildirim yapılabilir.
+7.4. Güvenlik incelemeleri sırasında ilgili içeriklere erişim sınırlı personel ile ihtiyaç esasına göre yapılır.
 
 ────────────────────────────────
-7. CANLI YAYIN, ODALAR VE LOBİ
+8. CANLI YAYIN, ODALAR VE LOBİ
 ────────────────────────────────
-7.1. Canlı / sesli ortamlarda çocukların bulunması veya gösterilmesi yasaktır.
-7.2. Host, yayıncı ve oda sahipleri ortamın 18+ olduğundan sorumludur.
-7.3. Lobide politika linkleri görünür tutulur; katılım, çocuk koruma kurallarını kabul anlamına gelir.
-7.4. İhlal şüphesinde oda/yayın anında sonlandırılabilir; hesaplar kapatılır.
+8.1. Canlı / sesli ortamlarda çocukların bulunması veya gösterilmesi yasaktır.
+8.2. Host, yayıncı ve oda sahipleri ortamın 18+ olduğundan sorumludur.
+8.3. Lobide politika linkleri görünür tutulur; katılım, çocuk koruma kurallarını kabul anlamına gelir.
+8.4. İhlal şüphesinde oda/yayın anında sonlandırılabilir; hesaplar kapatılır.
 
 ────────────────────────────────
-8. MESAJLAŞMA, ARAMA VE ÖZEL İLETİŞİM
+9. MESAJLAŞMA, ARAMA VE ÖZEL İLETİŞİM
 ────────────────────────────────
-8.1. Özel mesaj, grup sohbeti ve aramalarda çocuk koruma ihlali yasaktır.
-8.2. Bildirim veya şüphe halinde ilgili içerikler incelenebilir; ihlalde hesap kapatılır (af yok).
+9.1. Özel mesaj, grup sohbeti ve aramalarda çocuk koruma ihlali yasaktır.
+9.2. Bildirim veya şüphe halinde ilgili içerikler incelenebilir; ihlalde hesap kapatılır (af yok).
 
 ────────────────────────────────
-9. ÜÇÜNCÜ TARAFLAR VE MAĞAZA KURALLARI
+10. ÜÇÜNCÜ TARAFLAR VE MAĞAZA KURALLARI
 ────────────────────────────────
-9.1. App Store / Google Play ve altyapı sağlayıcılarının çocuk güvenliği kurallarına uyum gözetilir.
-9.2. Mağaza veya yasal mercilerin ek bildirim / kaldırma talepleri derhal işleme alınır.
+10.1. App Store / Google Play ve altyapı sağlayıcılarının çocuk güvenliği kurallarına uyum gözetilir.
+10.2. Mağaza veya yasal mercilerin ek bildirim / kaldırma talepleri derhal işleme alınır.
 
 ────────────────────────────────
-10. EĞİTİM VE FARKINDALIK
+11. EĞİTİM VE FARKINDALIK
 ────────────────────────────────
-10.1. Kullanıcıları güvenli kullanım, raporlama yolları ve 18+ kuralı hakkında bilgilendiririz.
-10.2. Lobide ve ayarlarda bu politikanın tam metnine erişim sağlanır.
+11.1. Kullanıcıları güvenli kullanım, raporlama yolları ve 18+ kuralı hakkında bilgilendiririz.
+11.2. Lobide, ayarlarda ve onay kartında bu politikanın tam metnine erişim sağlanır.
 
 ────────────────────────────────
-11. İLETİŞİM VE ACİL DURUM
+12. İLETİŞİM VE ACİL DURUM
 ────────────────────────────────
 Şüpheli çocuk istismarı / CSAM için:
 • Uygulama içi Bildir / Engelle ve Canlı Destek (öncelikli inceleme)
@@ -401,17 +414,201 @@ Bu listeler örnek niteliğindedir; ruhu itibarıyla benzer davranışlar da kap
 Hayati tehlike veya devam eden istismar şüphesinde önce yerel acil servisleri arayın.
 
 ────────────────────────────────
-12. POLİTİKA GÜNCELLEMESİ
+13. POLİTİKA GÜNCELLEMESİ
 ────────────────────────────────
-Bu politika güncellenebilir. Kayıt, lobi girişi ve Platform kullanımı güncel metni kabul anlamına gelir.
-Güncel sürüm: 3.0 — 15 Eylül 2026.
+Bu politika güncellenebilir. Kayıt, lobi girişi, onay kartı ve Platform kullanımı güncel metni kabul anlamına gelir.
+Güncel sürüm: 4.0 — 22 Eylül 2026.
 
 ÖZET (BAĞLAYICI)
 • Platform 18+’tır.
+• Tek seferlik onay kartı zorunludur.
+• 18 değilim + onay = hesap kapanır.
 • Çocuk istismarı / CSAM / grooming / yaş yalanı = SIFIR TOLERANS.
 • AF YOKTUR.
 • HESAPLAR KAPATILIR; kaçış hesapları da kapatılır.
 • Gerekirse yasal mercilere bildirilir.
+
+════════════════════════════════
+ENGLISH
+════════════════════════════════
+
+ABSOLUTE WARNING — NO AMNESTY
+Tamuso has ZERO TOLERANCE and NO AMNESTY for any violation involving child sexual abuse, exploitation, sexualization of minors, or participation of minors on the Platform.
+Violating accounts are closed IMMEDIATELY and PERMANENTLY; related content is removed; where required, reports are made to authorities and child-protection channels.
+Opening a new account to evade a ban is covered the same way; new accounts are also closed.
+
+This policy is an integral part of the Terms of Use and Privacy Policy. It is available in the lobby, at registration, on the Policies screen, and on the one-time Child Protection confirmation card.
+
+────────────────────────────────
+1. PRINCIPLE AND SCOPE
+────────────────────────────────
+1.1. The safety of children (under 18) is our highest priority.
+1.2. The Platform is only for users who are 18 or older. Minors may not register, join rooms/lobbies, stream, or watch.
+1.3. “Child” means anyone under 18 under applicable law.
+1.4. This policy applies to voice rooms, live streams, messaging, calls, status posts, profile media, gifts, games, and all other features.
+
+────────────────────────────────
+2. ONE-TIME CONFIRMATION CARD (18+)
+────────────────────────────────
+2.1. All new and existing accounts see a Child Protection confirmation card once after sign-in.
+2.2. The card is shown in Turkish and English; there is no character limit on the text.
+2.3. “I am 18 or older” records the user’s age attestation; after approval the card is not shown again.
+2.4. Choosing “I am under 18” requires a second confirmation. Upon confirm, the account is closed and the user is sent to the login lobby.
+2.5. The decision is one-time per account. Approvers and decliners (closed accounts) are listed in the admin panel.
+
+────────────────────────────────
+3. ZERO TOLERANCE — PROHIBITED CONDUCT
+────────────────────────────────
+Zero tolerance applies to all of the following:
+• Creating, sharing, soliciting, storing, linking, or discussing child sexual abuse material (CSAM)
+• Promoting, planning, or facilitating child sexual exploitation / abuse (CSE)
+• Sexualization of children, “age play”, “loli/shota” depictions, sexual content with childlike avatars/names
+• Flirting with minors, sexual communication, grooming
+• Inviting minors to the Platform, encouraging age lies, fabricating parental consent
+• Presence, display, or use of a child’s voice in live / voice environments
+• Circulating child-abuse content under “joke”, “fiction”, “AI-generated”, or “roleplay” pretenses
+
+These lists are illustrative; similar conduct in spirit is also covered.
+
+────────────────────────────────
+4. NO AMNESTY · ACCOUNTS CLOSED · PERMANENT BAN
+────────────────────────────────
+4.1. For any of the above violations:
+• The account is IMMEDIATELY suspended and then PERMANENTLY CLOSED.
+• No amnesty, warning-first, apology acceptance, or account restoration.
+• Coins, diamonds, VIP, agency balances and similar benefits may be frozen / voided under security review.
+• Other accounts belonging to or linked to the same person may also be closed.
+4.2. Defenses such as “I didn’t know”, “by mistake”, “someone else used it”, or “I only watched” do not create amnesty in this category.
+4.3. Child-protection decisions by moderation are final; lobby or support amnesty requests are not accepted.
+4.4. After referral to authorities, the process is under their authority; the Platform cannot issue forgiving interim decisions.
+
+────────────────────────────────
+5. AGE ATTESTATION AND ACCOUNT
+────────────────────────────────
+5.1. At registration and on the one-time card you attest you are 18+. This is a contractual commitment.
+5.2. Additional verification may be required if there is doubt. Refusal or inadequacy may restrict access or delete the account.
+5.3. Accounts found to be underage, or that select “I am under 18” on the card, are closed; related data is deleted or anonymized under the Privacy Policy (legal retention exceptions reserved).
+
+────────────────────────────────
+6. REPORTING DUTY
+────────────────────────────────
+6.1. Users must promptly report suspicious content or behavior via in-app Report / Block, Live Support, and Policy screen guidance.
+6.2. Reports are reviewed with priority in the child-protection queue.
+6.3. Good-faith reports are protected. Malicious / false reporting is separately sanctionable but does not block child-protection reports.
+6.4. In urgent danger also contact local law enforcement and child-protection hotlines; in-app reporting alone may not be enough.
+
+────────────────────────────────
+7. MODERATION AND TECHNICAL MEASURES
+────────────────────────────────
+7.1. Automated filters, user reports, and human review are used together.
+7.2. Content removal, account closure, IP / device signal review, and evidence retention may apply.
+7.3. In serious cases we may notify competent authorities, store policies, and industry child-protection channels.
+7.4. During security reviews, access to related content is limited to need-to-know staff.
+
+────────────────────────────────
+8. LIVE STREAMS, ROOMS AND LOBBY
+────────────────────────────────
+8.1. Children must not be present or shown in live / voice environments.
+8.2. Hosts, streamers, and room owners are responsible for keeping the environment 18+.
+8.3. Policy links remain visible in the lobby; participation means accepting child-protection rules.
+8.4. On suspected violation, rooms/streams may be ended immediately; accounts are closed.
+
+────────────────────────────────
+9. MESSAGING, CALLS AND PRIVATE COMMUNICATION
+────────────────────────────────
+9.1. Child-protection violations in DMs, group chat, and calls are prohibited.
+9.2. Related content may be reviewed on report or suspicion; violations close the account (no amnesty).
+
+────────────────────────────────
+10. THIRD PARTIES AND STORE RULES
+────────────────────────────────
+10.1. We observe App Store / Google Play and infrastructure providers’ child-safety rules.
+10.2. Additional takedown / notice requests from stores or authorities are processed promptly.
+
+────────────────────────────────
+11. EDUCATION AND AWARENESS
+────────────────────────────────
+11.1. We inform users about safe use, reporting paths, and the 18+ rule.
+11.2. Full policy text is available in the lobby, settings, and the confirmation card.
+
+────────────────────────────────
+12. CONTACT AND EMERGENCY
+────────────────────────────────
+For suspected child abuse / CSAM:
+• In-app Report / Block and Live Support (priority review)
+• Local law enforcement
+• Child-protection hotlines in your country
+
+If there is immediate danger or ongoing abuse, call local emergency services first.
+
+────────────────────────────────
+13. POLICY UPDATES
+────────────────────────────────
+This policy may be updated. Registration, lobby entry, the confirmation card, and Platform use mean acceptance of the current text.
+Current version: 4.0 — 22 September 2026.
+
+SUMMARY (BINDING)
+• The Platform is 18+.
+• The one-time confirmation card is mandatory.
+• Under 18 + confirm = account closed.
+• Child abuse / CSAM / grooming / age lies = ZERO TOLERANCE.
+• NO AMNESTY.
+• ACCOUNTS ARE CLOSED; evasion accounts are closed too.
+• Authorities are notified when required.
+`,
+  },
+
+  community_rules: {
+    kod: 'community_rules',
+    baslik: 'Topluluk Kuralları',
+    kisa: 'UGC sıfır tolerans · bildir · engelle',
+    onayEtiketi:
+      'Topluluk Kuralları’nı okudum ve uygunsuz içerik / tacize sıfır toleransı kabul ediyorum',
+    govde: `TAMUSO TOPLULUK KURALLARI
+
+Son güncelleme: 22 Eylül 2026
+Sürüm: 1.0
+
+Tamuso, kullanıcıların ürettiği içeriğe (durum, yorum, mesaj, ses odası, canlı yayın) açıktır.
+Uygunsuz içerik ve kötüye kullanıma SIFIR TOLERANS uygulanır.
+
+────────────────────────────────
+1. YAŞ
+────────────────────────────────
+Platform yalnızca 18 yaş ve üzeri içindir. Reşit olmayan içerik veya katılım yasaktır.
+
+────────────────────────────────
+2. YASAK İÇERİK VE DAVRANIŞ
+────────────────────────────────
+Kesinlikle yasaktır:
+• Taciz, tehdit, stalking, zorbalık
+• Nefret söylemi ve ayrımcılık
+• Pornografik / cinsel sömürü içeriği
+• İzinsiz cinsel içerik
+• Çocukların cinsel istismarıyla ilgili her türlü içerik (CSAM) — af yoktur
+• Şiddet tehdidi veya gerçek hayata yönelik zarar
+• Dolandırıcılık, phishing, spam
+• Başkasını taklit (impersonation)
+• İzinsiz kişisel bilgi paylaşımı (doxxing)
+• Telif hakkı ihlali
+• Hukuka aykırı içerik
+• Platformu kötüye kullanma, bot, exploit
+
+────────────────────────────────
+3. MODERASYON VE 24 SAAT
+────────────────────────────────
+• Kullanıcılar Bildir / Engelle araçlarını kullanabilir.
+• Raporlar moderasyon kuyruğuna düşer; hedefimiz 24 saat içinde incelemektir.
+• İhlalde içerik kaldırılır; tekrarlayan veya ağır ihlalde hesap uyarılır, askıya alınır veya kapatılır.
+
+────────────────────────────────
+4. İLETİŞİM
+────────────────────────────────
+Uygulama içi: Güvenlik → Bize Ulaşın
+E-posta: support@litxtech.com
+Canlı Destek: Ayarlar / Güvenlik
+
+Bu kurallar Kullanım Şartları ve Çocuk Koruma Politikası ile birlikte geçerlidir.
 `,
   },
 };
@@ -419,15 +616,24 @@ Güncel sürüm: 3.0 — 15 Eylül 2026.
 export const POLITIKA_LISTESI: PolitikaTanimi[] = [
   POLITIKA_METINLERI.tos,
   POLITIKA_METINLERI.privacy,
+  POLITIKA_METINLERI.community_rules,
   POLITIKA_METINLERI.child_safety,
 ];
 
 export function PolitikaKodundanGetir(kod: string): PolitikaTanimi | null {
-  if (kod === 'tos' || kod === 'privacy' || kod === 'child_safety') {
+  if (
+    kod === 'tos' ||
+    kod === 'privacy' ||
+    kod === 'child_safety' ||
+    kod === 'community_rules'
+  ) {
     return POLITIKA_METINLERI[kod];
   }
   if (kod === 'terms' || kod === 'kullanim') return POLITIKA_METINLERI.tos;
   if (kod === 'gizlilik') return POLITIKA_METINLERI.privacy;
+  if (kod === 'topluluk' || kod === 'community' || kod === 'eula') {
+    return POLITIKA_METINLERI.community_rules;
+  }
   if (kod === 'cocuk' || kod === 'child' || kod === 'child-safety') {
     return POLITIKA_METINLERI.child_safety;
   }

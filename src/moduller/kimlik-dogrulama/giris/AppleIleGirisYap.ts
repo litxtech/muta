@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '../../../lib/supabase';
 import { GenelGirisHatasiMesaji } from './GenelGirisHatasiMesaji';
+import { OAuthProfiliniTamamla } from './OAuthProfiliniTamamla';
 
 export type AppleGirisSonuc =
   | { ok: true }
@@ -9,8 +10,7 @@ export type AppleGirisSonuc =
 
 /**
  * Native Sign in with Apple → Supabase signInWithIdToken.
- * Secret key gerekmez (native).
- * Supabase Apple Client IDs: com.litxtech.muta
+ * İlk yetkilendirmede Apple adı + e-posta profile yazılır.
  */
 export async function AppleIleGirisYap(): Promise<AppleGirisSonuc> {
   if (Platform.OS !== 'ios') {
@@ -43,23 +43,44 @@ export async function AppleIleGirisYap(): Promise<AppleGirisSonuc> {
       return { ok: false, hata: GenelGirisHatasiMesaji(error.message) };
     }
 
-    // Apple ad/soyadı yalnızca ilk yetkilendirmede gelir
-    if (credential.fullName) {
-      const parts = [
-        credential.fullName.givenName,
-        credential.fullName.middleName,
-        credential.fullName.familyName,
-      ].filter(Boolean) as string[];
-      if (parts.length > 0) {
-        await supabase.auth.updateUser({
-          data: {
-            full_name: parts.join(' '),
-            given_name: credential.fullName.givenName,
-            family_name: credential.fullName.familyName,
-          },
-        });
+    // Apple ad/soyadı + e-posta yalnızca ilk yetkilendirmede gelir
+    const parts = credential.fullName
+      ? ([
+          credential.fullName.givenName,
+          credential.fullName.middleName,
+          credential.fullName.familyName,
+        ].filter(Boolean) as string[])
+      : [];
+    const appleAd = parts.length > 0 ? parts.join(' ') : null;
+    const appleMail =
+      typeof credential.email === 'string' && credential.email.includes('@')
+        ? credential.email.trim()
+        : null;
+
+    if (appleAd || appleMail) {
+      const data: Record<string, string> = {};
+      if (appleAd) {
+        data.full_name = appleAd;
+        data.display_name = appleAd;
+      }
+      if (credential.fullName?.givenName) {
+        data.given_name = credential.fullName.givenName;
+      }
+      if (credential.fullName?.familyName) {
+        data.family_name = credential.fullName.familyName;
+      }
+      if (appleMail) data.email = appleMail;
+      try {
+        await supabase.auth.updateUser({ data });
+      } catch {
+        /* metadata opsiyonel */
       }
     }
+
+    await OAuthProfiliniTamamla({
+      displayName: appleAd,
+      emailHint: appleMail,
+    });
 
     return { ok: true };
   } catch (e: unknown) {

@@ -210,3 +210,82 @@ export async function AdminGorusmeUyariGonder(
 export async function AdminGorusmeOlayGoruldu(eventId: string): Promise<void> {
   await supabase.rpc('admin_gorusme_olay_goruldu', { p_event_id: eventId });
 }
+
+export type AdminAktifGorusme = {
+  id: string;
+  call_type: GorusmeTuru | string;
+  status: string;
+  caller_id: string;
+  callee_id: string;
+  caller_name: string;
+  callee_name: string;
+  caller_username?: string | null;
+  callee_username?: string | null;
+  started_at: string;
+  answered_at: string | null;
+};
+
+export async function AdminAktifGorusmeleriGetir(
+  limit = 40,
+): Promise<AdminAktifGorusme[]> {
+  const { data, error } = await supabase.rpc('admin_aktif_gorusmeler', {
+    p_limit: limit,
+  });
+  if (error) throw error;
+  return (data ?? []) as AdminAktifGorusme[];
+}
+
+export async function AdminGorusmeKapatVeYaptirim(
+  callId: string,
+  sanctions: {
+    reason?: string;
+    coin_penalty?: number;
+    warning?: boolean;
+    upload_ban_hours?: number;
+    room_create_ban_hours?: number;
+    account_ban?: boolean;
+    account_ban_hours?: number;
+    target_user_ids?: string[];
+  } = {},
+): Promise<{ ok: boolean; hata?: string; veri?: Record<string, unknown> }> {
+  const payload: Record<string, unknown> = {
+    reason: sanctions.reason?.trim() || undefined,
+    warning: sanctions.warning === true,
+    account_ban: sanctions.account_ban === true,
+  };
+  if (sanctions.coin_penalty && sanctions.coin_penalty > 0) {
+    payload.coin_penalty = Math.floor(sanctions.coin_penalty);
+  }
+  if (
+    sanctions.upload_ban_hours !== undefined &&
+    sanctions.upload_ban_hours !== 0
+  ) {
+    payload.upload_ban_hours = sanctions.upload_ban_hours;
+  }
+  if (
+    sanctions.room_create_ban_hours !== undefined &&
+    sanctions.room_create_ban_hours !== 0
+  ) {
+    payload.room_create_ban_hours = sanctions.room_create_ban_hours;
+  }
+  if (sanctions.account_ban === true) {
+    payload.account_ban_hours =
+      sanctions.account_ban_hours !== undefined &&
+      sanctions.account_ban_hours !== 0
+        ? sanctions.account_ban_hours
+        : -1;
+  }
+  if (sanctions.target_user_ids?.length) {
+    payload.target_user_ids = [...new Set(sanctions.target_user_ids)];
+  }
+
+  const { data, error } = await supabase.rpc(
+    'admin_gorusme_kapat_ve_yaptirim',
+    {
+      p_call_id: callId,
+      p_sanctions: payload,
+    },
+  );
+  if (error) return { ok: false, hata: error.message };
+  return { ok: true, veri: data as Record<string, unknown> };
+}

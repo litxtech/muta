@@ -17,7 +17,7 @@ import { EkranBasligi } from '../../../src/components/EkranBasligi';
 import { GradientButton } from '../../../src/components/GradientButton';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { AdminYetkisiVarMi } from '../../../src/moduller/admin/yetki/AdminYetkisiVarMi';
-import { AdminKullaniciDosyasiGetir, AdminTakipIstatistikGetir } from '../../../src/moduller/admin/kullanici/okuma/AdminKullaniciOkuma';
+import { AdminKullaniciDosyasiGetir, AdminTakipIstatistikGetir, AdminKullaniciPolitikaKabulleriGetir, type AdminKullaniciPolitikaKabulleri } from '../../../src/moduller/admin/kullanici/okuma/AdminKullaniciOkuma';
 import type { AdminTakipIstatistikleri } from '../../../src/moduller/takip/TakipTipleri';
 import {
   AdminIhtarKaldir,
@@ -99,6 +99,7 @@ export default function AdminKullaniciDosyaEkrani() {
   const [sifreBusy, setSifreBusy] = useState(false);
   const [takipIstat, setTakipIstat] = useState<AdminTakipIstatistikleri | null>(null);
   const [stats, setStats] = useState<KullaniciProfilIstatistikleri | null>(null);
+  const [politikalar, setPolitikalar] = useState<AdminKullaniciPolitikaKabulleri | null>(null);
 
   const yukle = useCallback(async () => {
     if (!id) return;
@@ -106,15 +107,18 @@ export default function AdminKullaniciDosyaEkrani() {
     try {
       const d = await AdminKullaniciDosyasiGetir(id);
       setDosya(d?.ok === false ? null : d);
-      const [s, st] = await Promise.all([
+      const [s, st, pol] = await Promise.all([
         AdminTakipIstatistikGetir(id).catch(() => null),
         ProfilIstatistikleriniGetir(id).catch(() => null),
+        AdminKullaniciPolitikaKabulleriGetir(id).catch(() => null),
       ]);
       setTakipIstat(s);
       setStats(st);
+      setPolitikalar(pol);
     } catch {
       setDosya(null);
       setStats(null);
+      setPolitikalar(null);
     } finally {
       setYukleniyor(false);
     }
@@ -319,6 +323,44 @@ export default function AdminKullaniciDosyaEkrani() {
               Açılış {tr(p.created_at)} · {dosya.oturum.platformlar}
             </Text>
           </LinearGradient>
+
+          <View style={styles.politikaBolum}>
+            <Text style={styles.politikaBolumBaslik}>Onaylanan politikalar</Text>
+            <Satir
+              e="Çocuk Koruma kartı"
+              d={
+                !politikalar
+                  ? 'Yükleniyor…'
+                  : politikalar.cocuk_koruma.status === 'approved'
+                    ? `Onayladı · ${tr(politikalar.cocuk_koruma.decided_at)}`
+                    : politikalar.cocuk_koruma.status === 'declined'
+                      ? `Vermedi · ${tr(politikalar.cocuk_koruma.decided_at)}`
+                      : 'Henüz yanıt yok'
+              }
+            />
+            {!politikalar ? (
+              <Text style={styles.hint}>Politikalar yükleniyor…</Text>
+            ) : !politikalar.kabuller.length ? (
+              <Text style={styles.hint}>
+                Kayıtlı politika onayı yok (ToS / gizlilik / çocuk koruma vb.)
+              </Text>
+            ) : (
+              politikalar.kabuller.map((k) => (
+                <View
+                  key={`${k.policy_version_id}-${k.accepted_at}`}
+                  style={styles.politikaSatir}
+                >
+                  <Text style={styles.politikaBaslik}>
+                    {k.title || k.policy_code}
+                    {k.is_required ? ' · zorunlu' : ''}
+                  </Text>
+                  <Text style={styles.politikaAlt}>
+                    {k.policy_code} · v{k.policy_version} · {tr(k.accepted_at)}
+                  </Text>
+                </View>
+              ))
+            )}
+          </View>
 
           <View style={styles.aksiyonlar}>
             {p.banned_at ? (
@@ -677,6 +719,35 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.textMuted,
     marginBottom: 8,
     lineHeight: 18,
+  },
+  politikaBolum: {
+    padding: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.md,
+    borderWidth: 1.5,
+    borderColor: RenkTokenlari.mint,
+    backgroundColor: RenkTokenlari.bgCard,
+    gap: 0,
+  },
+  politikaBolumBaslik: {
+    ...TipografiTokenlari.h2,
+    color: RenkTokenlari.mint,
+    marginBottom: 8,
+    fontWeight: '800',
+  },
+  politikaSatir: {
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: RenkTokenlari.border,
+    gap: 2,
+  },
+  politikaBaslik: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+  },
+  politikaAlt: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
   },
   bolum: {
     padding: BoslukTokenlari.md,

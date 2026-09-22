@@ -13,6 +13,7 @@ import {
 import {
   BILDIRME_SEBEPLERI,
   KullaniciBildir,
+  RAPOR_ALINDI_MESAJ,
 } from '../islemler/ModerasyonIslemleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
@@ -63,10 +64,6 @@ export function IcerikBildirPaneli({
   };
 
   const gonder = async () => {
-    if (isGuest) {
-      Alert.alert('Misafir', 'Bildirmek için hesabını tamamla.');
-      return;
-    }
     if (!sebepId) {
       Alert.alert('Bildir', 'Bir sebep seç.');
       return;
@@ -100,7 +97,7 @@ export function IcerikBildirPaneli({
     }
     Alert.alert(
       'Rapor alındı',
-      'İnceleme ekibine iletildi. Teşekkürler.',
+      RAPOR_ALINDI_MESAJ,
       [
         {
           text: 'Tamam',

@@ -81,11 +81,11 @@ const ANDROID_ILETISIM_AUDIO = {
   forceHandleAudioRouting: true,
 };
 
-/** Ses odası: hoparlör öncelikli */
+/** Cihaz çıkış önceliği — LiveKit varsayılanı (BT kulaklık önce) */
 const ANDROID_CIKIS_ONCELIK = [
-  'speaker',
   'bluetooth',
   'headset',
+  'speaker',
   'earpiece',
 ] as const;
 
@@ -347,10 +347,12 @@ class LiveKitBaglantiYoneticisiImpl {
     publishVideo?: boolean;
     /** 1:1 görüşme — düşük çözünürlük / speech audio (donma yok) */
     gorusmeModu?: boolean;
-    /** Ses odası (video yok) — herkes communication */
+    /** Ses odası (video yok) — herkes communication (dinleyici de duysun) */
     sesOdasi?: boolean;
     /** true: aynı odaya yeniden bağlan (token/rol yükseltme) */
     zorla?: boolean;
+    /** Yayıncı mikrofon başlangıç — ses odası koltuk izni true */
+    micAcik?: boolean;
   }): Promise<{ ok: boolean; hata?: string }> {
     return this.sirayaAl(() => this.baglanIc(input));
   }
@@ -365,6 +367,7 @@ class LiveKitBaglantiYoneticisiImpl {
     gorusmeModu?: boolean;
     sesOdasi?: boolean;
     zorla?: boolean;
+    micAcik?: boolean;
   }): Promise<{ ok: boolean; hata?: string }> {
     const nesil = ++this.baglantiNesil;
     this.gorusmeModu = !!input.gorusmeModu;
@@ -376,12 +379,14 @@ class LiveKitBaglantiYoneticisiImpl {
       !input.mock &&
       !input.token.startsWith('mock.') &&
       this.odaAyniVeCanliMi(input.roomName);
-    // Soft reuse: mute tercihini ezme.
-    // Ses odası: koltukta bile mic kapalı başlar (kullanıcı açar).
-    // Görüşme/video: yayıncıda mic açık.
+
+    // Mikrofon hedefi
     if (!this.asPublisher) {
       this.micIstenenAcik = false;
+    } else if (typeof input.micAcik === 'boolean') {
+      this.micIstenenAcik = input.micAcik;
     } else if (input.sesOdasi) {
+      // Eski davranış yedek: ses odasında belirsizse kapalı (UI açar)
       if (!ayniOdaCanli || input.zorla) {
         this.micIstenenAcik = false;
       }
@@ -456,12 +461,17 @@ class LiveKitBaglantiYoneticisiImpl {
     }
 
     // baglantiyiKesIc odayı keser; rol bayrakları bu join için yeniden yazılır
-    // (eski kod sıfırlıyordu → mic publish kapısı hiç açılmıyordu)
     this.gorusmeModu = !!input.gorusmeModu;
     this.sesOdasiModu = !!input.sesOdasi;
     this.asPublisher = !!input.asPublisher;
-    // Ses odası konuşmacısı da sessiz girer — mic butonu ile açılır
-    this.micIstenenAcik = this.asPublisher && !this.sesOdasiModu;
+    if (!this.asPublisher) {
+      this.micIstenenAcik = false;
+    } else if (typeof input.micAcik === 'boolean') {
+      this.micIstenenAcik = input.micAcik;
+    } else {
+      // Görüşme/video: açık. Ses odası belirsiz: kapalı (UI açar).
+      this.micIstenenAcik = !this.sesOdasiModu;
+    }
 
     this.durum = 'connecting';
     this.roomName = input.roomName;
@@ -546,11 +556,11 @@ class LiveKitBaglantiYoneticisiImpl {
           } catch {
             /* ignore */
           }
-          // iOS: Android track gelince hoparlör + oturumu tazeleyerek sessizliği kır
-          if (Platform.OS === 'ios' && !kendi) {
+          if (!kendi) {
+            // Dinleyici join: track gelince çıkış + hacim — sessiz kalmasın
             void this.hoparlorGucluAc().catch(() => undefined);
             this.uzakSesleriGucluAc();
-            IosYankIptaliAc();
+            if (Platform.OS === 'ios') IosYankIptaliAc();
           }
         }
         yenile();
@@ -730,8 +740,10 @@ class LiveKitBaglantiYoneticisiImpl {
     native: LiveKitNative,
     zorla = false,
   ): Promise<void> {
-    // Misafir (dinleyici) exclusive focus almaz — Spotify vb. kesilmez
-    const iletisim = this.gorusmeModu || this.asPublisher;
+    // Ses odası: yayıncı + dinleyici aynı communication profili
+    // (media/duck dinleyicide Opus uzak ses sık kaçıyordu — koltuk isteyince duyuluyordu)
+    const iletisim =
+      this.gorusmeModu || this.asPublisher || this.sesOdasiModu;
     const profil = iletisim ? 'com' : 'duck';
     const imza = `${Platform.OS}:${profil}:${this.asPublisher ? 1 : 0}`;
     if (!zorla && this.audioSessionAcik && this.sonSesImza === imza) {
@@ -756,10 +768,11 @@ class LiveKitBaglantiYoneticisiImpl {
           preferredOutputList: [...ANDROID_CIKIS_ONCELIK],
           audioTypeOptions: androidOpts,
         },
+        // speaker = BT yokken varsayılan; BT/headset varken sistem onları seçer
         ios: { defaultOutput: 'speaker' },
       });
     } else if (Platform.OS === 'ios') {
-      // Sadece hoparlör varsayılanı — kategori/mode'u engine + setupIOSAudioManagement yönetir
+      // defaultOutput yalnızca BT/headset YOKKEN geçerli
       await native.AudioSession.configureAudio({
         ios: { defaultOutput: 'speaker' },
       }).catch(() => undefined);
@@ -834,6 +847,20 @@ class LiveKitBaglantiYoneticisiImpl {
   }
 
   private async hoparlorGucluAc(): Promise<void> {
+    await this.sesCikisiniUygula('oto');
+  }
+
+  /**
+   * Ses çıkışı:
+   * - oto: Bluetooth / kablolu kulaklık varsa onu kullan; yoksa hoparlör
+   * - hoparlor: BT/headset yoksa hoparlör (BT varsa çalma)
+   * - ahize: kulaklık yoksa ahize
+   *
+   * iOS'ta `force_speaker` Bluetooth'u ezer → mümkünse `default`.
+   */
+  private async sesCikisiniUygula(
+    tercih: 'oto' | 'hoparlor' | 'ahize' = 'oto',
+  ): Promise<void> {
     try {
       const AudioSession = livekitNativeAl()?.AudioSession;
       if (!AudioSession) return;
@@ -841,24 +868,43 @@ class LiveKitBaglantiYoneticisiImpl {
         await AudioSession.startAudioSession().catch(() => undefined);
         this.audioSessionAcik = true;
       }
+
       if (Platform.OS === 'ios') {
-        // force_speaker → iletişim modunda earpiece'i ezer
-        await AudioSession.selectAudioOutput('force_speaker').catch(async () => {
-          await AudioSession.selectAudioOutput('speaker').catch(() => undefined);
-        });
+        // iOS: yalnız "default" | "force_speaker".
+        // force_speaker Bluetooth/AirPods'u keser — otomatik rotada ASLA kullanma.
+        // default + defaultToSpeaker: kulaklık yoksa hoparlör, varsa BT/kablolu.
+        await AudioSession.selectAudioOutput('default').catch(() => undefined);
         if (this.asPublisher || this.gorusmeModu) {
           IosYankIptaliAc();
         }
         return;
       }
-      // Android: communication mode earpiece'e düşebilir — hoparlörü iki kez kilitle
+
       const outputs = await AudioSession.getAudioOutputs().catch(
         () => [] as string[],
       );
-      const hedef = outputs.includes('speaker') ? 'speaker' : 'speaker';
-      await AudioSession.selectAudioOutput(hedef).catch(() => undefined);
-      await new Promise((r) => setTimeout(r, 150));
-      await AudioSession.selectAudioOutput('speaker').catch(() => undefined);
+      const set = new Set(outputs.map((o) => String(o).toLowerCase()));
+      const sec = async (id: string) => {
+        await AudioSession.selectAudioOutput(id).catch(() => undefined);
+      };
+
+      if (set.has('bluetooth')) {
+        await sec('bluetooth');
+        return;
+      }
+      if (set.has('headset')) {
+        await sec('headset');
+        return;
+      }
+      if (tercih === 'ahize' && set.has('earpiece')) {
+        await sec('earpiece');
+        return;
+      }
+      if (set.has('speaker')) {
+        await sec('speaker');
+        return;
+      }
+      if (outputs[0]) await sec(outputs[0]);
     } catch {
       /* ignore */
     }
@@ -976,14 +1022,16 @@ class LiveKitBaglantiYoneticisiImpl {
     const room = this.room;
     if (!room) return;
     const basla = Date.now();
-    while (Date.now() - basla < 2500) {
+    // Dinleyici: daha kısa bekle — uzak ses gecikmesin
+    const limitMs = this.asPublisher ? 2500 : 1200;
+    while (Date.now() - basla < limitMs) {
       if (nesil !== this.baglantiNesil) return;
       if (room.state === ConnectionState.Connected) {
-        await new Promise((r) => setTimeout(r, 280));
+        await new Promise((r) => setTimeout(r, this.asPublisher ? 220 : 80));
         if (nesil !== this.baglantiNesil) return;
         if (room.state === ConnectionState.Connected) return;
       }
-      await new Promise((r) => setTimeout(r, 120));
+      await new Promise((r) => setTimeout(r, 80));
     }
   }
 
@@ -1158,20 +1206,7 @@ class LiveKitBaglantiYoneticisiImpl {
 
   async setSpeakerphone(on: boolean) {
     try {
-      if (on) {
-        await this.hoparlorGucluAc();
-        return;
-      }
-      const AudioSession = livekitNativeAl()?.AudioSession;
-      if (!AudioSession) return;
-      if (!this.audioSessionAcik) return;
-      const outputs = await AudioSession.getAudioOutputs();
-      const hedef = outputs.includes('earpiece')
-        ? 'earpiece'
-        : outputs.includes('default')
-          ? 'default'
-          : outputs[0];
-      if (hedef) await AudioSession.selectAudioOutput(hedef);
+      await this.sesCikisiniUygula(on ? 'hoparlor' : 'ahize');
     } catch {
       /* ignore */
     }

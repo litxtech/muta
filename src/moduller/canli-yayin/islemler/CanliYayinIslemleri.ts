@@ -23,7 +23,24 @@ export async function CanliYayinAktifEt(
   const { error } = await supabase.rpc('canli_yayin_aktif_et', {
     p_session_id: sessionId,
   });
-  if (error) return { ok: false, hata: error.message };
+  if (!error) return { ok: true };
+
+  // RPC başarısızsa doğrudan güncelle — keşfette görünürlük kritik
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return { ok: false, hata: error.message };
+
+  const { error: upErr } = await supabase
+    .from('live_sessions')
+    .update({
+      is_live: true,
+      ended_at: null,
+      started_at: new Date().toISOString(),
+    })
+    .eq('id', sessionId)
+    .eq('host_id', uid);
+
+  if (upErr) return { ok: false, hata: error.message };
   return { ok: true };
 }
 
@@ -50,6 +67,9 @@ export async function CanliYayinBitir(
 }
 
 export async function CanliYayinlariGetir(limit = 20) {
+  const { data: userData } = await supabase.auth.getUser();
+  const selfId = userData.user?.id ?? null;
+
   const { data, error } = await supabase
     .from('live_sessions')
     .select(
@@ -59,8 +79,32 @@ export async function CanliYayinlariGetir(limit = 20) {
     .order('started_at', { ascending: false })
     .limit(limit);
   if (error) throw error;
-  const rows = data ?? [];
-  return [...rows].sort((a: any, b: any) => {
+  const rows = [...((data as any[]) ?? [])];
+
+  // Kendi yayın listenin en üstünde
+  if (selfId) {
+    const kendiIdx = rows.findIndex((r) => r.host_id === selfId);
+    if (kendiIdx > 0) {
+      const [kendi] = rows.splice(kendiIdx, 1);
+      rows.unshift(kendi);
+    } else if (kendiIdx < 0) {
+      const { data: kendi } = await supabase
+        .from('live_sessions')
+        .select(
+          '*, host:profiles!live_sessions_host_id_fkey(id, display_name, username, public_user_id, level, avatar_url)',
+        )
+        .eq('is_live', true)
+        .eq('host_id', selfId)
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (kendi) rows.unshift(kendi);
+    }
+  }
+
+  const pinned = selfId ? rows.filter((r) => r.host_id === selfId) : [];
+  const diger = selfId ? rows.filter((r) => r.host_id !== selfId) : rows;
+  diger.sort((a: any, b: any) => {
     const sa =
       Number(b.score ?? 0) +
       Number(b.gift_count ?? 0) * 10 +
@@ -70,6 +114,7 @@ export async function CanliYayinlariGetir(limit = 20) {
         Number(a.like_count ?? 0) * 3);
     return sa;
   });
+  return [...pinned, ...diger].slice(0, limit);
 }
 
 export async function CanliYayinBegen(

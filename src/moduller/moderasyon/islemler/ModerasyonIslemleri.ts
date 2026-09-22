@@ -131,3 +131,16 @@ export const BILDIRME_SEBEPLERI = [
   { id: 'impersonation', label: 'Kimliğe bürünme' },
   { id: 'other', label: 'Diğer' },
 ] as const;
+
+/** Rapor başarı alert / kart notu — 24 saat SLA */
+export const RAPOR_ALINDI_MESAJ =
+  'Raporunuz alındı. İnceleme ekibimiz 24 saat içinde işlem yapacaktır. Takibi Raporlarım’dan yapabilirsiniz.';
+
+export const RAPOR_ALINDI_MESAJ_ENGELLE =
+  'Raporunuz alındı. İnceleme ekibimiz 24 saat içinde işlem yapacaktır. İstersen bu kişiyi de engelleyebilirsin.';
+
+export const RAPOR_ALINDI_MESAJ_COCUK =
+  'Öncelikli rapor alındı. Çocuk koruma ekibine iletildi; 24 saat içinde işlem yapılacaktır.';
+
+export const RAPOR_DURUM_KART_NOTU_ACIK =
+  'Raporunuz alındı. İnceleme sırasına eklendi; 24 saat içinde işlem yapılacaktır.';

@@ -142,6 +142,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .maybeSingle();
     let next = (data as Profile) ?? null;
 
+    if (next?.banned_at) {
+      setProfile(null);
+      await ManuelCikisYap('ban');
+      return;
+    }
+    if (next?.deleted_at) {
+      setProfile(null);
+      await ManuelCikisYap('account_deleted');
+      return;
+    }
+
     // Hesap tamamlanmis ama is_guest bayragi takili kalmissa duzelt
     const emailKimligiVar = Boolean(
       authData.user?.email ||
@@ -169,14 +180,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setProfile(next);
-
-    if (next?.banned_at) {
-      await ManuelCikisYap('ban');
-      return;
-    }
-    if (next?.deleted_at) {
-      await ManuelCikisYap('account_deleted');
-    }
   }, []);
 
   const refreshWallet = useCallback(async () => {
@@ -276,6 +279,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(data.session);
       setLoading(false);
       if (data.session) void oturumuEngelDurumundaKapat();
+    }).catch(() => {
+      if (!mounted) return;
+      setLoading(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, next) => {
@@ -328,19 +334,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
   }, [session?.user?.id, refreshProfile, refreshWallet]);
 
+  const oturumEngelMesaji = (kod: string, mesaj?: string) => {
+    if (kod === 'deleted') {
+      return 'Bu hesap silinmiş. Apple / e-posta ile yeni hesap açabilirsin.';
+    }
+    if (kod === 'banned') {
+      return mesaj ?? 'Hesap askıda';
+    }
+    return mesaj ?? 'Hesap kullanılamıyor';
+  };
+
   const signIn = useCallback(async (kimlik: string, password: string) => {
     const result = await EmailIleGirisYap(kimlik, password);
     if (result.error) {
       GuvenlikOlayiKaydet('login_failed');
       return result;
     }
+    // refreshProfile oturumu kapatmadan önce kontrol et
     const durum = await OturumKorumaDurumunuGetir();
     if (!durum.ok && (durum.kod === 'banned' || durum.kod === 'deleted')) {
       await ManuelCikisYap(durum.kod === 'banned' ? 'ban' : 'account_deleted');
-      return { error: durum.mesaj ?? 'Hesap kullanılamıyor' };
+      return { error: oturumEngelMesaji(durum.kod, durum.mesaj) };
     }
+    await refreshProfile();
     return {};
-  }, []);
+  }, [refreshProfile]);
 
   const signInWithApple = useCallback(async () => {
     const sonuc = await AppleIleGirisYap();
@@ -349,13 +367,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       GuvenlikOlayiKaydet('login_failed', { provider: 'apple' });
       return { error: sonuc.hata };
     }
+    // Silinmiş hesap: refreshProfile önce çıkış yaparsa kod no_auth olur — önce kontrol
     const durum = await OturumKorumaDurumunuGetir();
     if (!durum.ok && (durum.kod === 'banned' || durum.kod === 'deleted')) {
       await ManuelCikisYap(durum.kod === 'banned' ? 'ban' : 'account_deleted');
-      return { error: durum.mesaj ?? 'Hesap kullanılamıyor' };
+      return { error: oturumEngelMesaji(durum.kod, durum.mesaj) };
     }
+    await refreshProfile();
     return {};
-  }, []);
+  }, [refreshProfile]);
 
   const signInWithSpotify = useCallback(async () => {
     // Lazy: expo-web-browser native yoksa AuthContext yüklenirken çökmesin
@@ -392,10 +412,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const durum = await OturumKorumaDurumunuGetir();
     if (!durum.ok && (durum.kod === 'banned' || durum.kod === 'deleted')) {
       await ManuelCikisYap(durum.kod === 'banned' ? 'ban' : 'account_deleted');
-      return { error: durum.mesaj ?? 'Hesap kullanılamıyor' };
+      return { error: oturumEngelMesaji(durum.kod, durum.mesaj) };
     }
+    await refreshProfile();
     return {};
-  }, []);
+  }, [refreshProfile]);
 
   const signUp = useCallback(
     async (input: {

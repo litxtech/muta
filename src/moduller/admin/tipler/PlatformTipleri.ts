@@ -69,6 +69,8 @@ export type AdminRapor = {
   admin_note?: string | null;
   reporter_note?: string | null;
   ozet?: string | null;
+  sla_due_at?: string | null;
+  priority?: 'normal' | 'high' | 'critical' | string | null;
   reporter?: AdminRaporKisi | null;
   target?: AdminRaporKisi | null;
   room?: { id: string; title: string | null; mode?: string; is_live?: boolean } | null;

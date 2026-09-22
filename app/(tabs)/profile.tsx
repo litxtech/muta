@@ -69,6 +69,11 @@ const EMPTY_PRIVACY: GizlilikAyarlari = {
   hide_prestige: false,
   hide_account_value: false,
   hide_crown: false,
+  hide_online_status: false,
+  hide_followers: false,
+  hide_following: false,
+  hide_status_posts: false,
+  hide_game_stats: false,
   is_private: false,
 };
 
@@ -148,7 +153,7 @@ export default function ProfileScreen() {
       setUpgradeAcik(true);
       return;
     }
-    router.navigate('/(tabs)/wallet');
+    router.replace('/(tabs)/wallet');
   };
 
   const displayName =
@@ -206,14 +211,29 @@ export default function ProfileScreen() {
               />
             </Pressable>
 
-            <Pressable
-              style={[styles.gearBtn, { top: insets.top + BoslukTokenlari.sm }]}
-              onPress={() => router.push('/profil-ayarlar' as any)}
-              hitSlop={8}
-              accessibilityLabel="Ayarlar"
+            <View
+              style={[
+                styles.ustAksiyonlar,
+                { top: insets.top + BoslukTokenlari.sm },
+              ]}
             >
-              <Ionicons name="settings-outline" size={20} color={RenkTokenlari.text} />
-            </Pressable>
+              <Pressable
+                style={styles.ustBtn}
+                onPress={profilDuzenle}
+                hitSlop={8}
+                accessibilityLabel="Profili düzenle"
+              >
+                <Ionicons name="create-outline" size={18} color={RenkTokenlari.text} />
+              </Pressable>
+              <Pressable
+                style={styles.ustBtn}
+                onPress={() => router.push('/profil-ayarlar' as any)}
+                hitSlop={8}
+                accessibilityLabel="Ayarlar"
+              >
+                <Ionicons name="settings-outline" size={20} color={RenkTokenlari.text} />
+              </Pressable>
+            </View>
           </View>
 
           {/* Avatar — taç çökerse düz avatar yedek */}
@@ -363,21 +383,6 @@ export default function ProfileScreen() {
 
           {/* Premium aksiyonlar — ortalı; ajans burada */}
           <View style={styles.aksiyonlar}>
-            <Pressable
-              onPress={profilDuzenle}
-              style={({ pressed }) => [styles.editHit, pressed && styles.pressed]}
-            >
-              <LinearGradient
-                colors={['#F5E6A8', '#D4AF37', '#C49A2A']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.editBtn}
-              >
-                <Ionicons name="create-outline" size={18} color="#3A2A08" />
-                <Text style={styles.editYazi}>Profili düzenle</Text>
-              </LinearGradient>
-            </Pressable>
-
             {!isGuest && !ajansYukleniyor && ajansUyelik.role === 'pending' ? (
               <AjansProfilRozeti
                 varyant="beklemede"
@@ -442,7 +447,7 @@ export default function ProfileScreen() {
           </Pressable>
 
           {/* Oyun — cüzdan kartı düzeni; tıkla detay kartı */}
-          {oyunProfiliAcik ? (
+          {oyunProfiliAcik && !privacy.hide_game_stats ? (
             <Pressable
               onPress={() => setOyunKartAcik(true)}
               style={({ pressed }) => [styles.walletPress, pressed && styles.pressed]}
@@ -696,6 +701,24 @@ const styles = StyleSheet.create({
     borderColor: RenkTokenlari.border,
     zIndex: 2,
   },
+  ustAksiyonlar: {
+    position: 'absolute',
+    right: BoslukTokenlari.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 2,
+  },
+  ustBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: RenkTokenlari.chipFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+  },
   avatarBand: {
     alignItems: 'center',
     marginTop: -(AVATAR / 2 + 8),
@@ -774,26 +797,6 @@ const styles = StyleSheet.create({
     paddingTop: BoslukTokenlari.lg,
     gap: BoslukTokenlari.sm,
     alignItems: 'stretch',
-  },
-  editHit: {
-    borderRadius: YaricapTokenlari.pill,
-    overflow: 'hidden',
-    alignSelf: 'stretch',
-    borderWidth: 1,
-    borderColor: 'rgba(245,230,168,0.55)',
-  },
-  editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    minHeight: 48,
-    paddingHorizontal: 20,
-  },
-  editYazi: {
-    ...TipografiTokenlari.body,
-    fontWeight: '800',
-    color: '#3A2A08',
   },
   pressed: { opacity: 0.9 },
   followRow: {

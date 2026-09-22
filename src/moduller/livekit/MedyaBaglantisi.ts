@@ -24,6 +24,11 @@ export async function MedyaOdasiBaglan(input: {
   gorusmeModu?: boolean;
   /** true: aynı odaya zorla yeniden bağlan (rol yükseltme) */
   zorla?: boolean;
+  /**
+   * Yayıncıda mikrofon başlangıç durumu.
+   * Ses odası koltuk izni → true; dinleyici → yok sayılır.
+   */
+  micAcik?: boolean;
 }): Promise<MedyaBaglantiSonuc> {
   const asPublisher =
     input.role === 'host' ||
@@ -55,14 +60,17 @@ export async function MedyaOdasiBaglan(input: {
     asPublisher,
     publishVideo,
     gorusmeModu: !!input.gorusmeModu,
-    /** video yoksa ses odası — misafir duck, konuşmacı communication */
+    /** Ses odası: herkes communication — dinleyici de anında duysun */
     sesOdasi,
     zorla: input.zorla,
+    micAcik: asPublisher ? (input.micAcik ?? !sesOdasi) : false,
   });
   if (!bag.ok) return { ok: false, hata: bag.hata ?? 'LiveKit baglanti hatasi' };
 
-  // Uzak ses her zaman hoparlörden — dinleyici/host fark etmez
+  // Bluetooth / kulaklık varsa onu kullan; yoksa hoparlör
   void LiveKitBaglantiYoneticisi.setSpeakerphone(true);
+  // Uzak ses hemen tam — dinleyici join'de sessizlik olmasın
+  LiveKitBaglantiYoneticisi.setRemoteAudioVolume(1);
 
   return {
     ok: true,
@@ -87,12 +95,17 @@ export function MedyaHoparlorAyarla(acik: boolean) {
 
 /**
  * Dinleyici → konuşmacı: yeni token + yeniden bağlan.
- * Mikrofon kabulünden sonra çağır.
+ * Mikrofon kabulünden sonra çağır — mic açık başlar.
  */
 export async function MedyaKonusmaciyaYukselt(
   roomName: string,
 ): Promise<MedyaBaglantiSonuc> {
-  return MedyaOdasiBaglan({ roomName, role: 'speaker', zorla: true });
+  return MedyaOdasiBaglan({
+    roomName,
+    role: 'speaker',
+    zorla: true,
+    micAcik: true,
+  });
 }
 
 /**

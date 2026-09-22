@@ -57,6 +57,10 @@ import { MedyaUriGuvenli } from '../../src/moduller/mesajlasma/yardimcilar/Medya
 import { useAktifSesOdasi } from '../../src/moduller/ses-odalari/oturum/useAktifSesOdasi';
 import { KullaniciAktifOdasiniGetir, type KullaniciAktifOda } from '../../src/moduller/ses-odalari/okuma/KullaniciAktifOdasiniGetir';
 import { ProfilSesOdasiButonu } from '../../src/moduller/ses-odalari/bilesenler/ProfilSesOdasiButonu';
+import {
+  HESAP_SILINDI_ADI,
+  ProfilSilinmisMi,
+} from '../../src/moduller/kullanici-profili/yardimcilar/ProfilSilinmis';
 
 const COVER_H = 168;
 const AVATAR = 96;
@@ -89,6 +93,11 @@ const EMPTY_PRIVACY: GizlilikAyarlari = {
   hide_prestige: false,
   hide_account_value: false,
   hide_crown: false,
+  hide_online_status: false,
+  hide_followers: false,
+  hide_following: false,
+  hide_status_posts: false,
+  hide_game_stats: false,
   is_private: false,
 };
 
@@ -155,13 +164,19 @@ export default function KullaniciProfilEkrani() {
       setAjansUyelik(null);
     }
     try {
-      setDurumlar(await DurumKullanicisiniGetir(id, 48));
+      const gizlilik = giz ?? EMPTY_PRIVACY;
+      const kendiMi = user?.id === id;
+      if (kendiMi || !gizlilik.hide_status_posts) {
+        setDurumlar(await DurumKullanicisiniGetir(id, 48));
+      } else {
+        setDurumlar([]);
+      }
     } catch {
       setDurumlar([]);
     } finally {
       setDurumYukleniyor(false);
     }
-  }, [id]);
+  }, [id, user?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -170,12 +185,14 @@ export default function KullaniciProfilEkrani() {
   );
 
   const kendi = !!id && user?.id === id;
-  const ad =
-    profil?.display_name?.trim() ||
-    profil?.username?.trim() ||
-    'Kullanıcı';
-  const coverUri = MedyaUriGuvenli(profil?.cover_url);
-  const avatarUri = MedyaUriGuvenli(profil?.avatar_url);
+  const silinmis = ProfilSilinmisMi(profil);
+  const ad = silinmis
+    ? HESAP_SILINDI_ADI
+    : profil?.display_name?.trim() ||
+      profil?.username?.trim() ||
+      'Kullanıcı';
+  const coverUri = silinmis ? null : MedyaUriGuvenli(profil?.cover_url);
+  const avatarUri = silinmis ? null : MedyaUriGuvenli(profil?.avatar_url);
 
   const medyaTikla = (tur: 'avatar' | 'cover') => {
     const uri = tur === 'cover' ? coverUri : avatarUri;
@@ -188,8 +205,12 @@ export default function KullaniciProfilEkrani() {
   const gosterSeviye = kendi || !privacy.hide_level;
   const gosterHesapDegeri = kendi || !privacy.hide_account_value;
   const gosterTac = !privacy.hide_crown;
+  const gosterTakipci = kendi || !privacy.hide_followers;
+  const gosterTakip = kendi || !privacy.hide_following;
+  const gosterDurumlar = kendi || !privacy.hide_status_posts;
   const gosterAktifOda =
-    !!aktifOda && (kendi || !privacy.hide_current_room);
+    !!aktifOda &&
+    (kendi || (!privacy.hide_current_room && !privacy.hide_online_status));
 
   const durumSil = (oge: DurumOggesi) => {
     if (!oge.is_mine) return;
@@ -277,6 +298,30 @@ export default function KullaniciProfilEkrani() {
                 Profil bulunamadı
               </Text>
             )}
+          </View>
+        ) : silinmis ? (
+          <View style={styles.durumSarici}>
+            <Pressable
+              style={[styles.overlayBtn, styles.backBtn, { top: overlayTop }]}
+              onPress={() => guvenliGeriDon()}
+              hitSlop={8}
+              accessibilityLabel="Geri"
+            >
+              <Ionicons name="chevron-back" size={22} color={RenkTokenlari.text} />
+            </Pressable>
+            <View style={[styles.tombstone, { marginTop: overlayTop + 72 }]}>
+              <View style={styles.tombstoneAvatar}>
+                <Ionicons
+                  name="person-outline"
+                  size={36}
+                  color={RenkTokenlari.textMuted}
+                />
+              </View>
+              <Text style={styles.ad}>{HESAP_SILINDI_ADI}</Text>
+              <Text style={styles.tombstoneAlt}>
+                Bu hesap kapatıldı. Gönderiler ve içerikler kaldırıldı.
+              </Text>
+            </View>
           </View>
         ) : (
           <ScrollView
@@ -457,21 +502,27 @@ export default function KullaniciProfilEkrani() {
             <View style={styles.followRow}>
               <View style={styles.followItem}>
                 <Text style={styles.followN}>
-                  {TakipSayaciniFormatla(stats?.following_count ?? 0)}
+                  {gosterTakip
+                    ? TakipSayaciniFormatla(stats?.following_count ?? 0)
+                    : '—'}
                 </Text>
                 <Text style={styles.followL}>Takip</Text>
               </View>
               <View style={styles.followDivider} />
               <View style={styles.followItem}>
                 <Text style={styles.followN}>
-                  {TakipSayaciniFormatla(stats?.followers_count ?? 0)}
+                  {gosterTakipci
+                    ? TakipSayaciniFormatla(stats?.followers_count ?? 0)
+                    : '—'}
                 </Text>
                 <Text style={styles.followL}>Takipçi</Text>
               </View>
               <View style={styles.followDivider} />
               <View style={styles.followItem}>
                 <Text style={styles.followN}>
-                  {TakipSayaciniFormatla(stats?.posts_count ?? durumlar.length)}
+                  {gosterDurumlar
+                    ? TakipSayaciniFormatla(stats?.posts_count ?? durumlar.length)
+                    : '—'}
                 </Text>
                 <Text style={styles.followL}>Gönderi</Text>
               </View>
@@ -564,20 +615,24 @@ export default function KullaniciProfilEkrani() {
 
             <View style={styles.gonderiBlok}>
               <ModulHataSiniri modulAdi="profil-gonderiler" varyant="kart">
-                <DurumProfilIzgarasi
-                  items={durumlar}
-                  yukleniyor={durumYukleniyor}
-                  baslik="Gönderiler"
-                  bosMetin="Bu kullanıcının henüz paylaşımı yok."
-                  yatayPadding={false}
-                  onPress={(oge) => router.push(`/durum/${oge.id}` as any)}
-                  onUzunBas={kendi ? durumMenu : undefined}
-                  onPaylas={
-                    kendi
-                      ? () => router.push('/durum/olustur' as any)
-                      : undefined
-                  }
-                />
+                {gosterDurumlar ? (
+                  <DurumProfilIzgarasi
+                    items={durumlar}
+                    yukleniyor={durumYukleniyor}
+                    baslik="Gönderiler"
+                    bosMetin="Bu kullanıcının henüz paylaşımı yok."
+                    yatayPadding={false}
+                    onPress={(oge) => router.push(`/durum/${oge.id}` as any)}
+                    onUzunBas={kendi ? durumMenu : undefined}
+                    onPaylas={
+                      kendi
+                        ? () => router.push('/durum/olustur' as any)
+                        : undefined
+                    }
+                  />
+                ) : (
+                  <Text style={styles.gizliMetin}>Gönderiler gizli</Text>
+                )}
               </ModulHataSiniri>
             </View>
           </ScrollView>
@@ -646,6 +701,28 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.body,
     color: RenkTokenlari.textMuted,
     textAlign: 'center',
+  },
+  tombstone: {
+    alignItems: 'center',
+    paddingHorizontal: BoslukTokenlari.xl,
+    gap: BoslukTokenlari.sm,
+  },
+  tombstoneAvatar: {
+    width: AVATAR,
+    height: AVATAR,
+    borderRadius: AVATAR / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: RenkTokenlari.surface,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    marginBottom: BoslukTokenlari.md,
+  },
+  tombstoneAlt: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.textMuted,
+    textAlign: 'center',
+    maxWidth: 280,
   },
   coverWrap: {
     width: '100%',
@@ -854,5 +931,11 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: BoslukTokenlari.xl,
     marginTop: BoslukTokenlari.lg,
+  },
+  gizliMetin: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    textAlign: 'center',
+    paddingVertical: BoslukTokenlari.lg,
   },
 });

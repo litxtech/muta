@@ -31,6 +31,10 @@ import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { TamusoBanner } from '../../src/banner';
 import { GorusmeGecmisPaneli } from '../../src/moduller/gorusme/bilesenler/GorusmeGecmisPaneli';
+import {
+  CihazPushTokeniniKaydet,
+  MesajPushIzniGerekirseIste,
+} from '../../src/moduller/bildirimler/BildirimlerPublicSozlesmesi';
 
 type Sekme = 'sohbet' | 'arsiv' | 'gorusme';
 
@@ -82,12 +86,19 @@ export default function MessagesScreen() {
       void load(ilkYuklemeBitti.current ? 'sessiz' : 'ilk').then(() => {
         void mesajRozetYenile();
       });
+      if (!isGuest && acik) {
+        void MesajPushIzniGerekirseIste().then((sonuc) => {
+          if (sonuc.granted) {
+            void CihazPushTokeniniKaydet().catch(() => undefined);
+          }
+        });
+      }
       return () => {
         loadNesil.current += 1;
         setRefreshing(false);
         setLoading(false);
       };
-    }, [load, sayfayiAcincaTemizle, mesajRozetYenile]),
+    }, [load, sayfayiAcincaTemizle, mesajRozetYenile, isGuest, acik]),
   );
 
   useMesajInboxKanali(() => {

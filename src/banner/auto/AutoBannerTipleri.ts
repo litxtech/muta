@@ -4,7 +4,8 @@ export type AutoBannerKind =
   | 'room_coins'
   | 'live_coins'
   | 'seats_full'
-  | 'game_coins';
+  | 'game_coins'
+  | 'gift_burst';
 
 export type AutoBannerAyarlari = {
   enabled: boolean;
@@ -18,6 +19,10 @@ export type AutoBannerAyarlari = {
   room_coins_enabled: boolean;
   live_coins_enabled: boolean;
   game_coins_enabled: boolean;
+  gift_burst_enabled: boolean;
+  gift_burst_window_sec: number;
+  gift_burst_coin_threshold: number;
+  milestone_enabled: boolean;
   max_active: number;
   carousel_max: number;
   updated_at?: string;
@@ -38,6 +43,10 @@ export type AutoBannerKayit = {
   action_target: string;
   metric_value: number;
   active: boolean;
+  pinned?: boolean;
+  admin_priority?: number;
+  milestone?: number;
+  score?: number;
   created_at: string;
   expires_at: string;
   deactivated_at: string | null;
@@ -49,6 +58,7 @@ export const AUTO_BANNER_KIND_LABELS: Record<AutoBannerKind, string> = {
   live_coins: 'Canlı coin eşiği',
   seats_full: 'Koltuklar dolu',
   game_coins: 'Oyun coin eşiği',
+  gift_burst: 'Hediye yağmuru',
 };
 
 export const AUTO_BANNER_AYAR_VARSAYILAN: AutoBannerAyarlari = {
@@ -63,6 +73,10 @@ export const AUTO_BANNER_AYAR_VARSAYILAN: AutoBannerAyarlari = {
   room_coins_enabled: true,
   live_coins_enabled: true,
   game_coins_enabled: true,
+  gift_burst_enabled: true,
+  gift_burst_window_sec: 120,
+  gift_burst_coin_threshold: 10000,
+  milestone_enabled: true,
   max_active: 20,
   carousel_max: 8,
 };

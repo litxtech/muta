@@ -233,6 +233,6 @@ export async function preloadSlotAudio(): Promise<void> {
   }
   await Promise.race([
     preloadPromise,
-    new Promise<void>((resolve) => setTimeout(resolve, 2500)),
+    new Promise<void>((resolve) => setTimeout(resolve, 800)),
   ]);
 }

@@ -110,19 +110,25 @@ export type DurumBegenen = {
   public_user_id: string | null;
 };
 
-export async function DurumAkisiniGetir(limit = 40): Promise<DurumOggesi[]> {
+export async function DurumAkisiniGetir(
+  limit = 40,
+  before: string | null = null,
+): Promise<DurumOggesi[]> {
   const { data, error } = await supabase.rpc('durum_akisi', {
     p_limit: limit,
-    p_before: null,
+    p_before: before,
   });
   if (error) throw error;
   return ((data as DurumOggesi[]) ?? []).map(normalizeDurum);
 }
 
-export async function DurumTakipAkisiniGetir(limit = 40): Promise<DurumOggesi[]> {
+export async function DurumTakipAkisiniGetir(
+  limit = 40,
+  before: string | null = null,
+): Promise<DurumOggesi[]> {
   const { data, error } = await supabase.rpc('durum_akisi_takip', {
     p_limit: limit,
-    p_before: null,
+    p_before: before,
   });
   if (error) throw error;
   return ((data as DurumOggesi[]) ?? []).map(normalizeDurum);

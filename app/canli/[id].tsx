@@ -32,7 +32,7 @@ import { supabase } from '../../src/lib/supabase';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
-import { SonGezileneKaydet } from '../../src/moduller/ana-sayfa/depolama/SonGezilenDepolama';
+import { SonGezileneKaydet, SonGezilendenSil } from '../../src/moduller/ana-sayfa/depolama/SonGezilenDepolama';
 
 /** Izleyici: tam ekran video + yorum + hediye + beğeni */
 export default function CanliIzleyiciEkrani() {
@@ -233,6 +233,7 @@ export default function CanliIzleyiciEkrani() {
         },
         (payload: { new?: { is_live?: boolean } }) => {
           if (payload.new && payload.new.is_live === false) {
+            if (typeof id === 'string') void SonGezilendenSil('canli', id);
             Alert.alert('Yayın bitti', 'Yayıncı yayını sonlandırdı.', [
               { text: 'Tamam', onPress: () => router.back() },
             ]);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../../components/Screen';
 import { EkranBasligi } from '../../../components/EkranBasligi';
 import { BosDurum } from '../../../components/BosDurum';
@@ -29,6 +29,7 @@ import { TakipServisi } from '../islemler/TakipServisi';
 import { TakipAnalitik } from '../analytics/TakipAnalytics';
 import { TakipHataMesaji } from '../TakipHataMesajlari';
 import type { TakipListeTuru } from '../TakipTipleri';
+import { GizlilikAyarlariniKullaniciIcinGetir } from '../../ayarlar/islemler/GizlilikAyarlariniYonet';
 
 export function TakipListeEkrani({
   userId,
@@ -43,8 +44,42 @@ export function TakipListeEkrani({
   const liste = useTakipListesi({ userId, tur });
   const kendi = user?.id === userId;
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [istekSayisi, setIstekSayisi] = useState(0);
+  const [listeGizli, setListeGizli] = useState(false);
 
-  const followToggle = async (targetId: string, currentlyFollowing: boolean, username?: string | null) => {
+  useFocusEffect(
+    useCallback(() => {
+      if (kendi || !userId) {
+        setListeGizli(false);
+        return;
+      }
+      void GizlilikAyarlariniKullaniciIcinGetir(userId)
+        .then((g) => {
+          setListeGizli(
+            tur === 'followers' ? g.hide_followers : g.hide_following,
+          );
+        })
+        .catch(() => setListeGizli(false));
+    }, [kendi, userId, tur]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!kendi || tur !== 'followers') {
+        setIstekSayisi(0);
+        return;
+      }
+      void TakipServisi.istekler()
+        .then((page) => setIstekSayisi(page.items.length))
+        .catch(() => setIstekSayisi(0));
+    }, [kendi, tur]),
+  );
+
+  const followToggle = async (
+    targetId: string,
+    currentlyFollowing: boolean,
+    username?: string | null,
+  ) => {
     if (isGuest) {
       Alert.alert('Takip', 'Takip için hesabını tamamla.');
       return;
@@ -60,12 +95,22 @@ export function TakipListeEkrani({
         return;
       }
       if (user?.id) TakipServisi.cacheInvalidatePair(user.id, targetId);
-      const following = r.code === 'followed' || r.code === 'already_following' || r.state === 'FOLLOWING' || r.state === 'MUTUAL';
+      const following =
+        r.code === 'followed' ||
+        r.code === 'already_following' ||
+        r.state === 'FOLLOWING' ||
+        r.state === 'MUTUAL';
       const pending = r.code === 'requested' || r.state === 'REQUEST_PENDING';
       liste.kartGuncelle(targetId, {
         i_follow: following,
         is_mutual: r.state === 'MUTUAL',
-        state: r.state ?? (pending ? 'REQUEST_PENDING' : following ? 'FOLLOWING' : 'NOT_FOLLOWING'),
+        state:
+          r.state ??
+          (pending
+            ? 'REQUEST_PENDING'
+            : following
+              ? 'FOLLOWING'
+              : 'NOT_FOLLOWING'),
       });
     };
     if (currentlyFollowing) {
@@ -76,38 +121,98 @@ export function TakipListeEkrani({
   };
 
   const kaldir = (targetId: string, name: string) => {
-    Alert.alert('Takipçiyi kaldır', `${name} senin takipçilerinden çıkarılsın mı?`, [
-      { text: 'Vazgeç', style: 'cancel' },
-      {
-        text: 'Kaldır',
-        style: 'destructive',
-        onPress: () => {
-          void (async () => {
-            setBusyId(targetId);
-            const r = await TakipServisi.takipciKaldir(targetId);
-            setBusyId(null);
-            if (!r.ok) {
-              Alert.alert('Kaldır', r.hata ?? TakipHataMesaji(r.code));
-              return;
-            }
-            TakipAnalitik('follower_removed');
-            liste.kartCikar(targetId);
-          })();
+    Alert.alert(
+      'Takipçiyi kaldır',
+      `${name} senin takipçilerinden çıkarılsın mı?`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Kaldır',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setBusyId(targetId);
+              const r = await TakipServisi.takipciKaldir(targetId);
+              setBusyId(null);
+              if (!r.ok) {
+                Alert.alert('Kaldır', r.hata ?? TakipHataMesaji(r.code));
+                return;
+              }
+              TakipAnalitik('follower_removed');
+              liste.kartCikar(targetId);
+            })();
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
+
+  const istekBaslik =
+    kendi && tur === 'followers' ? (
+      <Pressable
+        onPress={() => router.push('/takip/istekler' as any)}
+        style={({ pressed }) => [
+          styles.istekBanner,
+          pressed && { opacity: 0.85 },
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel="Takip istekleri"
+      >
+        <View style={styles.istekSol}>
+          <Ionicons
+            name="mail-unread-outline"
+            size={20}
+            color={RenkTokenlari.primarySoft}
+          />
+          <View style={styles.istekCopy}>
+            <Text style={styles.istekBaslik}>Takip istekleri</Text>
+            <Text style={styles.istekAlt}>
+              {istekSayisi > 0
+                ? `${istekSayisi} bekleyen istek`
+                : 'Gizli hesaba gelen istekler'}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.istekSag}>
+          {istekSayisi > 0 ? (
+            <View style={styles.istekRozet}>
+              <Text style={styles.istekRozetYazi}>{istekSayisi}</Text>
+            </View>
+          ) : null}
+          <Ionicons
+            name="chevron-forward"
+            size={16}
+            color={RenkTokenlari.textDim}
+          />
+        </View>
+      </Pressable>
+    ) : null;
 
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="takip">
         <EkranBasligi title={title} />
+        {listeGizli ? (
+          <BosDurum
+            title="Liste gizli"
+            body={
+              tur === 'followers'
+                ? 'Bu kullanıcı takipçi listesini gizlemiş.'
+                : 'Bu kullanıcı takip listesini gizlemiş.'
+            }
+          />
+        ) : (
+        <>
         <View style={styles.arama}>
           <Ionicons name="search" size={16} color={RenkTokenlari.textMuted} />
           <TextInput
             value={liste.query}
             onChangeText={liste.ara}
-            placeholder={tur === 'followers' ? 'Takipçilerde ara...' : 'Takip edilenlerde ara...'}
+            placeholder={
+              tur === 'followers'
+                ? 'Takipçilerde ara...'
+                : 'Takip edilenlerde ara...'
+            }
             placeholderTextColor={RenkTokenlari.textMuted}
             style={styles.input}
             autoCapitalize="none"
@@ -115,7 +220,10 @@ export function TakipListeEkrani({
           />
         </View>
         {liste.yukleniyor && !liste.items.length ? (
-          <ActivityIndicator color={RenkTokenlari.primary} style={{ marginTop: 40 }} />
+          <ActivityIndicator
+            color={RenkTokenlari.primary}
+            style={{ marginTop: 40 }}
+          />
         ) : (
           <FlatList
             data={liste.items}
@@ -124,26 +232,40 @@ export function TakipListeEkrani({
             onEndReachedThreshold={0.4}
             refreshing={liste.yukleniyor}
             onRefresh={liste.yenile}
+            ListHeaderComponent={istekBaslik}
             ListEmptyComponent={
               liste.hata ? (
-                <BosDurum icon="warning-outline" title="Liste yüklenemedi" body={liste.hata} />
+                <BosDurum
+                  icon="warning-outline"
+                  title="Liste yüklenemedi"
+                  body={liste.hata}
+                />
               ) : (
                 <BosDurum
                   icon="people-outline"
-                  title={tur === 'followers' ? 'Henüz takipçi yok' : 'Henüz kimseyi takip etmiyor'}
+                  title={
+                    tur === 'followers'
+                      ? 'Henüz takipçi yok'
+                      : 'Henüz kimseyi takip etmiyor'
+                  }
                 />
               )
             }
             ListFooterComponent={
               liste.dahaYukleniyor ? (
-                <ActivityIndicator color={RenkTokenlari.primarySoft} style={{ margin: 16 }} />
+                <ActivityIndicator
+                  color={RenkTokenlari.primarySoft}
+                  style={{ margin: 16 }}
+                />
               ) : null
             }
             renderItem={({ item }) => (
               <TakipciKarti
                 kart={item}
                 followLoading={busyId === item.user_id}
-                onPress={() => router.push(`/kullanici/${item.user_id}` as any)}
+                onPress={() =>
+                  router.push(`/kullanici/${item.user_id}` as any)
+                }
                 onFollowPress={() =>
                   void followToggle(
                     item.user_id,
@@ -160,14 +282,12 @@ export function TakipListeEkrani({
             )}
           />
         )}
+        </>
+        )}
       </ModulHataSiniri>
     </Screen>
   );
 }
-
-void Pressable;
-void Text;
-void YaricapTokenlari;
 
 const styles = StyleSheet.create({
   arama: {
@@ -188,5 +308,55 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.body,
     color: RenkTokenlari.text,
     paddingVertical: 8,
+  },
+  istekBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: BoslukTokenlari.lg,
+    marginBottom: BoslukTokenlari.md,
+    paddingHorizontal: BoslukTokenlari.md,
+    paddingVertical: 12,
+    borderRadius: YaricapTokenlari.md,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    backgroundColor: RenkTokenlari.bgCard,
+    gap: 10,
+  },
+  istekSol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    minWidth: 0,
+  },
+  istekCopy: { flex: 1, minWidth: 0, gap: 2 },
+  istekBaslik: {
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+  },
+  istekAlt: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+  },
+  istekSag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  istekRozet: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: RenkTokenlari.primary,
+  },
+  istekRozetYazi: {
+    ...TipografiTokenlari.micro,
+    color: '#fff',
+    fontWeight: '800',
   },
 });

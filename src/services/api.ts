@@ -236,6 +236,14 @@ export async function joinRoom(
   userId: string,
   role: 'host' | 'listener' = 'listener',
 ) {
+  // Server-side block + room_ban + hesap kontrolü
+  const { error: rpcErr } = await supabase.rpc('oda_uye_katil', {
+    p_room_id: roomId,
+    p_role: role,
+  });
+  if (!rpcErr) return;
+
+  // Eski remote fallback
   const { data: oda } = await supabase
     .from('rooms')
     .select('is_live')
@@ -252,7 +260,6 @@ export async function joinRoom(
     .eq('user_id', userId)
     .maybeSingle();
 
-  // Upsert UPDATE policy yok — mevcut uyeyi tekrar yazma
   if (mevcut) return;
 
   const { error } = await supabase.from('room_members').insert({
@@ -261,9 +268,8 @@ export async function joinRoom(
     role,
   });
   if (error) {
-    // Yarış: başka istek aynı anda eklediyse yok say
     if (error.code === '23505') return;
-    throw error;
+    throw error.message ? new Error(error.message) : error;
   }
 }
 

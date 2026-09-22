@@ -1,19 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Dimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   View,
+  type LayoutChangeEvent,
 } from 'react-native';
 import type { BannerCampaign } from '../core/BannerTypes';
 import { BannerCard } from './BannerCard';
-import {
-  BANNER_CAROUSEL_DEFAULT_MS,
-} from '../core/BannerConstants';
+import { BANNER_CAROUSEL_DEFAULT_MS } from '../core/BannerConstants';
 import { RenkTokenlari } from '../../tasarim-sistemi/RenkTokenlari';
-import { BoslukTokenlari } from '../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 type Props = {
   banners: BannerCampaign[];
@@ -22,7 +19,6 @@ type Props = {
   sessionId: string;
   compact?: boolean;
   onDismiss?: (bannerId: string) => void;
-  debug?: boolean;
 };
 
 export function BannerCarousel({
@@ -32,79 +28,90 @@ export function BannerCarousel({
   sessionId,
   compact,
   onDismiss,
-  debug,
 }: Props) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [width, setWidth] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
-  const width = Dimensions.get('window').width - BoslukTokenlari.lg * 2;
-  const autoMs =
-    banners[0]?.carousel_auto_slide_ms ?? BANNER_CAROUSEL_DEFAULT_MS;
+  const indexRef = useRef(0);
+  const autoMs = BANNER_CAROUSEL_DEFAULT_MS;
 
   useEffect(() => {
-    if (banners.length <= 1 || paused || !autoMs || autoMs <= 0) return;
+    indexRef.current = index;
+  }, [index]);
+
+  useEffect(() => {
+    if (banners.length <= 1 || paused || width <= 0) return;
     const id = setInterval(() => {
-      setIndex((prev) => {
-        const next = (prev + 1) % banners.length;
-        scrollRef.current?.scrollTo({ x: next * width, animated: true });
-        return next;
-      });
+      const next = (indexRef.current + 1) % banners.length;
+      scrollRef.current?.scrollTo({ x: next * width, animated: true });
+      indexRef.current = next;
+      setIndex(next);
     }, autoMs);
     return () => clearInterval(id);
   }, [banners.length, paused, autoMs, width]);
 
+  const onLayout = (e: LayoutChangeEvent) => {
+    const w = Math.round(e.nativeEvent.layout.width);
+    if (w > 0 && w !== width) setWidth(w);
+  };
+
   const onScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (width <= 0) return;
     const x = e.nativeEvent.contentOffset.x;
-    const i = Math.round(x / width);
+    const i = Math.max(0, Math.min(banners.length - 1, Math.round(x / width)));
+    indexRef.current = i;
     setIndex(i);
   };
 
   if (banners.length === 0) return null;
   if (banners.length === 1) {
     return (
-      <BannerCard
-        banner={banners[0]}
-        placement={placement}
-        screen={screen}
-        sessionId={sessionId}
-        compact={compact}
-        isVideoActive
-        onDismiss={onDismiss}
-        debug={debug}
-      />
+      <View style={styles.center} onLayout={onLayout}>
+        <BannerCard
+          banner={banners[0]}
+          placement={placement}
+          screen={screen}
+          sessionId={sessionId}
+          compact={compact}
+          isVideoActive
+          onDismiss={onDismiss}
+        />
+      </View>
     );
   }
 
   return (
-    <View>
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScrollBeginDrag={() => setPaused(true)}
-        onMomentumScrollEnd={(e) => {
-          onScrollEnd(e);
-          setPaused(false);
-        }}
-        decelerationRate="fast"
-        style={{ width }}
-      >
-        {banners.map((b, i) => (
-          <View key={b.id} style={{ width }}>
-            <BannerCard
-              banner={b}
-              placement={placement}
-              screen={screen}
-              sessionId={sessionId}
-              compact={compact}
-              isVideoActive={i === index}
-              onDismiss={onDismiss}
-              debug={debug}
-            />
-          </View>
-        ))}
-      </ScrollView>
+    <View style={styles.center} onLayout={onLayout}>
+      {width > 0 ? (
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScrollBeginDrag={() => setPaused(true)}
+          onMomentumScrollEnd={(e) => {
+            onScrollEnd(e);
+            setPaused(false);
+          }}
+          decelerationRate="fast"
+          style={{ width }}
+        >
+          {banners.map((b, i) => (
+            <View key={b.id} style={{ width }}>
+              <BannerCard
+                banner={b}
+                placement={placement}
+                screen={screen}
+                sessionId={sessionId}
+                compact={compact}
+                isVideoActive={i === index}
+                onDismiss={onDismiss}
+              />
+            </View>
+          ))}
+        </ScrollView>
+      ) : null}
       <View style={styles.dots}>
         {banners.map((b, i) => (
           <View
@@ -118,9 +125,15 @@ export function BannerCarousel({
 }
 
 const styles = StyleSheet.create({
+  center: {
+    width: '100%',
+    alignSelf: 'center',
+    alignItems: 'center',
+  },
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
+    alignSelf: 'center',
     gap: 6,
     marginTop: 8,
   },

@@ -21,7 +21,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function BannerCTA({ actions, onPress }: Props) {
   const visible = actions
-    .filter((a) => a.action_type !== 'NONE' && (a.button_text || a.action_type))
+    .filter((a) => a.action_type !== 'NONE' && !!a.button_text?.trim())
     .slice(0, 2);
 
   if (visible.length === 0) return null;
@@ -31,7 +31,7 @@ export function BannerCTA({ actions, onPress }: Props) {
       {visible.map((action, idx) => (
         <CtaButton
           key={action.id ?? `${action.slot}-${idx}`}
-          label={action.button_text || action.action_type}
+          label={action.button_text!.trim()}
           primary={idx === 0}
           onPress={() => onPress(action)}
         />

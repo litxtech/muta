@@ -24,7 +24,7 @@ export async function preloadNoxAssets(): Promise<void> {
     ]);
 
   try {
-    await withTimeout(Asset.loadAsync(sources as number[]), 2500);
+    await withTimeout(Asset.loadAsync(sources as number[]), 900);
   } catch {
     /* native preload opsiyonel */
   }
@@ -43,7 +43,7 @@ export async function preloadNoxAssets(): Promise<void> {
             }),
         ),
       ),
-      2500,
+      900,
     );
   } catch {
     /* prefetch opsiyonel */

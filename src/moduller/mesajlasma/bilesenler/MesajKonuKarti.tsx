@@ -17,6 +17,10 @@ import {
 import type { MesajKonusu } from '../okuma/MesajKonulariniGetir';
 import { MedyaUriGuvenli } from '../yardimcilar/MedyaUriGecerliMi';
 import { MaviTikRozeti } from './MaviTikRozeti';
+import {
+  ProfilGorunenAd,
+  ProfilSilinmisMi,
+} from '../../kullanici-profili/yardimcilar/ProfilSilinmis';
 
 type Props = {
   konu: MesajKonusu;
@@ -51,11 +55,18 @@ function formatZaman(iso: string | null): string {
 /** Inbox — Telegram tarzi: avatar + isim + onizleme + okunmamis */
 export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
   const mahkeme = konu.thread_kind === 'mahkeme';
-  const ad =
+  const hamAd =
     (mahkeme ? konu.thread_title || konu.peer_display_name : null)?.trim() ||
     konu.peer_display_name?.trim() ||
     konu.peer_username?.trim() ||
-    'Kullanıcı';
+    null;
+  const silinmis = !mahkeme && ProfilSilinmisMi({ display_name: hamAd });
+  const ad = mahkeme
+    ? hamAd || 'Kullanıcı'
+    : ProfilGorunenAd({
+        display_name: konu.peer_display_name,
+        username: konu.peer_username,
+      });
   const onizleme = konu.last_message_preview?.trim() || 'Yeni sohbet';
   const zaman = formatZaman(konu.last_message_at);
   const unread = konu.unread_count ?? 0;
@@ -64,7 +75,7 @@ export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
     !!konu.peer_is_platform_official ||
     mahkeme ||
     (!!konu.peer_is_verified && mahkeme);
-  const avatarUri = MedyaUriGuvenli(konu.peer_avatar_url);
+  const avatarUri = silinmis ? null : MedyaUriGuvenli(konu.peer_avatar_url);
 
   return (
     <Pressable

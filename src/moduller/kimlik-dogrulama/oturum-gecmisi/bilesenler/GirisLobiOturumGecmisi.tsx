@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     padding: 2,
   },
   busyMask: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 34,
     backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',

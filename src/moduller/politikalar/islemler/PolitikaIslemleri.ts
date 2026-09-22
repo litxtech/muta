@@ -111,7 +111,7 @@ export async function PolitikaKabulEt(policyVersionId: string) {
 /** Kayıt sonrası gösterilen zorunlu politikaları kabul kaydı */
 export async function KayitPolitikaKabulKaydet(
   kodlar?: string[],
-): Promise<void> {
+): Promise<{ ok: boolean; hata?: string }> {
   try {
     const liste =
       kodlar ??
@@ -119,10 +119,49 @@ export async function KayitPolitikaKabulKaydet(
     const guncel = await GuncelPolitikalariGetir();
     for (const kod of liste) {
       const satir = guncel.find((g) => g.policy_code === kod);
-      if (satir?.id) await PolitikaKabulEt(satir.id);
+      if (!satir?.id) continue;
+      const r = await PolitikaKabulEt(satir.id);
+      if (!r.ok) return { ok: false, hata: r.hata ?? 'Politika kabul edilemedi' };
     }
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      hata: e instanceof Error ? e.message : 'Politika kaydı başarısız',
+    };
+  }
+}
+
+/** Zorunlu politikalarda yeniden kabul gereken sürüm var mı? */
+export async function PolitikaYenidenKabulGerekliMi(): Promise<{
+  gerekli: boolean;
+  kodlar: string[];
+}> {
+  try {
+    const { data: uid } = await supabase.auth.getUser();
+    const userId = uid.user?.id;
+    if (!userId) return { gerekli: false, kodlar: [] };
+
+    const guncel = await GuncelPolitikalariGetir();
+    const zorunlu = guncel.filter((g) => g.policies?.is_required !== false);
+    if (!zorunlu.length) return { gerekli: false, kodlar: [] };
+
+    const { data: kabuller } = await supabase
+      .from('policy_acceptances')
+      .select('policy_version_id')
+      .eq('user_id', userId);
+    const kabulSet = new Set(
+      ((kabuller as { policy_version_id: string }[]) ?? []).map(
+        (k) => k.policy_version_id,
+      ),
+    );
+    const eksik = zorunlu.filter((z) => !kabulSet.has(z.id));
+    return {
+      gerekli: eksik.length > 0,
+      kodlar: eksik.map((e) => e.policy_code),
+    };
   } catch {
-    // Sessiz — kayit engellenmesin
+    return { gerekli: false, kodlar: [] };
   }
 }
 

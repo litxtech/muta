@@ -13,8 +13,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import {
   AdminAutoBannerAyarlariKaydet,
+  AdminAutoBannerCooldownTemizle,
+  AdminAutoBannerHepsiniKapat,
   AdminAutoBannerKapat,
   AdminAutoBannerListele,
+  AdminAutoBannerOncelik,
+  AdminAutoBannerPin,
+  AdminAutoBannerTaraYenile,
+  AdminAutoBannerTtlUzat,
   AutoBannerAyarlariGetir,
 } from '../../banner/auto/AutoBannerService';
 import type {
@@ -38,27 +44,30 @@ type SayiAlan =
   | 'room_coin_threshold'
   | 'live_coin_threshold'
   | 'game_coin_threshold'
+  | 'gift_burst_window_sec'
+  | 'gift_burst_coin_threshold'
   | 'max_active'
   | 'carousel_max';
 
 /**
- * Olay tabanlı otomatik banner yönetimi — eşikler, TTL, master kapatma.
+ * Olay / hediye otomatik banner yönetimi — algoritma ayarları + müdahale.
  */
 export function AdminOtomatikBannerPaneli() {
   const [ayar, setAyar] = useState<AutoBannerAyarlari>(AUTO_BANNER_AYAR_VARSAYILAN);
-  const [aktifler, setAktifler] = useState<AutoBannerKayit[]>([]);
+  const [liste, setListe] = useState<AutoBannerKayit[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [kaydediyor, setKaydediyor] = useState(false);
+  const [filtre, setFiltre] = useState<'aktif' | 'hepsi'>('aktif');
 
   const yukle = useCallback(async () => {
     setYukleniyor(true);
     try {
-      const [a, liste] = await Promise.all([
+      const [a, rows] = await Promise.all([
         AutoBannerAyarlariGetir(),
         AdminAutoBannerListele().catch(() => [] as AutoBannerKayit[]),
       ]);
       setAyar(a);
-      setAktifler(liste.filter((x) => x.active));
+      setListe(rows);
     } catch (e) {
       Alert.alert(
         'Hata',
@@ -77,8 +86,7 @@ export function AdminOtomatikBannerPaneli() {
 
   const kaydet = async (patch: Partial<AutoBannerAyarlari>) => {
     const onceki = ayar;
-    const sonraki = { ...ayar, ...patch };
-    setAyar(sonraki);
+    setAyar({ ...ayar, ...patch });
     setKaydediyor(true);
     try {
       const kayit = await AdminAutoBannerAyarlariKaydet(patch);
@@ -104,8 +112,12 @@ export function AdminOtomatikBannerPaneli() {
     void kaydet({ [alan]: ayar[alan] });
   };
 
+  const gosterilen = liste.filter((x) =>
+    filtre === 'aktif' ? x.active : true,
+  );
+
   const bannerKapat = (id: string) => {
-    Alert.alert('Bannerı kapat', 'Bu otomatik banner kaldırılacak.', [
+    Alert.alert('Bannerı kapat', 'Bu otomatik banner feed’den kalkacak.', [
       { text: 'İptal', style: 'cancel' },
       {
         text: 'Kapat',
@@ -127,16 +139,40 @@ export function AdminOtomatikBannerPaneli() {
     ]);
   };
 
+  const topluKapat = () => {
+    Alert.alert('Tümünü kapat', 'Aktif otomatik bannerlar kapatılsın mı?', [
+      { text: 'İptal', style: 'cancel' },
+      {
+        text: 'Kapat',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            try {
+              const n = await AdminAutoBannerHepsiniKapat();
+              Alert.alert('Tamam', `${n} banner kapatıldı`);
+              await yukle();
+            } catch (e) {
+              Alert.alert(
+                'Hata',
+                e instanceof Error ? e.message : 'İşlem başarısız',
+              );
+            }
+          })();
+        },
+      },
+    ]);
+  };
+
   if (yukleniyor && !ayar.updated_at) {
     return <ActivityIndicator color={RenkTokenlari.primary} />;
   }
 
   return (
     <View style={styles.kok}>
-      <Text style={styles.bolumBaslik}>Olay otomatik bannerları</Text>
+      <Text style={styles.bolumBaslik}>Algoritma</Text>
       <Text style={styles.bolumAlt}>
-        Coin eşiği, koltuk dolu ve oyun harcamasında oluşur. Kaynak kapanınca veya
-        TTL bitince kalkar. Sağa-sola kaydırarak gezilir.
+        Ses odası / canlı yayında hediye coin eşiği, milestone (1x·2x·5x) ve kısa
+        pencereli hediye yağmuru otomatik banner üretir. Kaynak kapanınca düşer.
       </Text>
 
       <View style={styles.kart}>
@@ -144,7 +180,7 @@ export function AdminOtomatikBannerPaneli() {
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={styles.ad}>Otomatik banner sistemi</Text>
             <Text style={styles.meta}>
-              Kapalıyken yeni banner oluşmaz; aktifler temizlenir
+              Kapalıyken yeni oluşmaz; aktifler temizlenir
             </Text>
           </View>
           <Switch
@@ -160,8 +196,52 @@ export function AdminOtomatikBannerPaneli() {
         </View>
       </View>
 
+      <View style={styles.mudahale}>
+        <MudahaleBtn
+          icon="refresh"
+          label="Tara / yenile"
+          onPress={() => {
+            void (async () => {
+              try {
+                const n = await AdminAutoBannerTaraYenile();
+                Alert.alert('Tarama', `${n} canlı kaynak değerlendirildi`);
+                await yukle();
+              } catch (e) {
+                Alert.alert(
+                  'Hata',
+                  e instanceof Error ? e.message : 'Tarama başarısız',
+                );
+              }
+            })();
+          }}
+        />
+        <MudahaleBtn
+          icon="timer-outline"
+          label="Cooldown temizle"
+          onPress={() => {
+            void (async () => {
+              try {
+                const n = await AdminAutoBannerCooldownTemizle();
+                Alert.alert('Cooldown', `${n} kayıt serbest bırakıldı`);
+              } catch (e) {
+                Alert.alert(
+                  'Hata',
+                  e instanceof Error ? e.message : 'Temizlenemedi',
+                );
+              }
+            })();
+          }}
+        />
+        <MudahaleBtn
+          icon="close-circle-outline"
+          label="Tümünü kapat"
+          danger
+          onPress={topluKapat}
+        />
+      </View>
+
       <View style={styles.kart}>
-        <Text style={styles.kartBaslik}>Eşikler</Text>
+        <Text style={styles.kartBaslik}>Coin eşikleri</Text>
         <SayiSatiri
           etiket="Oda coin eşiği"
           deger={ayar.room_coin_threshold}
@@ -202,6 +282,56 @@ export function AdminOtomatikBannerPaneli() {
             thumbColor={RenkTokenlari.text}
           />
         </View>
+        <View style={styles.satir}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={styles.ad}>Milestone (1× · 2× · 5×)</Text>
+            <Text style={styles.meta}>
+              Eşik katlarında yeni banner (cooldown ayrı)
+            </Text>
+          </View>
+          <Switch
+            value={ayar.milestone_enabled}
+            onValueChange={(v) => void kaydet({ milestone_enabled: v })}
+            disabled={kaydediyor}
+            trackColor={{
+              false: RenkTokenlari.surface,
+              true: RenkTokenlari.primary,
+            }}
+            thumbColor={RenkTokenlari.text}
+          />
+        </View>
+      </View>
+
+      <View style={styles.kart}>
+        <Text style={styles.kartBaslik}>Hediye yağmuru</Text>
+        <View style={styles.satir}>
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={styles.ad}>Patlama bannerı</Text>
+            <Text style={styles.meta}>Kısa pencerede yoğun hediye</Text>
+          </View>
+          <Switch
+            value={ayar.gift_burst_enabled}
+            onValueChange={(v) => void kaydet({ gift_burst_enabled: v })}
+            disabled={kaydediyor}
+            trackColor={{
+              false: RenkTokenlari.surface,
+              true: RenkTokenlari.primary,
+            }}
+            thumbColor={RenkTokenlari.text}
+          />
+        </View>
+        <SayiSatiri
+          etiket="Pencere (saniye)"
+          deger={ayar.gift_burst_window_sec}
+          onChange={(t) => sayiGuncelle('gift_burst_window_sec', t)}
+          onBlur={() => sayiKaydet('gift_burst_window_sec')}
+        />
+        <SayiSatiri
+          etiket="Patlama coin eşiği"
+          deger={ayar.gift_burst_coin_threshold}
+          onChange={(t) => sayiGuncelle('gift_burst_coin_threshold', t)}
+          onBlur={() => sayiKaydet('gift_burst_coin_threshold')}
+        />
       </View>
 
       <View style={styles.kart}>
@@ -232,34 +362,166 @@ export function AdminOtomatikBannerPaneli() {
         />
       </View>
 
-      <Text style={styles.bolumBaslik}>
-        Aktif otomatik ({aktifler.length})
-      </Text>
-      {aktifler.length === 0 ? (
-        <Text style={styles.meta}>Şu an aktif olay bannerı yok.</Text>
+      <View style={styles.filtreSatir}>
+        <Text style={styles.bolumBaslik}>
+          Otomatik bannerlar ({gosterilen.length})
+        </Text>
+        <View style={styles.filtreChip}>
+          <Pressable
+            onPress={() => setFiltre('aktif')}
+            style={[styles.filtreBtn, filtre === 'aktif' && styles.filtreAktif]}
+          >
+            <Text style={styles.filtreYazi}>Aktif</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setFiltre('hepsi')}
+            style={[styles.filtreBtn, filtre === 'hepsi' && styles.filtreAktif]}
+          >
+            <Text style={styles.filtreYazi}>Hepsi</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {gosterilen.length === 0 ? (
+        <Text style={styles.meta}>Kayıt yok. Hediye eşiği aşılınca oluşur.</Text>
       ) : (
-        aktifler.map((b) => (
-          <View key={b.id} style={styles.bannerSatir}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={styles.ad} numberOfLines={1}>
-                {b.title}
-              </Text>
-              <Text style={styles.meta} numberOfLines={1}>
-                {AUTO_BANNER_KIND_LABELS[b.kind]} · {b.metric_value} ·{' '}
-                {new Date(b.expires_at).toLocaleString('tr-TR')}
-              </Text>
+        gosterilen.map((b) => (
+          <View key={b.id} style={styles.bannerKart}>
+            <View style={styles.bannerUst}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.ad} numberOfLines={1}>
+                  {b.pinned ? '📌 ' : ''}
+                  {b.title}
+                </Text>
+                <Text style={styles.meta} numberOfLines={2}>
+                  {AUTO_BANNER_KIND_LABELS[b.kind]} · skor {b.score ?? 0} · m
+                  {b.milestone ?? 1} · {b.metric_value} coin
+                </Text>
+                <Text style={styles.meta} numberOfLines={1}>
+                  {b.active ? 'Aktif' : 'Kapalı'} · bitiş{' '}
+                  {new Date(b.expires_at).toLocaleString('tr-TR')}
+                </Text>
+              </View>
             </View>
-            <Pressable
-              style={styles.kapatBtn}
-              onPress={() => bannerKapat(b.id)}
-              accessibilityLabel="Bannerı kapat"
-            >
-              <Ionicons name="close" size={16} color={RenkTokenlari.text} />
-            </Pressable>
+            <View style={styles.aksiyonlar}>
+              <Aksiyon
+                label={b.pinned ? 'Sabiti kaldır' : 'Sabitle'}
+                onPress={() => {
+                  void (async () => {
+                    try {
+                      await AdminAutoBannerPin(b.id, !b.pinned);
+                      await yukle();
+                    } catch (e) {
+                      Alert.alert(
+                        'Hata',
+                        e instanceof Error ? e.message : 'Pin başarısız',
+                      );
+                    }
+                  })();
+                }}
+              />
+              <Aksiyon
+                label="Öncelik+"
+                onPress={() => {
+                  void (async () => {
+                    try {
+                      await AdminAutoBannerOncelik(
+                        b.id,
+                        (b.admin_priority ?? 0) + 10,
+                      );
+                      await yukle();
+                    } catch (e) {
+                      Alert.alert(
+                        'Hata',
+                        e instanceof Error ? e.message : 'Öncelik başarısız',
+                      );
+                    }
+                  })();
+                }}
+              />
+              <Aksiyon
+                label="+12s TTL"
+                onPress={() => {
+                  void (async () => {
+                    try {
+                      await AdminAutoBannerTtlUzat(b.id, 12);
+                      await yukle();
+                    } catch (e) {
+                      Alert.alert(
+                        'Hata',
+                        e instanceof Error ? e.message : 'TTL uzatılamadı',
+                      );
+                    }
+                  })();
+                }}
+              />
+              {b.active ? (
+                <Aksiyon label="Kapat" danger onPress={() => bannerKapat(b.id)} />
+              ) : null}
+            </View>
           </View>
         ))
       )}
     </View>
+  );
+}
+
+function MudahaleBtn({
+  icon,
+  label,
+  onPress,
+  danger,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <Pressable
+      style={[styles.mudahaleBtn, danger && styles.mudahaleDanger]}
+      onPress={onPress}
+    >
+      <Ionicons
+        name={icon}
+        size={14}
+        color={danger ? RenkTokenlari.danger : RenkTokenlari.text}
+      />
+      <Text
+        style={[
+          styles.mudahaleYazi,
+          danger && { color: RenkTokenlari.danger },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function Aksiyon({
+  label,
+  onPress,
+  danger,
+}: {
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <Pressable
+      style={[styles.aksiyon, danger && { borderColor: RenkTokenlari.danger }]}
+      onPress={onPress}
+    >
+      <Text
+        style={[
+          styles.aksiyonYazi,
+          danger && { color: RenkTokenlari.danger },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -367,22 +629,82 @@ const styles = StyleSheet.create({
     backgroundColor: RenkTokenlari.surface,
     marginTop: 4,
   },
-  bannerSatir: {
+  mudahale: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  mudahaleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: BoslukTokenlari.sm,
-    borderRadius: YaricapTokenlari.sm,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: RenkTokenlari.surface,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+  },
+  mudahaleDanger: {
+    borderColor: 'rgba(232,75,106,0.45)',
+  },
+  mudahaleYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+  },
+  filtreSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  filtreChip: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  filtreBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: RenkTokenlari.surface,
+  },
+  filtreAktif: {
+    backgroundColor: 'rgba(232,64,145,0.25)',
+  },
+  filtreYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+  },
+  bannerKart: {
+    padding: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.md,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
     backgroundColor: RenkTokenlari.bgCard,
+    gap: 10,
   },
-  kapatBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+  bannerUst: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  aksiyonlar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  aksiyon: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
     backgroundColor: RenkTokenlari.surface,
+  },
+  aksiyonYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
   },
 });

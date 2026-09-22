@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
+  Linking,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -26,6 +27,8 @@ import {
 import {
   BILDIRME_SEBEPLERI,
   KullaniciBildir,
+  RAPOR_ALINDI_MESAJ,
+  RAPOR_ALINDI_MESAJ_COCUK,
 } from '../../src/moduller/moderasyon/islemler/ModerasyonIslemleri';
 import { AdminStil } from '../../src/moduller/admin/bilesenler/AdminStil';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
@@ -34,6 +37,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { UygulamaKimligi } from '../../src/yapilandirma/UygulamaKimligi';
 
 function olayAdi(type: string): string {
   const map: Record<string, string> = {
@@ -136,7 +140,7 @@ export default function GuvenlikMerkeziEkrani() {
                 setCocukBusy(false);
                 if (!r.ok) Alert.alert('Bildirim', r.hata);
                 else {
-                  Alert.alert('Öncelikli rapor alındı', 'Çocuk koruma ekibine iletildi.');
+                  Alert.alert('Öncelikli rapor alındı', RAPOR_ALINDI_MESAJ_COCUK);
                   setCocukDetay('');
                   await load();
                 }
@@ -162,8 +166,8 @@ export default function GuvenlikMerkeziEkrani() {
         Alert.alert(
           sebepId === 'child_safety' ? 'Öncelikli rapor alındı' : 'Rapor alındı',
           sebepId === 'child_safety'
-            ? 'Çocuk koruma ekibine iletildi.'
-            : 'Rapor güvenlik kuyruğuna düştü.',
+            ? RAPOR_ALINDI_MESAJ_COCUK
+            : RAPOR_ALINDI_MESAJ,
         );
         await load();
       }
@@ -251,12 +255,12 @@ export default function GuvenlikMerkeziEkrani() {
             ))}
           </View>
 
-          <Text style={AdminStil.sectionLabel}>Araçlar</Text>
+          <Text style={AdminStil.sectionLabel}>Güvenlik ve destek</Text>
           <View style={AdminStil.kart}>
             <LinkSatir
               icon="flag-outline"
-              label="Kullanıcı bildir"
-              hint="Ara · sebep seç · raporla"
+              label="Bir sorun bildir"
+              hint="Kullanıcı / içerik raporla"
               onPress={() => router.push('/bildir' as any)}
             />
             <LinkSatir
@@ -266,15 +270,46 @@ export default function GuvenlikMerkeziEkrani() {
               onPress={() => router.push('/raporlarim' as any)}
             />
             <LinkSatir
+              icon="people-outline"
+              label="Topluluk Kuralları"
+              hint="Sıfır tolerans UGC kuralları"
+              onPress={() => router.push('/politika/community_rules' as any)}
+            />
+            <LinkSatir
               icon="document-text-outline"
+              label="Kullanım Şartları"
+              onPress={() => router.push('/politika/tos' as any)}
+            />
+            <LinkSatir
+              icon="lock-closed-outline"
+              label="Gizlilik Politikası"
+              onPress={() => router.push('/politika/privacy' as any)}
+            />
+            <LinkSatir
+              icon="shield-checkmark-outline"
               label="Çocuk koruma politikası"
               onPress={() => router.push('/politika/child_safety' as any)}
             />
             <LinkSatir
               icon="ban-outline"
-              label="Engellenen kullanıcılar"
+              label="Engellenen hesaplar"
               hint="Engeli kaldır"
               onPress={() => router.push('/engellenen-kullanicilar' as any)}
+            />
+            <LinkSatir
+              icon="mail-outline"
+              label="Bize ulaşın"
+              hint={UygulamaKimligi.SUPPORT_EMAIL}
+              onPress={() => {
+                void Linking.openURL(
+                  `mailto:${UygulamaKimligi.SUPPORT_EMAIL}?subject=${encodeURIComponent('Tamuso destek / uygunsuz içerik')}`,
+                ).catch(() =>
+                  Alert.alert(
+                    'İletişim',
+                    `E-posta: ${UygulamaKimligi.SUPPORT_EMAIL}`,
+                  ),
+                );
+              }}
             />
             <LinkSatir
               icon="headset-outline"

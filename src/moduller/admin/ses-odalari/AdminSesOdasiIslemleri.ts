@@ -12,6 +12,10 @@ export type AdminOdaYaptirimGirdi = {
   /** Saat; -1 = kalıcı; undefined/0 = yok */
   room_create_ban_hours?: number;
   account_ban?: boolean;
+  /** Saat; -1/undefined = kalıcı (account_ban true iken) */
+  account_ban_hours?: number;
+  /** Host + seçilen diğer kullanıcılar */
+  target_user_ids?: string[];
 };
 
 export type AdminOdaModerasyonSonuc = {
@@ -20,37 +24,26 @@ export type AdminOdaModerasyonSonuc = {
   host_id: string;
   title: string | null;
   reason: string;
+  targets?: string[];
   close?: Record<string, unknown>;
   sanctions?: Array<Record<string, unknown>>;
+};
+
+export type AdminOdaUyesi = {
+  user_id: string;
+  role: string;
+  display_name: string;
+  username: string | null;
+  is_host: boolean;
 };
 
 function rpcHata(error: { message?: string } | null): never {
   throw new Error(error?.message ?? 'Admin işlem başarısız');
 }
 
-export async function AdminCanliSesOdalari(
-  limit = 50,
-): Promise<AdminCanliOda[]> {
-  const { data, error } = await supabase.rpc('admin_canli_odalar', {
-    p_limit: limit,
-  });
-  if (error) rpcHata(error);
-  return (data ?? []) as AdminCanliOda[];
-}
-
-/** Sadece kapat + üyeleri dağıt (yaptırım yok) */
-export async function AdminSesOdasiKapat(roomId: string): Promise<void> {
-  const { error } = await supabase.rpc('admin_oda_canli_kapat', {
-    p_room_id: roomId,
-  });
-  if (error) rpcHata(error);
-}
-
-/** Kapat + isteğe bağlı host yaptırımları. Feed `is_live=false` ile düşer. */
-export async function AdminSesOdasiKapatVeYaptirim(
-  roomId: string,
-  sanctions: AdminOdaYaptirimGirdi = {},
-): Promise<AdminOdaModerasyonSonuc> {
+export function YaptirimPayloadOlustur(
+  sanctions: AdminOdaYaptirimGirdi,
+): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     reason: sanctions.reason?.trim() || undefined,
     warning: sanctions.warning === true,
@@ -72,12 +65,60 @@ export async function AdminSesOdasiKapatVeYaptirim(
   ) {
     payload.room_create_ban_hours = sanctions.room_create_ban_hours;
   }
+  if (sanctions.account_ban === true) {
+    if (
+      sanctions.account_ban_hours !== undefined &&
+      sanctions.account_ban_hours !== 0
+    ) {
+      payload.account_ban_hours = sanctions.account_ban_hours;
+    } else {
+      payload.account_ban_hours = -1;
+    }
+  }
+  if (sanctions.target_user_ids?.length) {
+    payload.target_user_ids = [...new Set(sanctions.target_user_ids)];
+  }
+  return payload;
+}
 
+export async function AdminCanliSesOdalari(
+  limit = 50,
+): Promise<AdminCanliOda[]> {
+  const { data, error } = await supabase.rpc('admin_canli_odalar', {
+    p_limit: limit,
+  });
+  if (error) rpcHata(error);
+  return (data ?? []) as AdminCanliOda[];
+}
+
+export async function AdminOdaUyeleri(
+  roomId: string,
+): Promise<AdminOdaUyesi[]> {
+  const { data, error } = await supabase.rpc('admin_oda_uyeleri', {
+    p_room_id: roomId,
+  });
+  if (error) rpcHata(error);
+  return (data ?? []) as AdminOdaUyesi[];
+}
+
+/** Sadece kapat + üyeleri dağıt (yaptırım yok) */
+export async function AdminSesOdasiKapat(roomId: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_oda_canli_kapat', {
+    p_room_id: roomId,
+  });
+  if (error) rpcHata(error);
+}
+
+/** Kapat + isteğe bağlı yaptırımlar (host + seçilenler). Feed `is_live=false` ile düşer. */
+export async function AdminSesOdasiKapatVeYaptirim(
+  roomId: string,
+  sanctions: AdminOdaYaptirimGirdi = {},
+): Promise<AdminOdaModerasyonSonuc> {
   const { data, error } = await supabase.rpc(
     'admin_ses_odasi_kapat_ve_yaptirim',
     {
       p_room_id: roomId,
-      p_sanctions: payload,
+      p_sanctions: YaptirimPayloadOlustur(sanctions),
     },
   );
   if (error) rpcHata(error);
@@ -136,16 +177,46 @@ export async function YaptirimAktifMi(
   return liste.some((s) => s.kind === kind);
 }
 
+/** Ban / yaptırım süre seçenekleri (saat) */
 export const YAPTIRIM_SURE_SECENEKLERI = [
   { label: '1 saat', hours: 1 },
   { label: '6 saat', hours: 6 },
   { label: '24 saat', hours: 24 },
   { label: '3 gün', hours: 72 },
   { label: '7 gün', hours: 168 },
+  { label: '30 gün', hours: 720 },
+  { label: '1 yıl', hours: 8760 },
   { label: 'Kalıcı', hours: -1 },
 ] as const;
 
 export const COIN_CEZA_HIZLI = [1_000, 5_000, 10_000, 50_000] as const;
+
+/** ISO başlangıç → "12 dk" / "1 sa 5 dk" */
+export function SureMetni(baslangicIso: string | null | undefined): string {
+  if (!baslangicIso) return '—';
+  const t = new Date(baslangicIso).getTime();
+  if (!Number.isFinite(t)) return '—';
+  const sn = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (sn < 60) return `${sn} sn`;
+  const dk = Math.floor(sn / 60);
+  if (dk < 60) return `${dk} dk`;
+  const sa = Math.floor(dk / 60);
+  const kalanDk = dk % 60;
+  if (sa < 48) return kalanDk > 0 ? `${sa} sa ${kalanDk} dk` : `${sa} sa`;
+  const gun = Math.floor(sa / 24);
+  const kalanSa = sa % 24;
+  return kalanSa > 0 ? `${gun} g ${kalanSa} sa` : `${gun} g`;
+}
+
+export function SureSaatEtiket(hours: number | null | undefined): string {
+  if (hours == null) return 'yok';
+  if (hours < 0) return 'kalıcı';
+  const hit = YAPTIRIM_SURE_SECENEKLERI.find((s) => s.hours === hours);
+  if (hit) return hit.label;
+  if (hours < 24) return `${hours} sa`;
+  if (hours % 24 === 0) return `${hours / 24} gün`;
+  return `${hours} sa`;
+}
 
 /** Örnek (demo) canlı ses odalarını yeniden kurar — admin only */
 export async function AdminOrnekSesOdalariDoldur(): Promise<{

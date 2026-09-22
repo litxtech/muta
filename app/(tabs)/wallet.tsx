@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  InteractionManager,
   Modal,
   Platform,
   Pressable,
@@ -184,61 +185,111 @@ export default function WalletScreen() {
   const [cekimAcik, setCekimAcik] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const yenileHepsi = useCallback(async () => {
+  const yenileHepsi = useCallback(async (iptalRef?: { current: boolean }) => {
+    const iptal = () => iptalRef?.current === true;
     await refreshWallet();
-    void KillSwitchAktifMiSunucu('kill_coin_purchase').then(setPurchaseLocked);
-    void OzellikBayragiAktifMiSunucu('wallet_exchange_enabled').then(setTakasAcik);
+    if (iptal()) return;
+
+    void KillSwitchAktifMiSunucu('kill_coin_purchase').then((v) => {
+      if (!iptal()) setPurchaseLocked(v);
+    });
+    void OzellikBayragiAktifMiSunucu('wallet_exchange_enabled').then((v) => {
+      if (!iptal()) setTakasAcik(v);
+    });
     void Promise.all([
       OzellikBayragiAktifMiSunucu('wallet_withdraw_enabled'),
       OzellikBayragiAktifMiSunucu('withdrawals_enabled'),
-    ]).then(([a, b]) => setCekimAcik(a || b));
+    ]).then(([a, b]) => {
+      if (!iptal()) setCekimAcik(a || b);
+    });
+
+    // Paketler: sadece boşsa veya IAP fiyatı yoksa yükle (her focus IAP = jank)
     CoinPaketleriniGetir()
       .then(async (data) => {
-        if (!data.length) return;
-        // Önce DB — IAP ayrı (Expo Go / native yoksa boş döner, çökmez)
-        setPackages(data);
+        if (iptal() || !data.length) return;
+        setPackages((onceki) => (onceki.length ? onceki : data));
         try {
           const fiyatlar = await MagazaFiyatlariniYukle(data);
+          if (iptal()) return;
           if (Object.keys(fiyatlar).length) {
             setPackages(PaketlereMagazaFiyatiUygula(data, fiyatlar));
           }
         } catch {
-          /* DB fiyatları kalır */
+          if (!iptal()) setPackages((onceki) => (onceki.length ? onceki : data));
         }
       })
       .catch(() => undefined);
+
     CuzdanLedgeriniGetir(80)
-      .then(setLedger)
-      .catch(() => setLedger([]));
+      .then((rows) => {
+        if (!iptal()) setLedger(rows);
+      })
+      .catch(() => {
+        if (!iptal()) setLedger([]);
+      });
     CekimTaleplerimiGetir()
-      .then((rows) => setWithdrawals(rows as CekimTalebi[]))
-      .catch(() => setWithdrawals([]));
+      .then((rows) => {
+        if (!iptal()) setWithdrawals(rows as CekimTalebi[]);
+      })
+      .catch(() => {
+        if (!iptal()) setWithdrawals([]);
+      });
     BankaHesabiGetir()
-      .then(setBanka)
-      .catch(() => setBanka(null));
+      .then((b) => {
+        if (!iptal()) setBanka(b);
+      })
+      .catch(() => {
+        if (!iptal()) setBanka(null);
+      });
     if (user?.id) {
       HediyeGecmisiniGetir(user.id, 80)
-        .then(setHediyeler)
-        .catch(() => setHediyeler([]));
+        .then((h) => {
+          if (!iptal()) setHediyeler(h);
+        })
+        .catch(() => {
+          if (!iptal()) setHediyeler([]);
+        });
       ProfilIstatistikleriniGetir(user.id)
-        .then(setStats)
-        .catch(() => setStats(null));
+        .then((s) => {
+          if (!iptal()) setStats(s);
+        })
+        .catch(() => {
+          if (!iptal()) setStats(null);
+        });
       OyunGecmisiniGetir(user.id, 60)
-        .then(setOyunlar)
-        .catch(() => setOyunlar([]));
+        .then((o) => {
+          if (!iptal()) setOyunlar(o);
+        })
+        .catch(() => {
+          if (!iptal()) setOyunlar([]);
+        });
       OyunOyuncuIstatistikGetir(user.id)
-        .then(setOyunStats)
-        .catch(() => setOyunStats(null));
+        .then((o) => {
+          if (!iptal()) setOyunStats(o);
+        })
+        .catch(() => {
+          if (!iptal()) setOyunStats(null);
+        });
       void CuzdanHesabiGarantile().then((r) => {
-        if (r.ok) setMutaHesap(r.hesap);
+        if (!iptal() && r.ok) setMutaHesap(r.hesap);
       });
     }
   }, [refreshWallet, user?.id]);
 
   useFocusEffect(
     useCallback(() => {
-      void yenileHepsi();
-    }, [yenileHepsi]),
+      const iptalRef = { current: false };
+      // Önce bakiye; geçmişi etkileşim sonrası — feed'e dönüş donmasın
+      void refreshWallet();
+      const gorev = InteractionManager.runAfterInteractions(() => {
+        if (iptalRef.current) return;
+        void yenileHepsi(iptalRef);
+      });
+      return () => {
+        iptalRef.current = true;
+        gorev.cancel();
+      };
+    }, [yenileHepsi, refreshWallet]),
   );
 
   const hesapBelgesi = useMemo(() => {

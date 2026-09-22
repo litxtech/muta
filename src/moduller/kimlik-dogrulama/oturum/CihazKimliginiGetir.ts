@@ -5,9 +5,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CIHAZ_ID_ANAHTARI = 'muta_device_id_v1';
 
+const IOS_KEYCHAIN: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+};
+
 async function depodanOku(key: string) {
   if (Platform.OS === 'web') return AsyncStorage.getItem(key);
-  return SecureStore.getItemAsync(key);
+  try {
+    return await SecureStore.getItemAsync(key, IOS_KEYCHAIN);
+  } catch {
+    return null;
+  }
 }
 
 async function depoyaYaz(key: string, value: string) {
@@ -15,7 +23,8 @@ async function depoyaYaz(key: string, value: string) {
     await AsyncStorage.setItem(key, value);
     return;
   }
-  await SecureStore.setItemAsync(key, value);
+  await SecureStore.deleteItemAsync(key).catch(() => undefined);
+  await SecureStore.setItemAsync(key, value, IOS_KEYCHAIN);
 }
 
 /** Stabil cihaz kimligi — push / session / risk sinyali icin */

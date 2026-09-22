@@ -64,11 +64,12 @@ export const BANNER_CACHE_TTL_MS = 90_000;
 export const BANNER_IMPRESSION_VISIBLE_RATIO = 0.5;
 export const BANNER_IMPRESSION_MIN_MS = 500;
 export const BANNER_TAP_MAX_MOVE_PX = 12;
-export const BANNER_CAROUSEL_DEFAULT_MS = 5000;
+export const BANNER_CAROUSEL_DEFAULT_MS = 3000;
 export const BANNER_STORAGE_BUCKET = 'banner-media';
 export const BANNER_BORDER_RADIUS = 16;
 export const BANNER_BG = 'rgba(24,20,38,0.92)';
 export const BANNER_BORDER = 'rgba(255,255,255,0.08)';
+
 
 export const BANNER_SCREEN_KEYS = [
   'HOME',

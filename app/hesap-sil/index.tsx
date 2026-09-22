@@ -99,7 +99,7 @@ export default function HesapSilEkrani() {
               }
               Alert.alert(
                 'Hesap silindi',
-                'Hesabın kapatıldı. İstersen yeni bir hesap oluşturabilirsin.',
+                'Hesabın kapatıldı. Profilin “Hesap silindi” olarak görünür. Apple veya e-posta ile yeni hesap açabilirsin.',
                 [
                   {
                     text: 'Tamam',
@@ -128,8 +128,10 @@ export default function HesapSilEkrani() {
         <View style={styles.warn}>
           <Ionicons name="warning" size={22} color={RenkTokenlari.danger} />
           <Text style={styles.warnText}>
-            Bu işlem hesabını kalıcı kapatır. Profilin anonimleşir; durumların,
-            yorumların ve sohbetlerin gizlenir. Giriş yapılamaz.
+            Bu işlem hesabını kalıcı kapatır. Profilin “Hesap silindi” olarak
+            görünür; durumların, odaların ve ajansın kaldırılır. Ses odasındaysan
+            otomatik çıkarsın. Apple ile tekrar giriş yeni boş hesap açar; eski
+            hesaba dönülmez.
           </Text>
         </View>
 

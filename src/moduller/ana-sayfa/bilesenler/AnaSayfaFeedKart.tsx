@@ -1,14 +1,14 @@
 /**
- * Feed canlı kartı — 2'li pencere. Yayın (pembe) ve ses odası (mint).
- * Ağır ken-burns / tarama / equalizer yok; aura yalnızca aktif kartlarda.
+ * Feed canlı kartı — hafif çizim (gölge/çoklu gradient yok).
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { AnaSayfaCanliNokta } from './AnaSayfaCanliNokta';
 import { FeedPencereCerceve } from './FeedPencereCerceve';
+import { OdaUyeAvatarYigini } from './OdaUyeAvatarYigini';
 import { FEED_KART_ORANI } from '../sabitler/FeedKartOrani';
 import type { FeedOggesi } from '../okuma/AnaSayfaIcerikleriniGetir';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
@@ -35,7 +35,6 @@ type Props = {
   oge: FeedOggesi;
   onPress: () => void;
   index?: number;
-  /** Aura / nabız — yalnızca ilk görünür satırlarda */
   aktif?: boolean;
 };
 
@@ -44,7 +43,7 @@ function sayacBicimle(n: number): string {
   return String(n);
 }
 
-export function AnaSayfaFeedKart({ oge, onPress, index = 0, aktif = false }: Props) {
+function AnaSayfaFeedKartIc({ oge, onPress }: Props) {
   const { isGuest } = useAuth();
   const ses = oge.tur === 'oda';
   const contentId = oge.id.includes(':') ? oge.id.split(':')[1]! : oge.id;
@@ -54,22 +53,32 @@ export function AnaSayfaFeedKart({ oge, onPress, index = 0, aktif = false }: Pro
   const mod = oge.mode && MODE_LABEL[oge.mode] ? MODE_LABEL[oge.mode] : null;
   const kapak = MedyaUriGuvenli(oge.cover_url);
   const hostAvatar = MedyaUriGuvenli(oge.host?.avatar_url);
+  const uyeAvatarlari =
+    oge.uye_avatarlari && oge.uye_avatarlari.length > 0
+      ? oge.uye_avatarlari
+      : hostAvatar
+        ? [hostAvatar]
+        : [];
 
-  const ana = ses ? RenkTokenlari.mint : oge.popular ? RenkTokenlari.accent : RenkTokenlari.primary;
+  const ana = ses
+    ? RenkTokenlari.primary
+    : oge.popular
+      ? RenkTokenlari.accent
+      : RenkTokenlari.primary;
   const anaYumusak = ses
-    ? RenkTokenlari.mint
+    ? RenkTokenlari.primarySoft
     : oge.popular
       ? '#FFD36B'
       : RenkTokenlari.primarySoft;
   const aura = ses
-    ? (['#3DCFB0', '#6FE3FF'] as const)
+    ? (['#E84091', '#C43BFF'] as const)
     : oge.popular
       ? (['#F0B429', '#E84091'] as const)
       : (['#E84091', '#C43BFF'] as const);
 
   return (
     <View style={styles.dis}>
-      <FeedPencereCerceve renkler={aura} aktif={aktif} index={index}>
+      <FeedPencereCerceve renkler={aura}>
         <Pressable
           onPress={onPress}
           accessibilityRole="button"
@@ -84,40 +93,25 @@ export function AnaSayfaFeedKart({ oge, onPress, index = 0, aktif = false }: Pro
                 resizeMode="cover"
               />
             ) : (
-              <View style={StyleSheet.absoluteFill}>
-                <LinearGradient
-                  colors={[...RenkTokenlari.gradientPlaceholder]}
-                  start={{ x: 0.1, y: 0 }}
-                  end={{ x: 0.9, y: 1 }}
-                  style={StyleSheet.absoluteFill}
+              <View style={[StyleSheet.absoluteFill, styles.bosKapak]}>
+                <Ionicons
+                  name={ses ? 'mic' : 'videocam'}
+                  size={36}
+                  color={`${anaYumusak}44`}
                 />
-                <View style={styles.bosIkon}>
-                  <Ionicons
-                    name={ses ? 'mic' : 'videocam'}
-                    size={38}
-                    color={`${anaYumusak}55`}
-                  />
-                </View>
               </View>
             )}
 
             <LinearGradient
-              colors={[...RenkTokenlari.overlayGradient]}
-              locations={[0, 0.45, 1]}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            />
-            <LinearGradient
-              colors={['transparent', `${ana}2E`]}
-              start={{ x: 0, y: 0.4 }}
-              end={{ x: 0, y: 1 }}
+              colors={['transparent', 'rgba(8,8,17,0.88)']}
+              locations={[0.35, 1]}
               style={StyleSheet.absoluteFill}
               pointerEvents="none"
             />
 
             <View style={styles.ust}>
               <View style={[styles.rozet, { borderColor: `${anaYumusak}80` }]}>
-                <AnaSayfaCanliNokta boyut={5} renk={anaYumusak} nabiz={aktif} />
+                <AnaSayfaCanliNokta boyut={5} renk={anaYumusak} nabiz={false} />
                 <Text style={[styles.rozetYazi, { color: anaYumusak }]}>
                   {ses ? 'SES' : 'CANLI'}
                 </Text>
@@ -154,33 +148,48 @@ export function AnaSayfaFeedKart({ oge, onPress, index = 0, aktif = false }: Pro
                   <Text style={styles.populerYazi}>Popüler</Text>
                 </View>
               ) : mod ? (
-                <Text style={[styles.mod, { color: anaYumusak }]}>{mod.toUpperCase()}</Text>
+                <Text style={[styles.mod, { color: anaYumusak }]}>
+                  {mod.toUpperCase()}
+                </Text>
               ) : null}
               <Text style={styles.baslik} numberOfLines={2}>
                 {oge.title}
               </Text>
-              <View style={styles.host}>
-                <View style={[styles.avatarHalka, { borderColor: `${anaYumusak}AA` }]}>
-                  {hostAvatar ? (
-                    <Image source={{ uri: hostAvatar }} style={styles.avatar} />
-                  ) : (
-                    <LinearGradient
-                      colors={[...RenkTokenlari.gradientPrimary]}
-                      style={styles.avatar}
-                    >
-                      <Ionicons name="person" size={9} color={RenkTokenlari.textOnPrimary} />
-                    </LinearGradient>
-                  )}
+              {ses ? (
+                <View style={styles.uyeOnizleme}>
+                  <OdaUyeAvatarYigini
+                    avatarlar={uyeAvatarlari}
+                    max={5}
+                    boyut={18}
+                    overlap={6}
+                    borderColor={`${ana}99`}
+                  />
+                  <Text style={styles.hostAd} numberOfLines={1}>
+                    {hostAd}
+                  </Text>
                 </View>
-                <Text style={styles.hostAd} numberOfLines={1}>
-                  {hostAd}
-                </Text>
-                {oge.host?.level && oge.host.level > 1 ? (
-                  <View style={styles.seviye}>
-                    <Text style={styles.seviyeYazi}>Lv{oge.host.level}</Text>
+              ) : (
+                <View style={styles.host}>
+                  <View
+                    style={[styles.avatarHalka, { borderColor: `${anaYumusak}AA` }]}
+                  >
+                    {hostAvatar ? (
+                      <Image source={{ uri: hostAvatar }} style={styles.avatar} />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarBos]}>
+                        <Ionicons
+                          name="person"
+                          size={9}
+                          color={RenkTokenlari.textOnOverlay}
+                        />
+                      </View>
+                    )}
                   </View>
-                ) : null}
-              </View>
+                  <Text style={styles.hostAd} numberOfLines={1}>
+                    {hostAd}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
         </Pressable>
@@ -189,27 +198,30 @@ export function AnaSayfaFeedKart({ oge, onPress, index = 0, aktif = false }: Pro
   );
 }
 
+export const AnaSayfaFeedKart = memo(
+  AnaSayfaFeedKartIc,
+  (a, b) =>
+    a.oge.id === b.oge.id &&
+    a.oge.title === b.oge.title &&
+    a.oge.listener_count === b.oge.listener_count &&
+    a.oge.cover_url === b.oge.cover_url &&
+    a.oge.tur === b.oge.tur &&
+    a.onPress === b.onPress,
+);
+
 const styles = StyleSheet.create({
-  dis: {
-    flex: 1,
-  },
-  press: {
-    borderRadius: YaricapTokenlari.lg,
-  },
+  dis: { flex: 1 },
+  press: { borderRadius: YaricapTokenlari.lg },
   kart: {
     aspectRatio: FEED_KART_ORANI,
     overflow: 'hidden',
     borderRadius: YaricapTokenlari.lg - 2,
     backgroundColor: RenkTokenlari.bgElevated,
   },
-  bosIkon: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
+  bosKapak: {
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: RenkTokenlari.bgElevated,
   },
   ust: {
     position: 'absolute',
@@ -287,6 +299,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 16,
   },
+  uyeOnizleme: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
   host: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -306,24 +324,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarBos: {
+    backgroundColor: RenkTokenlari.surface,
+  },
   hostAd: {
     ...TipografiTokenlari.micro,
     flex: 1,
     color: RenkTokenlari.textOnOverlay,
     opacity: 0.82,
     fontWeight: '600',
-  },
-  seviye: {
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: YaricapTokenlari.sm,
-    backgroundColor: RenkTokenlari.pressFill,
-  },
-  seviyeYazi: {
-    ...TipografiTokenlari.micro,
-    fontSize: 8,
-    color: RenkTokenlari.textOnOverlay,
-    opacity: 0.75,
-    fontWeight: '700',
   },
 });

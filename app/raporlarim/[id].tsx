@@ -17,6 +17,7 @@ import {
   RaporumuGetir,
   type KullaniciRaporOzeti,
 } from '../../src/moduller/moderasyon/okuma/RaporlarimiGetir';
+import { RAPOR_DURUM_KART_NOTU_ACIK } from '../../src/moduller/moderasyon/islemler/ModerasyonIslemleri';
 import { ProfilAvatarKucuk } from '../../src/moduller/canli-sohbet/bilesenler/ProfilAvatarKucuk';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
@@ -123,9 +124,9 @@ export default function RaporDetayEkrani() {
                   <Text style={styles.metin}>
                     {rapor.reporter_note?.trim() ||
                       (rapor.status === 'open'
-                        ? 'Raporunuz alındı. İnceleme sırasına eklendi.'
+                        ? RAPOR_DURUM_KART_NOTU_ACIK
                         : rapor.status === 'reviewing'
-                          ? 'Moderasyon ekibi inceliyor.'
+                          ? 'Moderasyon ekibi inceliyor; 24 saat içinde işlem yapılacaktır.'
                           : rapor.status === 'resolved'
                             ? 'İşlem tamamlandı.'
                             : 'Rapor kapatıldı.')}

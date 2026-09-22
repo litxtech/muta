@@ -31,6 +31,9 @@ export type Profile = {
   ban_reason?: string | null;
   deleted_at?: string | null;
   deletion_requested_at?: string | null;
+  /** Tek seferlik çocuk koruma kartı: approved | declined */
+  child_protection_consent_status?: 'approved' | 'declined' | null;
+  child_protection_consent_at?: string | null;
 };
 
 export type Wallet = {

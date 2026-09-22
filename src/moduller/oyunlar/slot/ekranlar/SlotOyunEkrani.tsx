@@ -33,11 +33,9 @@ import {
   KazancCizgisi,
   OtomatikOyunPaneli,
   OyunBilgiPaneli,
-  OyunYukleniyor,
   SesKontrolu,
   SonKazananlarSeridi,
 } from '../bilesenler/SlotKabini';
-import { SlotDebugPanel } from '../bilesenler/SlotDebugPanel';
 import { NoxArkaPlan } from '../arkaplan/NoxArkaPlan';
 import { preloadNoxAssets } from '../assets/preloadNoxAssets';
 import {
@@ -67,7 +65,6 @@ function SlotOyunEkraniInner({
   const { user, profile } = useAuth();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const [ready, setReady] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [quality] = useState<SlotQualityMode>('HIGH');
   const isAdmin = AdminYetkisiVarMi(profile);
@@ -83,23 +80,11 @@ function SlotOyunEkraniInner({
 
   useEffect(() => {
     registerNoxReels();
-    let alive = true;
-    const failSafe = setTimeout(() => {
-      if (alive) setReady(true);
-    }, 3200);
-    void (async () => {
-      try {
-        await Promise.all([preloadNoxAssets(), preloadSlotAudio()]);
-      } catch {
-        /* preload hatası oyunu kilitlemesin */
-      }
-      if (!alive) return;
-      beginSlotAudioSession();
-      setReady(true);
-    })();
+    beginSlotAudioSession();
+    // Tahta hemen açılsın — preload arka planda (loading ekranı kilitlemesin)
+    void preloadNoxAssets().catch(() => undefined);
+    void preloadSlotAudio().catch(() => undefined);
     return () => {
-      alive = false;
-      clearTimeout(failSafe);
       stopAllSlotAudio();
     };
   }, []);
@@ -128,10 +113,6 @@ function SlotOyunEkraniInner({
     Math.min(78, Math.floor((cabinMax - 56) / 5)),
   );
 
-  const onDebug = useCallback((_kind: string) => {
-    if (!__DEV__) return;
-  }, []);
-
   const onSpin = useCallback(() => {
     playSlotSfx('button_press');
     void game.spin();
@@ -159,25 +140,6 @@ function SlotOyunEkraniInner({
 
   const betLocked = !game.machine.canSpin;
 
-  if (!ready) {
-    return (
-      <View style={[styles.rootFill, { minHeight: height * 0.55 }]}>
-        <NoxArkaPlan quality={quality} />
-        <OyunYukleniyor />
-        {onClose ? (
-          <Pressable
-            style={[styles.loadingClose, { top: padTop }]}
-            onPress={onClose}
-            hitSlop={12}
-            accessibilityLabel="Kapat"
-          >
-            <Ionicons name="close" size={24} color="#F7F2E8" />
-          </Pressable>
-        ) : null}
-      </View>
-    );
-  }
-
   return (
     <View
       style={[
@@ -188,6 +150,7 @@ function SlotOyunEkraniInner({
           maxWidth: cabinMax + 24,
           alignSelf: 'center',
           width: '100%',
+          minHeight: height * 0.55,
         },
       ]}
     >
@@ -294,7 +257,6 @@ function SlotOyunEkraniInner({
           visible={infoOpen}
           onClose={() => setInfoOpen(false)}
         />
-        <SlotDebugPanel onForce={onDebug} />
       </LinearGradient>
 
       <BuyukKazancKatmani
@@ -320,17 +282,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#060412',
     overflow: 'hidden',
-  },
-  loadingClose: {
-    position: 'absolute',
-    right: 16,
-    zIndex: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   cabin: {
     flex: 1,

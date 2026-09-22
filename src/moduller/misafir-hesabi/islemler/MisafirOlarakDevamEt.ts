@@ -85,11 +85,19 @@ async function edgeOturumuAc(
 /**
  * Misafir girişi — cihaz başına tek misafir.
  * reuse: mevcut misafir oturumu; create: yeni anonymous; block: ban.
+ * Production’da kapalı (Apple Guideline 1.2 — anonymous UGC).
  */
 export async function MisafirOlarakDevamEt(): Promise<{
   ok: boolean;
   hata?: string;
 }> {
+  if (OrtamDegiskenleri.ortam === 'production') {
+    return {
+      ok: false,
+      hata: 'Misafir girişi kapalı. Kayıt ol veya giriş yap.',
+    };
+  }
+
   const deviceId = await CihazKimliginiGetir();
 
   const { data: durumHam, error: durumErr } = await supabase.rpc(

@@ -1,6 +1,5 @@
 import React, { useCallback, useState } from 'react';
 import {
-  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -10,15 +9,11 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../src/components/Screen';
-import { GradientButton } from '../../src/components/GradientButton';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { BosDurum } from '../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
-import { useAuth } from '../../src/contexts/AuthContext';
-import { AdminYetkisiVarMi } from '../../src/moduller/admin/yetki/AdminYetkisiVarMi';
 import { useBildirimler } from '../../src/moduller/bildirimler/baglam/BildirimSaglayici';
 import {
-  BildirimKuyrugaEkleDev,
   BildirimlerimiListele,
   type UygulamaBildirimi,
 } from '../../src/moduller/bildirimler/okuma/BildirimKuyrugumuGetir';
@@ -55,10 +50,30 @@ function gonderenAdi(item: UygulamaBildirimi): string {
   return item.title || 'Bildirim';
 }
 
+function UstIkon({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.ustIkon, pressed && { opacity: 0.75 }]}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Ionicons name={icon} size={18} color={RenkTokenlari.text} />
+    </Pressable>
+  );
+}
+
 export default function BildirimMerkeziEkrani() {
-  const { profile } = useAuth();
-  const isAdmin = AdminYetkisiVarMi(profile);
-  const { sayfayiAcincaOkundu, tekOkundu, yenile } = useBildirimler();
+  const { sayfayiAcincaOkundu, tekOkundu } = useBildirimler();
   const [items, setItems] = useState<UygulamaBildirimi[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
 
@@ -85,17 +100,6 @@ export default function BildirimMerkeziEkrani() {
     }, [load, sayfayiAcincaOkundu]),
   );
 
-  const testPush = async () => {
-    const r = await BildirimKuyrugaEkleDev({
-      title: 'Test bildirimi',
-      body: 'Bildirim merkezi denemesi',
-      category: 'system',
-    });
-    if (!r.ok) Alert.alert('Bildirim', r.hata);
-    await load();
-    await yenile();
-  };
-
   const ac = (item: UygulamaBildirimi) => {
     void tekOkundu(item.id);
     setItems((prev) =>
@@ -121,45 +125,22 @@ export default function BildirimMerkeziEkrani() {
       <ModulHataSiniri modulAdi="bildirimler">
         <EkranBasligi
           title="Bildirimler"
-          subtitle="Kimden · ne zaman · içeriğe git"
+          right={
+            <View style={styles.ustAksiyonlar}>
+              <UstIkon
+                icon="flag-outline"
+                label="Raporlarım"
+                onPress={() => router.push('/raporlarim' as any)}
+              />
+              <UstIkon
+                icon="options-outline"
+                label="Bildirim ayarları"
+                onPress={() => router.push('/bildirim-ayarlari' as any)}
+              />
+            </View>
+          }
         />
         <View style={styles.content}>
-          <Pressable
-            style={styles.ayarBanner}
-            onPress={() => router.push('/bildirim-ayarlari' as any)}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.ayarBaslik}>Bildirim ayarları</Text>
-              <Text style={styles.ayarAlt}>Mesaj · hediye · canlı · aç/kapa</Text>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={RenkTokenlari.textDim}
-            />
-          </Pressable>
-
-          <Pressable
-            style={styles.ayarBanner}
-            onPress={() => router.push('/raporlarim' as any)}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.ayarBaslik}>Raporlarım</Text>
-              <Text style={styles.ayarAlt}>
-                Bildirdiğin kullanıcılar · durum · ekip notu
-              </Text>
-            </View>
-            <Ionicons
-              name="flag-outline"
-              size={18}
-              color={RenkTokenlari.primarySoft}
-            />
-          </Pressable>
-
-          {isAdmin ? (
-            <GradientButton title="Test bildirimi" onPress={testPush} />
-          ) : null}
-
           <FlatList
             data={items}
             keyExtractor={(item) => item.id}
@@ -257,26 +238,21 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: BoslukTokenlari.lg,
-    gap: BoslukTokenlari.md,
   },
-  ayarBanner: {
+  ustAksiyonlar: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: BoslukTokenlari.md,
-    borderRadius: YaricapTokenlari.md,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.borderAccent,
-    backgroundColor: RenkTokenlari.bgCard,
-    gap: 8,
+    gap: 6,
   },
-  ayarBaslik: {
-    ...TipografiTokenlari.body,
-    color: RenkTokenlari.text,
-    fontWeight: '700',
-  },
-  ayarAlt: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
+  ustIkon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: RenkTokenlari.chipFill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: RenkTokenlari.border,
   },
   list: { paddingBottom: BoslukTokenlari.xxxl, gap: BoslukTokenlari.sm },
   card: {

@@ -13,7 +13,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-type Placement = 'center' | 'bottom';
+type Placement = 'center' | 'bottom' | 'top';
 
 type Props = {
   visible: boolean;
@@ -38,6 +38,7 @@ export function TamusoModal({
   rootStyle,
 }: Props) {
   const bottom = placement === 'bottom';
+  const top = placement === 'top';
 
   return (
     <Modal
@@ -49,7 +50,12 @@ export function TamusoModal({
       onRequestClose={onClose}
     >
       <View
-        style={[styles.root, bottom && styles.rootBottom, rootStyle]}
+        style={[
+          styles.root,
+          bottom && styles.rootBottom,
+          top && styles.rootTop,
+          rootStyle,
+        ]}
         pointerEvents="box-none"
       >
         <Pressable
@@ -59,7 +65,12 @@ export function TamusoModal({
           accessibilityLabel="Kapat"
         />
         <View
-          style={[styles.content, bottom && styles.contentBottom, contentStyle]}
+          style={[
+            styles.content,
+            bottom && styles.contentBottom,
+            top && styles.contentTop,
+            contentStyle,
+          ]}
           pointerEvents="box-none"
         >
           {children}
@@ -79,6 +90,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'stretch',
   },
+  rootTop: {
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+  },
   backdrop: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.55)',
@@ -95,5 +110,9 @@ const styles = StyleSheet.create({
   contentBottom: {
     maxWidth: '100%',
     paddingHorizontal: 0,
+  },
+  contentTop: {
+    maxWidth: '100%',
+    paddingHorizontal: 12,
   },
 });

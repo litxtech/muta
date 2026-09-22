@@ -15,12 +15,12 @@ export async function OdaGirisYetkisiniKontrolEt(odaId: string): Promise<{
     // FK adı farklı ortamlarda olabilir — düz select'e düş
     const yedek = await supabase.from('rooms').select('*').eq('id', odaId).maybeSingle();
     if (yedek.error) return { ok: false, hata: yedek.error.message };
-    if (!yedek.data) return { ok: false, hata: 'Oda bulunamadi' };
-    if (!yedek.data.is_live) return { ok: false, hata: 'Oda kapali' };
+    if (!yedek.data) return { ok: false, hata: 'Oda bulunamadı' };
+    if (!yedek.data.is_live) return { ok: false, hata: 'Oda kapalı' };
     return { ok: true, oda: yedek.data as Room };
   }
-  if (!data) return { ok: false, hata: 'Oda bulunamadi' };
-  if (!data.is_live) return { ok: false, hata: 'Oda kapali' };
+  if (!data) return { ok: false, hata: 'Oda bulunamadı' };
+  if (!data.is_live) return { ok: false, hata: 'Oda kapalı' };
   return { ok: true, oda: data as Room };
 }
 

@@ -30,7 +30,11 @@ export function TakipIstekleriEkrani() {
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="takip-istekleri">
-        <EkranBasligi title="Takip İstekleri" subtitle="Onayla veya sil" />
+        <EkranBasligi
+          title="Takip İstekleri"
+          subtitle="Onayla veya sil"
+          fallbackHref="/(tabs)/profile"
+        />
         {yukleniyor && !items.length ? (
           <ActivityIndicator color={RenkTokenlari.primary} style={{ marginTop: 40 }} />
         ) : (

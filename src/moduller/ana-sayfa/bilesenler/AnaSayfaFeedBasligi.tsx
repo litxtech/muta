@@ -1,6 +1,5 @@
 import React, { type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnaSayfaCanliNokta } from './AnaSayfaCanliNokta';
@@ -11,28 +10,23 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
 
 type Props = {
-  sesSayisi: number;
-  yayinSayisi: number;
+  /** Toplam canlı (yayın + ses) — tek kompakt chip */
+  canliSayisi: number;
   solAksiyon?: ReactNode;
   sagAksiyon?: ReactNode;
 };
 
-/** Feed üst bar — marka + canlı nabız sayacı (cam çip) */
+/** Feed üst bar — profil avatar · Tamuso · ● N CANLI · bildirim */
 export function AnaSayfaFeedBasligi({
-  sesSayisi,
-  yayinSayisi,
+  canliSayisi,
   solAksiyon,
   sagAksiyon,
 }: Props) {
+  useTemayaAboneOl();
   const insets = useSafeAreaInsets();
-  const toplam = sesSayisi + yayinSayisi;
-  const parcalar = [
-    yayinSayisi > 0 ? `${yayinSayisi} yayın` : null,
-    sesSayisi > 0 ? `${sesSayisi} ses odası` : null,
-  ].filter(Boolean);
-  const alt = parcalar.length > 0 ? parcalar.join(' · ') : 'Sahne sessiz — ilk odayı sen aç';
 
   return (
     <Animated.View
@@ -45,24 +39,24 @@ export function AnaSayfaFeedBasligi({
         {solAksiyon}
         <View style={styles.baslikBlok}>
           <View style={styles.markaSatir}>
-            <Text style={styles.marka}>Tamuso</Text>
-            <LinearGradient
-              colors={[...RenkTokenlari.gradientPrimary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.markaNokta}
-            />
-          </View>
-          <View style={styles.canliSatir}>
-            <View style={styles.canliCip}>
-              <AnaSayfaCanliNokta boyut={6} />
-              <Text style={styles.canliYazi}>
-                {toplam > 0 ? `${toplam} CANLI` : 'CANLI'}
+            <View style={styles.markaBlok} accessibilityRole="header">
+              <View style={styles.markaCizgi} />
+              <Text style={styles.marka} accessibilityLabel="Tamuso">
+                <Text style={styles.markaTamu}>Tamu</Text>
+                <Text style={styles.markaSo}>so</Text>
               </Text>
             </View>
-            <Text style={styles.alt} numberOfLines={1}>
-              {alt}
-            </Text>
+            {canliSayisi > 0 ? (
+              <View style={styles.canliCip}>
+                <AnaSayfaCanliNokta boyut={6} nabiz={false} />
+                <Text style={styles.canliYazi}>{canliSayisi} CANLI</Text>
+              </View>
+            ) : (
+              <View style={[styles.canliCip, styles.canliCipSessiz]}>
+                <AnaSayfaCanliNokta boyut={5} nabiz={false} />
+                <Text style={[styles.canliYazi, styles.canliYaziSessiz]}>SAHNE</Text>
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -87,57 +81,65 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  baslikBlok: { flex: 1, minWidth: 0, gap: 6 },
+  baslikBlok: { flex: 1, minWidth: 0 },
   markaSatir: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
+    flexWrap: 'wrap',
   },
-  marka: {
-    ...TipografiTokenlari.h1,
-    color: RenkTokenlari.text,
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '900',
-    letterSpacing: -0.8,
-  },
-  markaNokta: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  canliSatir: {
+  markaBlok: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    minWidth: 0,
+    gap: 6,
+  },
+  markaCizgi: {
+    width: 2.5,
+    height: 12,
+    borderRadius: 2,
+    backgroundColor: RenkTokenlari.primary,
+  },
+  marka: {
+    fontSize: 15,
+    lineHeight: 18,
+    letterSpacing: 0.2,
+  },
+  markaTamu: {
+    color: RenkTokenlari.text,
+    fontWeight: '800',
+    letterSpacing: -0.35,
+  },
+  markaSo: {
+    color: RenkTokenlari.primarySoft,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
   canliCip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingRight: 9,
+    gap: 5,
+    paddingRight: 8,
     paddingLeft: 4,
     paddingVertical: 4,
     borderRadius: YaricapTokenlari.pill,
     backgroundColor: 'rgba(232, 64, 145, 0.14)',
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: RenkTokenlari.borderAccent,
+  },
+  canliCipSessiz: {
+    backgroundColor: RenkTokenlari.pressFill,
+    borderColor: RenkTokenlari.border,
   },
   canliYazi: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.primarySoft,
-    fontSize: 9.5,
+    fontSize: 10,
     lineHeight: 12,
-    letterSpacing: 1.2,
+    letterSpacing: 1.1,
     fontWeight: '800',
   },
-  alt: {
-    ...TipografiTokenlari.micro,
+  canliYaziSessiz: {
     color: RenkTokenlari.textDim,
-    flex: 1,
-    minWidth: 0,
-    lineHeight: 14,
   },
   sag: {
     flexDirection: 'row',

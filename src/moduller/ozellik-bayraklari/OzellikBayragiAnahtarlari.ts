@@ -35,6 +35,10 @@ export const OzellikBayragiAnahtarlari = [
   'kozmik_kaskad_enabled',
   'zeus_enabled',
   'nox_reels_enabled',
+  'voice_room_music_enabled',
+  'music_ducking_enabled',
+  'music_playlists_enabled',
+  'music_favorites_enabled',
 ] as const;
 
 export type OzellikBayragiAnahtari = (typeof OzellikBayragiAnahtarlari)[number];

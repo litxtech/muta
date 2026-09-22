@@ -13,6 +13,11 @@ export type GizlilikAyarlari = {
   hide_prestige: boolean;
   hide_account_value: boolean;
   hide_crown: boolean;
+  hide_online_status: boolean;
+  hide_followers: boolean;
+  hide_following: boolean;
+  hide_status_posts: boolean;
+  hide_game_stats: boolean;
   is_private: boolean;
 };
 
@@ -29,11 +34,16 @@ const DEFAULTS: GizlilikAyarlari = {
   hide_prestige: false,
   hide_account_value: false,
   hide_crown: false,
+  hide_online_status: false,
+  hide_followers: false,
+  hide_following: false,
+  hide_status_posts: false,
+  hide_game_stats: false,
   is_private: false,
 };
 
 const SELECT_ALANLARI =
-  'hide_recharge_rank, hide_gifter_rank, hide_current_room, hide_last_seen, hide_agency, hide_gift_collection, hide_top_supporter, hide_level, hide_topup_coin, hide_prestige, hide_account_value, hide_crown, is_private';
+  'hide_recharge_rank, hide_gifter_rank, hide_current_room, hide_last_seen, hide_agency, hide_gift_collection, hide_top_supporter, hide_level, hide_topup_coin, hide_prestige, hide_account_value, hide_crown, hide_online_status, hide_followers, hide_following, hide_status_posts, hide_game_stats, is_private';
 
 function satirdanAyarlar(data: Partial<GizlilikAyarlari> | null): GizlilikAyarlari {
   return { ...DEFAULTS, ...(data ?? {}) };
@@ -104,8 +114,28 @@ export const GIZLILIK_ALAN_ETIKETLERI: {
   { key: 'hide_gifter_rank', label: 'Hediye sıralamamı gizle' },
   { key: 'hide_current_room', label: 'Bulunduğum odayı gizle' },
   { key: 'hide_last_seen', label: 'Son görülmeyi gizle' },
+  {
+    key: 'hide_online_status',
+    label: 'Çevrimiçi durumumu gizle',
+    aciklama: 'Aktif / çevrimiçi olduğun başkalarına gösterilmez',
+  },
   { key: 'hide_gift_collection', label: 'Hediye koleksiyonumu gizle' },
   { key: 'hide_top_supporter', label: 'En çok destekçiyi gizle' },
+  {
+    key: 'hide_followers',
+    label: 'Takipçilerimi gizle',
+    aciklama: 'Takipçi sayısı ve listesi profilde görünmez',
+  },
+  {
+    key: 'hide_following',
+    label: 'Takip listemi gizle',
+    aciklama: 'Takip ettiğin kişi sayısı ve listesi görünmez',
+  },
+  {
+    key: 'hide_status_posts',
+    label: 'Durumlarımı / gönderilerimi gizle',
+    aciklama: 'Profildeki durum ızgarası ziyaretçilere kapalı',
+  },
   {
     key: 'is_private',
     label: 'Gizli hesap',
@@ -148,5 +178,10 @@ export const PROFIL_GOSTERGE_GIZLILIK: {
     key: 'hide_account_value',
     label: 'Hesap değerimi gizle',
     aciklama: 'Güven / kalite skorun profil ziyaretlerinde görünmez',
+  },
+  {
+    key: 'hide_game_stats',
+    label: 'Oyun istatistiğimi gizle',
+    aciklama: 'Kupa, galibiyet ve lig kartın profilde görünmez',
   },
 ];

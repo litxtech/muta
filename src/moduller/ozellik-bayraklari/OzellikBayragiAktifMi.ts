@@ -40,6 +40,10 @@ const yerelBayraklar: Record<OzellikBayragiAnahtari, boolean> = {
   kozmik_kaskad_enabled: true,
   zeus_enabled: true,
   nox_reels_enabled: true,
+  voice_room_music_enabled: true,
+  music_ducking_enabled: true,
+  music_playlists_enabled: true,
+  music_favorites_enabled: true,
 };
 
 const yerelKillSwitch: Record<KillSwitchAnahtari, boolean> = {

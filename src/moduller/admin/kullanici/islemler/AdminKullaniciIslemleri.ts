@@ -17,6 +17,21 @@ export async function AdminKullaniciBanla(
   return { ok: true, veri: data as Record<string, unknown> };
 }
 
+/** Geçici askıya alma — banned_until */
+export async function AdminKullaniciAskiyaAl(
+  userId: string,
+  hours = 24,
+  reason?: string,
+): Promise<AdminIslemSonucu> {
+  const { error } = await supabase.rpc('admin_kullanici_askiya_al', {
+    p_user_id: userId,
+    p_hours: hours,
+    p_reason: reason ?? null,
+  });
+  if (error) return { ok: false, hata: error.message };
+  return { ok: true };
+}
+
 export async function AdminKullaniciBanKaldir(
   userId: string,
 ): Promise<AdminIslemSonucu> {

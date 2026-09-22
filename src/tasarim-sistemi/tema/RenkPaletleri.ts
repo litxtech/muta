@@ -1,20 +1,20 @@
 import type { RenkPaleti } from './TemaTipleri';
 
-/** Koyu premium — varsayilan sahne */
+/** Koyu premium — gece / kontrollü neon */
 export const RenkTokenlariKoyu = {
-  bg: '#121018',
-  bgElevated: '#1A1624',
-  bgCard: '#211C2E',
-  bgGlass: 'rgba(33, 28, 46, 0.78)',
-  surface: '#2A2438',
+  bg: '#080811',
+  bgElevated: '#0D0D18',
+  bgCard: '#141421',
+  bgGlass: 'rgba(20, 20, 33, 0.82)',
+  surface: '#1A1928',
   border: 'rgba(255, 255, 255, 0.08)',
   borderAccent: 'rgba(232, 64, 145, 0.4)',
   /** @deprecated borderAccent kullan */
   borderHot: 'rgba(232, 64, 145, 0.4)',
 
-  text: '#F7F2F8',
-  textMuted: 'rgba(247, 242, 248, 0.64)',
-  textDim: 'rgba(247, 242, 248, 0.4)',
+  text: '#FFFFFF',
+  textMuted: 'rgba(255, 255, 255, 0.65)',
+  textDim: 'rgba(255, 255, 255, 0.4)',
   textOnPrimary: '#12040C',
   textOnOverlay: '#F7F2F8',
 
@@ -32,32 +32,32 @@ export const RenkTokenlariKoyu = {
   warning: '#F0B429',
 
   gradientPrimary: ['#E84091', '#C43BFF'] as const,
-  gradientNight: ['#121018', '#1A1228', '#2A1838'] as const,
-  gradientRoom: ['#2A1428', '#16101F', '#121018'] as const,
+  gradientNight: ['#080811', '#0D0D18', '#1A1228'] as const,
+  gradientRoom: ['#201E30', '#141421', '#080811'] as const,
   gradientGold: ['#F0B429', '#E87A3B'] as const,
   gradientDiamond: ['#8B5CF6', '#3DCFB0'] as const,
-  gradientCard: ['rgba(48,36,62,0.98)', 'rgba(24,18,34,0.99)'] as const,
-  gradientPlaceholder: ['#3A1A38', '#1A1226', '#120E1A'] as const,
+  gradientCard: ['rgba(32,30,48,0.98)', 'rgba(14,13,24,0.99)'] as const,
+  gradientPlaceholder: ['#2A1A48', '#141428', '#0A0A14'] as const,
   overlayGradient: [
-    'rgba(10,6,16,0.08)',
-    'rgba(10,6,16,0.48)',
-    'rgba(8,4,14,0.96)',
+    'rgba(8,8,17,0.08)',
+    'rgba(8,8,17,0.48)',
+    'rgba(6,6,14,0.96)',
   ] as const,
 
   pressFill: 'rgba(255, 255, 255, 0.06)',
   divider: 'rgba(255, 255, 255, 0.10)',
-  chipFill: 'rgba(8, 4, 14, 0.62)',
+  chipFill: 'rgba(8, 8, 17, 0.62)',
   scrim: 'rgba(0, 0, 0, 0.55)',
 
   micOn: '#3DCFB0',
-  micOff: 'rgba(247, 242, 248, 0.25)',
+  micOff: 'rgba(255, 255, 255, 0.25)',
   live: '#E84091',
   seatEmpty: 'rgba(255, 255, 255, 0.06)',
 
   blurTint: 'dark' as const,
   statusBar: 'light' as const,
-  tabBarOverlay: 'rgba(18, 16, 24, 0.4)',
-  tabBarFallback: 'rgba(18, 16, 24, 0.96)',
+  tabBarOverlay: 'rgba(8, 8, 17, 0.55)',
+  tabBarFallback: 'rgba(13, 13, 24, 0.96)',
 } satisfies RenkPaleti;
 
 /**
@@ -66,18 +66,18 @@ export const RenkTokenlariKoyu = {
  * Kapak/foto overlay her temada koyu scrim — üstündeki yazı açık kalır.
  */
 export const RenkTokenlariAcik = {
-  bg: '#F5F3F8',
+  bg: '#F7F4FB',
   bgElevated: '#FFFFFF',
-  bgCard: '#FFFFFF',
-  bgGlass: 'rgba(255, 255, 255, 0.92)',
-  surface: '#EDE8F3',
-  border: 'rgba(18, 10, 28, 0.12)',
+  bgCard: 'rgba(255, 255, 255, 0.94)',
+  bgGlass: 'rgba(255, 255, 255, 0.88)',
+  surface: '#EFEAF6',
+  border: 'rgba(90, 60, 120, 0.12)',
   borderAccent: 'rgba(214, 46, 130, 0.4)',
   borderHot: 'rgba(214, 46, 130, 0.4)',
 
   text: '#14101C',
-  textMuted: 'rgba(20, 16, 28, 0.72)',
-  textDim: 'rgba(20, 16, 28, 0.5)',
+  textMuted: 'rgba(20, 16, 28, 0.68)',
+  textDim: 'rgba(20, 16, 28, 0.48)',
   /**
    * Marka dolgu / degrade / aktif çip üstü.
    * Açık temada primary/violet/mint koyulaştırıldığı için açık mürekkep şart;
@@ -102,8 +102,8 @@ export const RenkTokenlariAcik = {
 
   /** CTA degrade — beyaz textOnPrimary ile okunur */
   gradientPrimary: ['#D62E82', '#7A1AB8'] as const,
-  gradientNight: ['#F5F3F8', '#FFFFFF', '#F0ECF5'] as const,
-  gradientRoom: ['#FFFFFF', '#F5F3F8', '#EDE8F3'] as const,
+  gradientNight: ['#F7F4FB', '#FFFFFF', '#F3EAF8'] as const,
+  gradientRoom: ['#FFFFFF', '#F7F4FB', '#EFEAF6'] as const,
   gradientGold: ['#C99214', '#C45E24'] as const,
   gradientDiamond: ['#5B2FD4', '#0F7A62'] as const,
   gradientCard: ['#FFFFFF', '#F7F4FA'] as const,
@@ -127,8 +127,8 @@ export const RenkTokenlariAcik = {
 
   blurTint: 'light' as const,
   statusBar: 'dark' as const,
-  tabBarOverlay: 'rgba(255, 255, 255, 0.55)',
-  tabBarFallback: 'rgba(255, 255, 255, 0.96)',
+  tabBarOverlay: 'rgba(255, 255, 255, 0.72)',
+  tabBarFallback: 'rgba(255, 255, 255, 0.94)',
 } satisfies RenkPaleti;
 
 /** Kadife Rose — şarap / velvet premium gece */

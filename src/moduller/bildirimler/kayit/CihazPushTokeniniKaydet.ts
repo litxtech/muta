@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, InteractionManager } from 'react-native';
 import { supabase } from '../../../lib/supabase';
 import {
   CihazKimliginiGetir,
@@ -9,6 +9,7 @@ import {
   AndroidFcmTokeniniAl,
   ExpoPushTokeniniAl,
 } from './ExpoPushTokeniniAl';
+import { BildirimIzniIste } from './BildirimIzniIste';
 
 type PushProvider = 'apns' | 'fcm' | 'expo' | 'none';
 
@@ -35,11 +36,20 @@ async function tokenKaydet(
  * Android → Firebase FCM device token (asıl).
  * iOS → Expo Push Token (APNs / EAS).
  * Expo token Android'de yedek olarak da kaydedilir.
+ * İzin her zaman token'dan önce istenir (BildirimIzniIste).
  */
 export async function CihazPushTokeniniKaydet(input?: {
   pushToken?: string | null;
 }): Promise<{ ok: boolean; hata?: string; token?: string | null }> {
   try {
+    // UI settle olsun — splash/auth sırasında dialog bastırılmasın
+    await new Promise<void>((resolve) => {
+      InteractionManager.runAfterInteractions(() => resolve());
+    });
+
+    // Token almadan önce OS iznini net iste (Android FCM kapalı olsa bile dialog çıksın)
+    await BildirimIzniIste();
+
     const deviceId = await CihazKimliginiGetir();
     const platform = CihazPlatformunuGetir();
     const plat = platform === 'unknown' ? 'web' : platform;
@@ -63,7 +73,7 @@ export async function CihazPushTokeniniKaydet(input?: {
       if (!fcm && !expo) {
         return {
           ok: false,
-          hata: 'FCM token yok — google-services.json ve native build gerekli',
+          hata: 'Bildirim izni veya FCM token yok',
           token: null,
         };
       }

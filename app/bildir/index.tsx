@@ -28,6 +28,7 @@ import {
 import {
   BILDIRME_SEBEPLERI,
   KullaniciBildir,
+  RAPOR_ALINDI_MESAJ,
 } from '../../src/moduller/moderasyon/islemler/ModerasyonIslemleri';
 import { ProfilAvatarKucuk } from '../../src/moduller/canli-sohbet/bilesenler/ProfilAvatarKucuk';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
@@ -111,7 +112,7 @@ export default function BildirEkrani() {
     }
     Alert.alert(
       'Bildirim alındı',
-      "Raporunuz incelenecek. Takibi Bildirimler → Raporlarım'dan yapabilirsiniz.",
+      RAPOR_ALINDI_MESAJ,
       [
         {
           text: 'Raporlarım',

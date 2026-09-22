@@ -82,11 +82,16 @@ export function BannerCard({
     !!banner.media_url &&
     !showVideo;
   const showGradient = mediaType === 'GRADIENT';
+  const autoGorsel =
+    banner.id.startsWith('auto-event-') ||
+    banner.id.startsWith('promo-') ||
+    banner.id.startsWith('auto-room-');
   const showText =
-    mediaType === 'IMAGE_TEXT' ||
-    mediaType === 'VIDEO_TEXT' ||
-    mediaType === 'GRADIENT' ||
-    !!banner.title;
+    !autoGorsel &&
+    (mediaType === 'IMAGE_TEXT' ||
+      mediaType === 'VIDEO_TEXT' ||
+      mediaType === 'GRADIENT' ||
+      !!banner.title);
 
   const actions = (banner.actions ?? []).filter(
     (a) => a.action_type !== 'NONE',
@@ -128,7 +133,11 @@ export function BannerCard({
         Platform.OS === 'ios' ? styles.shadowIos : styles.elevationAndroid,
       ]}
       onLayout={onLayout}
-      accessibilityLabel={banner.title ?? banner.name ?? 'Tanıtım bannerı'}
+      accessibilityLabel={
+        banner.title?.trim() ||
+        (autoGorsel ? 'Tanıtım' : banner.name) ||
+        'Tanıtım bannerı'
+      }
     >
       <Pressable
         onPressIn={(e) => {

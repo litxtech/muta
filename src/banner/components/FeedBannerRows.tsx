@@ -54,7 +54,12 @@ export function FeedBannerRowView({
 }): ReactElement {
   return (
     <View style={styles.row}>
-      <TamusoBanner placement={placement} screen="FEED" compact />
+      <TamusoBanner
+        placement={placement}
+        screen="FEED"
+        compact
+        style={styles.bannerIc}
+      />
     </View>
   );
 }
@@ -63,5 +68,9 @@ const styles = StyleSheet.create({
   row: {
     width: '100%',
     marginBottom: BoslukTokenlari.sm,
+  },
+  /** FlatList zaten yatay pad — çift boşluk / sağa kaymayı önle */
+  bannerIc: {
+    paddingHorizontal: 0,
   },
 });

@@ -11,7 +11,10 @@ import type { GameCode } from '../tipler/OyunTipleri';
 
 export function useGorunurOyunKodlari(params?: { enabled?: boolean }) {
   const enabled = params?.enabled !== false;
-  const [codes, setCodes] = useState<GameCode[]>([]);
+  /** İlk boyamada boş liste gösterme — sunucu gelene kadar varsayılan üç oyun */
+  const [codes, setCodes] = useState<GameCode[]>(
+    enabled ? ['nox_reels', 'zeus', 'kozmik_kaskad'] : [],
+  );
   const [platformAcik, setPlatformAcik] = useState(true);
   const [loading, setLoading] = useState(enabled);
 

@@ -15,9 +15,10 @@ const PROMO_PLACEMENTS = [
   { screen_key: 'HOME', placement_key: AUTO_ROOM_PROMO_PLACEMENTS.oyun, sort_order: 5 },
 ] as const;
 
-function basePromo(partial: Partial<BannerCampaign> & Pick<BannerCampaign, 'id' | 'name' | 'title'>): BannerCampaign {
+function basePromo(partial: Partial<BannerCampaign> & Pick<BannerCampaign, 'id' | 'name'>): BannerCampaign {
   const now = new Date().toISOString();
   return {
+    title: null,
     internal_name: partial.name,
     subtitle: null,
     description: null,
@@ -46,8 +47,8 @@ function basePromo(partial: Partial<BannerCampaign> & Pick<BannerCampaign, 'id' 
     shimmer_enabled: false,
     autoplay_video: false,
     loop_video: false,
-    carousel_auto_slide_ms: null,
-    tags: ['PROMOTION'],
+    carousel_auto_slide_ms: 3000,
+    tags: [],
     created_by: null,
     created_at: now,
     updated_at: now,
@@ -84,27 +85,25 @@ async function enPopulerOdaBanner(): Promise<BannerCampaign | null> {
     | { display_name?: string | null; avatar_url?: string | null }[]
     | null;
   const host = Array.isArray(hostRaw) ? hostRaw[0] : hostRaw;
-  const dinleyici = Number(data.listener_count ?? 0);
   const medya = httpsMedyaMi(data.cover_url) ?? httpsMedyaMi(host?.avatar_url);
 
   return basePromo({
     id: `promo-oda-${data.id}`,
     name: 'auto_oda',
-    title: data.title || 'Canlı ses odası',
-    subtitle: host?.display_name
-      ? `${host.display_name} · ${dinleyici} dinleyici`
-      : `${dinleyici} dinleyici`,
-    badge: 'SES',
-    tags: ['HOT', 'LIVE'],
-    media_type: medya ? 'IMAGE_TEXT' : 'GRADIENT',
+    title: null,
+    subtitle: null,
+    badge: null,
+    tags: [],
+    media_type: medya ? 'IMAGE' : 'GRADIENT',
     media_url: medya,
     gradient_json: { colors: ['#0F3A36', '#3DCFB0'] },
     priority: 55,
+    carousel_auto_slide_ms: 3000,
     actions: [
       {
         slot: 0,
         action_type: 'INTERNAL_ROOM',
-        button_text: 'Katıl',
+        button_text: null,
         target: data.id,
       },
     ],
@@ -128,27 +127,25 @@ async function enPopulerCanliBanner(): Promise<BannerCampaign | null> {
     | { display_name?: string | null; avatar_url?: string | null }[]
     | null;
   const host = Array.isArray(hostRaw) ? hostRaw[0] : hostRaw;
-  const izleyici = Number(data.viewer_count ?? 0);
   const medya = httpsMedyaMi(host?.avatar_url);
 
   return basePromo({
     id: `promo-canli-${data.id}`,
     name: 'auto_canli',
-    title: data.title || 'Canlı yayın',
-    subtitle: host?.display_name
-      ? `${host.display_name} · ${izleyici} izleyici`
-      : `${izleyici} izleyici`,
-    badge: 'CANLI',
-    tags: ['LIVE', 'HOT'],
-    media_type: medya ? 'IMAGE_TEXT' : 'GRADIENT',
+    title: null,
+    subtitle: null,
+    badge: null,
+    tags: [],
+    media_type: medya ? 'IMAGE' : 'GRADIENT',
     media_url: medya,
     gradient_json: { colors: ['#3A1A38', '#E84091'] },
     priority: 52,
+    carousel_auto_slide_ms: 3000,
     actions: [
       {
         slot: 0,
         action_type: 'INTERNAL_LIVE',
-        button_text: 'İzle',
+        button_text: null,
         target: data.id,
       },
     ],
@@ -198,19 +195,20 @@ async function enCokCoinOyunBanner(): Promise<BannerCampaign | null> {
   return basePromo({
     id: `promo-oyun-${kod}`,
     name: 'auto_oyun',
-    title: kart.baslik,
-    subtitle: kart.slogan,
-    badge: 'OYUN',
-    tags: ['GAME', 'HOT'],
+    title: null,
+    subtitle: null,
+    badge: null,
+    tags: [],
     media_type: 'GRADIENT',
     media_url: null,
     gradient_json: { colors: [...kart.cta] },
     priority: 48,
+    carousel_auto_slide_ms: 3000,
     actions: [
       {
         slot: 0,
         action_type: 'INTERNAL_GAME',
-        button_text: 'Oyna',
+        button_text: null,
         target: kart.kod,
       },
     ],

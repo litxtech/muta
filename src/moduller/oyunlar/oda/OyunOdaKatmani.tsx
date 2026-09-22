@@ -159,7 +159,7 @@ export function OyunOdaKatmani({
           visible={startModalVisible && phase === 'idle'}
           onClose={onStartModalClose}
           onBaslatKaskad={
-            !visibilityReady || visibleGameCodes.includes('kozmik_kaskad')
+            visibleGameCodes.includes('kozmik_kaskad')
               ? () => {
                   onStartModalClose();
                   setPhase('kaskad');
@@ -167,7 +167,7 @@ export function OyunOdaKatmani({
               : undefined
           }
           onBaslatZeus={
-            !visibilityReady || visibleGameCodes.includes('zeus')
+            visibleGameCodes.includes('zeus')
               ? () => {
                   onStartModalClose();
                   setPhase('zeus');
@@ -175,14 +175,14 @@ export function OyunOdaKatmani({
               : undefined
           }
           onBaslatNox={
-            !visibilityReady || visibleGameCodes.includes('nox_reels')
+            visibleGameCodes.includes('nox_reels')
               ? () => {
                   onStartModalClose();
                   setPhase('nox');
                 }
               : undefined
           }
-          visibleGameCodes={visibilityReady ? visibleGameCodes : undefined}
+          visibleGameCodes={visibleGameCodes}
         />
 
         {phase === 'kaskad' ? (

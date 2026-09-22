@@ -8,6 +8,7 @@ import React, {
   useState,
 } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import {
@@ -99,7 +100,9 @@ export function BildirimSaglayici({ children }: { children: React.ReactNode }) {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          if (odakli.current) void yenile();
+          // Arka planda da sayacı çek — iOS ikon için push badge asıl yol;
+          // process canlıysa in-app + setBadgeCountAsync da güncellensin.
+          void yenile();
         },
       )
       .subscribe();
@@ -110,8 +113,25 @@ export function BildirimSaglayici({ children }: { children: React.ReactNode }) {
     };
     const sub = AppState.addEventListener('change', onApp);
 
+    // Push geldiğinde (foreground/background process canlı): badge data veya DB
+    const pushSub = Notifications.addNotificationReceivedListener((n) => {
+      const raw = n.request.content.data?.badge ?? n.request.content.badge;
+      const parsed =
+        typeof raw === 'number'
+          ? raw
+          : typeof raw === 'string'
+            ? Number(raw)
+            : NaN;
+      if (Number.isFinite(parsed)) {
+        uygulaSayi(parsed);
+      } else {
+        void yenile();
+      }
+    });
+
     return () => {
       sub.remove();
+      pushSub.remove();
       void supabase.removeChannel(kanal);
     };
   }, [session, userId, yenile, uygulaSayi]);

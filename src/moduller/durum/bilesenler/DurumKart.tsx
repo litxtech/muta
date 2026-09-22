@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { memo, useState } from 'react';
 import {
   Image,
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,7 @@ import { DurumZamanMetni } from '../islemler/DurumZaman';
 import { DurumOyunKazanciKart } from './DurumOyunKazanciKart';
 import { DurumVideoOnizleme } from './DurumVideoOnizleme';
 import { DurumCaptionAcilir } from './DurumCaptionAcilir';
+import { DurumEtkilesimCubugu } from './DurumEtkilesimCubugu';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
@@ -32,20 +34,46 @@ type Props = {
   onHediye: () => void;
   onProfil: () => void;
   onMenu?: () => void;
-  /** FlatList görünür + sekme odakta → muted video önizleme */
+  /** FlatList görünür + sekme odakta → muted video önizleme (tek aktif) */
   videoAktif?: boolean;
   /** Paylaş — yoksa buton gizli */
   onPaylas?: () => void;
 };
 
-function formatSayi(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}Mn`;
-  if (n >= 10_000) return `${Math.round(n / 1000)}B`;
-  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}B`;
-  return String(n);
-}
+const AVATAR = 46;
+/** Portrait görseller feed’i ele geçirmesin */
+const MEDYA_MAX_H_ORAN = 0.62;
+const MEDYA_FALLBACK_AR = 16 / 10;
 
-export function DurumKart({
+const DurumFotograf = memo(function DurumFotograf({ uri }: { uri: string }) {
+  const { height: ekranH } = useWindowDimensions();
+  const maxH = Math.round(ekranH * MEDYA_MAX_H_ORAN);
+  const [ar, setAr] = useState(MEDYA_FALLBACK_AR);
+
+  return (
+    <View style={[styles.medyaWrap, { maxHeight: maxH }]}>
+      <Image
+        source={{ uri }}
+        style={[styles.medyaImg, { aspectRatio: ar, maxHeight: maxH }]}
+        resizeMode="cover"
+        onLoad={(e) => {
+          const w = e.nativeEvent?.source?.width;
+          const h = e.nativeEvent?.source?.height;
+          if (typeof w === 'number' && typeof h === 'number' && w > 0 && h > 0) {
+            const next = w / h;
+            // Çok uzun portrait → maxH clamp (aspect korunur, üst/alt crop cover ile)
+            setAr(next);
+          }
+        }}
+        onError={() => {
+          /* bozuk URI — boş elevated yüzey kalsın */
+        }}
+      />
+    </View>
+  );
+});
+
+function DurumKartIc({
   oge,
   onPress,
   onResimPress,
@@ -66,12 +94,28 @@ export function DurumKart({
     oge.media_type !== 'video' &&
     DurumMedyaHttpsMi(oge.media_url) &&
     typeof onResimPress === 'function';
+  const videoUri = DurumMedyaHttpsMi(oge.media_url)
+    ? oge.media_url.trim()
+    : null;
 
   return (
-    <Pressable style={styles.kart} onPress={onPress}>
-      <Pressable onPress={onProfil} hitSlop={4}>
+    <Pressable
+      style={styles.kart}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Gönderi detayı"
+    >
+      <Pressable
+        onPress={(e) => {
+          e.stopPropagation?.();
+          onProfil();
+        }}
+        hitSlop={4}
+        accessibilityRole="button"
+        accessibilityLabel="Profili aç"
+      >
         <ProfilAvatarKucuk
-          size={42}
+          size={AVATAR}
           displayName={oge.display_name}
           username={oge.username}
           avatarUrl={oge.avatar_url}
@@ -80,7 +124,15 @@ export function DurumKart({
 
       <View style={styles.govde}>
         <View style={styles.ustBlok}>
-          <Pressable style={styles.ustSatir} onPress={onProfil}>
+          <Pressable
+            style={styles.ustSatir}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              onProfil();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Profili aç"
+          >
             <Text style={styles.isim} numberOfLines={1}>
               {oge.display_name}
             </Text>
@@ -98,14 +150,15 @@ export function DurumKart({
                 e.stopPropagation?.();
                 onMenu();
               }}
-              hitSlop={10}
+              hitSlop={12}
               style={styles.menuBtn}
-              accessibilityLabel="Gönderi seçenekleri"
+              accessibilityRole="button"
+              accessibilityLabel="Diğer seçenekler"
             >
               <Ionicons
                 name="ellipsis-horizontal"
                 size={18}
-                color={RenkTokenlari.textDim}
+                color={RenkTokenlari.textMuted}
               />
             </Pressable>
           ) : null}
@@ -117,21 +170,25 @@ export function DurumKart({
 
         {!metinGonderisi ? (
           <Pressable
-            onPress={resimBuyutulebilir ? onResimPress : onPress}
+            onPress={(e) => {
+              e.stopPropagation?.();
+              if (resimBuyutulebilir) onResimPress?.();
+              else onPress();
+            }}
             style={[styles.medyaHit, !!kazanc && styles.medyaHitKart]}
             accessibilityRole="imagebutton"
-            accessibilityLabel={resimBuyutulebilir ? 'Resmi büyüt' : undefined}
+            accessibilityLabel={resimBuyutulebilir ? 'Resmi büyüt' : 'Medya'}
           >
             {kazanc ? (
               <DurumOyunKazanciKart payload={kazanc} />
             ) : oge.media_type === 'video' ? (
-              <View style={[styles.medya, styles.medyaBos]}>
+              <View style={[styles.medyaVideo, styles.medyaBos]}>
                 <DurumVideoOnizleme
-                  uri={oge.media_url}
+                  uri={videoUri}
                   style={StyleSheet.absoluteFill}
                   aktif={videoAktif}
                 />
-                {!videoAktif || !DurumMedyaHttpsMi(oge.media_url) ? (
+                {!videoAktif || !videoUri ? (
                   <View style={styles.videoPlaceholder} pointerEvents="none">
                     <Ionicons
                       name="play-circle"
@@ -144,123 +201,31 @@ export function DurumKart({
                   <Ionicons name="play" size={13} color="#fff" />
                 </View>
               </View>
-            ) : DurumMedyaHttpsMi(oge.media_url) ? (
-              <Image
-                source={{ uri: oge.media_url.trim() }}
-                style={styles.medya}
-              />
+            ) : videoUri ? (
+              <DurumFotograf uri={videoUri} />
             ) : (
-              <View style={[styles.medya, styles.medyaBos]} />
+              <View style={[styles.medyaVideo, styles.medyaBos]} />
             )}
           </Pressable>
         ) : null}
 
-        <View style={styles.aksiyonlar}>
-          <Pressable
-            style={styles.aksiyon}
-            onPress={(e) => {
-              e.stopPropagation?.();
-              onYorum();
-            }}
-            hitSlop={10}
-          >
-            <Ionicons
-              name="chatbubble-outline"
-              size={18}
-              color={RenkTokenlari.textDim}
-            />
-            {oge.comment_count > 0 ? (
-              <Text style={styles.aksiyonSayi}>
-                {formatSayi(oge.comment_count)}
-              </Text>
-            ) : null}
-          </Pressable>
-
-          <Pressable
-            style={styles.aksiyon}
-            onPress={(e) => {
-              e.stopPropagation?.();
-              onBegen();
-            }}
-            hitSlop={10}
-          >
-            <Ionicons
-              name={oge.liked_by_me ? 'heart' : 'heart-outline'}
-              size={18}
-              color={
-                oge.liked_by_me ? RenkTokenlari.danger : RenkTokenlari.textDim
-              }
-            />
-            {oge.like_count > 0 ? (
-              <Text
-                style={[
-                  styles.aksiyonSayi,
-                  oge.liked_by_me && { color: RenkTokenlari.danger },
-                ]}
-              >
-                {formatSayi(oge.like_count)}
-              </Text>
-            ) : null}
-          </Pressable>
-
-          <Pressable
-            style={styles.aksiyon}
-            onPress={(e) => {
-              e.stopPropagation?.();
-              onHediye();
-            }}
-            hitSlop={10}
-          >
-            <Ionicons
-              name="gift-outline"
-              size={18}
-              color={
-                oge.gift_count > 0
-                  ? RenkTokenlari.accent
-                  : RenkTokenlari.textDim
-              }
-            />
-            {oge.gift_count > 0 ? (
-              <Text style={[styles.aksiyonSayi, { color: RenkTokenlari.accent }]}>
-                {formatSayi(oge.gift_count)}
-              </Text>
-            ) : null}
-          </Pressable>
-
-          <View style={styles.aksiyon} accessibilityLabel="Görüntülenme">
-            <Ionicons
-              name="eye-outline"
-              size={18}
-              color={RenkTokenlari.textDim}
-            />
-            <Text style={styles.aksiyonSayi}>
-              {formatSayi(Number(oge.view_count ?? 0))}
-            </Text>
-          </View>
-
-          {onPaylas ? (
-            <Pressable
-              style={styles.aksiyon}
-              onPress={(e) => {
-                e.stopPropagation?.();
-                onPaylas();
-              }}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Gönderiyi paylaş"
-            >
-              <Ionicons
-                name="paper-plane-outline"
-                size={18}
-                color={RenkTokenlari.textDim}
-              />
-            </Pressable>
-          ) : null}
-        </View>
+        <DurumEtkilesimCubugu
+          commentCount={Number(oge.comment_count ?? 0)}
+          likeCount={Number(oge.like_count ?? 0)}
+          likedByMe={!!oge.liked_by_me}
+          giftCount={Number(oge.gift_count ?? 0)}
+          viewCount={Number(oge.view_count ?? 0)}
+          onYorum={onYorum}
+          onBegen={onBegen}
+          onHediye={onHediye}
+          onPaylas={onPaylas}
+        />
       </View>
     </Pressable>
   );
 }
+
+export const DurumKart = memo(DurumKartIc);
 
 const styles = StyleSheet.create({
   kart: {
@@ -268,15 +233,16 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 12,
     paddingHorizontal: BoslukTokenlari.lg,
-    paddingTop: 14,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: RenkTokenlari.border,
+    paddingTop: 18,
+    paddingBottom: 20,
   },
   govde: {
     flex: 1,
     minWidth: 0,
     gap: 8,
+    paddingBottom: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: RenkTokenlari.border,
   },
   ustBlok: {
     flexDirection: 'row',
@@ -292,8 +258,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   menuBtn: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -301,23 +267,23 @@ const styles = StyleSheet.create({
   isim: {
     ...TipografiTokenlari.body,
     color: RenkTokenlari.text,
-    fontWeight: '800',
+    fontWeight: '700',
     fontSize: 15,
     flexShrink: 1,
   },
   handle: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textDim,
+    color: RenkTokenlari.textMuted,
     fontSize: 14,
     flexShrink: 2,
   },
   nokta: {
-    color: RenkTokenlari.textDim,
+    color: RenkTokenlari.textMuted,
     fontSize: 13,
   },
   zaman: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textDim,
+    color: RenkTokenlari.textMuted,
     fontSize: 14,
     flexShrink: 0,
   },
@@ -338,13 +304,21 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     backgroundColor: 'transparent',
   },
-  medya: {
+  medyaWrap: {
     width: '100%',
-    aspectRatio: 16 / 10,
+    overflow: 'hidden',
+  },
+  medyaImg: {
+    width: '100%',
+    backgroundColor: RenkTokenlari.bgElevated,
+  },
+  medyaVideo: {
+    width: '100%',
+    aspectRatio: MEDYA_FALLBACK_AR,
     backgroundColor: RenkTokenlari.bgElevated,
   },
   medyaBos: {
-    backgroundColor: '#1a1a22',
+    backgroundColor: RenkTokenlari.bgElevated,
   },
   videoPlaceholder: {
     ...StyleSheet.absoluteFill,
@@ -361,27 +335,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  aksiyonlar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    flexWrap: 'wrap',
-    gap: 14,
-    paddingTop: 2,
-    columnGap: 16,
-  },
-  aksiyon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    minHeight: 32,
-  },
-  aksiyonSayi: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textDim,
-    fontSize: 13,
-    fontWeight: '600',
-    fontVariant: ['tabular-nums'],
   },
 });

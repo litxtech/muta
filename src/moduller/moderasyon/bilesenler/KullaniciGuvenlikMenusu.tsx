@@ -14,6 +14,7 @@ import {
   BILDIRME_SEBEPLERI,
   KullaniciBildir,
   KullaniciEngelle,
+  RAPOR_ALINDI_MESAJ_ENGELLE,
 } from '../islemler/ModerasyonIslemleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
@@ -34,6 +35,7 @@ type Props = {
     | 'room_chat'
     | 'live_chat'
     | 'room'
+    | 'live'
     | 'profile'
     | 'status_post'
     | 'status_comment'
@@ -76,17 +78,20 @@ export function KullaniciGuvenlikMenusu({
   };
 
   const misafirUyar = () => {
-    Alert.alert('Misafir', 'Bildir / engelle için hesabını tamamla.');
+    Alert.alert(
+      'Bildirim',
+      'Misafir hesapla da bildirebilirsin; engellemek için hesabını tamamlaman önerilir.',
+    );
   };
 
   const engelle = () => {
     if (isGuest) {
-      misafirUyar();
+      Alert.alert('Misafir', 'Engellemek için hesabını tamamla.');
       return;
     }
     Alert.alert(
       'Engelle',
-      `${targetName ?? 'Bu kişi'} engellenecek. Sizi platformda bulamaz, mesaj / arama / takip yapamaz.`,
+      `${targetName ?? 'Bu kişi'} engellenecek. İçerikleri senden gizlenir; mesaj / arama / takip yapamaz.`,
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -101,7 +106,10 @@ export function KullaniciGuvenlikMenusu({
                 Alert.alert('Engelle', r.hata ?? 'Başarısız');
                 return;
               }
-              Alert.alert('Engellendi', 'Engeli Profil → Engellenen kullanıcılar’dan kaldırabilirsin.');
+              Alert.alert(
+                'Engellendi',
+                'Bu kullanıcı artık sizinle doğrudan etkileşim kuramayacak ve içerikleri size gösterilmeyecek. Engeli Profil → Engellenen hesaplar’dan kaldırabilirsin.',
+              );
               onBlocked?.();
               kapat();
             })();
@@ -112,10 +120,6 @@ export function KullaniciGuvenlikMenusu({
   };
 
   const bildir = async () => {
-    if (isGuest) {
-      misafirUyar();
-      return;
-    }
     if (!sebepId) {
       Alert.alert('Bildir', 'Bir sebep seç.');
       return;
@@ -144,7 +148,7 @@ export function KullaniciGuvenlikMenusu({
     }
     Alert.alert(
       'Rapor alındı',
-      'İnceleme ekibine iletildi. İstersen bu kişiyi de engelleyebilirsin.',
+      RAPOR_ALINDI_MESAJ_ENGELLE,
       [
         { text: 'Tamam', onPress: () => { onReported?.(); kapat(); } },
         {

@@ -1,22 +1,30 @@
-import { makeRedirectUri } from 'expo-auth-session';
-import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import { supabase } from '../../../lib/supabase';
 import { OrtamDegiskenleri } from '../../../yapilandirma/OrtamDegiskenleri';
+import { OAuthProfiliniTamamla } from './OAuthProfiliniTamamla';
 
 type WebBrowserModulu = typeof import('expo-web-browser');
 
 let webBrowserPromise: Promise<WebBrowserModulu> | null = null;
 
+/**
+ * expo-auth-session / expo-web-browser native'i olmayan eski binary'de
+ * modül yüklenirken çökmesin diye her şey runtime'da import edilir.
+ */
 function webBrowserAl(): Promise<WebBrowserModulu> {
   if (!webBrowserPromise) {
-    webBrowserPromise = import('expo-web-browser').then((mod) => {
-      try {
-        mod.maybeCompleteAuthSession();
-      } catch {
-        // Native modül yoksa (eski dev client) sessiz geç
-      }
-      return mod;
-    });
+    webBrowserPromise = import('expo-web-browser')
+      .then((mod) => {
+        try {
+          mod.maybeCompleteAuthSession();
+        } catch {
+          /* native yok */
+        }
+        return mod;
+      })
+      .catch((e) => {
+        webBrowserPromise = null;
+        throw e;
+      });
   }
   return webBrowserPromise;
 }
@@ -28,14 +36,43 @@ export type SpotifyGirisSonuc =
 const SPOTIFY_SCOPES = 'user-read-email user-read-private';
 
 function oauthRedirectUri(): string {
-  return makeRedirectUri({
-    scheme: OrtamDegiskenleri.uygulamaSemasi || 'muta',
-    path: 'auth/callback',
-  });
+  const scheme = OrtamDegiskenleri.uygulamaSemasi || 'muta';
+  return `${scheme}://auth/callback`;
+}
+
+function queryParamsAl(url: string): {
+  params: Record<string, string>;
+  errorCode?: string;
+} {
+  const params: Record<string, string> = {};
+  try {
+    const qIndex = url.indexOf('?');
+    const hIndex = url.indexOf('#');
+    const query =
+      qIndex >= 0
+        ? url.slice(qIndex + 1, hIndex >= 0 && hIndex > qIndex ? hIndex : undefined)
+        : '';
+    const hash =
+      hIndex >= 0
+        ? url.slice(hIndex + 1, qIndex >= 0 && qIndex > hIndex ? qIndex : undefined)
+        : '';
+    const raw = [query, hash].filter(Boolean).join('&');
+    for (const part of raw.split('&')) {
+      if (!part) continue;
+      const eq = part.indexOf('=');
+      const key = decodeURIComponent(eq >= 0 ? part.slice(0, eq) : part);
+      const val = decodeURIComponent(eq >= 0 ? part.slice(eq + 1) : '');
+      if (key) params[key] = val;
+    }
+  } catch {
+    /* bozuk URL */
+  }
+  const errorCode = params.error || params.error_code || undefined;
+  return { params, errorCode };
 }
 
 async function oturumuUrlDenOlustur(url: string): Promise<void> {
-  const { params, errorCode } = QueryParams.getQueryParams(url);
+  const { params, errorCode } = queryParamsAl(url);
   if (errorCode) {
     throw new Error(errorCode);
   }
@@ -62,39 +99,40 @@ async function oturumuUrlDenOlustur(url: string): Promise<void> {
 
 /** Spotify ad / avatar varsa profili zenginleştir (ilk kayıt). */
 async function spotifyProfiliniTamamla(): Promise<void> {
-  const { data: authData } = await supabase.auth.getUser();
-  const user = authData.user;
-  if (!user) return;
+  await OAuthProfiliniTamamla();
+}
 
-  const meta = user.user_metadata ?? {};
-  const displayName =
-    (typeof meta.full_name === 'string' && meta.full_name.trim()) ||
-    (typeof meta.name === 'string' && meta.name.trim()) ||
-    null;
-  const avatarUrl =
-    (typeof meta.avatar_url === 'string' && meta.avatar_url) ||
-    (typeof meta.picture === 'string' && meta.picture) ||
-    null;
-
-  if (!displayName && !avatarUrl) return;
-
-  const patch: { display_name?: string; avatar_url?: string } = {};
-  if (displayName) patch.display_name = displayName;
-  if (avatarUrl) patch.avatar_url = avatarUrl;
-
-  await supabase.from('profiles').update(patch).eq('id', user.id);
+function nativeModulHatasiMi(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e ?? '');
+  return (
+    msg.includes('ExpoWebBrowser') ||
+    msg.includes('Cannot find native module') ||
+    msg.includes('native module')
+  );
 }
 
 /**
  * Supabase Spotify OAuth (PKCE) → uygulama şemasına dönüş.
- * Supabase Auth → Redirect URLs: `muta://**` (veya `muta://auth/callback`) ekli olmalı.
- * Spotify Developer Dashboard callback: `https://<project>.supabase.co/auth/v1/callback`
+ * Native expo-web-browser yoksa kontrollü hata döner (uygulama çökmez).
  */
 export async function SpotifyIleGirisYap(): Promise<SpotifyGirisSonuc> {
   const redirectTo = oauthRedirectUri();
 
+  let WebBrowser: WebBrowserModulu;
   try {
-    const WebBrowser = await webBrowserAl();
+    WebBrowser = await webBrowserAl();
+  } catch (e) {
+    if (nativeModulHatasiMi(e)) {
+      return {
+        ok: false,
+        hata:
+          'Spotify için yeni development build gerekli (expo-web-browser).',
+      };
+    }
+    return { ok: false, hata: 'Spotify tarayıcısı açılamadı.' };
+  }
+
+  try {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'spotify',
       options: {
@@ -124,14 +162,14 @@ export async function SpotifyIleGirisYap(): Promise<SpotifyGirisSonuc> {
     await spotifyProfiliniTamamla();
     return { ok: true };
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Spotify girişi başarısız';
-    if (msg.includes('ExpoWebBrowser') || msg.includes('native module')) {
+    if (nativeModulHatasiMi(e)) {
       return {
         ok: false,
         hata:
           'Spotify için yeni development build gerekli (expo-web-browser).',
       };
     }
+    const msg = e instanceof Error ? e.message : 'Spotify girişi başarısız';
     return {
       ok: false,
       hata:

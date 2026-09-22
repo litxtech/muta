@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   onay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

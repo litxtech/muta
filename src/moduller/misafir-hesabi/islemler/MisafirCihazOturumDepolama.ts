@@ -4,6 +4,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ANAHTAR = 'muta_guest_session_v1';
 
+const IOS_KEYCHAIN: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+};
+
 export type MisafirCihazOturumKaydi = {
   access_token: string;
   refresh_token: string;
@@ -14,7 +18,11 @@ export type MisafirCihazOturumKaydi = {
 
 async function oku(key: string) {
   if (Platform.OS === 'web') return AsyncStorage.getItem(key);
-  return SecureStore.getItemAsync(key);
+  try {
+    return await SecureStore.getItemAsync(key, IOS_KEYCHAIN);
+  } catch {
+    return null;
+  }
 }
 
 async function yaz(key: string, value: string) {
@@ -22,7 +30,8 @@ async function yaz(key: string, value: string) {
     await AsyncStorage.setItem(key, value);
     return;
   }
-  await SecureStore.setItemAsync(key, value);
+  await SecureStore.deleteItemAsync(key).catch(() => undefined);
+  await SecureStore.setItemAsync(key, value, IOS_KEYCHAIN);
 }
 
 async function sil(key: string) {
@@ -30,7 +39,11 @@ async function sil(key: string) {
     await AsyncStorage.removeItem(key);
     return;
   }
-  await SecureStore.deleteItemAsync(key);
+  try {
+    await SecureStore.deleteItemAsync(key);
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Misafir çıkışında binding silinmez; oturum token’ları burada saklanır. */

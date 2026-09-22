@@ -93,6 +93,20 @@ import {
 } from '../../src/moduller/ses-odalari/yetki/OdaRolKontrol';
 import { MikrofonIstekPaneli } from '../../src/moduller/ses-odalari/bilesenler/MikrofonIstekPaneli';
 import { OdaDinleyiciPaneli } from '../../src/moduller/ses-odalari/bilesenler/OdaDinleyiciPaneli';
+import { OdaMuzikButonu } from '../../src/moduller/oda-muzik/bilesenler/OdaMuzikButonu';
+import { OdaMuzikMiniPlayer } from '../../src/moduller/oda-muzik/bilesenler/OdaMuzikMiniPlayer';
+import { OdaMuzikKutuphanesiSheet } from '../../src/moduller/oda-muzik/bilesenler/OdaMuzikKutuphanesiSheet';
+import { useOdaMuzikSession } from '../../src/moduller/oda-muzik/kancalar/useOdaMuzikSession';
+import { useOdaMuzikDucking } from '../../src/moduller/oda-muzik/kancalar/useOdaMuzikDucking';
+import {
+  RoomMusicPause,
+  RoomMusicQueueAdd,
+  RoomMusicResume,
+  RoomMusicSet,
+  RoomMusicSkip,
+} from '../../src/moduller/oda-muzik/islemler/OdaMuzikApi';
+import { OdaMuzikLokalGain, OdaMuzikPozisyonMs } from '../../src/moduller/oda-muzik/oynatici/OdaMuzikOynatici';
+import { OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import {
   ODA_DOCK_BTN,
   ODA_DOCK_ICON,
@@ -115,7 +129,7 @@ import { OyunOdaLazyKatmani } from '../../src/moduller/oyunlar/oda/OyunOdaLazyKa
 import { useGorunurOyunKodlari } from '../../src/moduller/oyunlar/ortak/hooks/useGorunurOyunKodlari';
 import type { GameCode } from '../../src/moduller/oyunlar/ortak/tipler/OyunTipleri';
 import { useKlavyeYuksekligi } from '../../src/bilesenler/klavye/useKlavyeYuksekligi';
-import { SonGezileneKaydet } from '../../src/moduller/ana-sayfa/depolama/SonGezilenDepolama';
+import { SonGezileneKaydet, SonGezilendenSil } from '../../src/moduller/ana-sayfa/depolama/SonGezilenDepolama';
 
 /**
  * Sesli oda — sahne (koltuklar) + alt panelde yorum akışı + composer + dock.
@@ -178,6 +192,9 @@ export default function RoomScreen() {
   const [giftOpen, setGiftOpen] = useState(false);
   const [gameOpen, setGameOpen] = useState(false);
   const [odaKartAcik, setOdaKartAcik] = useState(false);
+  const [muzikSheetAcik, setMuzikSheetAcik] = useState(false);
+  const [dinleyiciAcik, setDinleyiciAcik] = useState(false);
+  const [lokalMuzikSes, setLokalMuzikSes] = useState(1);
   const [profilKart, setProfilKart] = useState<{
     userId: string;
     displayName?: string | null;
@@ -220,6 +237,21 @@ export default function RoomScreen() {
     (memberRole === 'cohost' ||
       (!!user?.id && seats.some((s) => s.user_id === user.id && s.is_cohost)));
   const isModerator = isHost || isCohost || isPlatformAdmin;
+  const muzikFlag = OzellikBayragiAktifMi('voice_room_music_enabled');
+  const duckFlag = OzellikBayragiAktifMi('music_ducking_enabled');
+  const { session: muzikSession, yenile: muzikYenile } = useOdaMuzikSession(
+    muzikFlag && room?.id && !isDemo ? room.id : null,
+  );
+  useOdaMuzikDucking(
+    Boolean(
+      muzikFlag &&
+        duckFlag &&
+        muzikSession?.ducking_enabled &&
+        muzikSession?.state === 'PLAYING',
+    ),
+  );
+  const muzikYonetebilir = Boolean(muzikSession?.can_manage ?? isModerator);
+
 
   const seviyeGirisSelf = useMemo(() => {
     if (!user?.id || isDemo) return null;
@@ -377,6 +409,7 @@ export default function RoomScreen() {
           if (next && next.is_live === false) {
             void MedyaOdasiKes();
             AktifSesOdasiBitir();
+            void SonGezilendenSil('oda', id);
             // Host odayı kendisi sildiyse zaten çıkış yönlendirmesi çalışıyor
             if (OdaCikisKilidiAktifMi()) return;
             Alert.alert(
@@ -526,8 +559,8 @@ export default function RoomScreen() {
     void (async () => {
       const medya = await MedyaKonusmaciyaYukselt(roomName);
       if (medya.ok) {
-        // Profil dönüşü / yeniden yükseltme: mevcut mic tercihini koru
-        const micAcik = !!AktifSesOdasiDurumunuAl()?.micAcik;
+        // Koltuk izni → mikrofon AÇIK (moderatör mute/kilit yoksa)
+        const micAcik = !kendiModeratorMuted && !kendiMicKilitli;
         setMuted(!micAcik);
         MedyaMikrofonAyarla(micAcik);
         MedyaHoparlorAyarla(true);
@@ -541,7 +574,16 @@ export default function RoomScreen() {
         }
       }
     })();
-  }, [isDemo, room, user?.id, isHost, kendiKoltukta, medyaHazirTick]);
+  }, [
+    isDemo,
+    room,
+    user?.id,
+    isHost,
+    kendiKoltukta,
+    medyaHazirTick,
+    kendiModeratorMuted,
+    kendiMicKilitli,
+  ]);
 
   /** Koltuk değişiklikleri (mic kabul / ayrılma) */
   React.useEffect(() => {
@@ -1323,6 +1365,7 @@ export default function RoomScreen() {
 
       if (!r || !r.is_live) {
         setRoom(null);
+        void SonGezilendenSil('oda', id);
         if (!OdaCikisKilidiAktifMi()) {
           Alert.alert('Oda', 'Bu oda artık canlı değil');
           OdadanCikisYonlendir();
@@ -1344,6 +1387,11 @@ export default function RoomScreen() {
         hostAvatar: r.host?.avatar_url ?? null,
         mode: r.mode ?? null,
         href: `/lobi/${r.id}`,
+        uyeAvatarlari: s
+          .filter((seat) => !!seat.user_id)
+          .sort((a, b) => a.seat_index - b.seat_index)
+          .slice(0, 6)
+          .map((seat) => seat.profile?.avatar_url ?? null),
       });
 
       const hostMu = !!user?.id && user.id === r.host_id;
@@ -1398,6 +1446,8 @@ export default function RoomScreen() {
       const medya = await MedyaOdasiBaglan({
         roomName,
         role: hostMu ? 'host' : koltukta ? 'speaker' : 'listener',
+        // Host / koltuktaki: mic açık; dinleyici: kapalı
+        micAcik: hostMu || koltukta,
       });
       if (loadNesil !== odaLoadNesil.current) return;
       medyaIlkBaglantiBitti.current = true;
@@ -1410,7 +1460,6 @@ export default function RoomScreen() {
         // Aynı oda oturumu (profil ziyareti vb.): mic tercihini koru — kapatma
         const oncekiOturum = AktifSesOdasiDurumunuAl();
         const ayniOturum = oncekiOturum?.roomId === r.id;
-        const micAcikKalacak = !!(ayniOturum && oncekiOturum?.micAcik);
 
         if (hostMu || koltukta) {
           konusmaciYukseltildi.current = true;
@@ -1418,30 +1467,36 @@ export default function RoomScreen() {
           konusmaciYukseltildi.current = false;
         }
 
+        // Profil dönüşü: önceki mic. Yeni host/koltuk: açık. Dinleyici: kapalı.
+        const micAcikKalacak = ayniOturum
+          ? !!oncekiOturum?.micAcik
+          : !!(hostMu || koltukta);
+
         setMuted(!micAcikKalacak);
         MedyaMikrofonAyarla(micAcikKalacak);
 
-        // Join sonrası soft routing (tam configure yarışını tetikleme)
+        // Join sonrası soft routing — uzak sesi hemen güçlendir
+        MedyaUzakSesHacmiAyarla(1);
         setTimeout(() => {
           if (loadNesil !== odaLoadNesil.current) return;
           MedyaSesOturumunuYenile(false);
           MedyaHoparlorAyarla(true);
           MedyaUzakSesHacmiAyarla(1);
-          // Yenile mic tercihini ezmesin — açıkken yeniden doğrula
           if (micAcikKalacak) MedyaMikrofonAyarla(true);
-        }, 800);
+        }, 400);
         if (medya.mock && r.host_id) KonusmaciSesSeviyesi.mockBaslat(r.host_id);
 
         if (ayniOturum) {
           AktifSesOdasiGuncelle({
             title: r.title,
             dinleyiciSayisi: r.listener_count ?? 0,
+            micAcik: micAcikKalacak,
           });
         } else {
           AktifSesOdasiBaslat({
             roomId: r.id,
             title: r.title,
-            micAcik: false,
+            micAcik: micAcikKalacak,
             dinleyiciSayisi: r.listener_count ?? 0,
           });
         }
@@ -1745,6 +1800,15 @@ export default function RoomScreen() {
               )}
             </View>
             <View style={styles.topBarSag}>
+              {muzikFlag ? (
+                <OdaMuzikButonu
+                  playing={
+                    muzikSession?.state === 'PLAYING' ||
+                    muzikSession?.state === 'PAUSED'
+                  }
+                  onPress={() => setMuzikSheetAcik(true)}
+                />
+              ) : null}
               <ModulHataSiniri modulAdi="oda-dinleyici" varyant="kart">
                 <OdaDinleyiciPaneli
                   roomId={room.id}
@@ -1753,9 +1817,16 @@ export default function RoomScreen() {
                   koltukUserIds={koltukUserIds}
                   onProfil={profileZiyaretEt}
                   boyut="ust"
+                  gosterButon={false}
+                  acikDis={dinleyiciAcik}
+                  onAcikChange={setDinleyiciAcik}
                 />
               </ModulHataSiniri>
-              <View style={styles.livePill} accessibilityLabel="Canlı dinleyici">
+              <Pressable
+                style={styles.livePill}
+                accessibilityLabel="Canlı dinleyici"
+                onPress={() => setDinleyiciAcik(true)}
+              >
                 <View
                   style={[
                     styles.liveDot,
@@ -1765,7 +1836,7 @@ export default function RoomScreen() {
                   ]}
                 />
                 <Text style={styles.liveText}>{room.listener_count}</Text>
-              </View>
+              </Pressable>
               {isModerator && !isDemo ? (
                 <Pressable
                   onPress={() => setOdaKartAcik(true)}
@@ -1798,6 +1869,45 @@ export default function RoomScreen() {
               </Pressable>
             </View>
           </View>
+
+          {muzikFlag ? (
+            <OdaMuzikMiniPlayer
+              session={muzikSession}
+              canManage={muzikYonetebilir}
+              onOpenLibrary={() => setMuzikSheetAcik(true)}
+              onPause={() => {
+                if (!room) return;
+                void RoomMusicPause(
+                  room.id,
+                  OdaMuzikPozisyonMs(),
+                  muzikSession?.version,
+                ).then(() => muzikYenile());
+              }}
+              onResume={() => {
+                if (!room) return;
+                void RoomMusicResume(room.id, muzikSession?.version).then(() =>
+                  muzikYenile(),
+                );
+              }}
+              onPrev={() => {
+                if (!room) return;
+                void RoomMusicSkip(room.id, -1, muzikSession?.version).then(() =>
+                  muzikYenile(),
+                );
+              }}
+              onNext={() => {
+                if (!room) return;
+                void RoomMusicSkip(room.id, 1, muzikSession?.version).then(() =>
+                  muzikYenile(),
+                );
+              }}
+              onLocalVolume={() => {
+                const next = lokalMuzikSes > 0.05 ? 0 : 1;
+                setLokalMuzikSes(next);
+                OdaMuzikLokalGain(next);
+              }}
+            />
+          ) : null}
 
           <TamusoBanner placement="VOICE_ROOM_TOP" screen="VOICE_ROOM" compact />
 
@@ -2024,6 +2134,27 @@ export default function RoomScreen() {
           onCoinPaketHazirla={coinYukle.paketleriYenile}
         />
       </ModulHataSiniri>
+
+      {muzikFlag && room && !isDemo ? (
+        <OdaMuzikKutuphanesiSheet
+          visible={muzikSheetAcik}
+          canManage={muzikYonetebilir}
+          onClose={() => setMuzikSheetAcik(false)}
+          onSelect={(trackId) => {
+            void RoomMusicSet(room.id, trackId, muzikSession?.version).then(
+              () => {
+                setMuzikSheetAcik(false);
+                void muzikYenile();
+              },
+            );
+          }}
+          onQueue={(trackId) => {
+            void RoomMusicQueueAdd(room.id, trackId).then(() => {
+              void muzikYenile();
+            });
+          }}
+        />
+      ) : null}
 
       <CoinYuklePaneli
         visible={coinYukle.acik}

@@ -18,6 +18,8 @@ export type SonGezilenKayit = {
   mode?: string | null;
   ziyaretAt: string;
   href: string;
+  /** Ses odası üye avatar önizlemesi (max 6) */
+  uyeAvatarlari?: (string | null)[];
 };
 
 export type SonGezilenGorunum = SonGezilenKayit & {
@@ -71,6 +73,7 @@ export async function SonGezileneKaydet(
       mode: input.mode ?? null,
       ziyaretAt: input.ziyaretAt ?? new Date().toISOString(),
       href: input.href,
+      uyeAvatarlari: (input.uyeAvatarlari ?? []).slice(0, 6),
     };
     const digerler = mevcut.filter(
       (x) => !(x.tur === kayit.tur && x.id === kayit.id),
@@ -82,26 +85,92 @@ export async function SonGezileneKaydet(
   }
 }
 
-/** Feed ile birleştir — canlı olanlar nabız + güncel kapak/sayı */
+/** Tek kayıt sil (yayın/oda bitti) */
+export async function SonGezilendenSil(
+  tur: 'oda' | 'canli',
+  id: string,
+): Promise<void> {
+  if (!id) return;
+  try {
+    const mevcut = await SonGezilenleriGetir();
+    const sonraki = mevcut.filter((x) => !(x.tur === tur && x.id === id));
+    if (sonraki.length === mevcut.length) return;
+    await AsyncStorage.setItem(ANAHTAR, JSON.stringify(sonraki));
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Artık canlı olmayan yayınları ve kapanmış/silinmiş ses odalarını geçmişten düşür.
+ */
+export async function SonGezilenBitmisCanlilariTemizle(
+  aktifCanliIdleri: Iterable<string>,
+  aktifOdaIdleri?: Iterable<string>,
+): Promise<SonGezilenKayit[]> {
+  try {
+    const aktifCanli = new Set(aktifCanliIdleri);
+    const aktifOda =
+      aktifOdaIdleri != null ? new Set(aktifOdaIdleri) : null;
+    const mevcut = await SonGezilenleriGetir();
+    const sonraki = mevcut.filter((x) => {
+      if (x.tur === 'canli') return aktifCanli.has(x.id);
+      if (x.tur === 'oda') {
+        // Oda listesi verilmediyse dokunma (eski çağrılar)
+        if (aktifOda == null) return true;
+        return aktifOda.has(x.id);
+      }
+      return true;
+    });
+    if (sonraki.length !== mevcut.length) {
+      await AsyncStorage.setItem(ANAHTAR, JSON.stringify(sonraki));
+    }
+    return sonraki;
+  } catch {
+    return [];
+  }
+}
+
+/** Feed ile birleştir — yalnızca hâlâ canlı olan oda/yayınlar */
 export function SonGezilenleriCanliIleBirles(
   kayitlar: SonGezilenKayit[],
   feed: FeedOggesi[],
 ): SonGezilenGorunum[] {
   const harita = new Map(feed.map((f) => [f.id, f]));
-  return kayitlar.map((k) => {
-    const feedId = k.tur === 'oda' ? `oda:${k.id}` : `canli:${k.id}`;
-    const f = harita.get(feedId);
-    return {
-      ...k,
-      canli: !!f,
-      listenerCount: f?.listener_count ?? 0,
-      title: f?.title?.trim() || k.title,
-      coverUrl: f?.cover_url ?? k.coverUrl,
-      hostAd:
-        f?.host?.display_name?.trim() ||
-        (f?.host?.username ? `@${f.host.username}` : null) ||
-        k.hostAd,
-      hostAvatar: f?.host?.avatar_url ?? k.hostAvatar,
-    };
-  });
+  return kayitlar
+    .filter((k) => {
+      const feedId = k.tur === 'oda' ? `oda:${k.id}` : `canli:${k.id}`;
+      return harita.has(feedId);
+    })
+    .map((k) => {
+      const feedId = k.tur === 'oda' ? `oda:${k.id}` : `canli:${k.id}`;
+      const f = harita.get(feedId);
+      return kayittanGorunum(k, f);
+    });
+}
+
+function kayittanGorunum(
+  k: SonGezilenKayit,
+  f: FeedOggesi | undefined,
+): SonGezilenGorunum {
+  return {
+    ...k,
+    canli: !!f,
+    listenerCount: f?.listener_count ?? 0,
+    title: f?.title?.trim() || k.title,
+    coverUrl: f?.cover_url ?? k.coverUrl,
+    hostAd:
+      f?.host?.display_name?.trim() ||
+      (f?.host?.username ? `@${f.host.username}` : null) ||
+      k.hostAd,
+    hostAvatar: f?.host?.avatar_url ?? k.hostAvatar,
+    uyeAvatarlari:
+      f?.uye_avatarlari && f.uye_avatarlari.length > 0
+        ? f.uye_avatarlari.slice(0, 6)
+        : k.uyeAvatarlari && k.uyeAvatarlari.length > 0
+          ? k.uyeAvatarlari.slice(0, 6)
+          : k.hostAvatar
+            ? [k.hostAvatar]
+            : [],
+  };
 }

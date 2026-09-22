@@ -35,6 +35,7 @@ import { useTakipMutasyonu } from '../../takip/kancalar/useTakipEt';
 import { takiptenCikOnayi } from '../../takip/bilesenler/TakipOnaySheet';
 import { TakipHataMesaji } from '../../takip/TakipHataMesajlari';
 import { TakipSayaciniFormatla } from '../../takip/TakipSayacFormat';
+import { KullaniciGuvenlikMenusu } from '../../moderasyon/bilesenler/KullaniciGuvenlikMenusu';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
@@ -105,6 +106,7 @@ function OdaProfilKartiPaneliInner({
   const [avatarBuyuk, setAvatarBuyuk] = useState<string | null>(null);
   const [followers, setFollowers] = useState(followersProp ?? 0);
   const [following, setFollowing] = useState(followingProp ?? 0);
+  const [guvenlikAcik, setGuvenlikAcik] = useState(false);
 
   const { durum, setDurum } = useTakipDurumu(
     visible && userId && !kendi ? userId : null,
@@ -346,6 +348,15 @@ function OdaProfilKartiPaneliInner({
                     loading={isleniyor}
                     onPress={takipBas}
                   />
+                  <Pressable
+                    style={styles.guvenlikBtn}
+                    onPress={() => setGuvenlikAcik(true)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Bildir veya engelle"
+                  >
+                    <Ionicons name="flag-outline" size={16} color="#FFE08A" />
+                    <Text style={styles.guvenlikBtnYazi}>Bildir / Engelle</Text>
+                  </Pressable>
                 </View>
               ) : null}
 
@@ -380,6 +391,21 @@ function OdaProfilKartiPaneliInner({
         onKapat={() => setAvatarBuyuk(null)}
         tur="avatar"
       />
+
+      {userId && !kendi ? (
+        <KullaniciGuvenlikMenusu
+          visible={guvenlikAcik}
+          targetUserId={userId}
+          targetName={ad}
+          isGuest={!!isGuest}
+          contentType="user"
+          onClose={() => setGuvenlikAcik(false)}
+          onBlocked={() => {
+            setGuvenlikAcik(false);
+            onClose();
+          }}
+        />
+      ) : null}
     </>
   );
 }
@@ -558,6 +584,23 @@ const styles = StyleSheet.create({
   },
   takipWrap: {
     marginTop: 4,
+    gap: 10,
+  },
+  guvenlikBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,224,138,0.35)',
+    backgroundColor: 'rgba(255,224,138,0.08)',
+  },
+  guvenlikBtnYazi: {
+    ...TipografiTokenlari.caption,
+    color: '#FFE08A',
+    fontWeight: '700',
   },
   cta: {
     marginTop: 4,

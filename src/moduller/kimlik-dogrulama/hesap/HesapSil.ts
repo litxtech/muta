@@ -9,9 +9,9 @@ export type HesapSilSonuc =
 
 /**
  * Kullanici kendi hesabini siler.
- * 1) Soft delete (RPC) — her zaman
- * 2) Edge Function ile auth.users hard delete — mumkunse
- * 3) Lokal oturumu kapat
+ * 1) Soft delete (RPC) — profil "Hesap silindi", içerik/oda/ajans temizliği
+ * 2) Edge Function: auth.users hard delete → Apple tekrar girişte YENİ hesap
+ * 3) Lokal oturumu kapat (ses odası / LiveKit kesilir)
  */
 export async function HesapSil(input?: {
   reason?: string;

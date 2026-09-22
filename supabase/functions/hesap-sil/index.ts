@@ -7,8 +7,11 @@ const corsHeaders: Record<string, string> = {
 };
 
 /**
- * Hesap silme: soft delete (profil) + auth.users hard delete.
- * Soft delete client RPC ile de yapilir; burada idempotent tekrar.
+ * Hesap silme (edge): soft scrub + auth.users hard delete.
+ *
+ * Soft delete client RPC ile yapılır; burada idempotent scrub.
+ * Hard delete → Apple/Spotify kimliği serbest kalır; tekrar giriş YENİ hesap açar.
+ * profiles FK CASCADE kaldırıldığı için eski profil "Hesap silindi" tombstone olarak kalır.
  */
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -65,7 +68,7 @@ Deno.serve(async (req) => {
       .update({
         deleted_at: now,
         deletion_requested_at: now,
-        display_name: 'Silinmiş hesap',
+        display_name: 'Hesap silindi',
         username: uname,
         avatar_url: null,
         cover_url: null,
@@ -100,16 +103,21 @@ Deno.serve(async (req) => {
       user_id: user.id,
       event_type: 'account_hard_delete_attempt',
       severity: 'medium',
-      metadata: { reason },
+      metadata: { reason, mode: 'hard_delete_auth_keep_profile_tombstone' },
     });
 
     const { error: delErr } = await admin.auth.admin.deleteUser(user.id);
     if (delErr) {
+      // Hard delete başarısızsa ban — aynı hesaba dönüş engeli
+      const { error: banErr } = await admin.auth.admin.updateUserById(user.id, {
+        ban_duration: '876600h',
+      });
       return Response.json(
         {
           ok: true,
           hardDeleted: false,
           softDeleted: true,
+          banned: !banErr,
           note: delErr.message,
         },
         { headers: corsHeaders },

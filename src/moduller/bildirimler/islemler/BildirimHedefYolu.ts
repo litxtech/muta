@@ -115,7 +115,8 @@ export function BildirimHedefYolu(input: {
   }
   if (type === 'agency_host_approved') return '/ajans/uye';
   const agency = str('agency_id');
-  if (type === 'agency_host_apply' && agency) return `/ajans/${agency}`;
+  if (type === 'agency_host_apply' && agency) return `/ajans/${agency}/basvurular`;
+  if (type === 'agency_announcement' && agency) return `/ajans/${agency}/duyurular`;
   if (type === 'agency_host_rejected') return '/ajans';
   if (
     type === 'trade_offer_new' ||

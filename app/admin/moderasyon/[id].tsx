@@ -28,6 +28,7 @@ import { AdminSesOdasiKapat } from '../../../src/moduller/admin/ses-odalari/Admi
 import { AdminCanliYayinKapat } from '../../../src/moduller/admin/canli-yayin/AdminCanliYayinIslemleri';
 import {
   AdminIhtarVer,
+  AdminKullaniciAskiyaAl,
   AdminKullaniciBanKaldir,
   AdminKullaniciBanla,
   AdminKullaniciSil,
@@ -209,6 +210,26 @@ export default function AdminRaporDetayEkrani() {
             if (!r.ok) throw new Error(r.hata);
             await durumGuncelle('resolved', not.trim() || 'Ban');
           }, 'Kullanıcı banlandı'),
+      },
+    ]);
+  };
+
+  const askiyaAl = () => {
+    if (!hedefId) return;
+    Alert.alert('Geçici askı', '24 saat askıya alınsın mı?', [
+      { text: 'Vazgeç', style: 'cancel' },
+      {
+        text: '24 saat',
+        onPress: () =>
+          void calistir(async () => {
+            const r = await AdminKullaniciAskiyaAl(
+              hedefId,
+              24,
+              detay?.rapor.reason || 'report_suspend',
+            );
+            if (!r.ok) throw new Error(r.hata);
+            await durumGuncelle('resolved', not.trim() || 'Askıya alma 24s');
+          }, '24 saat askıya alındı'),
       },
     ]);
   };
@@ -631,17 +652,26 @@ export default function AdminRaporDetayEkrani() {
                 <Text style={AdminStil.aksiyonYazi}>Ban kaldır</Text>
               </Pressable>
             ) : (
-              <Pressable
-                style={[AdminStil.aksiyon, styles.aksiyonTehlike]}
-                onPress={banla}
-                disabled={busy}
-              >
-                <Text
-                  style={[AdminStil.aksiyonYazi, { color: RenkTokenlari.danger }]}
+              <>
+                <Pressable
+                  style={AdminStil.aksiyon}
+                  onPress={askiyaAl}
+                  disabled={busy}
                 >
-                  Banla
-                </Text>
-              </Pressable>
+                  <Text style={AdminStil.aksiyonYazi}>24s askı</Text>
+                </Pressable>
+                <Pressable
+                  style={[AdminStil.aksiyon, styles.aksiyonTehlike]}
+                  onPress={banla}
+                  disabled={busy}
+                >
+                  <Text
+                    style={[AdminStil.aksiyonYazi, { color: RenkTokenlari.danger }]}
+                  >
+                    Banla
+                  </Text>
+                </Pressable>
+              </>
             )}
             <Pressable
               style={[AdminStil.aksiyon, styles.aksiyonTehlike]}

@@ -16,6 +16,7 @@ import { SesOdasiArkaPlanKurulum } from '../src/moduller/ses-odalari/arka-plan/S
 import { SesOdasiPipKurulum } from '../src/moduller/ses-odalari/pip/useSesOdasiPip';
 import { GorusmeGlobalKatman } from '../src/moduller/gorusme/bilesenler/GorusmeGlobalKatman';
 import { OyunKazancBalonuSaglayici } from '../src/moduller/oyunlar/kazanc-balonu/OyunKazancBalonuSaglayici';
+import { CocukKorumaOnayKarti } from '../src/moduller/cocuk-koruma/bilesenler/CocukKorumaOnayKarti';
 import { UygulamaHataSiniri } from '../src/ortak/hata-sinirlari/UygulamaHataSiniri';
 import { ModulHataSiniri } from '../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { ImagePickerOnIsit } from '../src/ortak/medya/ImagePickerHazirMi';
@@ -101,6 +102,7 @@ export default function RootLayout() {
 
 function KokIcerik() {
   const { palet } = useTema();
+
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: palet.bg }}>
       <UygulamaHataSiniri>
@@ -163,8 +165,24 @@ function KokIcerik() {
           <Stack.Screen name="ajans/yonetim/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/uye/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/teklifler" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/profil/[id]" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/[id]" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/profil/[id]/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/profil/[id]/uyeler" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/canli" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/uyeler/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/uyeler/[userId]" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/basvurular" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/davetler" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/ekipler" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/program" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/etkinlikler" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/duyurular" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/gorevler" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/analitik" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/islemler" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/ayarlar" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/destek" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ajans/[id]/guvenlik" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
             name="admin/ajanslar/index"
             options={{ animation: 'slide_from_right' }}
@@ -254,6 +272,7 @@ function KokIcerik() {
             options={{ animation: 'slide_from_right' }}
           />
           <Stack.Screen name="admin/odalar" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="admin/muzik" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="admin/ekonomi" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
             name="admin/coin-paketleri"
@@ -277,6 +296,10 @@ function KokIcerik() {
             name="admin/giris-lobisi"
             options={{ animation: 'slide_from_right' }}
           />
+          <Stack.Screen
+            name="admin/iletisim"
+            options={{ animation: 'slide_from_right' }}
+          />
           <Stack.Screen name="webview" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen
             name="admin/ozellikler"
@@ -285,6 +308,7 @@ function KokIcerik() {
           <Stack.Screen name="paylasim/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="paylas/[kod]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ayarlar/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ayarlar/gizlilik" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="profil-ayarlar/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="profil-duzenle/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="kyc/index" options={{ animation: 'slide_from_right' }} />
@@ -319,12 +343,17 @@ function KokIcerik() {
             name="admin/platform-guvenlik"
             options={{ animation: 'slide_from_right' }}
           />
+          <Stack.Screen
+            name="admin/cocuk-koruma"
+            options={{ animation: 'slide_from_right' }}
+          />
               </Stack>
               <YuzenTabBar />
               <AktifSesOdasiMiniBar />
               <AktifSesOdasiPipKart />
               <GorusmeGlobalKatman />
               <OyunKazancBalonuSaglayici />
+              <CocukKorumaOnayKarti />
             </GorusmeGelenSaglayici>
           </ModulHataSiniri>
           </MesajOkunmamisSaglayici>
