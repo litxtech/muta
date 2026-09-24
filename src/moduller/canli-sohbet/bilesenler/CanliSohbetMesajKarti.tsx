@@ -5,6 +5,8 @@ import { ProfilAvatarKucuk } from './ProfilAvatarKucuk';
 import { SeviyeTaci } from '../../ses-odalari/bilesenler/SeviyeTaci';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
+import i18n from '../../../i18n';
 
 export type CanliSohbetMesajGorunum = {
   id: string;
@@ -28,13 +30,13 @@ type Props = {
 };
 
 function yorumZamani(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return '';
-  const sn = Math.max(0, Math.floor((Date.now() - t) / 1000));
-  if (sn < 45) return 'şimdi';
-  if (sn < 3600) return `${Math.floor(sn / 60)} dk`;
-  if (sn < 86400) return `${Math.floor(sn / 3600)} sa`;
-  const d = new Date(t);
+  const tMs = new Date(iso).getTime();
+  if (!Number.isFinite(tMs)) return '';
+  const sn = Math.max(0, Math.floor((Date.now() - tMs) / 1000));
+  if (sn < 45) return i18n.t('canliYayin.simdi');
+  if (sn < 3600) return i18n.t('durumX.zamanDk', { n: Math.floor(sn / 60) });
+  if (sn < 86400) return i18n.t('durumX.zamanSa', { n: Math.floor(sn / 3600) });
+  const d = new Date(tMs);
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
   return `${hh}:${mm}`;
@@ -51,12 +53,14 @@ export function CanliSohbetMesajKarti({
   onProfilPress,
   varyant = 'kart',
 }: Props) {
+  const { t } = useCeviri();
   const ad =
     item.display_name?.trim() ||
     item.username?.trim() ||
-    'Kullanıcı';
+    t('ortak.kullanici');
   const seviye = typeof item.level === 'number' ? item.level : 0;
   const zaman = useMemo(() => yorumZamani(item.created_at), [item.created_at]);
+  const profilA11y = t('kisilerX.profilA11y', { isim: ad });
 
   if (varyant === 'live') {
     return (
@@ -71,7 +75,7 @@ export function CanliSohbetMesajKarti({
           delayLongPress={350}
           style={styles.liveAvatarWrap}
           accessibilityRole="button"
-          accessibilityLabel={`${ad} profili`}
+          accessibilityLabel={profilA11y}
         >
           <SeviyeTaci level={seviye} size="sm" avatarBoy={32}>
             <ProfilAvatarKucuk
@@ -90,7 +94,7 @@ export function CanliSohbetMesajKarti({
               delayLongPress={350}
               hitSlop={4}
               accessibilityRole="button"
-              accessibilityLabel={`${ad} profili`}
+              accessibilityLabel={profilA11y}
             >
               <Text
                 style={[styles.liveAd, mine && styles.liveAdMine]}
@@ -119,7 +123,7 @@ export function CanliSohbetMesajKarti({
         delayLongPress={350}
         style={styles.kartAvatarWrap}
         accessibilityRole="button"
-        accessibilityLabel={`${ad} profili`}
+        accessibilityLabel={profilA11y}
       >
         <SeviyeTaci level={seviye} size="sm" avatarBoy={34}>
           <ProfilAvatarKucuk

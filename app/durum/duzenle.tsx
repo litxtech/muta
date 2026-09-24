@@ -31,8 +31,10 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 export default function DurumDuzenleEkrani() {
+  const { t } = useCeviri();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { acik: klavyeAcik } = useKlavyeYuksekligi();
   const scrollRef = useRef<ScrollView>(null);
@@ -48,7 +50,7 @@ export default function DurumDuzenleEkrani() {
     try {
       const d = await DurumDetayGetir(id);
       if (!d.is_mine) {
-        Alert.alert('Düzenle', 'Bu gönderiyi düzenleyemezsin.');
+        Alert.alert(t('ortak.duzenle'), t('durum.duzenleyemezsin'));
         router.back();
         return;
       }
@@ -59,7 +61,7 @@ export default function DurumDuzenleEkrani() {
     } finally {
       setYukleniyor(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -74,7 +76,7 @@ export default function DurumDuzenleEkrani() {
       const r = await DurumGuncelle(oge.id, caption.trim());
       setBusy(false);
       if (!r.ok) {
-        Alert.alert('Düzenle', r.hata ?? 'Kaydedilemedi');
+        Alert.alert(t('ortak.duzenle'), r.hata ?? t('ortak.kaydedilemedi'));
         return;
       }
       if (router.canGoBack()) router.back();
@@ -95,8 +97,8 @@ export default function DurumDuzenleEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="durum">
         <EkranBasligi
-          title="Gönderiyi düzenle"
-          subtitle="Açıklama metnini güncelle"
+          title={t('durum.duzenleBaslik')}
+          subtitle={t('durum.duzenleAlt')}
           fallbackHref={'/(tabs)/durum' as any}
         />
 
@@ -106,7 +108,7 @@ export default function DurumDuzenleEkrani() {
             style={{ marginTop: 40 }}
           />
         ) : !oge ? (
-          <Text style={styles.bos}>Gönderi bulunamadı</Text>
+          <Text style={styles.bos}>{t('durum.gonderiBulunamadi')}</Text>
         ) : (
           <KlavyeGuvenliAlan style={styles.flex}>
             <ScrollView
@@ -153,7 +155,7 @@ export default function DurumDuzenleEkrani() {
                 {oge.media_type === 'video' ? (
                   <View style={styles.videoBadge}>
                     <Ionicons name="videocam" size={16} color="#fff" />
-                    <Text style={styles.videoBadgeYazi}>Video</Text>
+                    <Text style={styles.videoBadgeYazi}>{t('ortak.video')}</Text>
                   </View>
                 ) : null}
               </Pressable>
@@ -169,8 +171,8 @@ export default function DurumDuzenleEkrani() {
                   onChangeText={setCaption}
                   placeholder={
                     oge?.media_type === 'text'
-                      ? 'Ne düşünüyorsun?'
-                      : 'Açıklama yaz… (isteğe bağlı)'
+                      ? t('durum.neDusunuyorsun')
+                      : t('durum.aciklamaPlaceholder')
                   }
                   placeholderTextColor={RenkTokenlari.textDim}
                   multiline
@@ -185,14 +187,14 @@ export default function DurumDuzenleEkrani() {
               {busy ? (
                 <ActivityIndicator color={RenkTokenlari.primarySoft} />
               ) : (
-                <GradientButton title="Kaydet" onPress={kaydet} />
+                <GradientButton title={t('ortak.kaydet')} onPress={kaydet} />
               )}
 
               <Pressable
                 style={styles.bosAlan}
                 onPress={Keyboard.dismiss}
                 accessibilityRole="button"
-                accessibilityLabel="Klavyeyi kapat"
+                accessibilityLabel={t('ortak.klavyeyiKapat')}
               />
             </ScrollView>
           </KlavyeGuvenliAlan>

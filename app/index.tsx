@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useAuth } from '../src/contexts/AuthContext';
 import { AcilisEkrani } from '../src/bilesenler/acilis/AcilisEkrani';
 import { useTema } from '../src/tasarim-sistemi/tema/TemaSaglayici';
+import { useCeviri } from '../src/i18n/useCeviri';
 
 /**
  * Giriş kapısı — marka açılış + oturum yönlendirme.
@@ -11,6 +12,7 @@ import { useTema } from '../src/tasarim-sistemi/tema/TemaSaglayici';
 export default function Index() {
   const { session, loading } = useAuth();
   const { hazir } = useTema();
+  const { t } = useCeviri();
 
   useEffect(() => {
     if (loading || !hazir) return;
@@ -21,6 +23,8 @@ export default function Index() {
   }, [loading, session, hazir]);
 
   return (
-    <AcilisEkrani altYazi={loading || !hazir ? 'Hazırlanıyor' : 'Açılıyor'} />
+    <AcilisEkrani
+      altYazi={loading || !hazir ? t('auth.hazirlaniyor') : t('auth.aciliyor')}
+    />
   );
 }

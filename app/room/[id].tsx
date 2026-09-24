@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../../src/components/Screen';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { TamusoBanner } from '../../src/banner';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { supabase } from '../../src/lib/supabase';
@@ -55,6 +56,11 @@ import { OdaCanliAtmosfer } from '../../src/moduller/ses-odalari/bilesenler/OdaC
 import { OdaSahneArkaPlan } from '../../src/moduller/ses-odalari/bilesenler/OdaSahneArkaPlan';
 import { OdaProfilCubugu } from '../../src/moduller/ses-odalari/bilesenler/OdaProfilCubugu';
 import { OdaProfilKartiPaneli } from '../../src/moduller/ses-odalari/bilesenler/OdaProfilKartiPaneli';
+import { OdaBilgiPaneli } from '../../src/moduller/ses-odalari/bilesenler/OdaBilgiPaneli';
+import {
+  OdaKatilimciAksiyonPaneli,
+  type KatilimciAksiyonSatiri,
+} from '../../src/moduller/ses-odalari/bilesenler/OdaKatilimciAksiyonPaneli';
 import { LiderligiDevret } from '../../src/moduller/ses-odalari/islemler/LiderligiDevret';
 import {
   MedyaHoparlorAyarla,
@@ -93,8 +99,14 @@ import {
 } from '../../src/moduller/ses-odalari/yetki/OdaRolKontrol';
 import { MikrofonIstekPaneli } from '../../src/moduller/ses-odalari/bilesenler/MikrofonIstekPaneli';
 import { OdaDinleyiciPaneli } from '../../src/moduller/ses-odalari/bilesenler/OdaDinleyiciPaneli';
+import { OdaSesHacmiButonu } from '../../src/moduller/ses-odalari/bilesenler/OdaSesHacmiButonu';
 import { OdaMuzikButonu } from '../../src/moduller/oda-muzik/bilesenler/OdaMuzikButonu';
-import { OdaMuzikMiniPlayer } from '../../src/moduller/oda-muzik/bilesenler/OdaMuzikMiniPlayer';
+import { OdaMuzikPlak } from '../../src/moduller/oda-muzik/bilesenler/OdaMuzikPlak';
+import { OdaMuzikIsikShow } from '../../src/moduller/oda-muzik/bilesenler/OdaMuzikIsikShow';
+import {
+  OdaMuzikAcilisAnimasyonu,
+  type MuzikButonHedef,
+} from '../../src/moduller/oda-muzik/bilesenler/OdaMuzikAcilisAnimasyonu';
 import { OdaMuzikKutuphanesiSheet } from '../../src/moduller/oda-muzik/bilesenler/OdaMuzikKutuphanesiSheet';
 import { useOdaMuzikSession } from '../../src/moduller/oda-muzik/kancalar/useOdaMuzikSession';
 import { useOdaMuzikDucking } from '../../src/moduller/oda-muzik/kancalar/useOdaMuzikDucking';
@@ -102,10 +114,13 @@ import {
   RoomMusicPause,
   RoomMusicQueueAdd,
   RoomMusicResume,
+  RoomMusicSeek,
   RoomMusicSet,
+  RoomMusicSetVolume,
   RoomMusicSkip,
+  RoomMusicStop,
 } from '../../src/moduller/oda-muzik/islemler/OdaMuzikApi';
-import { OdaMuzikLokalGain, OdaMuzikPozisyonMs } from '../../src/moduller/oda-muzik/oynatici/OdaMuzikOynatici';
+import { OdaMuzikPozisyonMs } from '../../src/moduller/oda-muzik/oynatici/OdaMuzikOynatici';
 import { OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import {
   ODA_DOCK_BTN,
@@ -171,6 +186,7 @@ function odaRealtimeKanaliniTemizle(imza: string) {
 }
 
 export default function RoomScreen() {
+  const { t } = useCeviri();
   const { id, oyun: oyunParam } = useLocalSearchParams<{ id: string; oyun?: string }>();
   const { user, refreshWallet, adjustWallet, isGuest, refreshProfile, wallet, profile } =
     useAuth();
@@ -192,9 +208,31 @@ export default function RoomScreen() {
   const [giftOpen, setGiftOpen] = useState(false);
   const [gameOpen, setGameOpen] = useState(false);
   const [odaKartAcik, setOdaKartAcik] = useState(false);
+  const [odaBilgiAcik, setOdaBilgiAcik] = useState(false);
+  const [katilimciMenu, setKatilimciMenu] = useState<{
+    seat: RoomSeat;
+    baslik: string;
+    aksiyonlar: KatilimciAksiyonSatiri[];
+  } | null>(null);
+  const katilimciAksiyonRef = useRef<
+    ((a: KatilimciMenuAksiyonu) => void) | null
+  >(null);
   const [muzikSheetAcik, setMuzikSheetAcik] = useState(false);
   const [dinleyiciAcik, setDinleyiciAcik] = useState(false);
-  const [lokalMuzikSes, setLokalMuzikSes] = useState(1);
+  /** Uzak konuşma sesi (hoparlör) — 0..1 */
+  const [odaSesHacmi, setOdaSesHacmi] = useState(1);
+  const odaSesHacmiRef = useRef(1);
+  odaSesHacmiRef.current = odaSesHacmi;
+  const [muzikAcilis, setMuzikAcilis] = useState<{
+    key: string;
+    title: string;
+    artist?: string | null;
+    cover?: string | null;
+  } | null>(null);
+  const muzikBtnRef = useRef<View>(null);
+  const muzikBtnHedef = useRef<MuzikButonHedef | null>(null);
+  const [muzikHedefTick, setMuzikHedefTick] = useState(0);
+  const sonMuzikTrackRef = useRef<string | null>(null);
   const [profilKart, setProfilKart] = useState<{
     userId: string;
     displayName?: string | null;
@@ -209,7 +247,7 @@ export default function RoomScreen() {
   const [hostProfilYedek, setHostProfilYedek] = useState<Profile | null>(null);
   const [balonOyunKodu, setBalonOyunKodu] = useState<GameCode | null>(null);
   const [lastGift, setLastGift] = useState<string | null>(null);
-  const [lkDurum, setLkDurum] = useState('Hazır');
+  const [lkDurum, setLkDurum] = useState(() => t('sesOda.hazir'));
   /** İlk LiveKit join bitti — konuşmacı yükseltme effect'ini tetikler */
   const [medyaHazirTick, setMedyaHazirTick] = useState(0);
   const [chatOpen, setChatOpen] = useState(true);
@@ -251,7 +289,30 @@ export default function RoomScreen() {
     ),
   );
   const muzikYonetebilir = Boolean(muzikSession?.can_manage ?? isModerator);
+  const muzikCalıyor =
+    muzikSession?.state === 'PLAYING' || muzikSession?.state === 'PAUSED';
 
+  useEffect(() => {
+    const trackId = muzikSession?.track?.id ?? null;
+    if (muzikCalıyor && trackId && trackId !== sonMuzikTrackRef.current) {
+      sonMuzikTrackRef.current = trackId;
+      setMuzikAcilis({
+        key: `${trackId}-${Date.now()}`,
+        title: muzikSession?.track?.title ?? t('sesOda.muzik'),
+        artist: muzikSession?.track?.artist_name,
+        cover: muzikSession?.track?.cover_url,
+      });
+      muzikBtnRef.current?.measureInWindow((x, y, w, h) => {
+        if (w > 0 && h > 0) {
+          muzikBtnHedef.current = { x, y, w, h };
+          setMuzikHedefTick((n) => n + 1);
+        }
+      });
+    }
+    if (!muzikCalıyor) {
+      sonMuzikTrackRef.current = null;
+    }
+  }, [muzikCalıyor, muzikSession?.track?.id, muzikSession?.track?.title, muzikSession?.track?.artist_name, muzikSession?.track?.cover_url]);
 
   const seviyeGirisSelf = useMemo(() => {
     if (!user?.id || isDemo) return null;
@@ -261,7 +322,7 @@ export default function RoomScreen() {
       ad:
         profile?.display_name?.trim() ||
         profile?.username?.trim() ||
-        'Sen',
+        t('gorusme.sen'),
       avatarUrl: profile?.avatar_url ?? null,
       level,
     };
@@ -413,9 +474,9 @@ export default function RoomScreen() {
             // Host odayı kendisi sildiyse zaten çıkış yönlendirmesi çalışıyor
             if (OdaCikisKilidiAktifMi()) return;
             Alert.alert(
-              'Oda kapatıldı',
-              'Yönetim bu ses odasını kapattı. Feed’den kaldırıldı.',
-              [{ text: 'Tamam', onPress: () => OdadanCikisYonlendir() }],
+              t('sesOda.odaKapatildi'),
+              t('sesOda.yonetimKapattiFeed'),
+              [{ text: t('ortak.tamam'), onPress: () => OdadanCikisYonlendir() }],
             );
           }
         },
@@ -488,7 +549,7 @@ export default function RoomScreen() {
         const ad =
           taht?.profile?.display_name?.trim() ||
           taht?.profile?.username?.trim() ||
-          'Oda sahibi';
+          t('sesOda.odaSahibi');
         setSahipGiris({
           ad,
           avatarUrl: taht?.profile?.avatar_url ?? null,
@@ -528,7 +589,7 @@ export default function RoomScreen() {
       const roomName = room.livekit_room_name ?? `voice_${room.id}`;
       void MedyaDinleyiciyeDusur(roomName).then((medya) => {
         if (medya.ok) {
-          setLkDurum(medya.mock ? `Demo · dinleyici` : `Bağlı · dinleyici`);
+          setLkDurum(medya.mock ? t('sesOda.demoDinleyici') : t('sesOda.bagliDinleyici'));
         }
       });
     }
@@ -564,13 +625,13 @@ export default function RoomScreen() {
         setMuted(!micAcik);
         MedyaMikrofonAyarla(micAcik);
         MedyaHoparlorAyarla(true);
-        MedyaUzakSesHacmiAyarla(1);
-        setLkDurum(medya.mock ? `Demo · konuşmacı` : `Bağlı · konuşmacı`);
+        MedyaUzakSesHacmiAyarla(odaSesHacmiRef.current);
+        setLkDurum(medya.mock ? t('sesOda.demoKonusmaci') : t('sesOda.bagliKonusmaci'));
         AktifSesOdasiGuncelle({ micAcik });
       } else {
         konusmaciYukseltildi.current = false;
         if (medya.hata !== 'Bağlantı iptal edildi') {
-          Alert.alert('Mikrofon', medya.hata ?? 'Konuşmacı bağlantısı kurulamadı');
+          Alert.alert(t('sesOda.mikrofon'), medya.hata ?? t('sesOda.konusmaciBaglantiHatasi'));
         }
       }
     })();
@@ -619,26 +680,29 @@ export default function RoomScreen() {
           table: 'room_members',
           filter: `room_id=eq.${room.id}`,
         },
-        () => {
+        (payload: {
+          eventType?: string;
+          new?: Record<string, unknown> | null;
+          old?: Record<string, unknown> | null;
+        }) => {
           yenile();
-          if (user?.id) {
-            void supabase
-              .from('room_members')
-              .select('role')
-              .eq('room_id', room.id)
-              .eq('user_id', user.id)
-              .maybeSingle()
-              .then(({ data }) => {
-                setMemberRole(
-                  (data?.role as
-                    | 'host'
-                    | 'cohost'
-                    | 'speaker'
-                    | 'listener'
-                    | null) ?? null,
-                );
-              });
+          // Kendi rolümüz event payload'dan — ekstra SELECT yok
+          const uid = user?.id;
+          if (!uid) return;
+          const row =
+            payload.eventType === 'DELETE' ? payload.old : payload.new;
+          if (!row || row.user_id !== uid) return;
+          if (payload.eventType === 'DELETE') {
+            setMemberRole(null);
+            return;
           }
+          const role = row.role as
+            | 'host'
+            | 'cohost'
+            | 'speaker'
+            | 'listener'
+            | undefined;
+          if (role) setMemberRole(role);
         },
       )
       .subscribe();
@@ -671,7 +735,7 @@ export default function RoomScreen() {
             if (sil) {
               const r = await OdayiSil(roomId);
               if (!r.ok) {
-                Alert.alert('Oda', r.hata);
+                Alert.alert(t('sesOda.oda'), r.hata);
                 await leaveRoom(roomId, uid);
               } else {
                 void AnalyticsOlayEkle('room_delete', { room_id: roomId });
@@ -703,49 +767,53 @@ export default function RoomScreen() {
     if (!uyeOlduRef.current) return;
     if (memberRole != null) return;
     uyeOlduRef.current = false;
-    Alert.alert('Oda', 'Odadan çıkarıldınız.');
+    Alert.alert(t('sesOda.oda'), t('sesOda.odadanCikarildiniz'));
     void odadanAyril(false);
   }, [isDemo, isHost, loading, cikiyor, memberRole, odadanAyril]);
 
   const odadanCik = useCallback(() => {
     if (cikiyor) return;
+    // Host çıkınca oda AÇIK kalır — kalıcı kapatma yalnız oda bilgisi / platform
     if (isHost && !isDemo) {
-      Alert.alert('Oda', 'Ne yapmak istersin?', [
-        { text: 'Kal', style: 'cancel' },
-        {
-          text: 'Sadece çık',
-          onPress: () => void odadanAyril(false),
-        },
-        {
-          text: 'Odayı sil',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              'Odayı sil',
-              'Bu ses odası kalıcı olarak silinecek. Emin misin?',
-              [
-                { text: 'Vazgeç', style: 'cancel' },
-                {
-                  text: 'Evet, sil',
-                  style: 'destructive',
-                  onPress: () => void odadanAyril(true),
-                },
-              ],
-            );
+      Alert.alert(
+        t('sesOda.odadanCik'),
+        t('sesOda.hostCikisSoru'),
+        [
+          { text: t('sesOda.kal'), style: 'cancel' },
+          {
+            text: t('sesOda.cik'),
+            style: 'destructive',
+            onPress: () => void odadanAyril(false),
           },
-        },
-      ]);
+        ],
+      );
       return;
     }
-    Alert.alert('Odadan çık', 'Sesli odadan ayrılmak istiyor musun?', [
-      { text: 'Kal', style: 'cancel' },
+    Alert.alert(t('sesOda.odadanCik'), t('sesOda.ayrilSoruKisa'), [
+      { text: t('sesOda.kal'), style: 'cancel' },
       {
-        text: 'Çık',
+        text: t('sesOda.cik'),
         style: 'destructive',
         onPress: () => void odadanAyril(false),
       },
     ]);
-  }, [cikiyor, isHost, isDemo, odadanAyril]);
+  }, [cikiyor, isHost, isDemo, odadanAyril, t]);
+
+  const odayiKaliciKapat = useCallback(() => {
+    if (!isHost || isDemo || cikiyor) return;
+    Alert.alert(
+      t('sesOda.odayiKapat'),
+      t('sesOda.odayiKapatSoru'),
+      [
+        { text: t('ortak.vazgec'), style: 'cancel' },
+        {
+          text: t('sesOda.evetKapat'),
+          style: 'destructive',
+          onPress: () => void odadanAyril(true),
+        },
+      ],
+    );
+  }, [isHost, isDemo, cikiyor, odadanAyril]);
 
   const mikrofonToggle = useCallback(() => {
     void islemiDene('mikrofon', async () => {
@@ -761,15 +829,15 @@ export default function RoomScreen() {
         // Açmaya çalışıyorsa mic lock engeller; kapatmak her zaman serbest
         if (sonraki === false && kendiMicKilitli) {
           Alert.alert(
-            'Mikrofon',
-            'Mikrofonunuz oda yöneticisi tarafından kilitlendi.',
+            t('sesOda.mikrofon'),
+            t('sesOda.mikrofonKilitli'),
           );
           return;
         }
         if (sonraki === false && kendiModeratorMuted) {
           Alert.alert(
-            'Mikrofon',
-            'Mikrofonunuz yönetici tarafından kapatıldı.',
+            t('sesOda.mikrofon'),
+            t('sesOda.mikrofonYoneticiKapatti'),
           );
           return;
         }
@@ -783,12 +851,12 @@ export default function RoomScreen() {
       if (muted) {
         const r = await MikrofonIstegiGonder(room.id);
         if (!r.ok) {
-          Alert.alert('Mikrofon', r.hata ?? 'İstek gönderilemedi');
+          Alert.alert(t('sesOda.mikrofon'), r.hata ?? t('sesOda.istekGonderilemedi'));
           return;
         }
         Alert.alert(
-          'Mikrofon',
-          'İstek gönderildi. Host kabul edince koltuğa oturursun.',
+          t('sesOda.mikrofon'),
+          t('sesOda.istekGonderildiKoltuk'),
         );
       }
     });
@@ -890,7 +958,7 @@ export default function RoomScreen() {
       avatarUrl: odaSahibi?.avatar_url,
       bio: odaSahibi?.bio,
       level: odaSahibi?.level,
-      baslik: 'Oda sahibi',
+      baslik: t('sesOda.odaSahibi'),
     });
   }, [room?.host_id, odaSahibi, profilKartAc]);
 
@@ -902,7 +970,7 @@ export default function RoomScreen() {
         username: item.username,
         avatarUrl: item.avatar_url,
         level: item.level,
-        baslik: 'Profil',
+        baslik: t('ortak.profil'),
       });
     },
     [profilKartAc],
@@ -911,23 +979,23 @@ export default function RoomScreen() {
   const moderasyonMesaji = (action: ModerasyonAksiyonu): string => {
     switch (action) {
       case 'mute':
-        return 'Mikrofon kapatıldı.';
+        return t('sesOda.modMute');
       case 'unmute':
-        return 'Mikrofon izni güncellendi.';
+        return t('sesOda.modUnmute');
       case 'mic_lock':
-        return 'Mikrofon kilitlendi.';
+        return t('sesOda.modMicLock');
       case 'mic_unlock':
-        return 'Mikrofon kilidi kaldırıldı.';
+        return t('sesOda.modMicUnlock');
       case 'unseat':
-        return 'Kullanıcı dinleyiciye alındı.';
+        return t('sesOda.modUnseat');
       case 'kick':
-        return 'Kullanıcı odadan çıkarıldı.';
+        return t('sesOda.modKick');
       case 'ban':
-        return 'Kullanıcı yasaklandı.';
+        return t('sesOda.modBan');
       case 'unban':
-        return 'Yasak kaldırıldı.';
+        return t('sesOda.modUnban');
       default:
-        return 'İşlem tamamlandı.';
+        return t('sesOda.islemTamamlandi');
     }
   };
 
@@ -937,7 +1005,7 @@ export default function RoomScreen() {
     onay?: { baslik: string; metin: string },
   ) => {
     if (!room || isDemo) {
-      Alert.alert('Demo', 'Gerçek odada moderasyon çalışır.');
+      Alert.alert(t('sesOda.demo'), t('sesOda.demoModerasyon'));
       return;
     }
     const calistir = () => {
@@ -949,18 +1017,18 @@ export default function RoomScreen() {
         });
         if (!r.ok) {
           if (__DEV__) console.warn('[moderasyon]', action, r.hata);
-          Alert.alert('Moderasyon', 'İşlem tamamlanamadı. Tekrar deneyin.');
+          Alert.alert(t('sesOda.moderasyon'), t('sesOda.islemBasarisiz'));
           return;
         }
-        Alert.alert('Tamam', moderasyonMesaji(action));
+        Alert.alert(t('ortak.tamam'), moderasyonMesaji(action));
         const s = await fetchRoomSeats(room.id).catch(() => null);
         if (s) setSeats(s);
       })();
     };
     if (onay) {
       Alert.alert(onay.baslik, onay.metin, [
-        { text: 'Vazgeç', style: 'cancel' },
-        { text: 'Onayla', style: 'destructive', onPress: calistir },
+        { text: t('ortak.vazgec'), style: 'cancel' },
+        { text: t('ortak.onayla'), style: 'destructive', onPress: calistir },
       ]);
       return;
     }
@@ -969,16 +1037,16 @@ export default function RoomScreen() {
 
   const koltuktanAyrilSelf = useCallback(() => {
     if (!room || isDemo || !kendiKoltukta) return;
-    Alert.alert('Koltuktan kalk', 'Konuşmacı koltuğundan ayrılıp dinleyici olmak ister misin?', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(t('sesOda.koltuktanKalk'), t('sesOda.koltuktanKalkSoru'), [
+      { text: t('ortak.vazgec'), style: 'cancel' },
       {
-        text: 'Ayrıl',
+        text: t('sesOda.ayril'),
         onPress: () => {
           void (async () => {
             const r = await KoltuktanAyril(room.id);
             if (!r.ok) {
               if (__DEV__) console.warn('[koltuktan_ayril]', r.hata);
-              Alert.alert('Koltuk', 'İşlem tamamlanamadı. Tekrar deneyin.');
+              Alert.alert(t('sesOda.koltuk'), t('sesOda.islemBasarisiz'));
               return;
             }
             setMuted(true);
@@ -995,21 +1063,21 @@ export default function RoomScreen() {
   const liderligiDevret = useCallback(
     (yeniHostId: string) => {
       if (!room || isDemo) {
-        Alert.alert('Demo', 'Liderlik devri gerçek odada çalışır.');
+        Alert.alert(t('sesOda.demo'), t('sesOda.demoLiderlik'));
         return;
       }
       const hedef = seats.find((s) => s.user_id === yeniHostId);
       const ad =
         hedef?.profile?.display_name?.trim() ||
         hedef?.profile?.username?.trim() ||
-        'bu kullanıcıya';
+        t('sesOda.buKullaniciya');
       Alert.alert(
-        'Liderliği devret',
-        `${ad} oda sahibi olacak. Tahta oturacak. Emin misin?`,
+        t('sesOda.liderligiDevret'),
+        t('sesOda.liderligiDevretSoru', { ad }),
         [
-          { text: 'İptal', style: 'cancel' },
+          { text: t('ortak.iptal'), style: 'cancel' },
           {
-            text: 'Devret',
+            text: t('sesOda.devret'),
             style: 'destructive',
             onPress: () => {
               void (async () => {
@@ -1018,7 +1086,7 @@ export default function RoomScreen() {
                   yeniHostId,
                 });
                 if (!r.ok) {
-                  Alert.alert('Liderlik', r.hata ?? 'Devredilemedi');
+                  Alert.alert(t('sesOda.liderlik'), r.hata ?? t('sesOda.devredilemedi'));
                   return;
                 }
                 setRoom((prev) =>
@@ -1045,15 +1113,15 @@ export default function RoomScreen() {
     (hedefId: string, suanCohost: boolean) => {
       if (!room || isDemo || !isHost) return;
       const baslik = suanCohost
-        ? 'Yönetici yetkisini kaldır'
-        : 'Yönetici yap';
+        ? t('sesOda.yoneticiYetkisiniKaldir')
+        : t('sesOda.yoneticiYap');
       const metin = suanCohost
-        ? 'Bu kullanıcının oda yöneticisi yetkisi kaldırılsın mı?'
-        : 'Bu kullanıcıyı oda yöneticisi yapmak istiyor musunuz?';
+        ? t('sesOda.yoneticiKaldirSoru')
+        : t('sesOda.yoneticiYapSoru');
       Alert.alert(baslik, metin, [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('ortak.vazgec'), style: 'cancel' },
         {
-          text: 'Onayla',
+          text: t('ortak.onayla'),
           onPress: () => {
             void (async () => {
               const r = suanCohost
@@ -1067,14 +1135,14 @@ export default function RoomScreen() {
                   });
               if (!r.ok) {
                 if (__DEV__) console.warn('[admin]', r.hata);
-                Alert.alert('Yönetici', 'İşlem tamamlanamadı. Tekrar deneyin.');
+                Alert.alert(t('sesOda.yonetici'), t('sesOda.islemBasarisiz'));
                 return;
               }
               Alert.alert(
-                'Tamam',
+                t('ortak.tamam'),
                 suanCohost
-                  ? 'Yönetici yetkisi kaldırıldı.'
-                  : 'Yönetici yetkisi verildi.',
+                  ? t('sesOda.yoneticiKaldirildi')
+                  : t('sesOda.yoneticiVerildi'),
               );
               const s = await fetchRoomSeats(room.id).catch(() => null);
               if (s) setSeats(s);
@@ -1093,21 +1161,21 @@ export default function RoomScreen() {
         if (isDemo || !room || !user?.id) return;
         if (isHost || kendiKoltukta) return;
         if (seat.seat_index === 0) {
-          Alert.alert('Taht', 'Taht yalnızca oda sahibine aittir.');
+          Alert.alert(t('sesOda.taht'), t('sesOda.tahtSadeceSahip'));
           return;
         }
         if (seat.is_locked) {
-          Alert.alert('Koltuk', 'Bu koltuk kilitli.');
+          Alert.alert(t('sesOda.koltuk'), t('sesOda.koltukKilitli'));
           return;
         }
         void islemiDene('mikrofon', async () => {
           Alert.alert(
-            'Koltuk talebi',
-            `Koltuk ${seat.seat_index + 1} için istek gönderilsin mi?`,
+            t('sesOda.koltukTalebi'),
+            t('sesOda.koltukTalebiSoru', { n: seat.seat_index + 1 }),
             [
-              { text: 'Vazgeç', style: 'cancel' },
+              { text: t('ortak.vazgec'), style: 'cancel' },
               {
-                text: 'İstek gönder',
+                text: t('sesOda.istekGonder'),
                 onPress: () => {
                   void (async () => {
                     const r = await MikrofonIstegiGonder(
@@ -1115,12 +1183,12 @@ export default function RoomScreen() {
                       seat.seat_index,
                     );
                     if (!r.ok) {
-                      Alert.alert('Koltuk', r.hata ?? 'İstek gönderilemedi');
+                      Alert.alert(t('sesOda.koltuk'), r.hata ?? t('sesOda.istekGonderilemedi'));
                       return;
                     }
                     Alert.alert(
-                      'Koltuk',
-                      'İstek gönderildi. Host kabul edince bu koltuğa oturacaksın.',
+                      t('sesOda.koltuk'),
+                      t('sesOda.istekGonderildiBuKoltuk'),
                     );
                   })();
                 },
@@ -1189,14 +1257,14 @@ export default function RoomScreen() {
             break;
           case 'kick':
             moderasyonUygula(seat.user_id!, 'kick', {
-              baslik: 'Odadan çıkar',
-              metin: `${name} odadan çıkarılsın mı?`,
+              baslik: t('sesOda.odadanCikar'),
+              metin: t('sesOda.odadanCikarSoru', { ad: name }),
             });
             break;
           case 'ban':
             moderasyonUygula(seat.user_id!, 'ban', {
-              baslik: 'Yasakla',
-              metin: `${name} bu odadan yasaklansın mı?`,
+              baslik: t('sesOda.yasakla'),
+              metin: t('sesOda.yasaklaSoru', { ad: name }),
             });
             break;
           default:
@@ -1207,46 +1275,44 @@ export default function RoomScreen() {
       const etiket = (a: KatilimciMenuAksiyonu): string => {
         switch (a) {
           case 'profil':
-            return 'Profilini Gör';
+            return t('sesOda.menuProfiliniGor');
           case 'koltuktan_ayril':
-            return 'Koltuktan Kalk';
+            return t('sesOda.menuKoltuktanKalk');
           case 'mute':
-            return 'Mikrofonu Kapat';
+            return t('sesOda.menuMikrofonuKapat');
           case 'mic_lock':
-            return 'Mikrofonu Kilitle';
+            return t('sesOda.menuMikrofonuKilitle');
           case 'mic_unlock':
-            return 'Mikrofon Kilidini Aç';
+            return t('sesOda.menuMikrofonKilidiniAc');
           case 'unseat':
-            return 'Koltuktan İndir';
+            return t('sesOda.menuKoltuktanIndir');
           case 'admin_ata':
-            return 'Yönetici Yap';
+            return t('sesOda.menuYoneticiYap');
           case 'admin_kaldir':
-            return 'Yönetici Yetkisini Kaldır';
+            return t('sesOda.menuYoneticiYetkisiniKaldir');
           case 'lider_devret':
-            return 'Liderliği Devret';
+            return t('sesOda.menuLiderligiDevret');
           case 'kick':
-            return 'Odadan Çıkar';
+            return t('sesOda.menuOdadanCikar');
           case 'ban':
-            return 'Engelle / Yasakla';
+            return t('sesOda.menuEngelleYasakla');
           default:
             return a;
         }
       };
 
-      const ops: {
-        text: string;
-        style?: 'cancel' | 'destructive';
-        onPress?: () => void;
-      }[] = aksiyonlar.map((a) => ({
-        text: etiket(a),
-        style:
-          a === 'kick' || a === 'ban' || a === 'koltuktan_ayril'
-            ? 'destructive'
-            : undefined,
-        onPress: () => aksiyonCalistir(a),
-      }));
-      ops.push({ text: 'İptal', style: 'cancel' });
-      Alert.alert(name, 'Aksiyon seç', ops);
+      setKatilimciMenu({
+        seat,
+        baslik: name,
+        aksiyonlar: aksiyonlar.map((a) => ({
+          id: a,
+          etiket: etiket(a),
+          destructive:
+            a === 'kick' || a === 'ban' || a === 'koltuktan_ayril',
+        })),
+      });
+      // Panel onAksiyon → aynı seat ile çalıştır
+      katilimciAksiyonRef.current = aksiyonCalistir;
     },
     [
       isDemo,
@@ -1273,8 +1339,8 @@ export default function RoomScreen() {
       setRoom({
         id: id ?? 'demo',
         host_id: 'demo',
-        title: 'Demo canlı oda',
-        topic: 'Ses + hediye önizleme',
+        title: t('sesOda.demoCanliOda'),
+        topic: t('sesOda.demoTopic'),
         cover_url: null,
         mode: 'dating',
         max_seats: 8,
@@ -1299,7 +1365,7 @@ export default function RoomScreen() {
               ? {
                   id: 'demo',
                   username: 'host',
-                  display_name: 'Ev sahibi',
+                  display_name: t('kesfet.evSahibi'),
                   bio: '',
                   avatar_url: null,
                   gender: 'female',
@@ -1316,7 +1382,7 @@ export default function RoomScreen() {
         })),
       );
       KonusmaciSesSeviyesi.mockBaslat('demo');
-      setLkDurum('Demo');
+      setLkDurum(t('sesOda.demo'));
       setLoading(false);
       return;
     }
@@ -1367,7 +1433,7 @@ export default function RoomScreen() {
         setRoom(null);
         void SonGezilendenSil('oda', id);
         if (!OdaCikisKilidiAktifMi()) {
-          Alert.alert('Oda', 'Bu oda artık canlı değil');
+          Alert.alert(t('sesOda.oda'), t('sesOda.odaArtikCanliDegil'));
           OdadanCikisYonlendir();
         }
         return;
@@ -1442,7 +1508,7 @@ export default function RoomScreen() {
       }
 
       const roomName = r.livekit_room_name ?? `voice_${id}`;
-      setLkDurum('Ses bağlanıyor…');
+      setLkDurum(t('sesOda.sesBaglaniyor'));
       const medya = await MedyaOdasiBaglan({
         roomName,
         role: hostMu ? 'host' : koltukta ? 'speaker' : 'listener',
@@ -1453,9 +1519,13 @@ export default function RoomScreen() {
       medyaIlkBaglantiBitti.current = true;
       setMedyaHazirTick((n) => n + 1);
       if (medya.ok) {
-        setLkDurum(medya.mock ? `Demo · ${medya.saglayici}` : `Bağlı · ${medya.saglayici}`);
+        setLkDurum(
+          medya.mock
+            ? `${t('sesOda.demo')} · ${medya.saglayici}`
+            : `${t('sesOda.bagliOnEk')} · ${medya.saglayici}`,
+        );
         MedyaHoparlorAyarla(true);
-        MedyaUzakSesHacmiAyarla(1);
+        MedyaUzakSesHacmiAyarla(odaSesHacmiRef.current);
 
         // Aynı oda oturumu (profil ziyareti vb.): mic tercihini koru — kapatma
         const oncekiOturum = AktifSesOdasiDurumunuAl();
@@ -1475,13 +1545,13 @@ export default function RoomScreen() {
         setMuted(!micAcikKalacak);
         MedyaMikrofonAyarla(micAcikKalacak);
 
-        // Join sonrası soft routing — uzak sesi hemen güçlendir
-        MedyaUzakSesHacmiAyarla(1);
+        // Join sonrası soft routing — kullanıcı ses tercihini koru
+        MedyaUzakSesHacmiAyarla(odaSesHacmiRef.current);
         setTimeout(() => {
           if (loadNesil !== odaLoadNesil.current) return;
           MedyaSesOturumunuYenile(false);
           MedyaHoparlorAyarla(true);
-          MedyaUzakSesHacmiAyarla(1);
+          MedyaUzakSesHacmiAyarla(odaSesHacmiRef.current);
           if (micAcikKalacak) MedyaMikrofonAyarla(true);
         }, 400);
         if (medya.mock && r.host_id) KonusmaciSesSeviyesi.mockBaslat(r.host_id);
@@ -1502,16 +1572,15 @@ export default function RoomScreen() {
         }
         AktifSesOdasiOneCikar();
       } else {
-        setLkDurum(medya.hata ?? 'Bağlantı hatası');
+        setLkDurum(medya.hata ?? t('ortak.baglantiHatasi'));
         if (
           (hostMu || koltukta) &&
           medya.hata !== 'Bağlantı iptal edildi'
         ) {
           konusmaciYukseltildi.current = false;
           Alert.alert(
-            'Ses bağlantısı',
-            medya.hata ??
-              'Mikrofon yayınlanamadı. İzinleri kontrol edip odadan çıkıp tekrar dene.',
+            t('sesOda.sesBaglantisi'),
+            medya.hata ?? t('sesOda.sesBaglantisiHata'),
           );
         }
       }
@@ -1519,7 +1588,7 @@ export default function RoomScreen() {
       if (loadNesil !== odaLoadNesil.current) return;
       medyaIlkBaglantiBitti.current = true;
       setMedyaHazirTick((n) => n + 1);
-      Alert.alert('Oda yüklenemedi', e instanceof Error ? e.message : 'Hata');
+      Alert.alert(t('sesOda.odaYuklenemedi'), e instanceof Error ? e.message : t('ortak.hata'));
       setLoading(false);
     }
   }, [id, isDemo, user?.id]);
@@ -1580,7 +1649,7 @@ export default function RoomScreen() {
           giftId: gift.id,
           emoji: gift.emoji,
           name: adet > 1 ? `${gift.name} x${adet}` : gift.name,
-          senderName: profile?.display_name ?? profile?.username ?? 'Sen',
+          senderName: profile?.display_name ?? profile?.username ?? t('gorusme.sen'),
           durationMs: 2200,
           fullScreen: gift.coin_cost >= 999 || adet >= 77,
           coinCost: gift.coin_cost,
@@ -1590,7 +1659,7 @@ export default function RoomScreen() {
         return;
       }
       if (gift.id.startsWith('fb_')) {
-        Alert.alert('Hediye', 'Katalog yükleniyor — biraz sonra dene.');
+        Alert.alert(t('sesOda.hediye'), t('sesOda.katalogYukleniyor'));
         return;
       }
       const sonuc = await HediyeGonder({
@@ -1603,10 +1672,10 @@ export default function RoomScreen() {
         const yetersiz = /insufficient|yetersiz/i.test(sonuc.hata ?? '');
         if (yetersiz) {
           coinYukle.paketleriYenile();
-          Alert.alert('Yetersiz coin', 'Hediye kartında Coin yükle’ye bas.');
+          Alert.alert(t('sesOda.yetersizCoin'), t('sesOda.hediyeCoinYukle'));
           return;
         }
-        Alert.alert('Hediye', sonuc.hata ?? 'Gönderilemedi');
+        Alert.alert(t('sesOda.hediye'), sonuc.hata ?? t('sesOda.gonderilemedi'));
         return;
       }
       if (sonuc.coinsSpent > 0) {
@@ -1618,7 +1687,7 @@ export default function RoomScreen() {
         giftId: gift.id,
         emoji: gift.emoji,
         name: adet > 1 ? `${gift.name} x${adet}` : gift.name,
-        senderName: profile?.display_name ?? profile?.username ?? 'Sen',
+        senderName: profile?.display_name ?? profile?.username ?? t('gorusme.sen'),
         durationMs: 2200,
         fullScreen: gift.coin_cost >= 999 || adet >= 77,
         coinCost: gift.coin_cost,
@@ -1633,8 +1702,12 @@ export default function RoomScreen() {
           const ozet = await SehirHediyeSonrasiOzet();
           if (ozet.has_city && (ozet.last_delta ?? 0) > 0) {
             Alert.alert(
-              'Şehrine güç',
-              `${ozet.city_name}: +${ozet.last_delta} güç\nBugün toplam ${ozet.today_power} güç kattın.`,
+              t('sesOda.sehireGuc'),
+              t('sesOda.sehireGucBody', {
+                sehir: ozet.city_name,
+                delta: ozet.last_delta,
+                toplam: ozet.today_power,
+              }),
             );
           }
         } catch {
@@ -1662,7 +1735,7 @@ export default function RoomScreen() {
     return (
       <Screen koyuSahne>
         <Text style={{ color: colors.text, textAlign: 'center', marginTop: 80 }}>
-          Oda bulunamadı
+          {t('sesOda.odaBulunamadi')}
         </Text>
       </Screen>
     );
@@ -1759,6 +1832,31 @@ export default function RoomScreen() {
         }
       />
 
+      <OdaKatilimciAksiyonPaneli
+        visible={!!katilimciMenu}
+        onClose={() => setKatilimciMenu(null)}
+        baslik={katilimciMenu?.baslik ?? ''}
+        altBaslik={t('sesOda.aksiyonSec')}
+        aksiyonlar={katilimciMenu?.aksiyonlar ?? []}
+        onAksiyon={(a) => {
+          const fn = katilimciAksiyonRef.current;
+          setKatilimciMenu(null);
+          fn?.(a);
+        }}
+      />
+
+      <OdaBilgiPaneli
+        visible={odaBilgiAcik}
+        onClose={() => setOdaBilgiAcik(false)}
+        room={room}
+        hostAd={odaSahibi?.display_name ?? (isHost ? profile?.display_name : null)}
+        hostUsername={
+          odaSahibi?.username ?? (isHost ? profile?.username : null)
+        }
+        canCloseRoom={isHost && !isDemo}
+        onOdayiKapat={odayiKaliciKapat}
+      />
+
       <View style={styles.root}>
         {/* Klavye açıkken sahneye dokununca kapanır — alt kartın üstünde değil */}
         {klavyeAcik ? (
@@ -1766,48 +1864,79 @@ export default function RoomScreen() {
             style={styles.klavyeKapatKatman}
             onPress={Keyboard.dismiss}
             accessibilityRole="button"
-            accessibilityLabel="Klavyeyi kapat"
+            accessibilityLabel={t('ortak.klavyeyiKapat')}
           />
         ) : null}
 
         {/* SAHNE */}
         <View style={styles.stage} pointerEvents={klavyeAcik ? 'box-none' : 'auto'}>
           <OdaCanliAtmosfer yogunluk="hafif" />
+          {muzikFlag && muzikSession?.state === 'PLAYING' ? (
+            <OdaMuzikIsikShow aktif />
+          ) : null}
           <View style={styles.topBar}>
-            <OdaProfilCubugu
-              displayName={
-                odaSahibi?.display_name ??
-                (isHost ? profile?.display_name : null) ??
-                'Oda sahibi'
-              }
-              username={
-                odaSahibi?.username ?? (isHost ? profile?.username : null)
-              }
-              avatarUrl={
-                odaSahibi?.avatar_url ?? (isHost ? profile?.avatar_url : null)
-              }
-              level={odaSahibi?.level ?? (isHost ? profile?.level : null)}
-              altEtiket="Oda sahibi"
-              onPress={odaSahibiKartAc}
-            />
-            <View style={styles.topMetaCard} accessibilityLabel="Oda kodu">
+            <View style={styles.topBarSol}>
+              <OdaProfilCubugu
+                displayName={
+                  odaSahibi?.display_name ??
+                  (isHost ? profile?.display_name : null) ??
+                  t('sesOda.odaSahibi')
+                }
+                username={
+                  odaSahibi?.username ?? (isHost ? profile?.username : null)
+                }
+                avatarUrl={
+                  odaSahibi?.avatar_url ?? (isHost ? profile?.avatar_url : null)
+                }
+                level={odaSahibi?.level ?? (isHost ? profile?.level : null)}
+                altEtiket={t('sesOda.odaSahibi')}
+                onPress={odaSahibiKartAc}
+              />
+              {muzikFlag && muzikCalıyor && muzikSession?.track ? (
+                <OdaMuzikPlak
+                  title={muzikSession.track.title}
+                  artistName={muzikSession.track.artist_name}
+                  coverUrl={muzikSession.track.cover_url}
+                  spinning={muzikSession.state === 'PLAYING'}
+                />
+              ) : null}
               {room.room_code ? (
-                <Text style={styles.roomCode} numberOfLines={1}>
-                  {room.room_code}
-                </Text>
-              ) : (
-                <View style={{ flex: 1 }} />
-              )}
+                <Pressable
+                  onPress={() => setOdaBilgiAcik(true)}
+                  style={styles.odaNoPill}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('sesOda.odaNumarasiA11y', { kod: room.room_code })}
+                >
+                  <Ionicons
+                    name="keypad-outline"
+                    size={11}
+                    color="rgba(255,224,138,0.85)"
+                  />
+                  <Text style={styles.odaNoYazi} numberOfLines={1}>
+                    {room.room_code}
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
+            <View style={styles.topBarSpacer} />
             <View style={styles.topBarSag}>
               {muzikFlag ? (
-                <OdaMuzikButonu
-                  playing={
-                    muzikSession?.state === 'PLAYING' ||
-                    muzikSession?.state === 'PAUSED'
-                  }
-                  onPress={() => setMuzikSheetAcik(true)}
-                />
+                <View
+                  ref={muzikBtnRef}
+                  collapsable={false}
+                  onLayout={() => {
+                    muzikBtnRef.current?.measureInWindow((x, y, w, h) => {
+                      if (w > 0 && h > 0) {
+                        muzikBtnHedef.current = { x, y, w, h };
+                      }
+                    });
+                  }}
+                >
+                  <OdaMuzikButonu
+                    playing={muzikCalıyor}
+                    onPress={() => setMuzikSheetAcik(true)}
+                  />
+                </View>
               ) : null}
               <ModulHataSiniri modulAdi="oda-dinleyici" varyant="kart">
                 <OdaDinleyiciPaneli
@@ -1824,7 +1953,7 @@ export default function RoomScreen() {
               </ModulHataSiniri>
               <Pressable
                 style={styles.livePill}
-                accessibilityLabel="Canlı dinleyici"
+                accessibilityLabel={t('sesOda.canliDinleyici')}
                 onPress={() => setDinleyiciAcik(true)}
               >
                 <View
@@ -1841,7 +1970,7 @@ export default function RoomScreen() {
                 <Pressable
                   onPress={() => setOdaKartAcik(true)}
                   style={styles.ustIconBtn}
-                  accessibilityLabel="Oda kartını ve koltuk sayısını düzenle"
+                  accessibilityLabel={t('sesOda.odaKartiDuzenle')}
                   accessibilityRole="button"
                 >
                   <Ionicons name="images-outline" size={18} color="#F0D78C" />
@@ -1855,14 +1984,14 @@ export default function RoomScreen() {
                   targetUserId={room.host_id}
                   title={room.title}
                   isGuest={isGuest}
-                  varyant="metin"
+                  varyant="ikon"
                 />
               ) : null}
               <Pressable
                 onPress={odadanCik}
                 disabled={cikiyor}
                 style={styles.ustIconBtn}
-                accessibilityLabel="Odayı kapat"
+                accessibilityLabel={t('sesOda.odadanCik')}
                 accessibilityRole="button"
               >
                 <Ionicons name="close" size={20} color="#F7F2E8" />
@@ -1870,42 +1999,14 @@ export default function RoomScreen() {
             </View>
           </View>
 
-          {muzikFlag ? (
-            <OdaMuzikMiniPlayer
-              session={muzikSession}
-              canManage={muzikYonetebilir}
-              onOpenLibrary={() => setMuzikSheetAcik(true)}
-              onPause={() => {
-                if (!room) return;
-                void RoomMusicPause(
-                  room.id,
-                  OdaMuzikPozisyonMs(),
-                  muzikSession?.version,
-                ).then(() => muzikYenile());
-              }}
-              onResume={() => {
-                if (!room) return;
-                void RoomMusicResume(room.id, muzikSession?.version).then(() =>
-                  muzikYenile(),
-                );
-              }}
-              onPrev={() => {
-                if (!room) return;
-                void RoomMusicSkip(room.id, -1, muzikSession?.version).then(() =>
-                  muzikYenile(),
-                );
-              }}
-              onNext={() => {
-                if (!room) return;
-                void RoomMusicSkip(room.id, 1, muzikSession?.version).then(() =>
-                  muzikYenile(),
-                );
-              }}
-              onLocalVolume={() => {
-                const next = lokalMuzikSes > 0.05 ? 0 : 1;
-                setLokalMuzikSes(next);
-                OdaMuzikLokalGain(next);
-              }}
+          {muzikFlag && muzikAcilis ? (
+            <OdaMuzikAcilisAnimasyonu
+              animKey={`${muzikAcilis.key}-${muzikHedefTick}`}
+              title={muzikAcilis.title}
+              artistName={muzikAcilis.artist}
+              coverUrl={muzikAcilis.cover}
+              hedef={muzikBtnHedef.current}
+              onBitti={() => setMuzikAcilis(null)}
             />
           ) : null}
 
@@ -1947,7 +2048,9 @@ export default function RoomScreen() {
 
           {lastGift ? (
             <View style={styles.giftToast}>
-              <Text style={styles.giftToastText}>{lastGift} gönderildi!</Text>
+              <Text style={styles.giftToastText}>
+                {t('sesOda.hediyeGonderildi', { hediye: lastGift })}
+              </Text>
             </View>
           ) : null}
         </View>
@@ -1990,14 +2093,14 @@ export default function RoomScreen() {
               onPress={() => setChatOpen(true)}
               style={styles.yorumAcChip}
               accessibilityRole="button"
-              accessibilityLabel="Yorumları göster"
+              accessibilityLabel={t('sesOda.yorumlariGoster')}
             >
               <Ionicons
                 name="chatbubble-ellipses-outline"
                 size={14}
                 color={colors.textMuted}
               />
-              <Text style={styles.yorumAcYazi}>Yorumlar</Text>
+              <Text style={styles.yorumAcYazi}>{t('sesOda.yorumlar')}</Text>
             </Pressable>
           ) : null}
 
@@ -2024,7 +2127,7 @@ export default function RoomScreen() {
               <Pressable
                 onPress={mikrofonToggle}
                 style={[styles.controlBtn, !muted && styles.controlBtnAktif]}
-                accessibilityLabel={muted ? 'Mikrofonu aç' : 'Mikrofonu kapat'}
+                accessibilityLabel={muted ? t('sesOda.mikrofonuAc') : t('sesOda.mikrofonuKapat')}
                 accessibilityRole="button"
               >
                 <Ionicons
@@ -2033,6 +2136,14 @@ export default function RoomScreen() {
                   color={muted ? colors.textMuted : colors.micOn}
                 />
               </Pressable>
+
+              <OdaSesHacmiButonu
+                hacim={odaSesHacmi}
+                onHacimDegisti={(h) => {
+                  setOdaSesHacmi(h);
+                  MedyaUzakSesHacmiAyarla(h);
+                }}
+              />
 
               {isModerator && !isDemo ? (
                 <ModulHataSiniri modulAdi="mikrofon-istek" varyant="kart">
@@ -2059,7 +2170,7 @@ export default function RoomScreen() {
                     })
                   }
                   style={styles.giftBtn}
-                  accessibilityLabel="Hediye gönder"
+                  accessibilityLabel={t('sesOda.hediyeGonder')}
                   accessibilityRole="button"
                 >
                   <LinearGradient
@@ -2086,7 +2197,7 @@ export default function RoomScreen() {
                 aktif={oyunAktif}
                 roomMeta={{
                   roomId: room.id,
-                  roomName: room.title ?? 'Ses Odası',
+                  roomName: room.title ?? t('sesOda.sesOdasi'),
                   participantCount: seats.filter((s) => s.user_id).length,
                   micEnabled: !muted,
                 }}
@@ -2096,7 +2207,7 @@ export default function RoomScreen() {
                   odaSahibi?.display_name ??
                   odaSahibi?.username ??
                   room.host_id?.slice(0, 8) ??
-                  'Host'
+                  t('sesOda.kurucu')
                 }
                 startModalVisible={gameOpen}
                 onStartModalClose={() => setGameOpen(false)}
@@ -2124,7 +2235,7 @@ export default function RoomScreen() {
             odaSahibi?.username ??
             room.host?.display_name ??
             room.host?.username ??
-            'Ev sahibi'
+            t('kesfet.evSahibi')
           }
           onSend={onSendGift}
           onClose={() => setGiftOpen(false)}
@@ -2139,19 +2250,57 @@ export default function RoomScreen() {
         <OdaMuzikKutuphanesiSheet
           visible={muzikSheetAcik}
           canManage={muzikYonetebilir}
+          session={muzikSession}
           onClose={() => setMuzikSheetAcik(false)}
-          onSelect={(trackId) => {
-            void RoomMusicSet(room.id, trackId, muzikSession?.version).then(
-              () => {
-                setMuzikSheetAcik(false);
-                void muzikYenile();
-              },
+          onSelect={async (trackId) => {
+            await RoomMusicSet(room.id, trackId, muzikSession?.version);
+            await muzikYenile();
+            setMuzikSheetAcik(false);
+          }}
+          onQueue={async (trackId) => {
+            await RoomMusicQueueAdd(room.id, trackId);
+            await muzikYenile();
+          }}
+          onPause={() => {
+            void RoomMusicPause(
+              room.id,
+              OdaMuzikPozisyonMs(),
+              muzikSession?.version,
+            ).then(() => muzikYenile());
+          }}
+          onResume={() => {
+            void RoomMusicResume(room.id, muzikSession?.version).then(() =>
+              muzikYenile(),
             );
           }}
-          onQueue={(trackId) => {
-            void RoomMusicQueueAdd(room.id, trackId).then(() => {
-              void muzikYenile();
-            });
+          onPrev={() => {
+            void RoomMusicSkip(room.id, -1, muzikSession?.version).then(() =>
+              muzikYenile(),
+            );
+          }}
+          onNext={() => {
+            void RoomMusicSkip(room.id, 1, muzikSession?.version).then(() =>
+              muzikYenile(),
+            );
+          }}
+          onStop={() => {
+            void RoomMusicStop(room.id, muzikSession?.version).then(() =>
+              muzikYenile(),
+            );
+          }}
+          onSeek={(positionMs) => {
+            void RoomMusicSeek(
+              room.id,
+              positionMs,
+              muzikSession?.version,
+            ).then(() => muzikYenile());
+          }}
+          onVolume={(volume) => {
+            void RoomMusicSetVolume(
+              room.id,
+              volume,
+              muzikSession?.version,
+            ).then(() => muzikYenile());
           }}
         />
       ) : null}
@@ -2215,12 +2364,42 @@ const styles = StyleSheet.create({
   },
   topBar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 12,
     gap: 8,
     marginBottom: 6,
     flexShrink: 0,
     zIndex: 3,
+  },
+  topBarSol: {
+    flexShrink: 1,
+    maxWidth: 180,
+  },
+  topBarSpacer: {
+    flex: 1,
+    minWidth: 4,
+  },
+  odaNoPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 5,
+    marginTop: 6,
+    maxWidth: 168,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(240, 180, 41, 0.12)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(240, 180, 41, 0.35)',
+  },
+  odaNoYazi: {
+    ...typography.caption,
+    color: '#FFE08A',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    flexShrink: 1,
   },
   topBarSag: {
     flexDirection: 'row',
@@ -2237,20 +2416,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  topMetaCard: {
-    flex: 1,
-    minWidth: 0,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    justifyContent: 'center',
-  },
-  roomCode: {
-    ...typography.caption,
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.8,
   },
   livePill: {
     flexDirection: 'row',

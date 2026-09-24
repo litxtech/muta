@@ -12,6 +12,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
+import i18n from '../../../i18n';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 
 export type PolitikaGovdeTema = {
@@ -123,7 +124,7 @@ export function PolitikaZenginGovde({ govde, tema, stil, metinStil }: Props) {
                   source={{ uri }}
                   style={styles.img}
                   resizeMode="contain"
-                  accessibilityLabel={p.alt || 'Politika görseli'}
+                  accessibilityLabel={p.alt || i18n.t('auth.politikaGorseli')}
                 />
               );
             })}
@@ -135,11 +136,11 @@ export function PolitikaZenginGovde({ govde, tema, stil, metinStil }: Props) {
 }
 
 export function PolitikaLinkMarkdown(etiket: string, url: string) {
-  return `[${etiket.trim() || 'bağlantı'}](${url.trim()})`;
+  return `[${etiket.trim() || i18n.t('auth.politikaBaglanti')}](${url.trim()})`;
 }
 
-export function PolitikaGorselMarkdown(url: string, alt = 'görsel') {
-  return `![${alt}](${url.trim()})`;
+export function PolitikaGorselMarkdown(url: string, alt?: string) {
+  return `![${alt?.trim() || i18n.t('auth.politikaGorseli')}](${url.trim()})`;
 }
 
 const styles = StyleSheet.create({

@@ -20,6 +20,7 @@ import {
 } from '../animasyon/HediyeAnimasyonuKuyrugu';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 const { width: W, height: H } = Dimensions.get('window');
 const ANDROID = Platform.OS === 'android';
@@ -231,6 +232,7 @@ function ComboPatlamaKivilcim({
 
 /** TikTok sol combo — ×adet her vuruşta / adette patlar */
 function ComboSatir({ item }: { item: HediyeAnimasyonIslemi }) {
+  const { t } = useCeviri();
   const opacity = useSharedValue(0);
   const tx = useSharedValue(-48);
   const satirScale = useSharedValue(0.9);
@@ -320,7 +322,7 @@ function ComboSatir({ item }: { item: HediyeAnimasyonIslemi }) {
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.comboKim} numberOfLines={1}>
-              {item.senderName || 'Birisi'}
+              {item.senderName || t('hediye.birisi')}
             </Text>
             <Text style={styles.comboNe} numberOfLines={1}>
               {item.name}

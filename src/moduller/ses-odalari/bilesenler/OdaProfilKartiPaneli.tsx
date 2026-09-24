@@ -18,8 +18,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
-  FadeIn,
-  FadeOut,
   SlideInDown,
   SlideOutDown,
 } from 'react-native-reanimated';
@@ -38,6 +36,7 @@ import { TakipSayaciniFormatla } from '../../takip/TakipSayacFormat';
 import { KullaniciGuvenlikMenusu } from '../../moderasyon/bilesenler/KullaniciGuvenlikMenusu';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   visible: boolean;
@@ -64,8 +63,6 @@ type Props = {
 
 const SHEET_GIRIS = SlideInDown.duration(300).easing(Easing.out(Easing.cubic));
 const SHEET_CIKIS = SlideOutDown.duration(220).easing(Easing.in(Easing.cubic));
-const PERDE_GIRIS = FadeIn.duration(180);
-const PERDE_CIKIS = FadeOut.duration(140);
 
 const ALTIN = ['#FFF1B8', '#F0B429', '#C99214'] as const;
 
@@ -90,14 +87,16 @@ function OdaProfilKartiPaneliInner({
   diamonds,
   followersCount: followersProp,
   followingCount: followingProp,
-  baslik = 'Profil bilgileri',
+  baslik,
   onProfilAc,
   onNeedUpgrade,
   yukseklikOrani = 0.58,
 }: Props) {
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
   const { height: ekranH } = useWindowDimensions();
-  const ad = displayName?.trim() || username?.trim() || 'Profil';
+  const baslikMetin = baslik ?? t('sesOda.profilBilgileri');
+  const ad = displayName?.trim() || username?.trim() || t('ortak.profil');
   const handle = username?.trim() ? `@${username.trim()}` : null;
   const seviye = level && level > 0 ? level : 0;
   const cuzdanGoster = coins != null || diamonds != null;
@@ -151,26 +150,26 @@ function OdaProfilKartiPaneliInner({
     if (!userId) return;
     if (isGuest) {
       onNeedUpgrade?.();
-      Alert.alert('Takip', 'Takip için hesabını tamamla.');
+      Alert.alert(t('sesOda.takip'), t('sesOda.takipMisafir'));
       return;
     }
     const st = durum?.state;
     if (st === 'FOLLOWING' || st === 'MUTUAL') {
       takiptenCikOnayi(username, () => {
         void calistir('unfollow').then((r) => {
-          if (!r.ok) Alert.alert('Takip', r.hata ?? TakipHataMesaji(r.code));
+          if (!r.ok) Alert.alert(t('sesOda.takip'), r.hata ?? TakipHataMesaji(r.code));
         });
       });
       return;
     }
     if (st === 'REQUEST_PENDING') {
       void calistir('cancel').then((r) => {
-        if (!r.ok) Alert.alert('Takip', r.hata ?? TakipHataMesaji(r.code));
+        if (!r.ok) Alert.alert(t('sesOda.takip'), r.hata ?? TakipHataMesaji(r.code));
       });
       return;
     }
     void calistir('follow').then((r) => {
-      if (!r.ok) Alert.alert('Takip', r.hata ?? TakipHataMesaji(r.code));
+      if (!r.ok) Alert.alert(t('sesOda.takip'), r.hata ?? TakipHataMesaji(r.code));
     });
   }, [userId, isGuest, onNeedUpgrade, durum?.state, username, calistir]);
 
@@ -195,21 +194,16 @@ function OdaProfilKartiPaneliInner({
         transparent
         animationType="none"
         statusBarTranslucent
+        hardwareAccelerated
         onRequestClose={onClose}
       >
-        <View style={styles.root} pointerEvents="box-none">
-          <Animated.View
-            entering={PERDE_GIRIS}
-            exiting={PERDE_CIKIS}
+        <View style={styles.root}>
+          <Pressable
             style={styles.perde}
-          >
-            <Pressable
-              style={StyleSheet.absoluteFill}
-              onPress={onClose}
-              accessibilityRole="button"
-              accessibilityLabel="Kapat"
-            />
-          </Animated.View>
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel={t('ortak.kapat')}
+          />
 
           <Animated.View
             entering={SHEET_GIRIS}
@@ -225,18 +219,20 @@ function OdaProfilKartiPaneliInner({
             <LinearGradient
               colors={['#2A1C08', '#141018', '#0C0A10']}
               style={StyleSheet.absoluteFill}
+              pointerEvents="none"
             />
-            <View style={styles.handle} />
+            <View style={styles.cekmeCubugu} />
 
             <View style={styles.baslikSatir}>
-              <Text style={styles.baslik}>{baslik}</Text>
+              <Text style={styles.baslik}>{baslikMetin}</Text>
               <Pressable
                 onPress={onClose}
                 style={styles.kapatBtn}
-                accessibilityLabel="Kapat"
-                hitSlop={8}
+                accessibilityLabel={t('ortak.kapat')}
+                accessibilityRole="button"
+                hitSlop={14}
               >
-                <Ionicons name="close" size={20} color="#FFE08A" />
+                <Ionicons name="close" size={22} color="#FFF6D6" />
               </Pressable>
             </View>
 
@@ -259,7 +255,7 @@ function OdaProfilKartiPaneliInner({
                     }}
                     style={styles.avatarWrap}
                     accessibilityRole="button"
-                    accessibilityLabel="Profil fotoğrafını büyüt"
+                    accessibilityLabel={t('sesOda.profilBuyut')}
                     disabled={!avatarUrl?.trim()}
                   >
                     <SeviyeTaci level={seviye} size="lg" avatarBoy={72}>
@@ -297,24 +293,24 @@ function OdaProfilKartiPaneliInner({
                       style={styles.sosyalStat}
                       onPress={() => listeAc('following')}
                       accessibilityRole="button"
-                      accessibilityLabel="Takip edilenler"
+                      accessibilityLabel={t('sesOda.takipEdilenler')}
                     >
                       <Text style={styles.sosyalDeger}>
                         {TakipSayaciniFormatla(following)}
                       </Text>
-                      <Text style={styles.sosyalEtiket}>Takip</Text>
+                      <Text style={styles.sosyalEtiket}>{t('sesOda.takip')}</Text>
                     </Pressable>
                     <View style={styles.statAyir} />
                     <Pressable
                       style={styles.sosyalStat}
                       onPress={() => listeAc('followers')}
                       accessibilityRole="button"
-                      accessibilityLabel="Takipçiler"
+                      accessibilityLabel={t('sesOda.takipciler')}
                     >
                       <Text style={styles.sosyalDeger}>
                         {TakipSayaciniFormatla(followers)}
                       </Text>
-                      <Text style={styles.sosyalEtiket}>Takipçi</Text>
+                      <Text style={styles.sosyalEtiket}>{t('sesOda.takipci')}</Text>
                     </Pressable>
                   </View>
 
@@ -352,7 +348,7 @@ function OdaProfilKartiPaneliInner({
                     style={styles.guvenlikBtn}
                     onPress={() => setGuvenlikAcik(true)}
                     accessibilityRole="button"
-                    accessibilityLabel="Bildir veya engelle"
+                    accessibilityLabel={t('sesOda.bildirVeyaEngelle')}
                   >
                     <Ionicons name="flag-outline" size={16} color="#FFE08A" />
                     <Text style={styles.guvenlikBtnYazi}>Bildir / Engelle</Text>
@@ -368,7 +364,7 @@ function OdaProfilKartiPaneliInner({
                   }}
                   style={styles.cta}
                   accessibilityRole="button"
-                  accessibilityLabel="Tam profili aç"
+                  accessibilityLabel={t('sesOda.tamProfilAc')}
                 >
                   <LinearGradient
                     colors={[...ALTIN]}
@@ -376,7 +372,7 @@ function OdaProfilKartiPaneliInner({
                     end={{ x: 1, y: 0.5 }}
                     style={styles.ctaIc}
                   >
-                    <Text style={styles.ctaText}>Profil sayfasına git</Text>
+                    <Text style={styles.ctaText}>{t('sesOda.profilSayfasinaGit')}</Text>
                     <Ionicons name="arrow-forward" size={18} color="#2A1800" />
                   </LinearGradient>
                 </Pressable>
@@ -418,7 +414,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   perde: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
   sheet: {
@@ -429,8 +425,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderTopWidth: 1,
     borderColor: 'rgba(240,180,41,0.35)',
+    zIndex: 2,
+    elevation: 8,
   },
-  handle: {
+  cekmeCubugu: {
     alignSelf: 'center',
     width: 42,
     height: 4,
@@ -443,22 +441,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 10,
+    zIndex: 3,
   },
   baslik: {
     ...TipografiTokenlari.title,
     color: '#FFE08A',
     fontSize: 18,
     fontWeight: '800',
+    flex: 1,
+    paddingRight: 8,
   },
   kapatBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(240,180,41,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(240,180,41,0.28)',
+    borderColor: 'rgba(255,224,138,0.45)',
   },
   scroll: { flex: 1 },
   scrollIc: { paddingBottom: 8, gap: 12 },

@@ -5,12 +5,13 @@ import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { RoomMode } from '../../../types/models';
+import { useCeviri, type CeviriAnahtari } from '../../../i18n/useCeviri';
 
 export type OdalarFiltre = 'all' | RoomMode;
 
 type FiltreSecenek = {
   id: OdalarFiltre;
-  label: string;
+  label: CeviriAnahtari;
   icon: keyof typeof Ionicons.glyphMap;
   iconAktif: keyof typeof Ionicons.glyphMap;
   tint: string;
@@ -19,42 +20,42 @@ type FiltreSecenek = {
 const SECENEKLER: FiltreSecenek[] = [
   {
     id: 'all',
-    label: 'Tümü',
+    label: 'modlar.tumu',
     icon: 'apps-outline',
     iconAktif: 'apps',
     tint: RenkTokenlari.primarySoft,
   },
   {
     id: 'party',
-    label: 'Parti',
+    label: 'modlar.parti',
     icon: 'sparkles-outline',
     iconAktif: 'sparkles',
     tint: RenkTokenlari.magenta,
   },
   {
     id: 'dating',
-    label: 'Flört',
+    label: 'modlar.flort',
     icon: 'heart-outline',
     iconAktif: 'heart',
     tint: RenkTokenlari.primary,
   },
   {
     id: 'karaoke',
-    label: 'Karaoke',
+    label: 'modlar.karaoke',
     icon: 'mic-outline',
     iconAktif: 'mic',
     tint: RenkTokenlari.violet,
   },
   {
     id: 'game',
-    label: 'Oyun',
+    label: 'modlar.oyun',
     icon: 'game-controller-outline',
     iconAktif: 'game-controller',
     tint: RenkTokenlari.mint,
   },
   {
     id: 'private',
-    label: 'Özel',
+    label: 'modlar.ozel',
     icon: 'lock-closed-outline',
     iconAktif: 'lock-closed',
     tint: RenkTokenlari.accent,
@@ -68,6 +69,7 @@ type Props = {
 
 /** Küçük, yuvarlak (avatar tarzı) mod filtreleri */
 export function OdalarModFiltresi({ secili, onSec }: Props) {
+  const { t } = useCeviri();
   return (
     <ScrollView
       horizontal
@@ -84,7 +86,7 @@ export function OdalarModFiltresi({ secili, onSec }: Props) {
             style={({ pressed }) => [styles.item, pressed && styles.pressed]}
             accessibilityRole="button"
             accessibilityState={{ selected: aktif }}
-            accessibilityLabel={secenek.label}
+            accessibilityLabel={t(secenek.label)}
           >
             <View
               style={[
@@ -109,7 +111,7 @@ export function OdalarModFiltresi({ secili, onSec }: Props) {
               ]}
               numberOfLines={1}
             >
-              {secenek.label}
+              {t(secenek.label)}
             </Text>
           </Pressable>
         );

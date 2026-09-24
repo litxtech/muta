@@ -5,6 +5,7 @@ import { TakipciKarti } from '../../takip/bilesenler/TakipciKarti';
 import { KesfetBolumBasligi } from './KesfetBolumBasligi';
 import type { TakipOnerisi } from '../../takip/TakipTipleri';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 export function KesfetOnerilenKullanicilar({
   items,
@@ -15,11 +16,12 @@ export function KesfetOnerilenKullanicilar({
   onFollow: (id: string) => void;
   busyId?: string | null;
 }) {
+  const { t } = useCeviri();
   if (!items.length) return null;
   return (
     <View style={styles.wrap}>
       <View style={styles.baslik}>
-        <KesfetBolumBasligi baslik="Önerilen kullanıcılar" />
+        <KesfetBolumBasligi baslik={t('kesfet.onerilenKullanicilar')} />
       </View>
       <ScrollView
         horizontal

@@ -19,6 +19,7 @@ import { useTakipRealtime } from '../gercek-zamanli/useTakipRealtime';
 import { TakipServisi } from '../islemler/TakipServisi';
 import { TakipHataMesaji } from '../TakipHataMesajlari';
 import type { OrtakTakipciOzeti } from '../TakipTipleri';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 export function ProfilSosyalAlani({
   targetUserId,
@@ -27,8 +28,16 @@ export function ProfilSosyalAlani({
   isGuest,
   displayName,
   username,
-  isVerified,
   onMesaj,
+  gosterTakipci = true,
+  gosterTakip = true,
+  gosterGonderi = true,
+  /** X header: sadece Takip + Mesaj (sayaç / ortak yok) */
+  sadeceAksiyon = false,
+  /** Sayaçları gizle (X header’da gösteriliyorsa) */
+  gosterSayaclar = true,
+  /** Takip/Mesaj satırını gizle */
+  gosterAksiyon = true,
 }: {
   targetUserId: string;
   viewerId?: string | null;
@@ -36,9 +45,17 @@ export function ProfilSosyalAlani({
   isGuest?: boolean;
   displayName: string;
   username?: string | null;
+  /** Geri uyumluluk — tik profil isim satırında; burada kullanılmaz */
   isVerified?: boolean;
   onMesaj?: () => void;
+  gosterTakipci?: boolean;
+  gosterTakip?: boolean;
+  gosterGonderi?: boolean;
+  sadeceAksiyon?: boolean;
+  gosterSayaclar?: boolean;
+  gosterAksiyon?: boolean;
 }) {
+  const { t } = useCeviri();
   const { durum, setDurum, yenile } = useTakipDurumu(targetUserId);
   const { calistir, isleniyor } = useTakipMutasyonu({
     targetUserId,
@@ -70,26 +87,26 @@ export function ProfilSosyalAlani({
 
   const takipBas = useCallback(() => {
     if (isGuest) {
-      Alert.alert('Takip', 'Takip için hesabını tamamla.');
+      Alert.alert(t('profil.takip'), t('takip.hataGuest'));
       return;
     }
     const st = durum?.state;
     if (st === 'FOLLOWING' || st === 'MUTUAL') {
       takiptenCikOnayi(username, () => {
         void calistir('unfollow').then((r) => {
-          if (!r.ok) Alert.alert('Takip', r.hata ?? TakipHataMesaji(r.code));
+          if (!r.ok) Alert.alert(t('profil.takip'), r.hata ?? TakipHataMesaji(r.code));
         });
       });
       return;
     }
     if (st === 'REQUEST_PENDING') {
-      Alert.alert('İstek gönderildi', 'Takip isteğini iptal etmek istiyor musun?', [
-        { text: 'Vazgeç', style: 'cancel' },
+      Alert.alert(t('takip.istekGonderildiBaslik'), t('takip.istekIptalSoru'), [
+        { text: t('ortak.vazgec'), style: 'cancel' },
         {
-          text: 'İptal et',
+          text: t('takip.iptalEt'),
           onPress: () => {
             void calistir('cancel').then((r) => {
-              if (!r.ok) Alert.alert('Takip', r.hata ?? TakipHataMesaji(r.code));
+              if (!r.ok) Alert.alert(t('profil.takip'), r.hata ?? TakipHataMesaji(r.code));
             });
           },
         },
@@ -97,17 +114,55 @@ export function ProfilSosyalAlani({
       return;
     }
     void calistir('follow').then((r) => {
-      if (!r.ok) Alert.alert('Takip', r.hata ?? TakipHataMesaji(r.code));
+      if (!r.ok) Alert.alert(t('profil.takip'), r.hata ?? TakipHataMesaji(r.code));
     });
-  }, [calistir, durum?.state, isGuest, username]);
+  }, [calistir, durum?.state, isGuest, username, t]);
+
+  const aksiyonlar =
+    isSelf ? null : durum?.state !== 'BLOCKED' && durum?.state !== 'BLOCKED_BY_USER' ? (
+      <View style={sadeceAksiyon ? styles.aksiyonCompact : styles.aksiyon}>
+        <TakipButonu
+          state={durum?.state ?? 'NOT_FOLLOWING'}
+          displayName={displayName}
+          loading={isleniyor}
+          onPress={takipBas}
+          compact={sadeceAksiyon}
+        />
+        {onMesaj ? (
+          <Pressable
+            style={sadeceAksiyon ? styles.mesajCompact : styles.mesaj}
+            onPress={onMesaj}
+            accessibilityRole="button"
+            accessibilityLabel={t('takip.mesajGonderA11y', { ad: displayName })}
+          >
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={sadeceAksiyon ? 16 : 18}
+              color={RenkTokenlari.text}
+            />
+            {sadeceAksiyon ? null : (
+              <Text style={styles.mesajYazi}>{t('profil.mesajGonder')}</Text>
+            )}
+          </Pressable>
+        ) : null}
+      </View>
+    ) : (
+      <View style={sadeceAksiyon ? styles.engelKutuCompact : styles.engelKutu}>
+        <Text style={styles.engel}>
+          {sadeceAksiyon ? t('takip.engelli') : t('takip.engelliBody')}
+        </Text>
+        {sadeceAksiyon ? null : (
+          <Text style={styles.engelAlt}>{t('takip.engelliAlt')}</Text>
+        )}
+      </View>
+    );
+
+  if (sadeceAksiyon) {
+    return <View style={styles.wrapCompact}>{aksiyonlar}</View>;
+  }
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.adSatir}>
-        {isVerified ? (
-          <Ionicons name="checkmark-circle" size={18} color={RenkTokenlari.mint} />
-        ) : null}
-      </View>
       {durum && !isSelf ? (
         <IliskiEtiketi
           state={durum.state}
@@ -116,15 +171,23 @@ export function ProfilSosyalAlani({
         />
       ) : null}
 
-      <TakipSayaclari
-        posts={durum?.posts_count ?? 0}
-        followers={durum?.followers_count ?? 0}
-        following={durum?.following_count ?? 0}
-        onFollowers={() => listeAc('followers')}
-        onFollowing={() => listeAc('following')}
-      />
+      {gosterSayaclar ? (
+        <TakipSayaclari
+          posts={gosterGonderi ? (durum?.posts_count ?? 0) : null}
+          followers={gosterTakipci ? (durum?.followers_count ?? 0) : null}
+          following={gosterTakip ? (durum?.following_count ?? 0) : null}
+          onFollowers={
+            gosterTakipci ? () => listeAc('followers') : undefined
+          }
+          onFollowing={
+            gosterTakip ? () => listeAc('following') : undefined
+          }
+        />
+      ) : null}
 
-      {!isSelf ? <OrtakTakipciler ozet={ortak} /> : null}
+      {!isSelf ? (
+        <OrtakTakipciler ozet={ortak} targetUserId={targetUserId} />
+      ) : null}
 
       {isSelf ? (
         <View style={styles.selfRow}>
@@ -139,46 +202,16 @@ export function ProfilSosyalAlani({
             </Pressable>
           ) : null}
         </View>
-      ) : durum?.state !== 'BLOCKED' && durum?.state !== 'BLOCKED_BY_USER' ? (
-        <View style={styles.aksiyon}>
-          <TakipButonu
-            state={durum?.state ?? 'NOT_FOLLOWING'}
-            displayName={displayName}
-            loading={isleniyor}
-            onPress={takipBas}
-          />
-          {onMesaj ? (
-            <Pressable
-              style={styles.mesaj}
-              onPress={onMesaj}
-              accessibilityRole="button"
-              accessibilityLabel={`${displayName} kullanıcısına mesaj gönder`}
-            >
-              <Ionicons
-                name="chatbubble-ellipses-outline"
-                size={18}
-                color={RenkTokenlari.text}
-              />
-              <Text style={styles.mesajYazi}>Mesaj</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : (
-        <View style={styles.engelKutu}>
-          <Text style={styles.engel}>Bu hesapla ilişkin engellenmiş.</Text>
-          <Text style={styles.engelAlt}>
-            Mesaj, arama ve takip kapalı. Engeli Ayarlar → Engellenen kullanıcılar’dan
-            kaldırabilirsin.
-          </Text>
-        </View>
-      )}
+      ) : gosterAksiyon ? (
+        aksiyonlar
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { width: '100%', alignItems: 'center' },
-  adSatir: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  wrapCompact: { alignItems: 'flex-end' },
   selfRow: { width: '100%', marginTop: BoslukTokenlari.md },
   istekBtn: {
     paddingVertical: 10,
@@ -193,6 +226,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   aksiyon: { width: '100%', gap: BoslukTokenlari.sm, marginTop: BoslukTokenlari.lg },
+  aksiyonCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: BoslukTokenlari.sm,
+  },
   mesaj: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -203,6 +241,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
     backgroundColor: RenkTokenlari.bgCard,
+  },
+  mesajCompact: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    backgroundColor: RenkTokenlari.bgCard,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   mesajYazi: {
     ...TipografiTokenlari.caption,
@@ -224,6 +272,14 @@ const styles = StyleSheet.create({
     borderColor: RenkTokenlari.danger + '55',
     backgroundColor: RenkTokenlari.danger + '12',
     gap: 6,
+  },
+  engelKutuCompact: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: YaricapTokenlari.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: RenkTokenlari.danger + '55',
+    backgroundColor: RenkTokenlari.danger + '12',
   },
   engelAlt: {
     ...TipografiTokenlari.caption,

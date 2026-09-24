@@ -14,6 +14,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { TakipIliskiDurumu } from '../TakipTipleri';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Varyant = 'follow' | 'following' | 'requested' | 'blocked' | 'message';
 
@@ -37,22 +38,24 @@ export function TakipButonu({
   onPress: () => void;
   compact?: boolean;
 }) {
+  const { t } = useCeviri();
   const v = varyantAl(state);
   if (v === 'blocked') return null;
 
   const label =
     v === 'following'
-      ? 'Takip Ediliyor'
+      ? t('takip.takipEdiliyorBtn')
       : v === 'requested'
-        ? 'İstek Gönderildi'
-        : 'Takip Et';
+        ? t('takip.istekGonderildiBtn')
+        : t('takip.takipEt');
 
+  const ad = displayName ?? t('ortak.kullanici');
   const a11y =
     v === 'following'
-      ? `${displayName ?? 'Kullanıcı'} takip ediliyor`
+      ? t('takip.takipEdiliyorA11y', { ad })
       : v === 'requested'
-        ? `${displayName ?? 'Kullanıcı'} için takip isteği gönderildi`
-        : `${displayName ?? 'Kullanıcı'} kullanıcısını takip et`;
+        ? t('takip.istekGonderildiA11y', { ad })
+        : t('takip.takipEtA11y', { ad });
 
   const icerik = loading ? (
     <ActivityIndicator color={v === 'follow' ? '#fff' : RenkTokenlari.text} />
@@ -98,6 +101,7 @@ export function TakipButonu({
       style={({ pressed }) => [
         compact ? styles.compact : styles.full,
         styles.outline,
+        compact && styles.outlineCompact,
         pressed && styles.pressed,
       ]}
     >
@@ -133,6 +137,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
     backgroundColor: RenkTokenlari.bgCard,
+  },
+  outlineCompact: {
+    paddingVertical: 8,
+    paddingHorizontal: BoslukTokenlari.md,
+    minHeight: 36,
   },
   yazi: {
     ...TipografiTokenlari.body,

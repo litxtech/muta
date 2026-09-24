@@ -26,6 +26,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 type Oturum = {
   id: string;
@@ -36,6 +37,7 @@ type Oturum = {
 };
 
 export default function CihazlarEkrani() {
+  const { t } = useCeviri();
   const [liste, setListe] = useState<Oturum[]>([]);
   const [buCihaz, setBuCihaz] = useState('');
   const [loading, setLoading] = useState(true);
@@ -51,16 +53,14 @@ export default function CihazlarEkrani() {
       setListe(data as Oturum[]);
     } catch (e) {
       Alert.alert(
-        'Oturumlar',
-        e instanceof Error
-          ? e.message
-          : '003 migration calistirildigindan emin ol.',
+        t('cihazlar.oturumlar'),
+        e instanceof Error ? e.message : t('cihazlar.migrationHint'),
       );
       setListe([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -73,7 +73,10 @@ export default function CihazlarEkrani() {
       await TekCihazOturumunuKapat(id);
       await yukle();
     } catch (e) {
-      Alert.alert('Hata', e instanceof Error ? e.message : 'Kapatılamadı');
+      Alert.alert(
+        t('ortak.hata'),
+        e instanceof Error ? e.message : t('cihazlar.kapatilamadi'),
+      );
     }
   };
 
@@ -81,17 +84,20 @@ export default function CihazlarEkrani() {
     try {
       await TumCihazOturumlariniKapat(buCihaz);
       await yukle();
-      Alert.alert('Tamam', 'Diğer cihazlardan çıkış yapıldı.');
+      Alert.alert(t('ortak.tamam'), t('cihazlar.digerCikisYapildi'));
     } catch (e) {
-      Alert.alert('Hata', e instanceof Error ? e.message : 'İşlem başarısız');
+      Alert.alert(
+        t('ortak.hata'),
+        e instanceof Error ? e.message : t('cihazlar.islemBasarisiz'),
+      );
     }
   };
 
   return (
     <Screen edges={['top']}>
       <EkranBasligi
-        title="Aktif cihazlar"
-        subtitle="Tek cihaz veya tüm cihazlardan çıkış"
+        title={t('profil.aktifCihazlar')}
+        subtitle={t('cihazlar.altBaslik')}
         fallbackHref="/(tabs)/profile"
       />
       {loading ? (
@@ -104,14 +110,14 @@ export default function CihazlarEkrani() {
           ListEmptyComponent={
             <BosDurum
               icon="phone-portrait-outline"
-              title="Kayıtlı cihaz yok"
-              body="Oturum açtığın cihazlar burada listelenir."
+              title={t('cihazlar.kayitliCihazYok')}
+              body={t('cihazlar.kayitliCihazYokBody')}
             />
           }
           ListFooterComponent={
             liste.length > 0 ? (
               <GradientButton
-                title="Diğer tüm cihazlardan çıkış"
+                title={t('cihazlar.tumCihazlardanCikis')}
                 variant="ghost"
                 onPress={hepsiniKapat}
                 style={{ marginTop: BoslukTokenlari.md }}
@@ -124,8 +130,8 @@ export default function CihazlarEkrani() {
               <View style={styles.card}>
                 <View style={styles.cardBody}>
                   <Text style={styles.cardTitle}>
-                    {item.platform ?? 'Cihaz'}
-                    {bu ? ' · Bu cihaz' : ''}
+                    {item.platform ?? t('cihazlar.cihaz')}
+                    {bu ? ` · ${t('cihazlar.buCihaz')}` : ''}
                   </Text>
                   <Text style={styles.cardMeta}>
                     v{item.app_version ?? '?'} ·{' '}
@@ -134,7 +140,7 @@ export default function CihazlarEkrani() {
                 </View>
                 {!bu ? (
                   <Pressable onPress={() => tekKapat(item.id)} style={styles.kick}>
-                    <Text style={styles.kickText}>Çıkış</Text>
+                    <Text style={styles.kickText}>{t('cihazlar.cikis')}</Text>
                   </Pressable>
                 ) : null}
               </View>

@@ -1,3 +1,5 @@
+import i18n from '../../../i18n';
+
 /** ISO tarih (YYYY-MM-DD) → yaş */
 export function YasHesapla(isoDate: string): number {
   const d = new Date(`${isoDate}T00:00:00`);
@@ -42,20 +44,20 @@ export function DogumTarihiDogrula(
   gun: string,
 ): { ok: true; iso: string } | { ok: false; hata: string } {
   if (!yil || !ay || !gun) {
-    return { ok: false, hata: 'Doğum tarihini seçmelisin (18+).' };
+    return { ok: false, hata: i18n.t('auth.dogumSec') };
   }
   const iso = `${yil}-${ay}-${gun}`;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-    return { ok: false, hata: 'Geçersiz doğum tarihi.' };
+    return { ok: false, hata: i18n.t('auth.dogumGecersiz') };
   }
   const yas = YasHesapla(iso);
-  if (yas < 0) return { ok: false, hata: 'Geçersiz doğum tarihi.' };
+  if (yas < 0) return { ok: false, hata: i18n.t('auth.dogumGecersiz') };
   if (yas < 18) {
     return {
       ok: false,
-      hata: 'Tamuso yalnızca 18 yaş ve üzeri içindir. Reşit değilsen kayıt olamazsın.',
+      hata: i18n.t('auth.yas18Alt'),
     };
   }
-  if (yas > 120) return { ok: false, hata: 'Geçersiz doğum tarihi.' };
+  if (yas > 120) return { ok: false, hata: i18n.t('auth.dogumGecersiz') };
   return { ok: true, iso };
 }

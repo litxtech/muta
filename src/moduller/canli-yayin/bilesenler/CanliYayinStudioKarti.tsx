@@ -10,6 +10,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   title: string;
@@ -27,9 +28,10 @@ export function CanliYayinStudioKarti({
   onChangeTitle,
   onBaslat,
   loading,
-  placeholder = 'Gece şovu...',
+  placeholder,
   kameraOnizleme = true,
 }: Props) {
+  const { t } = useCeviri();
   return (
     <View style={styles.wrap}>
       <View style={styles.onizleme}>
@@ -37,25 +39,23 @@ export function CanliYayinStudioKarti({
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.etiket}>Yayın başlığı</Text>
+        <Text style={styles.etiket}>{t('canliYayin.yayinBasligi')}</Text>
         <TextField
           label=""
           value={title}
           onChangeText={onChangeTitle}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t('canliYayin.placeholder')}
           maxLength={60}
         />
         <GradientButton
-          title={loading ? 'Hazırlanıyor…' : 'Canlı Yayını Başlat'}
+          title={loading ? t('canliYayin.hazirlaniyor') : t('canliYayin.baslat')}
           onPress={onBaslat}
           loading={loading}
           disabled={loading}
         />
         <View style={styles.ipucu}>
           <Ionicons name="flash" size={13} color={RenkTokenlari.primarySoft} />
-          <Text style={styles.ipucuYazi}>
-            3-2-1 geri sayım · bağlantı arka planda hazırlanır
-          </Text>
+          <Text style={styles.ipucuYazi}>{t('canliYayin.ipucu')}</Text>
         </View>
       </View>
     </View>

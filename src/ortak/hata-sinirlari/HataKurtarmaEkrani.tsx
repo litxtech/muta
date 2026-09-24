@@ -9,6 +9,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../i18n/useCeviri';
 
 type Props = {
   baslik?: string;
@@ -26,14 +27,21 @@ type Props = {
  * Tam sayfada içerik ve butonlar her zaman ortalanır.
  */
 export function HataKurtarmaEkrani({
-  baslik = 'Bu bölüm geçici olarak kullanılamıyor',
-  aciklama = 'Diğer özellikler çalışmaya devam eder. Geri dönüp uygulamayı kullanabilirsin.',
+  baslik,
+  aciklama,
   detay,
   onTekrarDene,
   onGeriDon,
   fallbackHref = '/(tabs)',
   varyant = 'ekran',
 }: Props) {
+  const { t } = useCeviri();
+  const baslikMetin = baslik ?? t('ortak.bolumKullanilamiyor');
+  const aciklamaMetin = aciklama ?? t('ortak.bolumKullanilamiyorAlt');
+  const tekrarEtiket = t('ortak.tekrarDene');
+  const geriEtiket = t('ortak.geriDon');
+  const anaEtiket = t('ortak.anaSayfayaGit');
+
   const geri = () => {
     if (onGeriDon) {
       onGeriDon();
@@ -58,9 +66,11 @@ export function HataKurtarmaEkrani({
             color={RenkTokenlari.primarySoft}
           />
         </View>
-        <Text style={[styles.baslik, ekran && styles.metinOrtala]}>{baslik}</Text>
+        <Text style={[styles.baslik, ekran && styles.metinOrtala]}>
+          {baslikMetin}
+        </Text>
         <Text style={[styles.aciklama, ekran && styles.metinOrtala]}>
-          {aciklama}
+          {aciklamaMetin}
         </Text>
         {detay ? (
           <Text
@@ -80,9 +90,9 @@ export function HataKurtarmaEkrani({
                 pressed && styles.pressed,
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Tekrar dene"
+              accessibilityLabel={tekrarEtiket}
             >
-              <Text style={styles.btnPrimaryText}>Tekrar dene</Text>
+              <Text style={styles.btnPrimaryText}>{tekrarEtiket}</Text>
             </Pressable>
           ) : null}
           <Pressable
@@ -92,14 +102,14 @@ export function HataKurtarmaEkrani({
               pressed && styles.pressed,
             ]}
             accessibilityRole="button"
-            accessibilityLabel="Geri dön"
+            accessibilityLabel={geriEtiket}
           >
             <Ionicons
               name="arrow-back"
               size={18}
               color={RenkTokenlari.mint}
             />
-            <Text style={styles.btnGeriText}>Geri dön</Text>
+            <Text style={styles.btnGeriText}>{geriEtiket}</Text>
           </Pressable>
         </View>
 
@@ -113,10 +123,10 @@ export function HataKurtarmaEkrani({
           }}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Ana sayfaya git"
+          accessibilityLabel={anaEtiket}
           style={styles.anaLinkHit}
         >
-          <Text style={styles.anaLink}>Ana sayfaya git</Text>
+          <Text style={styles.anaLink}>{anaEtiket}</Text>
         </Pressable>
       </View>
     </View>

@@ -39,6 +39,29 @@ export const OzellikBayragiAnahtarlari = [
   'music_ducking_enabled',
   'music_playlists_enabled',
   'music_favorites_enabled',
+  'ai_music_enabled',
+  'ai_music_reference_enabled',
+  'ai_music_status_share_enabled',
+  'ai_music_voice_room_enabled',
+  'ai_music_export_enabled',
+  'transaction_volume_enabled',
+  'transaction_volume_profile_enabled',
+  'transaction_volume_tiers_enabled',
+  'transaction_volume_leaderboard_enabled',
+  'transaction_volume_effects_enabled',
+  'people_discovery_enabled',
+  'people_personalized_enabled',
+  'people_gender_filter_enabled',
+  'people_country_filter_enabled',
+  'people_online_filter_enabled',
+  'people_price_filter_enabled',
+  'people_message_enabled',
+  'people_voice_call_enabled',
+  'people_video_call_enabled',
+  'people_paid_calling_enabled',
+  'people_show_prices_enabled',
+  'people_show_country_flags',
+  'people_show_online_indicators',
 ] as const;
 
 export type OzellikBayragiAnahtari = (typeof OzellikBayragiAnahtarlari)[number];
@@ -56,6 +79,10 @@ export const KillSwitchAnahtarlari = [
   'kill_livekit_reconnect',
   'kill_games',
   'kill_game_coin',
+  'kill_ai_music_generation',
+  'kill_transaction_volume_display',
+  'kill_people_discovery',
+  'kill_people_paid_calls',
 ] as const;
 
 export type KillSwitchAnahtari = (typeof KillSwitchAnahtarlari)[number];

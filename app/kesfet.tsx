@@ -49,6 +49,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../src/i18n/useCeviri';
 
 const FILTRE_IKONLARI: Record<KesfetFiltresi, keyof typeof Ionicons.glyphMap> = {
   global: 'grid-outline',
@@ -59,6 +60,7 @@ const FILTRE_IKONLARI: Record<KesfetFiltresi, keyof typeof Ionicons.glyphMap> = 
 
 /** Tam Keşfet hub — dünyalar, modlar, trend ve canlı ızgara */
 export default function KesfetEkrani() {
+  const { t } = useCeviri();
   const [filtre, setFiltre] = useState<KesfetFiltresi>('global');
   const [mode, setMode] = useState<RoomMode | null>(null);
   const [arama, setArama] = useState('');
@@ -90,41 +92,51 @@ export default function KesfetEkrani() {
     () =>
       KESFET_FILTRELERI.map((f) => ({
         id: f.id,
-        label: f.label,
+        label: t(f.label),
         icon: FILTRE_IKONLARI[f.id],
       })),
-    [],
+    [t],
   );
 
   const portallar = useMemo<KesfetPortal[]>(() => {
     const liste: KesfetPortal[] = [
       {
         key: 'rooms',
-        label: 'Odalar',
+        label: t('odalar.baslik'),
         icon: 'headset-outline',
         href: '/(tabs)/rooms',
         tint: RenkTokenlari.mint,
       },
       {
         key: 'create',
-        label: 'Oda aç',
+        label: t('kesfet.odaAc'),
         icon: 'add-circle-outline',
         href: '/(tabs)/create',
         tint: RenkTokenlari.primarySoft,
       },
     ];
 
+    if (OzellikBayragiAktifMi('people_discovery_enabled')) {
+      liste.push({
+        key: 'kisiler',
+        label: t('kisiler.baslik'),
+        icon: 'people-outline',
+        href: '/kisiler',
+        tint: RenkTokenlari.magenta,
+      });
+    }
+
     if (OzellikBayragiAktifMi('city_league_enabled')) {
       liste.push({
         key: 'sehir',
-        label: 'Şehir',
+        label: t('sehir.baslik'),
         icon: 'business-outline',
         href: '/sehir',
         tint: RenkTokenlari.primarySoft,
       });
       liste.push({
         key: 'lig',
-        label: 'Lig',
+        label: t('sehir.lig'),
         icon: 'trophy-outline',
         href: '/sehir/lig',
         tint: RenkTokenlari.accent,
@@ -134,7 +146,7 @@ export default function KesfetEkrani() {
     if (OzellikBayragiAktifMi('agency_enabled')) {
       liste.push({
         key: 'ajans',
-        label: 'Ajans',
+        label: t('ajans.baslik'),
         icon: 'people-outline',
         href: '/ajans',
         tint: RenkTokenlari.violet,
@@ -153,7 +165,7 @@ export default function KesfetEkrani() {
 
     liste.push({
       key: 'siralamalar',
-      label: 'Sıra',
+      label: t('siralamalar.baslik'),
       icon: 'podium-outline',
       href: '/siralamalar',
       tint: RenkTokenlari.magenta,
@@ -162,7 +174,7 @@ export default function KesfetEkrani() {
     if (OzellikBayragiAktifMi('events_enabled')) {
       liste.push({
         key: 'platform',
-        label: 'Etkinlik',
+        label: t('kesfet.etkinlik'),
         icon: 'calendar-outline',
         href: '/platform',
         tint: RenkTokenlari.magenta,
@@ -172,7 +184,7 @@ export default function KesfetEkrani() {
     if (OzellikBayragiAktifMi('live_enabled')) {
       liste.push({
         key: 'canli',
-        label: 'Canlı',
+        label: t('canli.baslik'),
         icon: 'radio-outline',
         href: '/canli',
         tint: RenkTokenlari.live,
@@ -180,7 +192,7 @@ export default function KesfetEkrani() {
     }
 
     return liste;
-  }, []);
+  }, [t]);
 
   const modeSayaclari = useMemo(() => {
     const sayac: Partial<Record<RoomMode, number>> = {};
@@ -324,10 +336,10 @@ export default function KesfetEkrani() {
                     <KesfetBolumBasligi
                       baslik={
                         aramaAktif
-                          ? 'Arama sonuçları'
+                          ? t('kesfet.aramaSonuclari')
                           : mode
-                            ? 'Seçili sahne'
-                            : 'Canlı odalar'
+                            ? t('kesfet.seciliSahne')
+                            : t('kesfet.canliOdalar')
                       }
                       sayac={gorunenler.length}
                     />
@@ -341,15 +353,15 @@ export default function KesfetEkrani() {
                   icon={aramaAktif ? 'search-outline' : 'compass-outline'}
                   title={
                     aramaAktif
-                      ? 'Eşleşen oda yok'
+                      ? t('kesfet.eslesenYok')
                       : mode
-                        ? 'Bu modda canlı oda yok'
-                        : 'Şu an canlı oda yok'
+                        ? t('kesfet.moddaYok')
+                        : t('kesfet.canliYok')
                   }
                   body={
                     aramaAktif
-                      ? 'Farklı bir kelime dene veya filtreyi değiştir.'
-                      : 'Canlı odalar açıldığında burada görünür — istersen ilk sahneyi sen kur.'
+                      ? t('kesfet.eslesenYokBody')
+                      : t('kesfet.canliYokBody')
                   }
                 />
                 {!aramaAktif ? (
@@ -365,7 +377,7 @@ export default function KesfetEkrani() {
                         style={styles.bosBtnIc}
                       >
                         <Ionicons name="mic" size={15} color={RenkTokenlari.textOnPrimary} />
-                        <Text style={styles.bosBtnYazi}>Ses odası aç</Text>
+                        <Text style={styles.bosBtnYazi}>{t('kesfet.sesOdasiAc')}</Text>
                       </LinearGradient>
                     </Pressable>
                     {mode ? (
@@ -373,14 +385,14 @@ export default function KesfetEkrani() {
                         onPress={() => setMode(null)}
                         style={styles.bosBtnIkincil}
                       >
-                        <Text style={styles.bosBtnIkincilYazi}>Tüm modlar</Text>
+                        <Text style={styles.bosBtnIkincilYazi}>{t('kesfet.tumModlar')}</Text>
                       </Pressable>
                     ) : (
                       <Pressable
                         onPress={() => router.navigate('/(tabs)/rooms')}
                         style={styles.bosBtnIkincil}
                       >
-                        <Text style={styles.bosBtnIkincilYazi}>Odaları gez</Text>
+                        <Text style={styles.bosBtnIkincilYazi}>{t('kesfet.odalariGez')}</Text>
                       </Pressable>
                     )}
                   </View>

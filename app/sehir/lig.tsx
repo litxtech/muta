@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View, FlatList, RefreshControl } from 'rea
 import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { BosDurum } from '../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
@@ -18,6 +19,7 @@ import {
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export default function SehirLigEkrani() {
+  const { t } = useCeviri();
   const [seasonTitle, setSeasonTitle] = useState('—');
   const [rows, setRows] = useState<SehirLigSirasi[]>([]);
   const [yukleniyor, setYukleniyor] = useState(false);
@@ -26,15 +28,15 @@ export default function SehirLigEkrani() {
     setYukleniyor(true);
     try {
       const season = await AktifLigSezonunuGetir();
-      setSeasonTitle(season ? season.title : 'Aktif sezon yok');
+      setSeasonTitle(season ? season.title : t('sehir.aktifSezonYok'));
       setRows(await SehirLigiSiralamasiniGetir(season?.id));
     } catch {
       setRows([]);
-      setSeasonTitle('Sezon bilgisi alınamadı');
+      setSeasonTitle(t('sehir.sezonAlinamadi'));
     } finally {
       setYukleniyor(false);
     }
-  }, []);
+  }, [t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -46,7 +48,7 @@ export default function SehirLigEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="sehir-ligi">
         <EkranBasligi
-          title="Şehir Ligi"
+          title={t('sehir.lig')}
           subtitle={seasonTitle}
           fallbackHref="/sehir"
         />
@@ -59,18 +61,15 @@ export default function SehirLigEkrani() {
           }
           ListHeaderComponent={
             <View style={styles.info}>
-              <Text style={styles.infoTitle}>Puan nasıl gelir?</Text>
-              <Text style={styles.infoBody}>
-                Ana şehrini seçtikten sonra odada gönderdiğin hediyelerin coin değeri lige
-                yazılır. Savaş galibiyetleri de sıralamayı etkiler.
-              </Text>
+              <Text style={styles.infoTitle}>{t('sehir.ligPuanBaslik')}</Text>
+              <Text style={styles.infoBody}>{t('sehir.ligPuanBody')}</Text>
             </View>
           }
           ListEmptyComponent={
             <BosDurum
               icon="trophy-outline"
-              title="Sıralama boş"
-              body="Sezon başladığında ve şehirler güç kazanınca burada listelenir."
+              title={t('sehir.ligBosBaslik')}
+              body={t('sehir.ligBosBody')}
             />
           }
           renderItem={({ item, index }) => {
@@ -87,7 +86,10 @@ export default function SehirLigEkrani() {
                     {item.city?.name ?? item.city_id.slice(0, 8)}
                   </Text>
                   <Text style={styles.meta}>
-                    Hediye {item.gifts_score} · Galibiyet {item.battle_wins}
+                    {t('sehir.hediyeGalibiyet', {
+                      gifts: item.gifts_score,
+                      wins: item.battle_wins,
+                    })}
                   </Text>
                 </View>
                 <Text style={styles.points}>{item.points}</Text>

@@ -17,8 +17,10 @@ import {
 } from '../../../../src/moduller/ajanslar/islemler/AjansYonetimV2Islemleri';
 import { RenkTokenlari } from '../../../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../../src/tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../../src/i18n/useCeviri';
 
 export default function AjansUyeDetayEkrani() {
+  const { t, dil } = useCeviri();
   const agencyId = useAjansRouteId();
   const params = useLocalSearchParams<{ userId: string }>();
   const userId = Array.isArray(params.userId) ? params.userId[0] : params.userId;
@@ -26,6 +28,9 @@ export default function AjansUyeDetayEkrani() {
   const [notlar, setNotlar] = useState('');
   const [etiket, setEtiket] = useState('');
   const [yukleniyor, setYukleniyor] = useState(true);
+
+  const locale =
+    dil.startsWith('en') ? 'en-US' : dil.startsWith('es') ? 'es-ES' : dil.startsWith('ar') ? 'ar' : 'tr-TR';
 
   const yukle = useCallback(async () => {
     if (!agencyId || !userId) return;
@@ -37,12 +42,12 @@ export default function AjansUyeDetayEkrani() {
       setNotlar(crm?.notes ?? '');
       setEtiket((crm?.tags ?? []).join(', '));
     } catch (e) {
-      Alert.alert('Üye', e instanceof Error ? e.message : 'Yüklenemedi');
+      Alert.alert(t('ajans.alertUye'), e instanceof Error ? e.message : t('ajans.yuklenemedi'));
       setDetay(null);
     } finally {
       setYukleniyor(false);
     }
-  }, [agencyId, userId]);
+  }, [agencyId, userId, t]);
 
   useFocusEffect(useCallback(() => { void yukle(); }, [yukle]));
 
@@ -62,47 +67,56 @@ export default function AjansUyeDetayEkrani() {
   return (
     <AjansAltEkranKabuk
       agencyId={agencyId}
-      title="Üye Detayı"
+      title={t('ajans.uyeDetayi')}
       subtitle={profile?.display_name || profile?.username || 'CRM'}
       aktif="uyeler"
       yukleniyor={yukleniyor && !detay}
       refreshing={yukleniyor && !!detay}
       onRefresh={() => void yukle()}
     >
-      <AjansBolumBaslik>Genel</AjansBolumBaslik>
+      <AjansBolumBaslik>{t('ajans.genelBolum')}</AjansBolumBaslik>
       <AjansKart>
         <Text style={styles.ad}>{profile?.display_name || '—'}</Text>
         <Text style={styles.alt}>@{profile?.username || '—'} · ID {profile?.public_user_id || '—'}</Text>
         <Text style={styles.alt}>
-          Rol: {String(detay?.role ?? 'MEMBER')} · Durum: {crm?.agency_status ?? 'active'}
+          {t('ajans.rolDurum', {
+            rol: String(detay?.role ?? 'MEMBER'),
+            durum: crm?.agency_status ?? 'active',
+          })}
         </Text>
-        <Text style={styles.alt}>Onboarding: {crm?.onboarding_stage ?? 'active'}</Text>
-      </AjansKart>
-
-      <AjansBolumBaslik>Aktivite</AjansBolumBaslik>
-      <AjansKart>
-        <Text style={styles.alt}>Ses (ay): {aktivite?.ses_dakika_ay ?? 0} dk</Text>
-        <Text style={styles.alt}>Yayın (ay): {aktivite?.yayin_dakika_ay ?? 0} dk</Text>
         <Text style={styles.alt}>
-          Son aktif: {aktivite?.son_aktif ? new Date(aktivite.son_aktif).toLocaleString('tr-TR') : 'Henüz veri yok'}
+          {t('ajans.onboarding', { stage: crm?.onboarding_stage ?? 'active' })}
         </Text>
       </AjansKart>
 
-      <AjansBolumBaslik>Notlar / Etiketler</AjansBolumBaslik>
+      <AjansBolumBaslik>{t('ajans.aktiviteBolum')}</AjansBolumBaslik>
+      <AjansKart>
+        <Text style={styles.alt}>{t('ajans.sesAy', { n: aktivite?.ses_dakika_ay ?? 0 })}</Text>
+        <Text style={styles.alt}>{t('ajans.yayinAy', { n: aktivite?.yayin_dakika_ay ?? 0 })}</Text>
+        <Text style={styles.alt}>
+          {t('ajans.sonAktif', {
+            zaman: aktivite?.son_aktif
+              ? new Date(aktivite.son_aktif).toLocaleString(locale)
+              : t('ajans.henuzVeriYok'),
+          })}
+        </Text>
+      </AjansKart>
+
+      <AjansBolumBaslik>{t('ajans.notlarEtiketler')}</AjansBolumBaslik>
       <AjansKart>
         <AjansInput
           value={notlar}
           onChangeText={setNotlar}
-          placeholder="Ajans içi not (public değil)"
+          placeholder={t('ajans.phCrmNot')}
           multiline
         />
         <AjansInput
           value={etiket}
           onChangeText={setEtiket}
-          placeholder="Etiketler (virgülle: Yeni Host, Gece Ekibi)"
+          placeholder={t('ajans.phCrmEtiket')}
         />
         <AjansCta
-          label="CRM Kaydet"
+          label={t('ajans.crmKaydet')}
           onPress={() => {
             void (async () => {
               const r = await AjansCrmGuncelle({
@@ -114,9 +128,9 @@ export default function AjansUyeDetayEkrani() {
                   .map((x) => x.trim())
                   .filter(Boolean),
               });
-              if (!r.ok) Alert.alert('CRM', r.hata);
+              if (!r.ok) Alert.alert(t('ajans.alertCrm'), r.hata);
               else {
-                Alert.alert('Tamam', 'Kaydedildi');
+                Alert.alert(t('ajans.tamam'), t('ajans.kaydedildi'));
                 await yukle();
               }
             })();
@@ -135,7 +149,7 @@ export default function AjansUyeDetayEkrani() {
                     userId: userId!,
                     agencyStatus: s,
                   });
-                  if (!r.ok) Alert.alert('Durum', r.hata);
+                  if (!r.ok) Alert.alert(t('ajans.alertDurum'), r.hata);
                   else await yukle();
                 })();
               }}
@@ -144,7 +158,7 @@ export default function AjansUyeDetayEkrani() {
         </View>
         <AjansCta
           ghost
-          label="HOST_MANAGER Yap"
+          label={t('ajans.hostManagerYap')}
           onPress={() => {
             void (async () => {
               const r = await AjansStaffAta({
@@ -152,21 +166,21 @@ export default function AjansUyeDetayEkrani() {
                 userId: userId!,
                 roleCode: 'HOST_MANAGER',
               });
-              if (!r.ok) Alert.alert('Rol', r.hata);
-              else Alert.alert('Tamam', 'Rol atandı');
+              if (!r.ok) Alert.alert(t('ajans.alertRol'), r.hata);
+              else Alert.alert(t('ajans.tamam'), t('ajans.rolAtandi'));
             })();
           }}
         />
       </AjansKart>
 
-      <AjansBolumBaslik>Geçmiş</AjansBolumBaslik>
+      <AjansBolumBaslik>{t('ajans.gecmisBolum')}</AjansBolumBaslik>
       <AjansKart>
         {audit.length === 0 ? (
-          <AjansHint>Henüz veri yok</AjansHint>
+          <AjansHint>{t('ajans.henuzVeriYok')}</AjansHint>
         ) : (
           audit.map((a, i) => (
             <Text key={i} style={styles.alt}>
-              {new Date(a.created_at).toLocaleString('tr-TR')} · {a.summary}
+              {new Date(a.created_at).toLocaleString(locale)} · {a.summary}
             </Text>
           ))
         )}

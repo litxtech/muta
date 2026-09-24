@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 import { supabase } from '../../../lib/supabase';
 import { OrtamDegiskenleri } from '../../../yapilandirma/OrtamDegiskenleri';
 import { MisafirCihazUpgradeOnayla } from './MisafirCihazUpgradeOnayla';
@@ -29,25 +30,25 @@ function authHatasiTurkce(message: string): string {
     m.includes('email address is invalid') ||
     m.includes('unable to validate email')
   ) {
-    return 'E-posta formatı geçersiz. Örnek: isim@gmail.com';
+    return i18n.t('auth.epostaFormati');
   }
   if (m.includes('already') || m.includes('registered') || m.includes('exists')) {
-    return 'Bu e-posta zaten kayıtlı. Giriş yap veya farklı e-posta dene.';
+    return i18n.t('auth.epostaKayitli');
   }
   if (m.includes('password') && (m.includes('weak') || m.includes('least') || m.includes('short'))) {
-    return 'Şifre çok zayıf. En az 6 karakter kullan.';
+    return i18n.t('auth.sifreZayif');
   }
   if (m.includes('rate') || m.includes('too many')) {
-    return 'Çok fazla deneme. Biraz sonra tekrar dene.';
+    return i18n.t('auth.cokFazlaDeneme');
   }
   if (m.includes('network') || m.includes('fetch')) {
-    return 'Bağlantı hatası. İnternetini kontrol et.';
+    return i18n.t('auth.baglantiKontrol');
   }
   // Ham İngilizce "Invalid ..." yerine genel mesaj
   if (m === 'invalid' || m.startsWith('invalid ')) {
-    return 'Girilen bilgiler geçersiz. E-posta ve şifreyi kontrol et.';
+    return i18n.t('auth.bilgilerGecersiz');
   }
-  return message;
+  return i18n.t('auth.tamamlamaBasarisiz');
 }
 
 function kullaniciAdiNormalize(raw: string): string {
@@ -152,16 +153,16 @@ export async function MisafirHesabiTamamla(input: {
   const password = input.password;
 
   if (!input.ad.trim() || !input.soyad.trim()) {
-    return { ok: false, hata: 'Ad ve soyad gerekli.' };
+    return { ok: false, hata: i18n.t('auth.adSoyadGerekli') };
   }
   if (!EmailFormatiGecerliMi(email)) {
     return {
       ok: false,
-      hata: 'E-posta formatı geçersiz. Örnek: isim@gmail.com',
+      hata: i18n.t('auth.epostaFormati'),
     };
   }
   if (password.length < 6) {
-    return { ok: false, hata: 'Şifre en az 6 karakter olmalı.' };
+    return { ok: false, hata: i18n.t('auth.sifreMinKarakter') };
   }
 
   const { data: userData, error: userErr } = await supabase.auth.getUser();

@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 import { supabase } from '../../../lib/supabase';
 import type {
   PaylasilanDurumAvailability,
@@ -26,7 +27,7 @@ export async function PaylasilanDurumlariGetir(
       fallback[id] = {
         status_id: id,
         availability: 'NOT_AVAILABLE',
-        message: 'Bu gönderiye artık ulaşılamıyor.',
+        message: i18n.t('durumX.ulasilamiyor'),
       };
     }
     return fallback;
@@ -40,7 +41,7 @@ export async function PaylasilanDurumlariGetir(
       out[id] = {
         status_id: id,
         availability: 'NOT_AVAILABLE',
-        message: 'Bu gönderiye artık ulaşılamıyor.',
+        message: i18n.t('durumX.ulasilamiyor'),
       };
       continue;
     }

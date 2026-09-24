@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   uri: string | null;
@@ -26,6 +27,7 @@ function httpsUriMi(uri: string | null | undefined): uri is string {
  * fullScreenModal üstünde de güvenli: overFullScreen + ayrı backdrop.
  */
 export function DurumResimLightbox({ uri, onClose }: Props) {
+  const { t } = useCeviri();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const safeUri = httpsUriMi(uri) ? uri.trim() : null;
@@ -48,7 +50,7 @@ export function DurumResimLightbox({ uri, onClose }: Props) {
           style={styles.backdrop}
           onPress={onClose}
           accessibilityRole="button"
-          accessibilityLabel="Resmi kapat"
+          accessibilityLabel={t('durum.resmiKapat')}
         />
 
         <View style={styles.icerik} pointerEvents="box-none">
@@ -59,7 +61,7 @@ export function DurumResimLightbox({ uri, onClose }: Props) {
               height: Math.max(120, height - insets.top - insets.bottom),
             }}
             resizeMode="contain"
-            accessibilityLabel="Büyütülmüş durum resmi"
+            accessibilityLabel={t('durumX.buyutulmusDurum')}
           />
         </View>
 
@@ -67,13 +69,13 @@ export function DurumResimLightbox({ uri, onClose }: Props) {
           style={[styles.kapatBtn, { top: Math.max(12, insets.top + 8) }]}
           onPress={onClose}
           hitSlop={12}
-          accessibilityLabel="Kapat"
+          accessibilityLabel={t('ortak.kapat')}
         >
           <Ionicons name="close" size={22} color="#fff" />
         </Pressable>
 
         <Text style={[styles.ipucu, { bottom: Math.max(16, insets.bottom + 12) }]}>
-          Boşluğa dokunarak kapat
+          {t('durumX.boslugaDokunarakKapat')}
         </Text>
       </View>
     </Modal>

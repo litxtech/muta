@@ -26,9 +26,11 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 /** Profil ayarlari: engellenenler + engeli kaldir (Apple/Google) */
 export default function EngellenenKullanicilarEkrani() {
+  const { t } = useCeviri();
   const [liste, setListe] = useState<EngellenenKullanici[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -51,18 +53,21 @@ export default function EngellenenKullanicilarEkrani() {
   );
 
   const kaldir = (item: EngellenenKullanici) => {
-    const ad = item.display_name || item.username || 'Kullanıcı';
-    Alert.alert('Engeli kaldır', `${ad} artık seni bulabilir ve mesaj atabilir.`, [
-      { text: 'Vazgeç', style: 'cancel' },
+    const ad = item.display_name || item.username || t('ortak.kullanici');
+    Alert.alert(
+      t('engellenen.engeliKaldir'),
+      t('engellenen.kaldirBody', { ad }),
+      [
+      { text: t('ortak.vazgec'), style: 'cancel' },
       {
-        text: 'Kaldır',
+        text: t('ortak.kaldir'),
         onPress: () => {
           void (async () => {
             setBusyId(item.blocked_id);
             const r = await KullaniciEngeliKaldir(item.blocked_id);
             setBusyId(null);
             if (!r.ok) {
-              Alert.alert('Hata', r.hata ?? 'Kaldırılamadı');
+              Alert.alert(t('ortak.hata'), r.hata ?? t('ortak.kaydedilemedi'));
               return;
             }
             await yukle();
@@ -75,8 +80,8 @@ export default function EngellenenKullanicilarEkrani() {
   return (
     <Screen edges={['top']}>
       <EkranBasligi
-        title="Engellenen kullanıcılar"
-        subtitle="Engeli buradan kaldırabilirsin"
+        title={t('engellenen.kullanicilarBaslik')}
+        subtitle={t('engellenen.altBaslik')}
         fallbackHref={'/profil-ayarlar' as any}
       />
       {loading ? (
@@ -92,12 +97,12 @@ export default function EngellenenKullanicilarEkrani() {
           ListEmptyComponent={
             <BosDurum
               icon="hand-left-outline"
-              title="Engellenen yok"
-              body="Birini engellediğinde burada listelenir."
+              title={t('engellenen.bosKisa')}
+              body={t('engellenen.bosBody')}
             />
           }
           renderItem={({ item }) => {
-            const ad = item.display_name || item.username || 'Kullanıcı';
+            const ad = item.display_name || item.username || t('ortak.kullanici');
             const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
             const avatar = MedyaUriGuvenli(item.avatar_url);
             return (
@@ -128,7 +133,7 @@ export default function EngellenenKullanicilarEkrani() {
                   disabled={busyId === item.blocked_id}
                 >
                   <Text style={styles.btnText}>
-                    {busyId === item.blocked_id ? '…' : 'Engeli kaldır'}
+                    {busyId === item.blocked_id ? '…' : t('engellenen.engeliKaldir')}
                   </Text>
                 </Pressable>
               </View>

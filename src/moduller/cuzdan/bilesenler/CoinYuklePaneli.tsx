@@ -14,6 +14,8 @@ import { TamusoModal } from '../../../bilesenler/yuzey/TamusoModal';
 import { CamArkaplan } from '../../../bilesenler/yuzey/CamArkaplan';
 import { HesabiTamamlaKarti } from '../../misafir-hesabi/bilesenler/HesabiTamamlaKarti';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { DIL_LOCALE_MAP } from '../../../i18n/diller';
 import { CoinPaketMagaza } from './CoinPaketMagaza';
 import type { CoinPackage } from '../../../types/models';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
@@ -55,6 +57,8 @@ export function CoinYuklePaneli({
   onPaketleriYenile,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { t, dil } = useCeviri();
+  const loc = DIL_LOCALE_MAP[dil];
   const { refreshProfile, refreshWallet } = useAuth();
   const altPad =
     Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 12) + 8;
@@ -80,15 +84,15 @@ export function CoinYuklePaneli({
             <View style={styles.handle} />
             <View style={styles.ust}>
               <View style={{ flex: 1, gap: 4 }}>
-                <Text style={styles.baslik}>Coin yükle</Text>
-                <Text style={styles.alt}>
-                  Mağaza paketleri · büyük pakette bonus · anında yükle
-                </Text>
+                <Text style={styles.baslik}>{t('cuzdanX.coinPaketleri')}</Text>
+                <Text style={styles.alt}>{t('cuzdanX.paketSecGuvenli')}</Text>
                 {coins != null ? (
                   <View style={styles.bakiyeSatir}>
                     <Text style={styles.bakiyeIcon}>🪙</Text>
                     <Text style={styles.bakiyeYazi}>
-                      Bakiye · {coins.toLocaleString('tr-TR')}
+                      {t('cuzdanX.bakiyeNokta', {
+                        adet: coins.toLocaleString(loc),
+                      })}
                     </Text>
                   </View>
                 ) : null}

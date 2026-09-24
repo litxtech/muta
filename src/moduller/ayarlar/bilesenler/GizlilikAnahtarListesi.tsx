@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   copy: {
     flex: 1,
     gap: 2,
-    paddingRight: BoslukTokenlari.sm,
+    paddingEnd: BoslukTokenlari.sm,
   },
   label: {
     ...TipografiTokenlari.body,

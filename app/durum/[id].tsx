@@ -37,11 +37,14 @@ import { DurumTarihSaat } from '../../src/moduller/durum/islemler/DurumZaman';
 import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediyeMagaza';
 import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
 import { GonderiPaylasSheet } from '../../src/moduller/durum/paylasim/bilesenler/GonderiPaylasSheet';
+import { DogrulanmisTik } from '../../src/moduller/kullanici-profili/bilesenler/DogrulanmisTik';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 function VideoTam({ uri }: { uri: string }) {
+  const { t } = useCeviri();
   const guvenli = DurumMedyaHttpsMi(uri) ? uri.trim() : '';
   if (!guvenli) {
     return <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]} />;
@@ -53,7 +56,7 @@ function VideoTam({ uri }: { uri: string }) {
       yedek={
         <View style={[StyleSheet.absoluteFill, styles.videoHata]}>
           <Ionicons name="videocam-off" size={40} color="#fff" />
-          <Text style={styles.videoHataYazi}>Video açılamadı</Text>
+          <Text style={styles.videoHataYazi}>{t('durum.videoAcilamadi')}</Text>
         </View>
       }
     >
@@ -124,6 +127,7 @@ function VideoTamIc({ uri }: { uri: string }) {
 }
 
 export default function DurumDetayEkrani() {
+  const { t } = useCeviri();
   const params = useLocalSearchParams<{ id: string | string[] }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const insets = useSafeAreaInsets();
@@ -176,7 +180,7 @@ export default function DurumDetayEkrani() {
       void (async () => {
         const r = await DurumBegeniToggle(oge.id);
         if (!r.ok) {
-          Alert.alert('Beğeni', r.hata ?? 'Başarısız');
+          Alert.alert(t('durum.begeni'), r.hata ?? t('durum.basarisiz'));
           return;
         }
         setOge((p) =>
@@ -194,15 +198,15 @@ export default function DurumDetayEkrani() {
 
   const sil = () => {
     if (!oge?.is_mine) return;
-    Alert.alert('Durumu sil', 'Bu paylaşım kalıcı olarak silinsin mi?', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(t('durum.durumuSil'), t('durum.silKalici'), [
+      { text: t('ortak.vazgec'), style: 'cancel' },
       {
-        text: 'Sil',
+        text: t('ortak.sil'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
             const r = await DurumSil(oge.id);
-            if (!r.ok) Alert.alert('Sil', r.hata ?? 'Başarısız');
+            if (!r.ok) Alert.alert(t('ortak.sil'), r.hata ?? t('durum.basarisiz'));
             else kapat();
           })();
         },
@@ -229,7 +233,7 @@ export default function DurumDetayEkrani() {
                 style={styles.ikonBtn}
                 onPress={kapat}
                 hitSlop={12}
-                accessibilityLabel="Kapat"
+                accessibilityLabel={t('ortak.kapat')}
               >
                 <Ionicons name="close" size={24} color={RenkTokenlari.text} />
               </Pressable>
@@ -241,9 +245,9 @@ export default function DurumDetayEkrani() {
           </View>
         ) : !oge ? (
           <View style={styles.bos}>
-            <Text style={styles.bosYazi}>Durum bulunamadı</Text>
+            <Text style={styles.bosYazi}>{t('durum.bulunamadi')}</Text>
             <Pressable onPress={kapat}>
-              <Text style={styles.link}>Geri</Text>
+              <Text style={styles.link}>{t('ortak.geri')}</Text>
             </Pressable>
           </View>
         ) : (
@@ -267,7 +271,7 @@ export default function DurumDetayEkrani() {
                   return (
                     <View style={styles.metinGovde}>
                       <DurumCaptionAcilir
-                        metin={oge.caption?.trim() || 'Durum'}
+                        metin={oge.caption?.trim() || t('durum.baslik')}
                         style={styles.metinBaslik}
                         kapaliSatir={8}
                       />
@@ -295,7 +299,7 @@ export default function DurumDetayEkrani() {
                     style={StyleSheet.absoluteFill}
                     onPress={() => setLightboxAcik(true)}
                     accessibilityRole="imagebutton"
-                    accessibilityLabel="Resmi büyüt"
+                    accessibilityLabel={t('durum.resmiBuyut')}
                   >
                     <Image
                       source={{ uri: resimUri }}
@@ -313,13 +317,13 @@ export default function DurumDetayEkrani() {
               <View
                 style={styles.lightbox}
                 accessibilityViewIsModal
-                accessibilityLabel="Büyütülmüş resim"
+                accessibilityLabel={t('durum.buyutulmusResim')}
               >
                 <Pressable
                   style={StyleSheet.absoluteFill}
                   onPress={() => setLightboxAcik(false)}
                   accessibilityRole="button"
-                  accessibilityLabel="Resmi kapat"
+                  accessibilityLabel={t('durum.resmiKapat')}
                 />
                 <Image
                   source={{ uri: oge.media_url.trim() }}
@@ -333,7 +337,7 @@ export default function DurumDetayEkrani() {
                   ]}
                   onPress={() => setLightboxAcik(false)}
                   hitSlop={12}
-                  accessibilityLabel="Kapat"
+                  accessibilityLabel={t('ortak.kapat')}
                 >
                   <Ionicons name="close" size={22} color="#fff" />
                 </Pressable>
@@ -357,9 +361,15 @@ export default function DurumDetayEkrani() {
                   avatarUrl={oge.avatar_url}
                 />
                 <View style={styles.kisiMetin}>
-                  <Text style={[styles.isim, metinGonderisi && { color: RenkTokenlari.text }]}>
-                    {oge.display_name}
-                  </Text>
+                  <View style={styles.isimSatir}>
+                    <Text
+                      style={[styles.isim, metinGonderisi && { color: RenkTokenlari.text }]}
+                      numberOfLines={1}
+                    >
+                      {oge.display_name}
+                    </Text>
+                    <DogrulanmisTik dogrulandi={oge.is_verified} size={14} />
+                  </View>
                   <Text
                     style={[
                       styles.zaman,
@@ -380,7 +390,7 @@ export default function DurumDetayEkrani() {
                           router.push(`/durum/duzenle?id=${oge.id}` as any)
                         }
                         hitSlop={8}
-                        accessibilityLabel="Düzenle"
+                        accessibilityLabel={t('ortak.duzenle')}
                       >
                         <Ionicons name="create-outline" size={20} color={ikonRenk} />
                       </Pressable>
@@ -505,7 +515,7 @@ export default function DurumDetayEkrani() {
                         metinGonderisi && { color: RenkTokenlari.text },
                       ]}
                     >
-                      {oge.gift_count > 0 ? oge.gift_count : 'Hediye'}
+                      {oge.gift_count > 0 ? oge.gift_count : t('durumX.hediye')}
                     </Text>
                   </Pressable>
                 ) : (
@@ -531,7 +541,7 @@ export default function DurumDetayEkrani() {
                     islemiDene('mesaj_gonder', () => setPaylasAcik(true))
                   }
                   hitSlop={10}
-                  accessibilityLabel="Gönderiyi paylaş"
+                  accessibilityLabel={t('durum.gonderiyiPaylas')}
                 >
                   <Ionicons
                     name="paper-plane-outline"
@@ -544,7 +554,7 @@ export default function DurumDetayEkrani() {
                       metinGonderisi && { color: RenkTokenlari.text },
                     ]}
                   >
-                    Paylaş
+                    {t('ortak.paylas')}
                   </Text>
                 </Pressable>
                 {!oge.is_mine ? (
@@ -564,7 +574,7 @@ export default function DurumDetayEkrani() {
                         metinGonderisi && { color: RenkTokenlari.text },
                       ]}
                     >
-                      Bildir
+                      {t('profil.bildir')}
                     </Text>
                   </Pressable>
                 ) : oge.post_kind !== 'game_win' ? (
@@ -581,9 +591,7 @@ export default function DurumDetayEkrani() {
                         styles.aksiyonYazi,
                         metinGonderisi && { color: RenkTokenlari.text },
                       ]}
-                    >
-                      Düzenle
-                    </Text>
+                    >{t('ortak.duzenle')}</Text>
                   </Pressable>
                 ) : (
                   <Pressable style={styles.aksiyon} onPress={sil} hitSlop={10}>
@@ -594,7 +602,7 @@ export default function DurumDetayEkrani() {
                         metinGonderisi && { color: RenkTokenlari.text },
                       ]}
                     >
-                      Kaldır
+                      {t('ortak.kaldir')}
                     </Text>
                   </Pressable>
                 )}
@@ -724,9 +732,16 @@ const styles = StyleSheet.create({
     maxWidth: '70%',
   },
   kisiMetin: { flexShrink: 1, minWidth: 0 },
+  isimSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minWidth: 0,
+  },
   isim: {
     ...TipografiTokenlari.body,
     color: '#fff',
+    flexShrink: 1,
     fontWeight: '800',
   },
   zaman: {

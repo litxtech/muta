@@ -44,6 +44,29 @@ const yerelBayraklar: Record<OzellikBayragiAnahtari, boolean> = {
   music_ducking_enabled: true,
   music_playlists_enabled: true,
   music_favorites_enabled: true,
+  ai_music_enabled: true,
+  ai_music_reference_enabled: true,
+  ai_music_status_share_enabled: true,
+  ai_music_voice_room_enabled: true,
+  ai_music_export_enabled: true,
+  transaction_volume_enabled: true,
+  transaction_volume_profile_enabled: true,
+  transaction_volume_tiers_enabled: true,
+  transaction_volume_leaderboard_enabled: true,
+  transaction_volume_effects_enabled: true,
+  people_discovery_enabled: true,
+  people_personalized_enabled: true,
+  people_gender_filter_enabled: true,
+  people_country_filter_enabled: true,
+  people_online_filter_enabled: true,
+  people_price_filter_enabled: true,
+  people_message_enabled: true,
+  people_voice_call_enabled: true,
+  people_video_call_enabled: true,
+  people_paid_calling_enabled: true,
+  people_show_prices_enabled: true,
+  people_show_country_flags: true,
+  people_show_online_indicators: true,
 };
 
 const yerelKillSwitch: Record<KillSwitchAnahtari, boolean> = {
@@ -58,6 +81,10 @@ const yerelKillSwitch: Record<KillSwitchAnahtari, boolean> = {
   kill_livekit_reconnect: false,
   kill_games: false,
   kill_game_coin: false,
+  kill_ai_music_generation: false,
+  kill_transaction_volume_display: false,
+  kill_people_discovery: false,
+  kill_people_paid_calls: false,
 };
 
 export function OzellikBayragiAktifMi(anahtar: OzellikBayragiAnahtari): boolean {

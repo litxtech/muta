@@ -22,6 +22,7 @@ import {
   OturumGecmisindenKaldir,
 } from '../OturumGecmisiDepolama';
 import type { OturumGecmisiKaydi } from '../tipler';
+import { useCeviri } from '../../../../i18n/useCeviri';
 
 type Props = {
   onSec: (kayit: OturumGecmisiKaydi) => void | Promise<void>;
@@ -32,6 +33,7 @@ type Props = {
  * Instagram tarzı kayıtlı oturum avatarları — tıkla gir, × ile kalıcı sil.
  */
 export function GirisLobiOturumGecmisi({ onSec, busyUserId }: Props) {
+  const { t } = useCeviri();
   const [liste, setListe] = useState<OturumGecmisiKaydi[]>([]);
 
   const yenile = useCallback(async () => {
@@ -51,14 +53,14 @@ export function GirisLobiOturumGecmisi({ onSec, busyUserId }: Props) {
     const ad =
       kayit.displayName?.trim() ||
       kayit.username?.trim() ||
-      'Bu hesap';
+      t('auth.buHesap');
     Alert.alert(
-      'Oturumu kaldır',
-      `${ad} bu cihazdaki oturum geçmişinden silinsin mi? Lobide bir daha görünmez.`,
+      t('auth.oturumuKaldir'),
+      t('auth.oturumKaldirMesaj', { ad }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('ortak.vazgec'), style: 'cancel' },
         {
-          text: 'Kaldır',
+          text: t('ortak.kaldir'),
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -73,7 +75,7 @@ export function GirisLobiOturumGecmisi({ onSec, busyUserId }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.baslik}>Kayıtlı hesaplar</Text>
+      <Text style={styles.baslik}>{t('auth.kayitliHesaplar')}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -84,7 +86,7 @@ export function GirisLobiOturumGecmisi({ onSec, busyUserId }: Props) {
           const etiket =
             kayit.username?.trim() ||
             kayit.displayName?.trim() ||
-            'Hesap';
+            t('auth.hesap');
           const busy = busyUserId === kayit.userId;
           return (
             <View key={kayit.userId} style={styles.item}>
@@ -98,7 +100,7 @@ export function GirisLobiOturumGecmisi({ onSec, busyUserId }: Props) {
                   busy && styles.busy,
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel={`${etiket} hesabına giriş yap`}
+                accessibilityLabel={t('auth.hesabaGiris', { ad: etiket })}
               >
                 <View style={styles.avatarRing}>
                   <ProfilAvatarKucuk
@@ -122,7 +124,7 @@ export function GirisLobiOturumGecmisi({ onSec, busyUserId }: Props) {
                 style={styles.silBtn}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel={`${etiket} oturumunu kaldır`}
+                accessibilityLabel={t('auth.oturumuKaldirErisim', { ad: etiket })}
               >
                 <Ionicons name="close" size={12} color="#fff" />
               </Pressable>
@@ -183,7 +185,7 @@ const styles = StyleSheet.create({
   silBtn: {
     position: 'absolute',
     top: 0,
-    right: 2,
+    end: 2,
     width: 22,
     height: 22,
     borderRadius: YaricapTokenlari.pill,

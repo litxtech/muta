@@ -38,6 +38,12 @@ import {
   OdaKapasitesiniCoz,
 } from '../../src/moduller/oda-olusturma/katalog/OdaKapasiteKatalogu';
 import { YeniOdaOnbellegeYaz } from '../../src/moduller/ses-odalari/onbellek/YeniOdaOnbellek';
+import { HostCanliOdasiniGetir } from '../../src/moduller/ses-odalari/okuma/HostCanliOdasiniGetir';
+import { OdayiSil } from '../../src/moduller/ses-odalari/islemler/OdayiSil';
+import {
+  AktifSesOdasiBitir,
+} from '../../src/moduller/ses-odalari/oturum/AktifSesOdasiOturumu';
+import { MedyaOdasiKes } from '../../src/moduller/livekit/MedyaBaglantisi';
 import {
   OdaKapakSec,
   OdaKapakUriIleYukle,
@@ -52,50 +58,9 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 type AcilisAdim = 'hub' | 'ses_odasi';
-
-const HUB_MODLARI: CanliAcilisMod[] = [
-  {
-    kod: 'ses_odasi',
-    ad: 'Ses odası',
-    alt: 'Mikrofon koltukları · sohbet · hediye',
-    rozet: 'SES',
-    icon: 'mic',
-    tint: RenkTokenlari.primarySoft,
-    renkler: [
-      'rgba(232,64,145,0.55)',
-      'rgba(80,28,90,0.92)',
-      'rgba(16,10,24,0.98)',
-    ],
-  },
-  {
-    kod: 'canli_yayin',
-    ad: 'Canlı yayın',
-    alt: 'Kamera ile sahneye çık · izleyici kitlesi',
-    rozet: 'CANLI',
-    icon: 'videocam',
-    tint: '#FF6B6B',
-    renkler: [
-      'rgba(220,40,60,0.55)',
-      'rgba(90,20,40,0.92)',
-      'rgba(16,10,20,0.98)',
-    ],
-  },
-  {
-    kod: 'durum',
-    ad: 'Durum',
-    alt: 'Kısa an · foto veya metin paylaş',
-    rozet: 'STORY',
-    icon: 'sparkles',
-    tint: RenkTokenlari.mint,
-    renkler: [
-      'rgba(61,207,176,0.45)',
-      'rgba(24,70,70,0.92)',
-      'rgba(12,16,22,0.98)',
-    ],
-  },
-];
 
 const MOD_VARSAYILAN: Record<
   Room['mode'],
@@ -109,6 +74,7 @@ const MOD_VARSAYILAN: Record<
 };
 
 export default function CreateRoomScreen() {
+  const { t } = useCeviri();
   useEffect(() => {
     ImagePickerOnIsit({ izinIste: false });
   }, []);
@@ -131,11 +97,56 @@ export default function CreateRoomScreen() {
   const varsayilan = MOD_VARSAYILAN[mode];
   const seciliTema = OdaTemasiniCoz(temaKod);
 
+  const hubModlari = useMemo<CanliAcilisMod[]>(
+    () => [
+      {
+        kod: 'ses_odasi',
+        ad: t('olusturTab.sesOdasi'),
+        alt: t('olusturTab.sesOdasiAlt'),
+        rozet: t('olusturTab.rozetSes'),
+        icon: 'mic',
+        tint: RenkTokenlari.primarySoft,
+        renkler: [
+          'rgba(232,64,145,0.55)',
+          'rgba(80,28,90,0.92)',
+          'rgba(16,10,24,0.98)',
+        ],
+      },
+      {
+        kod: 'canli_yayin',
+        ad: t('olusturTab.canliYayin'),
+        alt: t('olusturTab.canliYayinAlt'),
+        rozet: t('olusturTab.rozetCanli'),
+        icon: 'videocam',
+        tint: '#FF6B6B',
+        renkler: [
+          'rgba(220,40,60,0.55)',
+          'rgba(90,20,40,0.92)',
+          'rgba(16,10,20,0.98)',
+        ],
+      },
+      {
+        kod: 'durum',
+        ad: t('durum.baslik'),
+        alt: t('olusturTab.durumAlt'),
+        rozet: t('olusturTab.rozetStory'),
+        icon: 'sparkles',
+        tint: RenkTokenlari.mint,
+        renkler: [
+          'rgba(61,207,176,0.45)',
+          'rgba(24,70,70,0.92)',
+          'rgba(12,16,22,0.98)',
+        ],
+      },
+    ],
+    [t],
+  );
+
   const baslikOnerisi = useMemo(() => {
     const ad = profile?.display_name?.trim() || profile?.username?.trim();
     if (!ad) return '';
-    return `${ad}'ın odası`;
-  }, [profile?.display_name, profile?.username]);
+    return t('olusturTab.odaOnerisi', { ad });
+  }, [profile?.display_name, profile?.username, t]);
 
   const hubSec = (kod: string) => {
     if (kod === 'ses_odasi') {
@@ -156,15 +167,18 @@ export default function CreateRoomScreen() {
     }
   };
 
-  const onCreate = () => {
+  const onCreate = (opts?: { oncekiyiKapat?: boolean }) => {
     islemiDene('oda_olustur', async () => {
       if (!user) {
-        Alert.alert('Giriş gerekli');
+        Alert.alert(t('olusturTab.girisGerekli'));
         return;
       }
       const baslik = (title.trim() || baslikOnerisi).trim();
       if (!baslik) {
-        Alert.alert('Başlık gerekli', 'Oda için kısa bir başlık yaz.');
+        Alert.alert(
+          t('olusturTab.baslikGerekli'),
+          t('olusturTab.baslikGerekliBody'),
+        );
         return;
       }
 
@@ -177,17 +191,51 @@ export default function CreateRoomScreen() {
         );
         if (await YaptirimAktifMi('room_create_ban')) {
           Alert.alert(
-            'Oda açılamaz',
-            'Ses odası açma yasağın var. Süre dolunca veya yönetim kaldırınca tekrar deneyebilirsin.',
+            t('olusturTab.odaAcilamaz'),
+            t('olusturTab.odaYasakBody'),
           );
           return;
+        }
+
+        const mevcut = await HostCanliOdasiniGetir(user.id);
+        if (mevcut && !opts?.oncekiyiKapat) {
+          Alert.alert(
+            t('olusturTab.odanizVar'),
+            t('olusturTab.odanizVarBody', { baslik: mevcut.title }),
+            [
+              { text: t('ortak.iptal'), style: 'cancel' },
+              {
+                text: t('olusturTab.odamaGit'),
+                onPress: () => router.push(`/room/${mevcut.roomId}` as any),
+              },
+              {
+                text: t('ortak.onayla'),
+                style: 'destructive',
+                onPress: () => onCreate({ oncekiyiKapat: true }),
+              },
+            ],
+          );
+          return;
+        }
+
+        if (mevcut && opts?.oncekiyiKapat) {
+          const kapat = await OdayiSil(mevcut.roomId);
+          if (!kapat.ok) {
+            Alert.alert(
+              t('olusturTab.oda'),
+              kapat.hata || t('olusturTab.odaKapatilamadi'),
+            );
+            return;
+          }
+          AktifSesOdasiBitir();
+          void MedyaOdasiKes().catch(() => undefined);
         }
 
         let coverUrl: string | null = null;
         if (kapakUri) {
           const up = await OdaKapakUriIleYukle(kapakUri, kapakMime);
           if (!up.ok) {
-            Alert.alert('Kapak', up.hata);
+            Alert.alert(t('olusturTab.kapak'), up.hata);
             return;
           }
           coverUrl = up.url;
@@ -234,7 +282,7 @@ export default function CreateRoomScreen() {
         router.push(`/room/${room.id}` as any);
       } catch (e) {
         const msg = e instanceof Error ? e.message : '';
-        const mevcut =
+        const mevcutHata =
           e &&
           typeof e === 'object' &&
           'code' in e &&
@@ -242,35 +290,41 @@ export default function CreateRoomScreen() {
             ? (e as { roomId?: string; roomTitle?: string })
             : null;
 
-        if (mevcut?.roomId || msg === 'MEVCUT_CANLI_ODA') {
-          const odaId = mevcut?.roomId ?? (e as { roomId?: string })?.roomId;
+        if (mevcutHata?.roomId || msg === 'MEVCUT_CANLI_ODA') {
+          const odaId = mevcutHata?.roomId ?? (e as { roomId?: string })?.roomId;
+          const odaBaslik = mevcutHata?.roomTitle;
           Alert.alert(
-            'Zaten açık odan var',
-            mevcut?.roomTitle
-              ? `"${mevcut.roomTitle}" hâlâ canlı. Aynı anda yalnızca bir ses odası açabilirsin.`
-              : 'Aynı anda yalnızca bir ses odası açabilirsin. Önce mevcut odana gir veya kapat.',
+            t('olusturTab.odanizVar'),
+            odaBaslik
+              ? t('olusturTab.odanizVarBody', { baslik: odaBaslik })
+              : t('olusturTab.odanizVarBodyKisa'),
             [
-              { text: 'İptal', style: 'cancel' },
+              { text: t('ortak.iptal'), style: 'cancel' },
               ...(odaId
                 ? [
                     {
-                      text: 'Odama git',
+                      text: t('olusturTab.odamaGit'),
                       onPress: () => router.push(`/room/${odaId}` as any),
                     },
                   ]
                 : []),
+              {
+                text: t('ortak.onayla'),
+                style: 'destructive',
+                onPress: () => onCreate({ oncekiyiKapat: true }),
+              },
             ],
           );
           return;
         }
 
         Alert.alert(
-          'Oda açılamadı',
+          t('olusturTab.odaAcilamadi'),
           /policy|yaptirim|room_create|forbidden|check|duplicate|unique|tek_canli/i.test(
             msg,
           )
-            ? 'Ses odası açma yasağın olabilir, yetkin yok veya zaten açık bir odan var.'
-            : msg || 'Supabase migration çalıştırıldığından emin ol.',
+            ? t('olusturTab.odaAcilamadiYasak')
+            : msg || t('olusturTab.migrationHint'),
         );
       } finally {
         setLoading(false);
@@ -281,7 +335,7 @@ export default function CreateRoomScreen() {
   return (
     <Screen edges={['top']} tabSayfaKaydir>
       <ModulHataSiniri
-        modulAdi="Canlıya geç"
+        modulAdi={t('canli.gecBaslik')}
         varyant="ekran"
         fallbackHref="/(tabs)"
       >
@@ -293,12 +347,12 @@ export default function CreateRoomScreen() {
           {adim === 'hub' ? (
             <>
               <OdaOlusturMarkaBasligi
-                baslik="Canlıya geç"
-                fisilti="OLUŞTUR"
-                ozet="Ses odası, yayın veya durum — ne açacağını seç."
+                baslik={t('canli.gecBaslik')}
+                fisilti={t('canli.gecFisilti')}
+                ozet={t('canli.gecOzet')}
               />
               <View style={styles.hubListe}>
-                {HUB_MODLARI.map((m) => (
+                {hubModlari.map((m) => (
                   <CanliAcilisModKarti
                     key={m.kod}
                     mod={m}
@@ -310,9 +364,9 @@ export default function CreateRoomScreen() {
           ) : (
             <>
               <OdaOlusturMarkaBasligi
-                baslik="Ses odası aç"
-                fisilti="SES ODASI"
-                ozet="Başlık ve kapak yaz — oda anında açılır."
+                baslik={t('canli.sesOdasiBaslik')}
+                fisilti={t('canli.sesOdasiFisilti')}
+                ozet={t('canli.sesOdasiOzet')}
                 geriMi
                 onGeri={() => setAdim('hub')}
               />
@@ -333,7 +387,9 @@ export default function CreateRoomScreen() {
                       void (async () => {
                         const sec = await OdaKapakSec();
                         if (!sec.ok) {
-                          if (!sec.iptal) Alert.alert('Kapak', sec.hata);
+                          if (!sec.iptal) {
+                            Alert.alert(t('olusturTab.kapak'), sec.hata);
+                          }
                           return;
                         }
                         setKapakUri(sec.uri);
@@ -345,7 +401,7 @@ export default function CreateRoomScreen() {
                       styles.kapakPress,
                       pressed && styles.kapakPressed,
                     ]}
-                    accessibilityLabel="Oda kapak resmi"
+                    accessibilityLabel={t('olusturTab.odaKapakResmi')}
                   >
                     {kapakUri ? (
                       <Image source={{ uri: kapakUri }} style={styles.kapakImg} />
@@ -363,9 +419,11 @@ export default function CreateRoomScreen() {
                             color={seciliTema.vurgu}
                           />
                         </View>
-                        <Text style={styles.kapakHint}>Kapak fotoğrafı ekle</Text>
+                        <Text style={styles.kapakHint}>
+                          {t('olusturTab.kapakEkle')}
+                        </Text>
                         <Text style={styles.kapakAlt}>
-                          Yoksa {seciliTema.ad} teması kullanılır
+                          {t('olusturTab.kapakYoksa', { tema: seciliTema.ad })}
                         </Text>
                       </LinearGradient>
                     )}
@@ -376,23 +434,23 @@ export default function CreateRoomScreen() {
                         color={RenkTokenlari.textOnOverlay}
                       />
                       <Text style={styles.kapakBadgeYazi}>
-                        {kapakUri ? 'Değiştir' : 'Seç'}
+                        {kapakUri ? t('olusturTab.degistir') : t('olusturTab.sec')}
                       </Text>
                     </View>
                   </Pressable>
 
                 <TextField
-                  label="Oda başlığı"
+                  label={t('canli.odaBasligi')}
                   value={title}
                   onChangeText={setTitle}
-                  placeholder={baslikOnerisi || 'Gece sohbeti...'}
+                  placeholder={baslikOnerisi || t('olusturTab.baslikPlaceholder')}
                   maxLength={40}
                 />
                 <TextField
-                  label="Açıklama"
+                  label={t('canli.aciklama')}
                   value={topic}
                   onChangeText={setTopic}
-                  placeholder="Kısa konu — kartta görünür"
+                  placeholder={t('canli.aciklamaPlaceholder')}
                   maxLength={120}
                   multiline
                   numberOfLines={2}
@@ -403,21 +461,21 @@ export default function CreateRoomScreen() {
                 </LinearGradient>
 
                 <View style={styles.bolumBlok}>
-                  <Text style={styles.bolum}>Arka plan teması</Text>
+                  <Text style={styles.bolum}>{t('olusturTab.arkaPlanTemasi')}</Text>
                   <Text style={styles.bolumAlt}>
                     {kapakUri
-                      ? `Foto yüklü — tema yedek (${seciliTema.ad})`
-                      : `${seciliTema.ad} · odada tam ekran sahne`}
+                      ? t('olusturTab.temaYedek', { tema: seciliTema.ad })
+                      : t('olusturTab.temaSahne', { tema: seciliTema.ad })}
                   </Text>
                   <OdaArkaPlanTemaSeridi
                     seciliKod={temaKod}
-                    onSec={(t) => setTemaKod(t.kod)}
+                    onSec={(tema) => setTemaKod(tema.kod)}
                   />
                 </View>
 
                 <View style={styles.bolumBlok}>
-                  <Text style={styles.bolum}>Boyut</Text>
-                  <Text style={styles.bolumAlt}>Koltuk ve dinleyici kapasitesi</Text>
+                  <Text style={styles.bolum}>{t('olusturTab.boyut')}</Text>
+                  <Text style={styles.bolumAlt}>{t('olusturTab.boyutAlt')}</Text>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -445,7 +503,7 @@ export default function CreateRoomScreen() {
                           <Text
                             style={[styles.chipAlt, secili && styles.chipAltAktif]}
                           >
-                            {k.mikrofon} koltuk
+                            {t('olusturTab.koltuk', { adet: k.mikrofon })}
                           </Text>
                           <Text
                             style={[
@@ -454,8 +512,10 @@ export default function CreateRoomScreen() {
                             ]}
                           >
                             {k.dinleyici >= 1000
-                              ? `${Math.round(k.dinleyici / 1000)}k dinleyici`
-                              : `${k.dinleyici} dinleyici`}
+                              ? t('olusturTab.dinleyiciBin', {
+                                  adet: Math.round(k.dinleyici / 1000),
+                                })
+                              : t('olusturTab.dinleyici', { adet: k.dinleyici })}
                           </Text>
                         </Pressable>
                       );
@@ -464,8 +524,8 @@ export default function CreateRoomScreen() {
                 </View>
 
                 <GradientButton
-                  title={loading ? 'Açılıyor…' : 'Ses odasını aç'}
-                  onPress={onCreate}
+                  title={loading ? t('canli.aciliyor') : t('canli.sesOdasiniAc')}
+                  onPress={() => onCreate()}
                   loading={loading}
                   style={styles.cta}
                 />

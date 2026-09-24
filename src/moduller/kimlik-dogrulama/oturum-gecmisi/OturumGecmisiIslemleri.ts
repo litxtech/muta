@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 import { supabase } from '../../../lib/supabase';
 import {
   OturumGecmisineKaydet,
@@ -75,7 +76,7 @@ export async function OturumGecmisindenGirisYap(
   if (!token) {
     return {
       ok: false,
-      hata: 'Oturum süresi dolmuş. Şifrenle tekrar giriş yap.',
+      hata: i18n.t('auth.oturumSuresiDoldu'),
       needsPassword: true,
       kimlik: kayit.kimlik ?? kayit.username,
     };
@@ -90,7 +91,7 @@ export async function OturumGecmisindenGirisYap(
     await OturumGecmisiTokeniniTemizle(kayit.userId);
     return {
       ok: false,
-      hata: 'Oturum süresi dolmuş. Şifrenle tekrar giriş yap.',
+      hata: i18n.t('auth.oturumSuresiDoldu'),
       needsPassword: true,
       kimlik: kayit.kimlik ?? kayit.username,
     };

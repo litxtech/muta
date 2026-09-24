@@ -23,8 +23,10 @@ import {
 } from '../../src/moduller/gorusme/oturum/GorusmeOturumYoneticisi';
 import { useGorusmeOturumu } from '../../src/moduller/gorusme/oturum/useGorusmeOturumu';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 export default function GorusmeEkrani() {
+  const { t } = useCeviri();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const oturum = useGorusmeOturumu();
@@ -56,7 +58,7 @@ export default function GorusmeEkrani() {
         return;
       }
       if (sonuc === 'ended') {
-        Alert.alert('Görüşme', 'Görüşme sona erdi');
+        Alert.alert(t('gorusme.gorusme'), t('gorusme.sonaErdi'));
         bilincliCikis.current = true;
         if (router.canGoBack()) router.back();
         else router.replace('/(tabs)/messages');
@@ -71,7 +73,7 @@ export default function GorusmeEkrani() {
       iptal = true;
       GorusmeOturumEkranKapandi(id);
     };
-  }, [id, user?.id]);
+  }, [id, user?.id, t]);
 
   useEffect(() => {
     if (!id) return;
@@ -89,19 +91,16 @@ export default function GorusmeEkrani() {
 
   useEffect(() => {
     if (oturum?.hata) {
-      Alert.alert('Medya bağlantısı', oturum.hata);
+      Alert.alert(t('gorusme.medyaBaglantisi'), oturum.hata);
     }
-  }, [oturum?.hata]);
+  }, [oturum?.hata, t]);
 
   useEffect(() => {
     if (oturum?.mock && oturum.hazir && !mockUyariVerildi.current) {
       mockUyariVerildi.current = true;
-      Alert.alert(
-        'Medya',
-        'Canlı ses/görüntü için LiveKit’li native build gerekir. Şu an demo moddasın.',
-      );
+      Alert.alert(t('gorusme.medya'), t('gorusme.demoNativeGerekli'));
     }
-  }, [oturum?.mock, oturum?.hazir]);
+  }, [oturum?.mock, oturum?.hazir, t]);
 
   const bitir = useCallback(async () => {
     Keyboard.dismiss();
@@ -138,7 +137,7 @@ export default function GorusmeEkrani() {
       {/* flex:1 sarmalayıcı — ModulHataSiniri native view üretmez; zinciri kırma */}
       <View style={styles.icerik} collapsable={false}>
         <ModulHataSiniri
-          modulAdi="görüşme"
+          modulAdi={t('gorusme.gorusme')}
           varyant="ekran"
           fallbackHref="/(tabs)/messages"
         >

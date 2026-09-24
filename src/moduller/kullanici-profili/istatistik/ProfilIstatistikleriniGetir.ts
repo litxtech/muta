@@ -24,13 +24,37 @@ export type KullaniciProfilIstatistikleri = {
   account_value_updated_at?: string | null;
 };
 
+const STATS_SELECT = [
+  'user_id',
+  'followers_count',
+  'following_count',
+  'posts_count',
+  'pending_follow_requests_count',
+  'likes_count',
+  'total_topup_coin',
+  'total_spent_coin',
+  'total_gifts_sent',
+  'total_gifts_received',
+  'recharge_rank',
+  'gifter_rank',
+  'charm_level',
+  'vip_level',
+  'agency_id',
+  'host_status',
+  'account_value',
+  'account_value_label',
+  'account_value_override',
+  'account_value_version',
+  'account_value_updated_at',
+].join(', ');
+
 /** Profil acilisinda SUM/COUNT yok — denormalized satir */
 export async function ProfilIstatistikleriniGetir(
   userId: string,
 ): Promise<KullaniciProfilIstatistikleri | null> {
   const { data, error } = await supabase
     .from('user_profile_stats')
-    .select('*')
+    .select(STATS_SELECT)
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;

@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import type { CeviriAnahtari } from '../../../i18n/useCeviri';
 
 export type KesfetKategorisi = {
   id: string;
@@ -13,11 +14,11 @@ export type KesfetFiltresi =
   | 'new_creator'
   | 'trending';
 
-export const KESFET_FILTRELERI: { id: KesfetFiltresi; label: string }[] = [
-  { id: 'global', label: 'Tümü' },
-  { id: 'trending', label: 'Trend' },
-  { id: 'online', label: 'Aktif' },
-  { id: 'new_creator', label: 'Yeni' },
+export const KESFET_FILTRELERI: { id: KesfetFiltresi; label: CeviriAnahtari }[] = [
+  { id: 'global', label: 'kesfet.filtreTumu' },
+  { id: 'trending', label: 'kesfet.filtreTrend' },
+  { id: 'online', label: 'kesfet.filtreAktif' },
+  { id: 'new_creator', label: 'kesfet.filtreYeni' },
 ];
 
 export async function KesfetKategorileriniGetir(): Promise<KesfetKategorisi[]> {

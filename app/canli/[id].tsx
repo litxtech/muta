@@ -33,16 +33,19 @@ import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { SonGezileneKaydet, SonGezilendenSil } from '../../src/moduller/ana-sayfa/depolama/SonGezilenDepolama';
+import { useCeviri } from '../../src/i18n/useCeviri';
+import i18n from '../../src/i18n';
 
 /** Izleyici: tam ekran video + yorum + hediye + beğeni */
 export default function CanliIzleyiciEkrani() {
+  const { t } = useCeviri();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, isGuest, refreshProfile, refreshWallet, wallet } = useAuth();
   const { upgradeAcik, upgradeKapat, upgradeAc } = useMisafirIslemKapisi(isGuest);
   const magaza = useHediyeMagaza();
   const [meta, setMeta] = useState<CanliYayinMeta | null>(null);
   const [loading, setLoading] = useState(true);
-  const [medyaDurum, setMedyaDurum] = useState('Bağlanıyor…');
+  const [medyaDurum, setMedyaDurum] = useState(() => i18n.t('canliYayin.baglaniyor'));
   const [medyaMock, setMedyaMock] = useState(false);
   const metaRef = useRef<CanliYayinMeta | null>(null);
   const baglaniyorRef = useRef(false);
@@ -72,7 +75,7 @@ export default function CanliIzleyiciEkrani() {
       baglaniyorRef.current = true;
 
       if (!soft) setLoading(true);
-      else setMedyaDurum('Görüntü yeniden bağlanıyor…');
+      else setMedyaDurum(t('canliYayin.goruntuYeniden'));
 
       try {
         // Önceki blur disconnect yarışını kapat
@@ -89,7 +92,7 @@ export default function CanliIzleyiciEkrani() {
         if (error) throw error;
         if (!data || !data.is_live) {
           setMeta(null);
-          setMedyaDurum('Yayın sona erdi');
+          setMedyaDurum(t('canliYayin.yayinSonaErdi'));
           return;
         }
         const row = data as unknown as {
@@ -117,7 +120,7 @@ export default function CanliIzleyiciEkrani() {
         const hostRaw = row.host;
         const host = Array.isArray(hostRaw) ? hostRaw[0] ?? null : hostRaw ?? null;
         const hostAd =
-          host?.display_name?.trim() || host?.username?.trim() || 'Yayıncı';
+          host?.display_name?.trim() || host?.username?.trim() || t('canliYayin.yayinci');
 
         if (iptal()) return;
 
@@ -147,7 +150,7 @@ export default function CanliIzleyiciEkrani() {
         const gir = await CanliYayinIzleyiciGir(row.id);
         if (iptal()) return;
         if (!gir.ok) {
-          Alert.alert('Canlı', gir.hata);
+          Alert.alert(t('canliYayin.canli'), gir.hata);
           setMeta(null);
           return;
         }
@@ -164,16 +167,16 @@ export default function CanliIzleyiciEkrani() {
         setMedyaDurum(
           medya.ok
             ? medya.mock
-              ? `İzleme · mock`
-              : `İzleme`
+              ? t('canliYayin.izlemeMock')
+              : t('canliYayin.izleme')
             : medya.hata,
         );
         setMedyaMock(!!(medya.ok && medya.mock));
       } catch (e) {
         if (iptal()) return;
         Alert.alert(
-          'Canlı',
-          e instanceof Error ? e.message : 'Yayın açılamadı',
+          t('canliYayin.canli'),
+          e instanceof Error ? e.message : t('canliYayin.yayinAcilamadi'),
         );
         setMeta(null);
       } finally {
@@ -181,7 +184,7 @@ export default function CanliIzleyiciEkrani() {
         if (!iptal()) setLoading(false);
       }
     },
-    [id],
+    [id, t],
   );
 
   useFocusEffect(
@@ -214,11 +217,11 @@ export default function CanliIzleyiciEkrani() {
           if (payload.new?.user_id === user.id) {
             void MedyaOdasiKes();
             Alert.alert(
-              'Yayın',
+              t('canliYayin.yayin'),
               payload.new.action === 'ban'
-                ? 'Yayıncı seni engelledi.'
-                : 'Yayıncı seni yayından çıkardı.',
-              [{ text: 'Tamam', onPress: () => router.back() }],
+                ? t('canliYayin.engellendiBody')
+                : t('canliYayin.atildiBody'),
+              [{ text: t('ortak.tamam'), onPress: () => router.back() }],
             );
           }
         },
@@ -234,8 +237,8 @@ export default function CanliIzleyiciEkrani() {
         (payload: { new?: { is_live?: boolean } }) => {
           if (payload.new && payload.new.is_live === false) {
             if (typeof id === 'string') void SonGezilendenSil('canli', id);
-            Alert.alert('Yayın bitti', 'Yayıncı yayını sonlandırdı.', [
-              { text: 'Tamam', onPress: () => router.back() },
+            Alert.alert(t('canliYayin.yayinBitti'), t('canliYayin.yayinciBitirdi'), [
+              { text: t('ortak.tamam'), onPress: () => router.back() },
             ]);
           }
         },
@@ -244,7 +247,7 @@ export default function CanliIzleyiciEkrani() {
     return () => {
       void supabase.removeChannel(ch);
     };
-  }, [id, user?.id]);
+  }, [id, user?.id, t]);
 
   if (loading && !meta) {
     return (
@@ -261,9 +264,9 @@ export default function CanliIzleyiciEkrani() {
     return (
       <Screen koyuSahne edges={['top']}>
         <View style={styles.bos}>
-          <Text style={styles.bosTitle}>Yayın bulunamadı</Text>
+          <Text style={styles.bosTitle}>{t('canliYayin.yayinBulunamadi')}</Text>
           <Pressable onPress={() => router.back()} style={styles.geri}>
-            <Text style={styles.geriText}>Geri</Text>
+            <Text style={styles.geriText}>{t('ortak.geri')}</Text>
           </Pressable>
         </View>
       </Screen>
@@ -299,13 +302,13 @@ export default function CanliIzleyiciEkrani() {
                 ? [
                     {
                       id: pkMac.host_a_id,
-                      ad: pkMac.side_a?.host_name ?? 'Yayıncı A',
+                      ad: pkMac.side_a?.host_name ?? t('canliYayin.yayinciA'),
                       liveSessionId: pkMac.live_a_id,
                       side: 'a' as const,
                     },
                     {
                       id: pkMac.host_b_id,
-                      ad: pkMac.side_b?.host_name ?? 'Yayıncı B',
+                      ad: pkMac.side_b?.host_name ?? t('canliYayin.yayinciB'),
                       liveSessionId: pkMac.live_b_id,
                       side: 'b' as const,
                     },

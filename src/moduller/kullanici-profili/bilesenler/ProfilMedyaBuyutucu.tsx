@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MedyaUriOnizlemeGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   uri: string | null;
@@ -24,6 +25,7 @@ type Props = {
  * Boş (siyah) alana basınca kapanır; fotoğraf alanına basınca açık kalır.
  */
 export function ProfilMedyaBuyutucu({ uri, onKapat, tur = 'avatar' }: Props) {
+  const { t } = useCeviri();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const safeUri = MedyaUriOnizlemeGuvenli(uri);
@@ -72,7 +74,7 @@ export function ProfilMedyaBuyutucu({ uri, onKapat, tur = 'avatar' }: Props) {
           style={styles.backdrop}
           onPress={onKapat}
           accessibilityRole="button"
-          accessibilityLabel="Kapat"
+          accessibilityLabel={t('ortak.kapat')}
         />
 
         {safeUri ? (
@@ -87,7 +89,9 @@ export function ProfilMedyaBuyutucu({ uri, onKapat, tur = 'avatar' }: Props) {
                 style={{ width: boyut.w, height: boyut.h }}
                 resizeMode="contain"
                 accessibilityLabel={
-                  tur === 'cover' ? 'Kapak fotoğrafı' : 'Profil fotoğrafı'
+                  tur === 'cover'
+                    ? t('profil.kapakFotografi')
+                    : t('profil.profilFotografi')
                 }
               />
             </View>
@@ -98,13 +102,13 @@ export function ProfilMedyaBuyutucu({ uri, onKapat, tur = 'avatar' }: Props) {
           style={[styles.kapatBtn, { top: Math.max(12, insets.top + 8) }]}
           onPress={onKapat}
           hitSlop={12}
-          accessibilityLabel="Kapat"
+          accessibilityLabel={t('ortak.kapat')}
         >
           <Ionicons name="close" size={22} color="#fff" />
         </Pressable>
 
         <Text style={[styles.ipucu, { bottom: Math.max(16, insets.bottom + 12) }]}>
-          Boşluğa dokunarak kapat
+          {t('profil.boslugaDokunarakKapat')}
         </Text>
       </View>
     </Modal>

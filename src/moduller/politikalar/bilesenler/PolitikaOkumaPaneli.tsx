@@ -17,6 +17,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   politika: PolitikaGorunum | null;
@@ -25,6 +26,7 @@ type Props = {
 
 /** Kayıt / giriş — politika metnini modern temiz arka plan üzerinde okutur */
 export function PolitikaOkumaPaneli({ politika, onKapat }: Props) {
+  const { t } = useCeviri();
   if (!politika) return null;
 
   return (
@@ -39,10 +41,16 @@ export function PolitikaOkumaPaneli({ politika, onKapat }: Props) {
         <View style={styles.kart}>
           <View style={styles.ust}>
             <View style={{ flex: 1, paddingRight: 8 }}>
-              <Text style={styles.fisilti}>POLİTİKA</Text>
+              <Text style={styles.fisilti}>{t('auth.politikaFisilti')}</Text>
               <Text style={styles.baslik}>{politika.baslik}</Text>
             </View>
-            <Pressable onPress={onKapat} style={styles.kapat} hitSlop={8}>
+            <Pressable
+              onPress={onKapat}
+              style={styles.kapat}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('ortak.kapat')}
+            >
               <Ionicons name="close" size={20} color="#fff" />
             </Pressable>
           </View>
@@ -57,7 +65,7 @@ export function PolitikaOkumaPaneli({ politika, onKapat }: Props) {
             />
           </ScrollView>
           <Pressable onPress={onKapat} style={styles.tamam}>
-            <Text style={styles.tamamYazi}>Anladım</Text>
+            <Text style={styles.tamamYazi}>{t('ortak.anladim')}</Text>
           </Pressable>
         </View>
       </View>

@@ -28,8 +28,14 @@ import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari'
 import {
   BoslukTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { AktifDil } from '../../../i18n';
+import { DIL_LOCALE_MAP } from '../../../i18n/diller';
 
-function formatTarih(iso: string | null): string {
+function formatTarih(
+  iso: string | null,
+  t: (k: string, o?: Record<string, unknown>) => string,
+): string {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
@@ -38,31 +44,35 @@ function formatTarih(iso: string | null): string {
     d.getFullYear() === now.getFullYear() &&
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
-  const saat = d.toLocaleTimeString('tr-TR', {
+  const locale = DIL_LOCALE_MAP[AktifDil()];
+  const saat = d.toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
   });
-  if (sameDay) return `Bugün · ${saat}`;
-  return `${d.toLocaleDateString('tr-TR', {
+  if (sameDay) return t('gorusme.bugunSaat', { saat });
+  return `${d.toLocaleDateString(locale, {
     day: 'numeric',
     month: 'short',
     year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
   })} · ${saat}`;
 }
 
-function durumEtiket(k: GorusmeGecmisKayit): string {
+function durumEtiket(
+  k: GorusmeGecmisKayit,
+  t: (k: string, o?: Record<string, unknown>) => string,
+): string {
   if (k.is_ongoing) {
-    return k.status === 'ringing' ? 'Aranıyor…' : 'Devam ediyor';
+    return k.status === 'ringing' ? t('gorusme.araniyor') : t('gorusme.devamEdiyor');
   }
   switch (k.status) {
     case 'missed':
-      return 'Cevapsız';
+      return t('gorusme.cevapsiz');
     case 'rejected':
-      return 'Reddedildi';
+      return t('gorusme.reddedildi');
     case 'cancelled':
-      return 'İptal';
+      return t('gorusme.iptal');
     case 'ended':
-      return k.is_outgoing ? 'Giden' : 'Gelen';
+      return k.is_outgoing ? t('gorusme.giden') : t('gorusme.gelen');
     default:
       return k.status;
   }
@@ -73,6 +83,7 @@ type Props = {
 };
 
 export function GorusmeGecmisPaneli({ misafir }: Props) {
+  const { t } = useCeviri();
   const [liste, setListe] = useState<GorusmeGecmisKayit[]>([]);
   const [yukleniyor, setYukleniyor] = useState(false);
   const [yenileniyor, setYenileniyor] = useState(false);
@@ -116,18 +127,16 @@ export function GorusmeGecmisPaneli({ misafir }: Props) {
   };
 
   const sil = (k: GorusmeGecmisKayit) => {
-    Alert.alert(
-      'Görüşmeyi sil',
-      'Bu kayıt yalnızca senden silinir. Karşı tarafın geçmişi etkilenmez.',
+    Alert.alert(t('gorusme.gorusmeyiSil'), t('gorusme.gorusmeyiSilBody'),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('ortak.vazgec'), style: 'cancel' },
         {
-          text: 'Sil',
+          text: t('ortak.sil'),
           style: 'destructive',
           onPress: () => {
             void (async () => {
               const r = await GorusmeGecmisSil(k.id);
-              if (!r.ok) Alert.alert('Silinemedi', r.hata);
+              if (!r.ok) Alert.alert(t('gorusme.silinemedi'), r.hata);
               else await yukle(false);
             })();
           },
@@ -139,7 +148,7 @@ export function GorusmeGecmisPaneli({ misafir }: Props) {
   if (misafir) {
     return (
       <View style={styles.bos}>
-        <Text style={styles.bosYazi}>Görüşme geçmişi için hesabını tamamla</Text>
+        <Text style={styles.bosYazi}>{t('gorusme.gecmisHesapGerekli')}</Text>
       </View>
     );
   }
@@ -151,11 +160,11 @@ export function GorusmeGecmisPaneli({ misafir }: Props) {
     <FlatList
       data={[
         ...(devam.length
-          ? ([{ __tip: 'baslik', id: '__devam', yazi: 'Devam eden' }] as const)
+          ? ([{ __tip: 'baslik', id: '__devam', yazi: t('gorusme.devamEden') }] as const)
           : []),
         ...devam.map((k) => ({ __tip: 'kayit' as const, ...k })),
         ...(gecmis.length
-          ? ([{ __tip: 'baslik', id: '__gecmis', yazi: 'Geçmiş' }] as const)
+          ? ([{ __tip: 'baslik', id: '__gecmis', yazi: t('gorusme.gecmis') }] as const)
           : []),
         ...gecmis.map((k) => ({ __tip: 'kayit' as const, ...k })),
       ]}
@@ -179,7 +188,7 @@ export function GorusmeGecmisPaneli({ misafir }: Props) {
             color={RenkTokenlari.textDim}
           />
           <Text style={styles.bosYazi}>
-            {yukleniyor ? 'Yükleniyor…' : 'Henüz görüşme yok'}
+            {yukleniyor ? t('ortak.yukleniyor') : t('gorusme.gorusmeYok')}
           </Text>
         </View>
       }
@@ -195,7 +204,7 @@ export function GorusmeGecmisPaneli({ misafir }: Props) {
         const ad =
           k.peer_display_name?.trim() ||
           k.peer_username?.trim() ||
-          'Kullanıcı';
+          t('ortak.kullanici');
         const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
         const avatar = MedyaUriGuvenli(k.peer_avatar_url);
         const video = k.call_type === 'video';
@@ -248,18 +257,18 @@ export function GorusmeGecmisPaneli({ misafir }: Props) {
                   ]}
                   numberOfLines={1}
                 >
-                  {durumEtiket(k)}
+                  {durumEtiket(k, t)}
                 </Text>
               </View>
             </View>
             <View style={styles.sag}>
               <Text style={styles.tarih}>
-                {formatTarih(k.is_ongoing ? k.started_at : k.ended_at || k.started_at)}
+                {formatTarih(k.is_ongoing ? k.started_at : k.ended_at || k.started_at, t)}
               </Text>
               <Pressable
                 onPress={() => sil(k)}
                 hitSlop={10}
-                accessibilityLabel="Sil"
+                accessibilityLabel={t('ortak.sil')}
               >
                 <Ionicons
                   name="trash-outline"

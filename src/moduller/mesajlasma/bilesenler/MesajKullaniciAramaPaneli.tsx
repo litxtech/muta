@@ -22,6 +22,8 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { MedyaUriGuvenli } from '../yardimcilar/MedyaUriGecerliMi';
+import { DogrulanmisTik } from '../../kullanici-profili/bilesenler/DogrulanmisTik';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   haricUserId?: string | null;
@@ -35,6 +37,7 @@ export function MesajKullaniciAramaPaneli({
   onSec,
   seciliyor,
 }: Props) {
+  const { t } = useCeviri();
   const [sorgu, setSorgu] = useState('');
   const [sonuclar, setSonuclar] = useState<ArananKullanici[]>([]);
   const [yukleniyor, setYukleniyor] = useState(false);
@@ -67,7 +70,7 @@ export function MesajKullaniciAramaPaneli({
         } catch {
           if (istekNo.current !== no) return;
           setSonuclar([]);
-          setHata('Arama yapılamadı. Tekrar dene.');
+          setHata(t('mesajlar.aramaHata'));
         } finally {
           if (istekNo.current === no) setYukleniyor(false);
         }
@@ -84,7 +87,7 @@ export function MesajKullaniciAramaPaneli({
         <TextInput
           value={sorgu}
           onChangeText={setSorgu}
-          placeholder="İsim, @kullanıcı veya ID…"
+          placeholder={t('mesajlar.aramaPlaceholder')}
           placeholderTextColor={RenkTokenlari.textDim}
           style={styles.input}
           autoFocus
@@ -101,9 +104,7 @@ export function MesajKullaniciAramaPaneli({
         ) : null}
       </View>
 
-      <Text style={styles.ipucu}>
-        İlk harften itibaren öneriler listelenir.
-      </Text>
+      <Text style={styles.ipucu}>{t('mesajlar.aramaIpucu')}</Text>
 
       {yukleniyor ? (
         <ActivityIndicator
@@ -117,8 +118,8 @@ export function MesajKullaniciAramaPaneli({
       {!yukleniyor && sorgu.trim().length >= 1 && sonuclar.length === 0 && !hata ? (
         <View style={styles.bos}>
           <Ionicons name="person-outline" size={28} color={RenkTokenlari.textDim} />
-          <Text style={styles.bosBaslik}>Sonuç yok</Text>
-          <Text style={styles.bosAlt}>Farklı bir isim veya ID dene.</Text>
+          <Text style={styles.bosBaslik}>{t('mesajlar.sonucYok')}</Text>
+          <Text style={styles.bosAlt}>{t('mesajlar.sonucYokBody')}</Text>
         </View>
       ) : null}
 
@@ -148,10 +149,11 @@ function KullaniciSatiri({
   onPress: () => void;
   disabled?: boolean;
 }) {
+  const { t } = useCeviri();
   const ad =
     kullanici.display_name?.trim() ||
     kullanici.username ||
-    'Kullanıcı';
+    t('ortak.kullanici');
   const handle = kullanici.username ? `@${kullanici.username}` : null;
   const avatar = MedyaUriGuvenli(kullanici.avatar_url);
 
@@ -183,7 +185,7 @@ function KullaniciSatiri({
             {ad}
           </Text>
           {kullanici.is_verified ? (
-            <Ionicons name="checkmark-circle" size={14} color={RenkTokenlari.mint} />
+            <DogrulanmisTik size={14} />
           ) : null}
         </View>
         {handle ? (

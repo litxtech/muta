@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 import { supabase } from '../../../lib/supabase';
 import { OrtamDegiskenleri } from '../../../yapilandirma/OrtamDegiskenleri';
 import { OAuthProfiliniTamamla } from './OAuthProfiliniTamamla';
@@ -87,7 +88,7 @@ async function oturumuUrlDenOlustur(url: string): Promise<void> {
   const access_token = params.access_token;
   const refresh_token = params.refresh_token;
   if (!access_token) {
-    throw new Error('OAuth yanıtında oturum bilgisi yok.');
+    throw new Error(i18n.t('auth.oauthOturumYok'));
   }
 
   const { error } = await supabase.auth.setSession({
@@ -125,11 +126,10 @@ export async function SpotifyIleGirisYap(): Promise<SpotifyGirisSonuc> {
     if (nativeModulHatasiMi(e)) {
       return {
         ok: false,
-        hata:
-          'Spotify için yeni development build gerekli (expo-web-browser).',
+        hata: i18n.t('auth.spotifyBuildGerekli'),
       };
     }
-    return { ok: false, hata: 'Spotify tarayıcısı açılamadı.' };
+    return { ok: false, hata: i18n.t('auth.spotifyTarayiciAcilamadi') };
   }
 
   try {
@@ -143,19 +143,19 @@ export async function SpotifyIleGirisYap(): Promise<SpotifyGirisSonuc> {
     });
 
     if (error) {
-      return { ok: false, hata: 'Spotify girişi başlatılamadı. Tekrar dene.' };
+      return { ok: false, hata: i18n.t('auth.spotifyBaslatilamadi') };
     }
     if (!data.url) {
-      return { ok: false, hata: 'Spotify yetkilendirme adresi alınamadı.' };
+      return { ok: false, hata: i18n.t('auth.spotifyAdresAlinamadi') };
     }
 
     const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
 
     if (res.type === 'cancel' || res.type === 'dismiss') {
-      return { ok: false, hata: 'İptal edildi', iptal: true };
+      return { ok: false, hata: i18n.t('auth.iptalEdildi'), iptal: true };
     }
     if (res.type !== 'success' || !('url' in res) || !res.url) {
-      return { ok: false, hata: 'Spotify girişi tamamlanamadı.' };
+      return { ok: false, hata: i18n.t('auth.spotifyTamamlanamadi') };
     }
 
     await oturumuUrlDenOlustur(res.url);
@@ -165,17 +165,16 @@ export async function SpotifyIleGirisYap(): Promise<SpotifyGirisSonuc> {
     if (nativeModulHatasiMi(e)) {
       return {
         ok: false,
-        hata:
-          'Spotify için yeni development build gerekli (expo-web-browser).',
+        hata: i18n.t('auth.spotifyBuildGerekli'),
       };
     }
-    const msg = e instanceof Error ? e.message : 'Spotify girişi başarısız';
+    const msg = e instanceof Error ? e.message : i18n.t('auth.spotifyBasarisiz');
     return {
       ok: false,
       hata:
         msg.includes('redirect') || msg.includes('Redirect')
-          ? 'Yönlendirme ayarı eksik. Supabase Redirect URLs içine muta://** ekle.'
-          : 'Spotify girişi başarısız. Tekrar dene.',
+          ? i18n.t('auth.spotifyYonlendirme')
+          : i18n.t('auth.spotifyBasarisiz'),
     };
   }
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import i18n from '../../../i18n';
 import { TakipAnalitik } from '../analytics/TakipAnalytics';
 import { TakipServisi } from '../islemler/TakipServisi';
 import type { TakipKullaniciKarti } from '../TakipTipleri';
@@ -15,7 +16,7 @@ export function useTakipIstekleri() {
       const page = await TakipServisi.istekler();
       setItems(page.items);
     } catch (e) {
-      setHata(e instanceof Error ? e.message : 'Yüklenemedi');
+      setHata(e instanceof Error ? e.message : i18n.t('takip.yuklenemedi'));
       setItems([]);
     } finally {
       setYukleniyor(false);

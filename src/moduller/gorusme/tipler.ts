@@ -21,6 +21,10 @@ export type DirectCall = {
   ended_at: string | null;
   ended_by: string | null;
   end_reason: string | null;
+  /** People discovery paid calling */
+  is_paid?: boolean;
+  price_per_minute_snapshot?: number | null;
+  billing_status?: string | null;
 };
 
 export type ThreadKarsiProfil = {

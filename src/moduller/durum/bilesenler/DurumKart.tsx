@@ -13,16 +13,20 @@ import type { DurumOggesi } from '../islemler/DurumIslemleri';
 import {
   DurumMedyaHttpsMi,
   DurumMetinGonderisiMi,
+  DurumMuzikPayloadAl,
   DurumOyunKazanciPayloadAl,
 } from '../islemler/DurumIslemleri';
 import { DurumZamanMetni } from '../islemler/DurumZaman';
+import { DurumMuzikKarti } from './DurumMuzikKarti';
 import { DurumOyunKazanciKart } from './DurumOyunKazanciKart';
 import { DurumVideoOnizleme } from './DurumVideoOnizleme';
 import { DurumCaptionAcilir } from './DurumCaptionAcilir';
 import { DurumEtkilesimCubugu } from './DurumEtkilesimCubugu';
+import { DogrulanmisTik } from '../../kullanici-profili/bilesenler/DogrulanmisTik';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   oge: DurumOggesi;
@@ -34,7 +38,7 @@ type Props = {
   onHediye: () => void;
   onProfil: () => void;
   onMenu?: () => void;
-  /** FlatList görünür + sekme odakta → muted video önizleme (tek aktif) */
+  /** FlatList görünür + sekme odakta → muted video / müzik önizleme (tek aktif) */
   videoAktif?: boolean;
   /** Paylaş — yoksa buton gizli */
   onPaylas?: () => void;
@@ -85,11 +89,14 @@ function DurumKartIc({
   videoAktif = false,
   onPaylas,
 }: Props) {
+  const { t } = useCeviri();
   const handle = oge.username ? `@${oge.username}` : null;
   const kazanc = DurumOyunKazanciPayloadAl(oge);
+  const muzik = DurumMuzikPayloadAl(oge);
   const metinGonderisi = DurumMetinGonderisiMi(oge);
   const resimBuyutulebilir =
     !kazanc &&
+    !muzik &&
     !metinGonderisi &&
     oge.media_type !== 'video' &&
     DurumMedyaHttpsMi(oge.media_url) &&
@@ -103,7 +110,7 @@ function DurumKartIc({
       style={styles.kart}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="Gönderi detayı"
+      accessibilityLabel={t('durumX.gonderiDetayi')}
     >
       <Pressable
         onPress={(e) => {
@@ -112,7 +119,7 @@ function DurumKartIc({
         }}
         hitSlop={4}
         accessibilityRole="button"
-        accessibilityLabel="Profili aç"
+        accessibilityLabel={t('durumX.profiliAc')}
       >
         <ProfilAvatarKucuk
           size={AVATAR}
@@ -131,11 +138,12 @@ function DurumKartIc({
               onProfil();
             }}
             accessibilityRole="button"
-            accessibilityLabel="Profili aç"
+            accessibilityLabel={t('durumX.profiliAc')}
           >
             <Text style={styles.isim} numberOfLines={1}>
               {oge.display_name}
             </Text>
+            <DogrulanmisTik dogrulandi={oge.is_verified} size={14} />
             {handle ? (
               <Text style={styles.handle} numberOfLines={1}>
                 {handle}
@@ -153,7 +161,7 @@ function DurumKartIc({
               hitSlop={12}
               style={styles.menuBtn}
               accessibilityRole="button"
-              accessibilityLabel="Diğer seçenekler"
+              accessibilityLabel={t('durumX.digerSecenekler')}
             >
               <Ionicons
                 name="ellipsis-horizontal"
@@ -169,6 +177,11 @@ function DurumKartIc({
         ) : null}
 
         {!metinGonderisi ? (
+          muzik ? (
+            <View style={[styles.medyaHit, styles.medyaHitKart]}>
+              <DurumMuzikKarti payload={muzik} aktif={videoAktif} />
+            </View>
+          ) : (
           <Pressable
             onPress={(e) => {
               e.stopPropagation?.();
@@ -177,7 +190,7 @@ function DurumKartIc({
             }}
             style={[styles.medyaHit, !!kazanc && styles.medyaHitKart]}
             accessibilityRole="imagebutton"
-            accessibilityLabel={resimBuyutulebilir ? 'Resmi büyüt' : 'Medya'}
+            accessibilityLabel={resimBuyutulebilir ? t('durumX.resmiBuyut') : t('ortak.medya')}
           >
             {kazanc ? (
               <DurumOyunKazanciKart payload={kazanc} />
@@ -207,6 +220,7 @@ function DurumKartIc({
               <View style={[styles.medyaVideo, styles.medyaBos]} />
             )}
           </Pressable>
+          )
         ) : null}
 
         <DurumEtkilesimCubugu

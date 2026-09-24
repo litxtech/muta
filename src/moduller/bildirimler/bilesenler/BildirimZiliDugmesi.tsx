@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   sayi: number;
@@ -11,13 +12,16 @@ type Props = {
 
 /** Ana sayfa / header bildirim zili + rozet */
 export function BildirimZiliDugmesi({ sayi, onPress }: Props) {
+  const { t } = useCeviri();
   const n = Math.max(0, Math.floor(sayi));
   return (
     <Pressable
       onPress={onPress}
       hitSlop={10}
       accessibilityLabel={
-        n > 0 ? `${n} okunmamış bildirim` : 'Bildirimler'
+        n > 0
+          ? t('bildirimler.okunmamisA11y', { count: n })
+          : t('bildirimler.baslik')
       }
       style={styles.btn}
     >

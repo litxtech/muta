@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
+import i18n from '../../../i18n';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useMisafirIslemKapisi } from '../../misafir-hesabi/islemler/useMisafirIslemKapisi';
 import { useCoinYuklePaneli } from '../../cuzdan/islemler/useCoinYuklePaneli';
 import type { Gift } from '../../../types/models';
 import { HediyeKatalogunuGetir } from '../okuma/HediyeKatalogunuGetir';
 import { HEDIYE_FALLBACK_50 } from '../katalog/HediyeFallback50';
+import { HediyeAdiCevir } from '../katalog/HediyeAdiCevir';
 import { HediyeGonder } from './HediyeGonder';
 import { HediyeAnimasyonuKuyrugu } from '../animasyon/HediyeAnimasyonuKuyrugu';
 import type { HediyePkAlici } from './HediyeMagazaTipleri';
@@ -76,11 +78,11 @@ export function useHediyeMagaza() {
         opts.receiverId;
 
       if (!varsayilanId) {
-        Alert.alert('Hediye', 'Alıcı bulunamadı.');
+        Alert.alert(i18n.t('hediye.baslik'), i18n.t('hediye.aliciBulunamadi'));
         return;
       }
       if (user?.id && varsayilanId === user.id && pkListe.length === 0) {
-        Alert.alert('Hediye', 'Kendine hediye gönderemezsin.');
+        Alert.alert(i18n.t('hediye.baslik'), i18n.t('hediye.kendineGonderemezsin'));
         return;
       }
       islemiDene('hediye_gonder', () => {
@@ -130,7 +132,7 @@ export function useHediyeMagaza() {
       const bakiye = wallet?.coins ?? 0;
 
       if (user?.id && receiverId === user.id) {
-        Alert.alert('Hediye', 'Kendine hediye gönderemezsin.');
+        Alert.alert(i18n.t('hediye.baslik'), i18n.t('hediye.kendineGonderemezsin'));
         return;
       }
 
@@ -141,7 +143,7 @@ export function useHediyeMagaza() {
       }
 
       if (gift.id.startsWith('fb_')) {
-        Alert.alert('Hediye', 'Katalog yükleniyor — biraz sonra dene.');
+        Alert.alert(i18n.t('hediye.baslik'), i18n.t('hediye.katalogYukleniyor'));
         return;
       }
 
@@ -156,9 +158,11 @@ export function useHediyeMagaza() {
               HediyeAnimasyonuKuyrugu.ekle({
                 giftId: gift.id,
                 emoji: gift.emoji,
-                name: gift.name,
+                name: HediyeAdiCevir(gift.code, gift.name),
                 senderName:
-                  profile?.display_name ?? profile?.username ?? 'Sen',
+                  profile?.display_name ??
+                  profile?.username ??
+                  i18n.t('gorusme.sen'),
                 animationUrl: gift.animation_url,
                 animationType: gift.animation_type,
                 durationMs: gift.duration_ms ?? (adet > 1 ? 2800 : 2400),
@@ -181,10 +185,13 @@ export function useHediyeMagaza() {
               const yetersiz = /insufficient|yetersiz/i.test(sonuc.hata);
               if (yetersiz) {
                 paketleriYenile?.();
-                Alert.alert('Yetersiz coin', 'Coin yükle ile bakiye ekle.');
+                Alert.alert(
+                  i18n.t('hediye.yetersizCoin'),
+                  i18n.t('hediye.yetersizCoinBody'),
+                );
                 return;
               }
-              Alert.alert('Hediye gönderilemedi', sonuc.hata);
+              Alert.alert(i18n.t('hediye.gonderilemedi'), sonuc.hata);
               return;
             }
             if (sonuc.coinsSpent > 0) {

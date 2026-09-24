@@ -30,6 +30,8 @@ import { TakipAnalitik } from '../analytics/TakipAnalytics';
 import { TakipHataMesaji } from '../TakipHataMesajlari';
 import type { TakipListeTuru } from '../TakipTipleri';
 import { GizlilikAyarlariniKullaniciIcinGetir } from '../../ayarlar/islemler/GizlilikAyarlariniYonet';
+import { KullaniciGuvenlikMenusu } from '../../moderasyon/bilesenler/KullaniciGuvenlikMenusu';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 export function TakipListeEkrani({
   userId,
@@ -40,12 +42,17 @@ export function TakipListeEkrani({
   tur: TakipListeTuru;
   title: string;
 }) {
+  const { t } = useCeviri();
   const { user, isGuest } = useAuth();
   const liste = useTakipListesi({ userId, tur });
   const kendi = user?.id === userId;
   const [busyId, setBusyId] = useState<string | null>(null);
   const [istekSayisi, setIstekSayisi] = useState(0);
   const [listeGizli, setListeGizli] = useState(false);
+  const [menuHedef, setMenuHedef] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -81,7 +88,7 @@ export function TakipListeEkrani({
     username?: string | null,
   ) => {
     if (isGuest) {
-      Alert.alert('Takip', 'Takip için hesabını tamamla.');
+      Alert.alert(t('profil.takip'), t('takip.hataGuest'));
       return;
     }
     const calis = async () => {
@@ -91,7 +98,7 @@ export function TakipListeEkrani({
         : await TakipServisi.takipEt(targetId);
       setBusyId(null);
       if (!r.ok) {
-        Alert.alert('Takip', r.hata ?? TakipHataMesaji(r.code));
+        Alert.alert(t('profil.takip'), r.hata ?? TakipHataMesaji(r.code));
         return;
       }
       if (user?.id) TakipServisi.cacheInvalidatePair(user.id, targetId);
@@ -122,12 +129,12 @@ export function TakipListeEkrani({
 
   const kaldir = (targetId: string, name: string) => {
     Alert.alert(
-      'Takipçiyi kaldır',
-      `${name} senin takipçilerinden çıkarılsın mı?`,
+      t('takip.takipciyiKaldir'),
+      t('takip.takipciyiKaldirSoru', { ad: name }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('ortak.vazgec'), style: 'cancel' },
         {
-          text: 'Kaldır',
+          text: t('takip.kaldirBaslik'),
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -135,7 +142,7 @@ export function TakipListeEkrani({
               const r = await TakipServisi.takipciKaldir(targetId);
               setBusyId(null);
               if (!r.ok) {
-                Alert.alert('Kaldır', r.hata ?? TakipHataMesaji(r.code));
+                Alert.alert(t('takip.kaldirBaslik'), r.hata ?? TakipHataMesaji(r.code));
                 return;
               }
               TakipAnalitik('follower_removed');
@@ -156,7 +163,7 @@ export function TakipListeEkrani({
           pressed && { opacity: 0.85 },
         ]}
         accessibilityRole="button"
-        accessibilityLabel="Takip istekleri"
+        accessibilityLabel={t('takip.takipIstekleri')}
       >
         <View style={styles.istekSol}>
           <Ionicons
@@ -165,11 +172,11 @@ export function TakipListeEkrani({
             color={RenkTokenlari.primarySoft}
           />
           <View style={styles.istekCopy}>
-            <Text style={styles.istekBaslik}>Takip istekleri</Text>
+            <Text style={styles.istekBaslik}>{t('takip.takipIstekleri')}</Text>
             <Text style={styles.istekAlt}>
               {istekSayisi > 0
-                ? `${istekSayisi} bekleyen istek`
-                : 'Gizli hesaba gelen istekler'}
+                ? t('takip.bekleyenIstek', { count: istekSayisi })
+                : t('takip.gizliIstekAlt')}
             </Text>
           </View>
         </View>
@@ -194,11 +201,11 @@ export function TakipListeEkrani({
         <EkranBasligi title={title} />
         {listeGizli ? (
           <BosDurum
-            title="Liste gizli"
+            title={t('takip.listeGizli')}
             body={
               tur === 'followers'
-                ? 'Bu kullanıcı takipçi listesini gizlemiş.'
-                : 'Bu kullanıcı takip listesini gizlemiş.'
+                ? t('takip.takipciGizli')
+                : t('takip.takipGizli')
             }
           />
         ) : (
@@ -210,8 +217,8 @@ export function TakipListeEkrani({
             onChangeText={liste.ara}
             placeholder={
               tur === 'followers'
-                ? 'Takipçilerde ara...'
-                : 'Takip edilenlerde ara...'
+                ? t('takip.takipcilerdeAra')
+                : t('takip.takipEdilenlerdeAra')
             }
             placeholderTextColor={RenkTokenlari.textMuted}
             style={styles.input}
@@ -237,7 +244,7 @@ export function TakipListeEkrani({
               liste.hata ? (
                 <BosDurum
                   icon="warning-outline"
-                  title="Liste yüklenemedi"
+                  title={t('takip.listeYuklenemedi')}
                   body={liste.hata}
                 />
               ) : (
@@ -245,8 +252,8 @@ export function TakipListeEkrani({
                   icon="people-outline"
                   title={
                     tur === 'followers'
-                      ? 'Henüz takipçi yok'
-                      : 'Henüz kimseyi takip etmiyor'
+                      ? t('takip.takipciYok')
+                      : t('takip.takipEdilenYok')
                   }
                 />
               )
@@ -273,9 +280,13 @@ export function TakipListeEkrani({
                     item.username,
                   )
                 }
-                onRemove={
+                onMenuPress={
                   kendi && tur === 'followers'
-                    ? () => kaldir(item.user_id, item.display_name)
+                    ? () =>
+                        setMenuHedef({
+                          userId: item.user_id,
+                          name: item.display_name,
+                        })
                     : undefined
                 }
               />
@@ -284,6 +295,24 @@ export function TakipListeEkrani({
         )}
         </>
         )}
+        <KullaniciGuvenlikMenusu
+          visible={!!menuHedef}
+          targetUserId={menuHedef?.userId ?? ''}
+          targetName={menuHedef?.name}
+          isGuest={isGuest}
+          contentType="user"
+          contentId={menuHedef?.userId}
+          onClose={() => setMenuHedef(null)}
+          onTakipciKaldir={
+            menuHedef
+              ? () => kaldir(menuHedef.userId, menuHedef.name)
+              : undefined
+          }
+          onBlocked={() => {
+            if (menuHedef) liste.kartCikar(menuHedef.userId);
+            setMenuHedef(null);
+          }}
+        />
       </ModulHataSiniri>
     </Screen>
   );

@@ -29,8 +29,10 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 export default function RoomsScreen() {
+  const { t } = useCeviri();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [filtre, setFiltre] = useState<OdalarFiltre>('all');
@@ -100,12 +102,12 @@ export default function RoomsScreen() {
         <View style={styles.listeBaslik}>
           <View style={styles.accent} />
           <Text style={styles.listeBaslikYazi}>
-            {filtre === 'all' ? 'Canlı odalar' : 'Seçili sahne'}
+            {filtre === 'all' ? t('odalar.canliOdalar') : t('odalar.seciliSahne')}
           </Text>
           <Text style={styles.listeSayi}>{rooms.length}</Text>
         </View>
       ) : null,
-    [rooms.length, filtre],
+    [rooms.length, filtre, t],
   );
 
   return (
@@ -139,11 +141,11 @@ export default function RoomsScreen() {
             <View style={styles.bosWrap}>
               <BosDurum
                 icon="radio-outline"
-                title={filtre === 'all' ? 'Sahne boş' : 'Bu modda oda yok'}
+                title={filtre === 'all' ? t('odalar.sahneBos') : t('odalar.moddaYok')}
                 body={
                   filtre === 'all'
-                    ? 'Canlı odalar açıldığında burada görünecek.'
-                    : 'Başka bir moda bak veya kendi odanı kur.'
+                    ? t('odalar.bosBody')
+                    : t('odalar.modBosBody')
                 }
               />
               <Pressable
@@ -155,12 +157,12 @@ export default function RoomsScreen() {
                   style={styles.bosCtaIc}
                 >
                   <Ionicons name="add" size={16} color={RenkTokenlari.textOnPrimary} />
-                  <Text style={styles.bosCtaYazi}>Oda kur</Text>
+                  <Text style={styles.bosCtaYazi}>{t('odalar.odaKur')}</Text>
                 </LinearGradient>
               </Pressable>
               {filtre !== 'all' ? (
                 <Pressable onPress={() => filtreSec('all')} hitSlop={8}>
-                  <Text style={styles.tumuneDon}>Tüm sahneleri göster</Text>
+                  <Text style={styles.tumuneDon}>{t('odalar.tumSahneler')}</Text>
                 </Pressable>
               ) : null}
             </View>

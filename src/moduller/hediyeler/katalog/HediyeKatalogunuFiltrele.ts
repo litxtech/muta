@@ -1,5 +1,7 @@
 import { supabase } from '../../../lib/supabase';
 import type { Gift } from '../../../types/models';
+import { KatalogCache } from '../../../ortak/onbellek/KatalogCache';
+import { HEDIYE_SELECT } from '../okuma/HediyeKatalogunuGetir';
 
 export type HediyeKategori = {
   id: string;
@@ -9,13 +11,15 @@ export type HediyeKategori = {
 };
 
 export async function HediyeKategorileriniGetir(): Promise<HediyeKategori[]> {
-  const { data, error } = await supabase
-    .from('gift_categories')
-    .select('id, code, name, sort_order')
-    .eq('is_active', true)
-    .order('sort_order');
-  if (error) throw error;
-  return (data as HediyeKategori[]) ?? [];
+  return KatalogCache.getOrFetch('gift_categories:active', async () => {
+    const { data, error } = await supabase
+      .from('gift_categories')
+      .select('id, code, name, sort_order')
+      .eq('is_active', true)
+      .order('sort_order');
+    if (error) throw error;
+    return (data as HediyeKategori[]) ?? [];
+  });
 }
 
 /** Lazy: sadece görünür katalog — animasyon URL'leri ayrıca indirilir */
@@ -24,18 +28,25 @@ export async function HediyeKatalogunuFiltrele(input?: {
   limit?: number;
   offset?: number;
 }): Promise<Gift[]> {
-  let q = supabase
-    .from('gifts')
-    .select('*')
-    .eq('is_active', true)
-    .order('sort_order')
-    .range(input?.offset ?? 0, (input?.offset ?? 0) + (input?.limit ?? 40) - 1);
+  const categoryCode = input?.categoryCode ?? '';
+  const offset = input?.offset ?? 0;
+  const limit = input?.limit ?? 40;
+  const key = `gifts:filter:${categoryCode}:${offset}:${limit}`;
 
-  if (input?.categoryCode) {
-    q = q.eq('category_code', input.categoryCode);
-  }
+  return KatalogCache.getOrFetch(key, async () => {
+    let q = supabase
+      .from('gifts')
+      .select(HEDIYE_SELECT)
+      .eq('is_active', true)
+      .order('sort_order')
+      .range(offset, offset + limit - 1);
 
-  const { data, error } = await q;
-  if (error) throw error;
-  return (data as Gift[]) ?? [];
+    if (input?.categoryCode) {
+      q = q.eq('category_code', input.categoryCode);
+    }
+
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data as unknown as Gift[]) ?? [];
+  });
 }

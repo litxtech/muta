@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
+  I18nManager,
   Image,
   Pressable,
   ScrollView,
@@ -30,6 +31,7 @@ import {
   type GirisLobisiMedya,
 } from '../../src/moduller/giris-lobisi/tipler';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { GirisLobiOturumGecmisi } from '../../src/moduller/kimlik-dogrulama/oturum-gecmisi/bilesenler/GirisLobiOturumGecmisi';
 import type { OturumGecmisiKaydi } from '../../src/moduller/kimlik-dogrulama/oturum-gecmisi/tipler';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
@@ -54,6 +56,7 @@ const SPOTIFY_GREEN = '#1DB954';
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { palet } = useTema();
+  const { t } = useCeviri();
   const {
     signIn,
     signInWithApple,
@@ -116,17 +119,14 @@ export default function LoginScreen() {
 
   const onSubmit = async () => {
     if (!kimlik.trim() || !password) {
-      Alert.alert(
-        'Eksik bilgi',
-        'E-posta / kullanıcı adı ve şifre gerekli.',
-      );
+      Alert.alert(t('auth.eksikBilgi'), t('auth.eksikBilgiMesaj'));
       return;
     }
     setLoading(true);
     const { error } = await signIn(kimlik.trim(), password);
     setLoading(false);
     if (error) {
-      Alert.alert('Giriş başarısız', error);
+      Alert.alert(t('auth.girisBasarisiz'), error);
       return;
     }
     router.replace('/(tabs)');
@@ -138,7 +138,7 @@ export default function LoginScreen() {
     setAppleLoading(false);
     if (cancelled) return;
     if (error) {
-      Alert.alert('Apple girişi', error);
+      Alert.alert(t('auth.appleGirisi'), error);
       return;
     }
     router.replace('/(tabs)');
@@ -150,7 +150,7 @@ export default function LoginScreen() {
     setSpotifyLoading(false);
     if (cancelled) return;
     if (error) {
-      Alert.alert('Spotify girişi', error);
+      Alert.alert(t('auth.spotifyGirisi'), error);
       return;
     }
     router.replace('/(tabs)');
@@ -161,7 +161,7 @@ export default function LoginScreen() {
     const { error } = await continueAsGuest();
     setGuestLoading(false);
     if (error) {
-      Alert.alert('Misafir girişi', error);
+      Alert.alert(t('auth.misafirGirisi'), error);
       return;
     }
     router.replace('/(tabs)');
@@ -179,10 +179,10 @@ export default function LoginScreen() {
       const k = (sonuc.kimlik ?? kayit.kimlik ?? kayit.username ?? '').trim();
       if (k) setKimlik(k);
       setPassword('');
-      Alert.alert('Tekrar giriş', sonuc.hata);
+      Alert.alert(t('auth.tekrarGiris'), sonuc.hata);
       return;
     }
-    Alert.alert('Giriş başarısız', sonuc.hata);
+    Alert.alert(t('auth.girisBasarisiz'), sonuc.hata);
   };
 
   const heroVar =
@@ -263,13 +263,17 @@ export default function LoginScreen() {
                 />
 
                 <View style={styles.formKart}>
-                  <Text style={styles.formBaslik}>{ayar.form_baslik}</Text>
+                  <Text style={styles.formBaslik}>
+                    {!ayar.form_baslik.trim() || ayar.form_baslik.trim() === 'Giriş'
+                      ? t('auth.giris')
+                      : ayar.form_baslik}
+                  </Text>
                   {ayar.form_alt ? (
                     <Text style={styles.formAlt}>{ayar.form_alt}</Text>
                   ) : null}
 
                   <TextField
-                    label="Mail veya kullanıcı adı"
+                    label={t('auth.mailVeyaKullaniciAdi')}
                     autoCapitalize="none"
                     autoCorrect={false}
                     keyboardType="default"
@@ -280,7 +284,7 @@ export default function LoginScreen() {
                     style={styles.inputCam}
                   />
                   <TextField
-                    label="Şifre"
+                    label={t('auth.sifre')}
                     secureTextEntry
                     value={password}
                     onChangeText={setPassword}
@@ -291,11 +295,11 @@ export default function LoginScreen() {
                   />
                   <Link href="/(auth)/forgot-password" asChild>
                     <Pressable>
-                      <Text style={styles.forgot}>Şifremi unuttum</Text>
+                      <Text style={styles.forgot}>{t('auth.sifremiUnuttum')}</Text>
                     </Pressable>
                   </Link>
                   <GradientButton
-                    title="Giriş Yap"
+                    title={t('auth.giris')}
                     onPress={onSubmit}
                     loading={loading}
                   />
@@ -307,13 +311,13 @@ export default function LoginScreen() {
                       spotifyLoading && styles.spotifyDisabled,
                     ]}
                     accessibilityRole="button"
-                    accessibilityLabel="Spotify ile giriş yap"
+                    accessibilityLabel={t('auth.spotifyIleGiris')}
                   >
                     <Ionicons name="musical-notes" size={20} color="#121212" />
                     <Text style={styles.spotifyText}>
                       {spotifyLoading
-                        ? 'Spotify bağlanıyor…'
-                        : 'Spotify ile devam et'}
+                        ? t('auth.spotifyBaglaniyor')
+                        : t('auth.spotifyIleDevam')}
                     </Text>
                   </Pressable>
                   {Platform.OS === 'ios' ? (
@@ -336,7 +340,7 @@ export default function LoginScreen() {
                       />
                       {appleLoading ? (
                         <Text style={styles.appleHint}>
-                          Apple ile bağlanıyor…
+                          {t('auth.appleBaglaniyor')}
                         </Text>
                       ) : null}
                     </View>
@@ -344,7 +348,7 @@ export default function LoginScreen() {
                   {/* Apple 1.2: production’da misafir = anonim UGC riski — kapalı */}
                   {env.appEnv !== 'production' ? (
                     <GradientButton
-                      title="Misafir olarak devam et"
+                      title={t('auth.misafirDevam')}
                       variant="ghost"
                       onPress={onGuest}
                       loading={guestLoading}
@@ -355,8 +359,10 @@ export default function LoginScreen() {
                       style={styles.switchRow}
                       onPress={() => setLobiOdakli(false)}
                     >
-                      <Text style={styles.switchText}>Hesabın yok mu? </Text>
-                      <Text style={styles.switchLink}>Kayıt ol</Text>
+                      <Text style={styles.switchText}>
+                        {t('auth.hesabinYokMu')}{' '}
+                      </Text>
+                      <Text style={styles.switchLink}>{t('auth.kayit')}</Text>
                     </Pressable>
                   </Link>
                 </View>
@@ -386,9 +392,7 @@ export default function LoginScreen() {
                     </React.Fragment>
                   ))}
                 </View>
-                <Text style={styles.destekAlt}>
-                  Destek: support@litxtech.com
-                </Text>
+                <Text style={styles.destekAlt}>{t('auth.destek')}</Text>
               </ScrollView>
             </KlavyeKapatan>
           </KlavyeGuvenliAlan>
@@ -495,7 +499,7 @@ const styles = StyleSheet.create({
   forgot: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.primarySoft,
-    textAlign: 'right',
+    textAlign: I18nManager.isRTL ? 'left' : 'right',
   },
   spotifyBtn: {
     minHeight: 48,

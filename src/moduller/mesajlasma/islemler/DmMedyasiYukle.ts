@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import i18n from '../../../i18n';
 import { OrtamDegiskenleri } from '../../../yapilandirma/OrtamDegiskenleri';
 import { GaleriAc, KameraAc } from '../../../ortak/medya/ImagePickerHazirMi';
 import {
@@ -44,13 +45,13 @@ export async function DmMedyasiSecVeYukle(
 
     const asset = secim.asset;
     const uid = (await supabase.auth.getUser()).data.user?.id;
-    if (!uid) return { ok: false, hata: 'Oturum yok' };
+    if (!uid) return { ok: false, hata: i18n.t('ortak.oturumYok') };
 
     const { YaptirimAktifMi } = await import(
       '../../admin/ses-odalari/AdminSesOdasiIslemleri'
     );
     if (await YaptirimAktifMi('upload_ban')) {
-      return { ok: false, hata: 'Yükleme cezan aktif. Medya yükleyemezsin.' };
+      return { ok: false, hata: i18n.t('durumX.uploadBan') };
     }
 
     const ext = MedyaUzantisiCoz(
@@ -80,7 +81,7 @@ export async function DmMedyasiSecVeYukle(
   } catch (e) {
     return {
       ok: false,
-      hata: e instanceof Error ? e.message : 'Yükleme başarısız',
+      hata: e instanceof Error ? e.message : i18n.t('durumX.yuklemeBasarisiz'),
     };
   }
 }

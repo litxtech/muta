@@ -1,0 +1,22 @@
+{
+  "baslik": "الدعم",
+  "canliBaslik": "الدعم المباشر",
+  "yeniTalep": "طلب جديد",
+  "konu": "الموضوع",
+  "mesaj": "الرسالة",
+  "temsilciAlt": "وكيل دعم المنصة",
+  "yeniGorusme": "محادثة جديدة",
+  "baglaniyor": "جارٍ الاتصال…",
+  "mesajYok": "لا رسائل",
+  "yaz": "اكتب رسالة…",
+  "bitirBaslik": "إنهاء المحادثة",
+  "bitirSoru": "إنهاء الدعم المباشر؟",
+  "bitir": "إنهاء",
+  "durumBekliyor": "Toprak يتصل…",
+  "durumAktif": "Toprak متصل",
+  "durumIdle": "انتهت المهلة",
+  "durumKapandi": "أُغلقت المحادثة",
+  "idleKapandi": "أُغلقت المحادثة بعد 3 دقائق من عدم النشاط.",
+  "gorusmeBitti": "انتهت المحادثة.",
+  "misafirAlt": "أكمل حسابك للتحدث مباشرة مع المنصة."
+}

@@ -52,10 +52,12 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 type CanliSekme = 'hepsi' | 'takip';
 
 export default function CanliYayinEkrani() {
+  const { t } = useCeviri();
   const navigation = useNavigation();
   const { user, isGuest, refreshProfile, refreshWallet, wallet, profile } =
     useAuth();
@@ -81,8 +83,8 @@ export default function CanliYayinEkrani() {
   const baslikOnerisi = useMemo(() => {
     const ad = profile?.display_name?.trim() || profile?.username?.trim();
     if (!ad) return '';
-    return `${ad} canlıda`;
-  }, [profile?.display_name, profile?.username]);
+    return t('canliYayin.canlida', { ad });
+  }, [profile?.display_name, profile?.username, t]);
 
   const { davet: gelenPkDavet, temizle: pkDavetTemizle } = usePkDaveti({
     hostUserId: user?.id,
@@ -156,10 +158,10 @@ export default function CanliYayinEkrani() {
     const unsub = navigation.addListener('beforeRemove', (e) => {
       if (!yayindaRef.current && baslatDurum === 'idle') return;
       e.preventDefault();
-      Alert.alert('Yayını bitir', 'Çıkınca canlı yayın sonlanır.', [
-        { text: 'Kal', style: 'cancel' },
+      Alert.alert(t('canliYayin.yayiniBitir'), t('canliYayin.yayiniBitirBody'), [
+        { text: t('canliYayin.kal'), style: 'cancel' },
         {
-          text: 'Bitir ve çık',
+          text: t('canliYayin.bitirVeCik'),
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -171,20 +173,20 @@ export default function CanliYayinEkrani() {
       ]);
     });
     return unsub;
-  }, [navigation, yayiniSonlandir, baslatDurum]);
+  }, [navigation, yayiniSonlandir, baslatDurum, t]);
 
   const baslat = () => {
     islemiDene('canli_ac', async () => {
       if (!liveEnabled) {
         Alert.alert(
-          'Özellik kapalı',
-          'Canlı yayın şu an kapalı. Daha sonra tekrar dene.',
+          t('canliYayin.ozellikKapali'),
+          t('canliYayin.ozellikKapaliBody'),
         );
         return;
       }
       if (CanliBaslatKilitliMi() || loading) return;
       if (!title.trim()) {
-        Alert.alert('Başlık gerekli');
+        Alert.alert(t('canliYayin.baslikGerekli'));
         return;
       }
 
@@ -219,7 +221,7 @@ export default function CanliYayinEkrani() {
         setBaslatDurum('failed');
         sessionIdRef.current = null;
         await MedyaOdasiKes().catch(() => undefined);
-        Alert.alert('Canlı', sonuc.hata);
+        Alert.alert(t('canliYayin.canli'), sonuc.hata);
         setBaslatDurum('idle');
         return;
       }
@@ -233,7 +235,7 @@ export default function CanliYayinEkrani() {
       const hostAd =
         profile?.display_name?.trim() ||
         profile?.username?.trim() ||
-        'Sen';
+        t('gorusme.sen');
       setMeta({
         id: sonuc.session.id,
         host_id: user?.id ?? '',
@@ -248,10 +250,10 @@ export default function CanliYayinEkrani() {
       setMedyaMock(!!sonuc.mock);
       setMedyaDurum(
         sonuc.mock
-          ? 'Mock yayın'
+          ? t('canliYayin.mockYayin')
           : videoEnabled
-            ? 'Kamera açık'
-            : 'Video kapalı',
+            ? t('canliYayin.kameraAcik')
+            : t('canliYayin.videoKapali'),
       );
       setGeriSayim(null);
       setBaslatDurum('live');
@@ -263,7 +265,7 @@ export default function CanliYayinEkrani() {
     setLoading(true);
     await yayiniSonlandir();
     setLoading(false);
-    Alert.alert('Yayın bitti', 'Canlı yayın sonlandırıldı.');
+    Alert.alert(t('canliYayin.yayinBitti'), t('canliYayin.yayinSonlandirildi'));
   };
 
   /** Host solo'da hediye yok; PK'de rakibe hediye */
@@ -272,13 +274,13 @@ export default function CanliYayinEkrani() {
     const pkAlicilar = [
       {
         id: pkMac.host_a_id,
-        ad: pkMac.side_a?.host_name ?? 'Yayıncı A',
+        ad: pkMac.side_a?.host_name ?? t('canliYayin.yayinciA'),
         liveSessionId: pkMac.live_a_id,
         side: 'a' as const,
       },
       {
         id: pkMac.host_b_id,
-        ad: pkMac.side_b?.host_name ?? 'Yayıncı B',
+        ad: pkMac.side_b?.host_name ?? t('canliYayin.yayinciB'),
         liveSessionId: pkMac.live_b_id,
         side: 'b' as const,
       },
@@ -335,7 +337,7 @@ export default function CanliYayinEkrani() {
             pkMac={pkMac}
             onPk={() => {
               if (pkMac) {
-                Alert.alert('PK', 'Zaten bir PK maçındasın.');
+                Alert.alert('PK', t('canliYayin.pkZaten'));
                 return;
               }
               setPkDavetAcik(true);
@@ -348,8 +350,8 @@ export default function CanliYayinEkrani() {
             onClose={() => setPkDavetAcik(false)}
             onGonderildi={() => {
               Alert.alert(
-                'PK daveti gönderildi',
-                'Rakip kabul ederse maç başlar (60 sn içinde).',
+                t('canliYayin.pkDavetGonderildi'),
+                t('canliYayin.pkDavetBody'),
               );
             }}
           />
@@ -360,8 +362,8 @@ export default function CanliYayinEkrani() {
               if (s.status === 'accepted') {
                 void pkYenile();
                 Alert.alert(
-                  'PK başladı!',
-                  'Hediyeler skor ve cüzdana anlık işlenir.',
+                  t('canliYayin.pkBasladi'),
+                  t('canliYayin.pkBasladiBody'),
                 );
               }
             }}
@@ -429,7 +431,7 @@ export default function CanliYayinEkrani() {
                   onChangeTitle={setTitle}
                   onBaslat={baslat}
                   loading={loading || CanliBaslatKilitliMi()}
-                  placeholder={baslikOnerisi || 'Gece şovu...'}
+                  placeholder={baslikOnerisi || t('canliYayin.placeholder')}
                   kameraOnizleme={!countdownVisible}
                 />
 
@@ -442,13 +444,13 @@ export default function CanliYayinEkrani() {
                 >
                   <View style={styles.sectionSol}>
                     <View style={styles.sectionAccent} />
-                    <Text style={styles.section}>Şimdi canlı</Text>
+                    <Text style={styles.section}>{t('canliYayin.simdiCanli')}</Text>
                   </View>
                   <View style={styles.sekmeSerit}>
                     {(
                       [
-                        { id: 'hepsi' as const, label: 'Hepsi' },
-                        { id: 'takip' as const, label: 'Takip' },
+                        { id: 'hepsi' as const, label: t('canliYayin.hepsi') },
+                        { id: 'takip' as const, label: t('canliYayin.takip') },
                       ] as const
                     ).map((s) => {
                       const aktif = canliSekme === s.id;
@@ -480,13 +482,13 @@ export default function CanliYayinEkrani() {
                 icon="videocam-outline"
                 title={
                   canliSekme === 'takip'
-                    ? 'Takip ettiğin yayın yok'
-                    : 'Canlı yayın yok'
+                    ? t('canliYayin.takipYokBaslik')
+                    : t('canliYayin.canliYokBaslik')
                 }
                 body={
                   canliSekme === 'takip'
-                    ? 'Takip ettiğin hesaplar yayına geçince burada görünür.'
-                    : 'Yayınlar başladığında burada listelenir.'
+                    ? t('canliYayin.takipYokBody')
+                    : t('canliYayin.canliYokBody')
                 }
               />
             }

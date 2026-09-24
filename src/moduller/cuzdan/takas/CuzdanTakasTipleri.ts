@@ -1,3 +1,5 @@
+import i18n from '../../../i18n';
+
 /** Sabit cüzdan markası — uygulama adından bağımsız */
 export const CUZDAN_MARKA_ADI = 'MUTA PAY';
 
@@ -39,14 +41,38 @@ export type CoinTradeOffer = {
   odeme_pencere?: string | null;
 };
 
-export const TAKAS_DURUM_ETIKET: Record<string, string> = {
-  pending_buyer: 'Alıcı yanıtı bekleniyor',
-  pending_payment_info: 'Ödeme bilgisi bekleniyor',
-  pending_receipt: 'Dekont bekleniyor (1 gün)',
-  receipt_overdue: 'Dekont süresi aşıldı — admin',
-  pending_platform: 'Platform onayı',
-  completed: 'Tamamlandı',
-  cancelled: 'İptal',
-  rejected: 'Reddedildi',
-  expired: 'Süresi doldu',
+const TAKAS_DURUM_ANAHTAR: Record<string, string> = {
+  pending_buyer: 'takas.durumPendingBuyer',
+  pending_payment_info: 'takas.durumPendingPayment',
+  pending_receipt: 'takas.durumPendingReceipt',
+  receipt_overdue: 'takas.durumReceiptOverdue',
+  pending_platform: 'takas.durumPendingPlatform',
+  completed: 'takas.durumCompleted',
+  cancelled: 'takas.durumCancelled',
+  rejected: 'takas.durumRejected',
+  expired: 'takas.durumExpired',
 };
+
+/** Canlı dil — `etiket[status]` okuması her seferinde i18n.t çağırır */
+export const TAKAS_DURUM_ETIKET: Record<string, string> = new Proxy(
+  {} as Record<string, string>,
+  {
+    get(_target, status: string | symbol) {
+      if (typeof status !== 'string') return undefined;
+      const key = TAKAS_DURUM_ANAHTAR[status];
+      return key ? (i18n.t(key) as string) : undefined;
+    },
+    has(_target, status: string | symbol) {
+      return typeof status === 'string' && status in TAKAS_DURUM_ANAHTAR;
+    },
+    ownKeys() {
+      return Object.keys(TAKAS_DURUM_ANAHTAR);
+    },
+    getOwnPropertyDescriptor(_target, status) {
+      if (typeof status === 'string' && status in TAKAS_DURUM_ANAHTAR) {
+        return { enumerable: true, configurable: true };
+      }
+      return undefined;
+    },
+  },
+);

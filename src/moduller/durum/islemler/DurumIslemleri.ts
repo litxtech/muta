@@ -1,6 +1,8 @@
 import { supabase } from '../../../lib/supabase';
+import type { DurumMuzikPayload } from '../../ai-muzik/tipler';
+import i18n from '../../../i18n';
 
-export type DurumPostKind = 'media' | 'game_win';
+export type DurumPostKind = 'media' | 'game_win' | 'music';
 
 export type DurumOyunKazanciPayload = {
   game_code: string;
@@ -32,13 +34,14 @@ export type DurumOggesi = {
   username: string | null;
   avatar_url: string | null;
   public_user_id: string | null;
+  is_verified?: boolean;
   liked_by_me: boolean;
   is_mine: boolean;
 };
 
 function normalizeDurum(row: DurumOggesi): DurumOggesi {
   if (!row || typeof row !== 'object') {
-    throw new Error('Durum yok');
+    throw new Error(i18n.t('durum.bulunamadi'));
   }
   const mediaUrl =
     typeof row.media_url === 'string' ? row.media_url.trim() : '';
@@ -50,6 +53,21 @@ function normalizeDurum(row: DurumOggesi): DurumOggesi {
     share_count: Number(row.share_count ?? 0),
     post_kind: (row.post_kind as DurumPostKind) || 'media',
     payload: (row.payload as DurumOggesi['payload']) ?? {},
+  };
+}
+
+export function DurumMuzikPayloadAl(oge: DurumOggesi): DurumMuzikPayload | null {
+  if (oge.post_kind !== 'music' || !oge.payload) return null;
+  const p = oge.payload as Partial<DurumMuzikPayload>;
+  if (!p.track_id || !p.title) return null;
+  return {
+    track_id: String(p.track_id),
+    version_id: p.version_id ?? null,
+    title: String(p.title),
+    duration_ms: p.duration_ms ?? null,
+    cover_url: p.cover_url ?? null,
+    audio_url: p.audio_url ?? null,
+    public_track_code: p.public_track_code ?? null,
   };
 }
 
@@ -81,6 +99,7 @@ export function DurumMedyaHttpsMi(url: string | null | undefined): boolean {
  */
 export function DurumMetinGonderisiMi(oge: DurumOggesi): boolean {
   if (DurumOyunKazanciPayloadAl(oge)) return false;
+  if (DurumMuzikPayloadAl(oge)) return false;
   if ((oge.media_type as string) === 'text') return true;
   return !DurumMedyaHttpsMi(oge.media_url);
 }
@@ -98,6 +117,7 @@ export type DurumYorum = {
   username: string | null;
   avatar_url: string | null;
   public_user_id: string | null;
+  is_verified?: boolean;
   is_mine: boolean;
 };
 
@@ -138,9 +158,22 @@ export async function DurumDetayGetir(id: string): Promise<DurumOggesi> {
   const { data, error } = await supabase.rpc('durum_detay', { p_status_id: id });
   if (error) throw error;
   if (!data || typeof data !== 'object') {
-    throw new Error('Durum yok');
+    throw new Error(i18n.t('durum.bulunamadi'));
   }
   return normalizeDurum(data as DurumOggesi);
+}
+
+export async function DurumMuzikOlustur(
+  trackId: string,
+  caption?: string,
+): Promise<{ ok: boolean; id?: string; hata?: string }> {
+  const { data, error } = await supabase.rpc('durum_muzik_olustur', {
+    p_track_id: trackId,
+    p_caption: caption ?? null,
+  });
+  if (error) return { ok: false, hata: error.message };
+  const row = data as { ok?: boolean; id?: string; hata?: string };
+  return { ok: !!row?.ok, id: row?.id, hata: row?.hata };
 }
 
 export async function DurumOlustur(input: {

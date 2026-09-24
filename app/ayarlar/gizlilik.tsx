@@ -6,8 +6,8 @@ import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { ListeGrubu, ListeSatiri } from '../../src/components/ListeSatiri';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
-  GIZLILIK_ALAN_ETIKETLERI,
-  PROFIL_GOSTERGE_GIZLILIK,
+  GizlilikAlanEtiketleri,
+  ProfilGostergeEtiketleri,
   GizlilikAyariKaydet,
   GizlilikAyarlariniGetir,
   type GizlilikAyarlari,
@@ -17,6 +17,7 @@ import { useTema } from '../../src/tasarim-sistemi/tema/TemaSaglayici';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 const EMPTY: GizlilikAyarlari = {
   hide_recharge_rank: false,
@@ -41,6 +42,7 @@ const EMPTY: GizlilikAyarlari = {
 
 export default function GizlilikAyarlariEkrani() {
   const { palet } = useTema();
+  const { t } = useCeviri();
   const [privacy, setPrivacy] = useState<GizlilikAyarlari>(EMPTY);
 
   useFocusEffect(
@@ -54,7 +56,7 @@ export default function GizlilikAyarlariEkrani() {
     const r = await GizlilikAyariKaydet(key, v);
     if (!r.ok) {
       setPrivacy((p) => ({ ...p, [key]: !v }));
-      Alert.alert('Gizlilik', r.hata ?? 'Kaydedilemedi');
+      Alert.alert(t('gizlilik.kisaBaslik'), r.hata ?? t('ortak.kaydedilemedi'));
     }
   };
 
@@ -62,39 +64,58 @@ export default function GizlilikAyarlariEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="gizlilik-ayarlar">
         <EkranBasligi
-          title="Gizlilik"
-          subtitle="Kim ne görür"
+          title={t('gizlilik.kisaBaslik')}
+          subtitle={t('gizlilik.altBaslik')}
           fallbackHref="/ayarlar"
         />
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
         >
-          <ListeGrubu title="Hesap görünürlüğü">
+          <ListeGrubu title={t('gizlilik.hesapGorunurlugu')}>
             <GizlilikAnahtarListesi
-              maddeler={GIZLILIK_ALAN_ETIKETLERI}
+              maddeler={GizlilikAlanEtiketleri(t)}
               degerler={privacy}
               onDegistir={(k, v) => void degistir(k, v)}
               thumbColor={palet.bgElevated}
             />
           </ListeGrubu>
 
-          <ListeGrubu title="Profil göstergeleri">
+          <ListeGrubu title={t('gizlilik.profilGostergeleri')}>
             <Text style={[styles.hint, { color: palet.textMuted }]}>
-              Kapalı olanlar profilini ziyaret edenlere görünmez.
+              {t('gizlilik.profilGostergeHint')}
             </Text>
             <GizlilikAnahtarListesi
-              maddeler={PROFIL_GOSTERGE_GIZLILIK}
+              maddeler={ProfilGostergeEtiketleri(t)}
               degerler={privacy}
               onDegistir={(k, v) => void degistir(k, v)}
               thumbColor={palet.bgElevated}
             />
           </ListeGrubu>
 
-          <ListeGrubu title="Kişiler">
+          <ListeGrubu title={t('gizlilik.islemHacmiBolum')}>
+            <Text style={[styles.hint, { color: palet.textMuted }]}>
+              {t('gizlilik.islemHacmiHint')}
+            </Text>
+            <ListeSatiri
+              icon="diamond-outline"
+              label={t('gizlilik.islemHacmiGorunurluk')}
+              value={t('gizlilik.ayarla')}
+              onPress={() => router.push('/islem-hacmi' as any)}
+              last
+            />
+          </ListeGrubu>
+
+          <ListeGrubu title={t('ayarlar.kisilerAramalar')}>
+            <ListeSatiri
+              icon="people-outline"
+              label={t('gizlilik.kesifArama')}
+              value={t('gizlilik.kesifDeger')}
+              onPress={() => router.push('/ayarlar/kisiler-aramalar' as any)}
+            />
             <ListeSatiri
               icon="ban-outline"
-              label="Engellenen hesaplar"
+              label={t('ayarlar.engellenenHesaplar')}
               onPress={() => router.push('/engellenen-kullanicilar' as any)}
               last
             />

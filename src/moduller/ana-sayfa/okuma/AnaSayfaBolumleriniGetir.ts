@@ -1,4 +1,5 @@
 import { OzellikBayragiAktifMi } from '../../ozellik-bayraklari/OzellikBayragiAktifMi';
+import type { CeviriAnahtari } from '../../../i18n/useCeviri';
 
 export type AnaSayfaBolumKodu =
   | 'live_now'
@@ -12,62 +13,88 @@ export type AnaSayfaBolumKodu =
   | 'creators_for_you';
 
 export type AnaSayfaBolum = {
+  /** Locale-bağımsız sabit kimlik — React key / route / feature için */
   kod: AnaSayfaBolumKodu;
-  baslik: string;
-  alt: string;
   aktif: boolean;
 };
 
-/** Home dating kartlarindan olusmaz — bolum listesi */
+/** Menü / portal çeviri anahtarları — display text burada tutulmaz */
+export const ANA_SAYFA_BOLUM_CEVIR: Record<
+  AnaSayfaBolumKodu,
+  { baslik: CeviriAnahtari; alt: CeviriAnahtari }
+> = {
+  live_now: {
+    baslik: 'anaSayfa.bolumLiveNow',
+    alt: 'anaSayfa.bolumLiveNowAlt',
+  },
+  voice_rooms: {
+    baslik: 'anaSayfa.bolumVoiceRooms',
+    alt: 'anaSayfa.bolumVoiceRoomsAlt',
+  },
+  trending: {
+    baslik: 'anaSayfa.bolumTrending',
+    alt: 'anaSayfa.bolumTrendingAlt',
+  },
+  official_city_rooms: {
+    baslik: 'anaSayfa.bolumOfficialCity',
+    alt: 'anaSayfa.bolumOfficialCityAlt',
+  },
+  city_league: {
+    baslik: 'anaSayfa.bolumCityLeague',
+    alt: 'anaSayfa.bolumCityLeagueAlt',
+  },
+  events: {
+    baslik: 'anaSayfa.bolumEvents',
+    alt: 'anaSayfa.bolumEventsAlt',
+  },
+  pk_now: {
+    baslik: 'anaSayfa.bolumPkNow',
+    alt: 'anaSayfa.bolumPkNowAlt',
+  },
+  popular_agencies: {
+    baslik: 'anaSayfa.bolumPopularAgencies',
+    alt: 'anaSayfa.bolumPopularAgenciesAlt',
+  },
+  creators_for_you: {
+    baslik: 'anaSayfa.bolumCreatorsForYou',
+    alt: 'anaSayfa.bolumCreatorsForYouAlt',
+  },
+};
+
+/** Home dating kartlarindan olusmaz — bolum listesi (metin yok, sadece id + flag) */
 export function AnaSayfaBolumleriniGetir(): AnaSayfaBolum[] {
   return [
     {
       kod: 'live_now',
-      baslik: 'Canlı Şimdi',
-      alt: 'Şu an yayında',
       aktif: OzellikBayragiAktifMi('live_enabled'),
     },
     {
       kod: 'voice_rooms',
-      baslik: 'Ses Odaları',
-      alt: 'Mikrofonlu sohbet',
       aktif: OzellikBayragiAktifMi('voice_rooms_enabled'),
     },
-    { kod: 'trending', baslik: 'Trend', alt: 'Yükselen odalar', aktif: true },
+    { kod: 'trending', aktif: true },
     {
       kod: 'official_city_rooms',
-      baslik: 'Resmi Şehir',
-      alt: 'Şehir odaları & destek',
       aktif: OzellikBayragiAktifMi('city_league_enabled'),
     },
     {
       kod: 'city_league',
-      baslik: 'Şehir Ligi',
-      alt: 'Sezon sıralaması',
       aktif: OzellikBayragiAktifMi('city_league_enabled'),
     },
     {
       kod: 'events',
-      baslik: 'Etkinlikler',
-      alt: 'Platform etkinlikleri',
       aktif: OzellikBayragiAktifMi('events_enabled'),
     },
     {
       kod: 'pk_now',
-      baslik: 'PK arenası',
-      alt: 'Canlı düellolar',
       aktif: OzellikBayragiAktifMi('pk_enabled'),
     },
     {
       kod: 'popular_agencies',
-      baslik: 'Ajanslar',
-      alt: 'Popüler ajanslar',
       aktif: OzellikBayragiAktifMi('agency_enabled'),
     },
     {
       kod: 'creators_for_you',
-      baslik: 'Senin İçin',
-      alt: 'Önerilen yaratıcılar',
       aktif: true,
     },
   ];

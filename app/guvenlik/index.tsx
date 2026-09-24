@@ -25,10 +25,10 @@ import {
   type GuvenlikOlayi,
 } from '../../src/moduller/guvenlik/okuma/GuvenlikOlaylarimiGetir';
 import {
-  BILDIRME_SEBEPLERI,
+  BildirmeSebebiEtiketi,
   KullaniciBildir,
-  RAPOR_ALINDI_MESAJ,
-  RAPOR_ALINDI_MESAJ_COCUK,
+  RaporAlindiMesaj,
+  RaporAlindiMesajCocuk,
 } from '../../src/moduller/moderasyon/islemler/ModerasyonIslemleri';
 import { AdminStil } from '../../src/moduller/admin/bilesenler/AdminStil';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
@@ -38,51 +38,30 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { UygulamaKimligi } from '../../src/yapilandirma/UygulamaKimligi';
+import { useCeviri, type CeviriAnahtari } from '../../src/i18n/useCeviri';
 
-function olayAdi(type: string): string {
-  const map: Record<string, string> = {
-    report_submitted: 'Rapor gönderildi',
-    child_safety_report: 'Çocuk koruma raporu',
-    user_block: 'Kullanıcı engellendi',
-    user_blocked: 'Kullanıcı engellendi',
-    user_unblock: 'Engel kaldırıldı',
-    user_unblocked: 'Engel kaldırıldı',
-    account_restricted: 'Hesap kısıtlandı',
-    login_anomaly: 'Şüpheli giriş',
-    kill_switch: 'Acil durdurma',
-    moderation_action: 'Moderasyon işlemi',
-  };
-  return map[type] ?? type.replace(/_/g, ' ');
-}
+const OLAY_ANAHTAR: Record<string, CeviriAnahtari> = {
+  report_submitted: 'guvenlik.olayRapor',
+  child_safety_report: 'guvenlik.olayCocukRapor',
+  user_block: 'guvenlik.olayEngel',
+  user_blocked: 'guvenlik.olayEngel',
+  user_unblock: 'guvenlik.olayEngelKaldirildi',
+  user_unblocked: 'guvenlik.olayEngelKaldirildi',
+  account_restricted: 'guvenlik.olayKisit',
+  login_anomaly: 'guvenlik.olaySupheliGiris',
+  kill_switch: 'guvenlik.olayAcilDurdurma',
+  moderation_action: 'guvenlik.olayModerasyon',
+};
 
-function severityEtiketi(sev: string): { label: string; color: string } {
-  switch ((sev || '').toLowerCase()) {
-    case 'critical':
-    case 'high':
-      return { label: 'Yüksek', color: RenkTokenlari.danger };
-    case 'medium':
-      return { label: 'Orta', color: RenkTokenlari.accent };
-    case 'low':
-      return { label: 'Düşük', color: RenkTokenlari.mint };
-    default:
-      return { label: sev || '—', color: RenkTokenlari.textMuted };
-  }
-}
-
-function tarihKisa(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString('tr-TR', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
-}
+const LOCALE_MAP: Record<string, string> = {
+  tr: 'tr-TR',
+  en: 'en-US',
+  es: 'es-ES',
+  ar: 'ar',
+};
 
 export default function GuvenlikMerkeziEkrani() {
+  const { t, dil } = useCeviri();
   const { isGuest, refreshProfile, profile } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
   const [events, setEvents] = useState<GuvenlikOlayi[]>([]);
@@ -90,6 +69,47 @@ export default function GuvenlikMerkeziEkrani() {
   const [cocukBusy, setCocukBusy] = useState(false);
   const [yukleniyor, setYukleniyor] = useState(false);
   const adminMi = profile?.is_admin === true;
+
+  const olayAdi = useCallback(
+    (type: string) => {
+      const key = OLAY_ANAHTAR[type];
+      return key ? t(key) : type.replace(/_/g, ' ');
+    },
+    [t],
+  );
+
+  const severityEtiketi = useCallback(
+    (sev: string): { label: string; color: string } => {
+      switch ((sev || '').toLowerCase()) {
+        case 'critical':
+        case 'high':
+          return { label: t('guvenlik.seviyeYuksek'), color: RenkTokenlari.danger };
+        case 'medium':
+          return { label: t('guvenlik.seviyeOrta'), color: RenkTokenlari.accent };
+        case 'low':
+          return { label: t('guvenlik.seviyeDusuk'), color: RenkTokenlari.mint };
+        default:
+          return { label: sev || '—', color: RenkTokenlari.textMuted };
+      }
+    },
+    [t],
+  );
+
+  const tarihKisa = useCallback(
+    (iso: string) => {
+      try {
+        return new Date(iso).toLocaleString(LOCALE_MAP[dil] ?? dil, {
+          day: '2-digit',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      } catch {
+        return iso;
+      }
+    },
+    [dil],
+  );
 
   const load = useCallback(async () => {
     setYukleniyor(true);
@@ -115,59 +135,58 @@ export default function GuvenlikMerkeziEkrani() {
 
   const hizliCocukRaporu = () => {
     islemiDene('oy_kullan', () => {
-      Alert.alert(
-        'Çocuk koruma bildirimi',
-        'Bu rapor en yüksek öncelikle incelenir. Detay yazdıysan onunla gönderilir.',
-        [
-          { text: 'Vazgeç', style: 'cancel' },
-          {
-            text: 'Gönder',
-            style: 'destructive',
-            onPress: () => {
-              void (async () => {
-                setCocukBusy(true);
-                const etiket =
-                  BILDIRME_SEBEPLERI.find((s) => s.id === 'child_safety')?.label ??
-                  'Çocuk istismarı / reşit olmayan içerik';
-                const r = await KullaniciBildir({
-                  reason: etiket,
-                  reasonCode: 'child_safety',
-                  contentType: 'other',
-                  details:
-                    cocukDetay.trim() || 'Güvenlik merkezinden çocuk koruma bildirimi',
-                  context: { source: 'safety_center' },
-                });
-                setCocukBusy(false);
-                if (!r.ok) Alert.alert('Bildirim', r.hata);
-                else {
-                  Alert.alert('Öncelikli rapor alındı', RAPOR_ALINDI_MESAJ_COCUK);
-                  setCocukDetay('');
-                  await load();
-                }
-              })();
-            },
+      Alert.alert(t('guvenlik.cocukBildirimBaslik'), t('guvenlik.cocukBildirimOnay'), [
+        { text: t('ortak.vazgec'), style: 'cancel' },
+        {
+          text: t('ortak.gonder'),
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setCocukBusy(true);
+              const etiket = BildirmeSebebiEtiketi('child_safety');
+              const r = await KullaniciBildir({
+                reason: etiket,
+                reasonCode: 'child_safety',
+                contentType: 'other',
+                details:
+                  cocukDetay.trim() || t('guvenlik.cocukMerkezDetay'),
+                context: { source: 'safety_center' },
+              });
+              setCocukBusy(false);
+              if (!r.ok) Alert.alert(t('guvenlik.bildirim'), r.hata);
+              else {
+                Alert.alert(
+                  t('guvenlik.oncelikliRaporAlindi'),
+                  RaporAlindiMesajCocuk(),
+                );
+                setCocukDetay('');
+                await load();
+              }
+            })();
           },
-        ],
-      );
+        },
+      ]);
     });
   };
 
   const genelRapor = (sebepId: string) => {
     islemiDene('oy_kullan', async () => {
-      const etiket = BILDIRME_SEBEPLERI.find((s) => s.id === sebepId)?.label ?? sebepId;
+      const etiket = BildirmeSebebiEtiketi(sebepId);
       const r = await KullaniciBildir({
         reason: etiket,
         reasonCode: sebepId,
         contentType: 'other',
-        details: 'Güvenlik merkezinden gönderildi',
+        details: t('guvenlik.genelMerkezDetay'),
       });
-      if (!r.ok) Alert.alert('Bildirim', r.hata);
+      if (!r.ok) Alert.alert(t('guvenlik.bildirim'), r.hata);
       else {
         Alert.alert(
-          sebepId === 'child_safety' ? 'Öncelikli rapor alındı' : 'Rapor alındı',
           sebepId === 'child_safety'
-            ? RAPOR_ALINDI_MESAJ_COCUK
-            : RAPOR_ALINDI_MESAJ,
+            ? t('guvenlik.oncelikliRaporAlindi')
+            : t('guvenlik.raporAlindi'),
+          sebepId === 'child_safety'
+            ? RaporAlindiMesajCocuk()
+            : RaporAlindiMesaj(),
         );
         await load();
       }
@@ -178,8 +197,8 @@ export default function GuvenlikMerkeziEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="guvenlik">
         <EkranBasligi
-          title="Güvenlik"
-          subtitle="Koruma · bildir · engelle · olaylar"
+          title={t('guvenlik.baslik')}
+          subtitle={t('guvenlik.altBaslik')}
           fallbackHref={adminMi ? '/admin' : undefined}
         />
         <KlavyeScrollView
@@ -194,35 +213,30 @@ export default function GuvenlikMerkeziEkrani() {
             end={{ x: 1, y: 1 }}
             style={AdminStil.hero}
           >
-            <Text style={AdminStil.heroEyebrow}>18+ · sıfır tolerans</Text>
-            <Text style={AdminStil.heroTitle}>Koruma merkezi</Text>
-            <Text style={AdminStil.heroAlt}>
-              Reşit olmayan içerik veya katılım bildirildiğinde hesap kapatılır; gerekirse
-              mercilere iletilir.
-            </Text>
+            <Text style={AdminStil.heroEyebrow}>{t('guvenlik.heroEyebrow')}</Text>
+            <Text style={AdminStil.heroTitle}>{t('guvenlik.heroBaslik')}</Text>
+            <Text style={AdminStil.heroAlt}>{t('guvenlik.heroAlt')}</Text>
           </LinearGradient>
 
           <View style={AdminStil.kpiGrid}>
             <View style={AdminStil.kpi}>
               <Text style={AdminStil.kpiN}>{riskOzet.toplam}</Text>
-              <Text style={AdminStil.kpiL}>Kayıtlı olay</Text>
+              <Text style={AdminStil.kpiL}>{t('guvenlik.kayitliOlay')}</Text>
             </View>
             <View style={AdminStil.kpi}>
               <Text style={[AdminStil.kpiN, { color: RenkTokenlari.danger }]}>
                 {riskOzet.yuksek}
               </Text>
-              <Text style={AdminStil.kpiL}>Yüksek risk</Text>
+              <Text style={AdminStil.kpiL}>{t('guvenlik.yuksekRisk')}</Text>
             </View>
           </View>
 
-          <Text style={AdminStil.sectionLabel}>Acil çocuk koruma</Text>
+          <Text style={AdminStil.sectionLabel}>{t('guvenlik.acilCocuk')}</Text>
           <View style={AdminStil.kart}>
-            <Text style={AdminStil.kartAlt}>
-              En yüksek öncelik. Kısa detay yazmak incelemeyi hızlandırır.
-            </Text>
+            <Text style={AdminStil.kartAlt}>{t('guvenlik.acilCocukAlt')}</Text>
             <TextField
-              label="Ne gördün? (isteğe bağlı)"
-              placeholder="Örn: odada / mesajda / yayınında…"
+              label={t('guvenlik.neGordun')}
+              placeholder={t('guvenlik.neGordunPlaceholder')}
               value={cocukDetay}
               onChangeText={setCocukDetay}
             />
@@ -233,19 +247,19 @@ export default function GuvenlikMerkeziEkrani() {
             >
               <Ionicons name="warning" size={18} color="#fff" />
               <Text style={styles.dangerBtnText}>
-                {cocukBusy ? 'Gönderiliyor…' : 'Çocuk istismarı bildir'}
+                {cocukBusy ? t('guvenlik.gonderiliyor') : t('guvenlik.cocukBildir')}
               </Text>
             </Pressable>
           </View>
 
-          <Text style={AdminStil.sectionLabel}>Hızlı bildir</Text>
+          <Text style={AdminStil.sectionLabel}>{t('guvenlik.hizliBildir')}</Text>
           <View style={styles.quickGrid}>
             {(
               [
-                { id: 'harassment', label: 'Taciz', icon: 'hand-left-outline' as const },
-                { id: 'sexual', label: 'Cinsel', icon: 'eye-off-outline' as const },
-                { id: 'violence', label: 'Şiddet', icon: 'flash-outline' as const },
-                { id: 'spam', label: 'Spam', icon: 'mail-unread-outline' as const },
+                { id: 'harassment', label: t('guvenlik.taciz'), icon: 'hand-left-outline' as const },
+                { id: 'sexual', label: t('guvenlik.cinsel'), icon: 'eye-off-outline' as const },
+                { id: 'violence', label: t('guvenlik.siddet'), icon: 'flash-outline' as const },
+                { id: 'spam', label: t('guvenlik.spam'), icon: 'mail-unread-outline' as const },
               ] as const
             ).map((s) => (
               <Pressable key={s.id} style={styles.quickCard} onPress={() => genelRapor(s.id)}>
@@ -255,88 +269,90 @@ export default function GuvenlikMerkeziEkrani() {
             ))}
           </View>
 
-          <Text style={AdminStil.sectionLabel}>Güvenlik ve destek</Text>
+          <Text style={AdminStil.sectionLabel}>{t('guvenlik.guvenlikDestek')}</Text>
           <View style={AdminStil.kart}>
             <LinkSatir
               icon="flag-outline"
-              label="Bir sorun bildir"
-              hint="Kullanıcı / içerik raporla"
+              label={t('guvenlik.sorunBildir')}
+              hint={t('guvenlik.sorunHint')}
               onPress={() => router.push('/bildir' as any)}
             />
             <LinkSatir
               icon="documents-outline"
-              label="Raporlarım"
-              hint="Durum takibi"
+              label={t('guvenlik.raporlarim')}
+              hint={t('guvenlik.raporHint')}
               onPress={() => router.push('/raporlarim' as any)}
             />
             <LinkSatir
               icon="people-outline"
-              label="Topluluk Kuralları"
-              hint="Sıfır tolerans UGC kuralları"
+              label={t('ayarlar.toplulukKurallari')}
+              hint={t('guvenlik.ugcHint')}
               onPress={() => router.push('/politika/community_rules' as any)}
             />
             <LinkSatir
               icon="document-text-outline"
-              label="Kullanım Şartları"
+              label={t('guvenlik.kullanimSartlari')}
               onPress={() => router.push('/politika/tos' as any)}
             />
             <LinkSatir
               icon="lock-closed-outline"
-              label="Gizlilik Politikası"
+              label={t('guvenlik.gizlilikPolitikasi')}
               onPress={() => router.push('/politika/privacy' as any)}
             />
             <LinkSatir
               icon="shield-checkmark-outline"
-              label="Çocuk koruma politikası"
+              label={t('guvenlik.cocukPolitikasi')}
               onPress={() => router.push('/politika/child_safety' as any)}
             />
             <LinkSatir
               icon="ban-outline"
-              label="Engellenen hesaplar"
-              hint="Engeli kaldır"
+              label={t('ayarlar.engellenenHesaplar')}
+              hint={t('guvenlik.engelliHint')}
               onPress={() => router.push('/engellenen-kullanicilar' as any)}
             />
             <LinkSatir
               icon="mail-outline"
-              label="Bize ulaşın"
+              label={t('ayarlar.bizeUlasin')}
               hint={UygulamaKimligi.SUPPORT_EMAIL}
               onPress={() => {
                 void Linking.openURL(
-                  `mailto:${UygulamaKimligi.SUPPORT_EMAIL}?subject=${encodeURIComponent('Tamuso destek / uygunsuz içerik')}`,
+                  `mailto:${UygulamaKimligi.SUPPORT_EMAIL}?subject=${encodeURIComponent(t('guvenlik.destekKonuUygunsuz'))}`,
                 ).catch(() =>
                   Alert.alert(
-                    'İletişim',
-                    `E-posta: ${UygulamaKimligi.SUPPORT_EMAIL}`,
+                    t('ayarlar.iletisim'),
+                    t('guvenlik.epostaSatir', {
+                      email: UygulamaKimligi.SUPPORT_EMAIL,
+                    }),
                   ),
                 );
               }}
             />
             <LinkSatir
               icon="headset-outline"
-              label="Canlı destek"
+              label={t('ayarlar.canliDestek')}
               onPress={() => router.push('/destek' as any)}
             />
             {adminMi ? (
               <LinkSatir
                 icon="shield-half-outline"
-                label="Admin moderasyon kuyruğu"
+                label={t('guvenlik.adminKuyruk')}
                 onPress={() => router.push('/admin/moderasyon' as any)}
               />
             ) : null}
             <LinkSatir
               icon="trash-outline"
-              label="Hesabı sil"
+              label={t('hesapSil.baslik')}
               son
               onPress={() => router.push('/hesap-sil' as any)}
             />
           </View>
 
-          <Text style={AdminStil.sectionLabel}>Son güvenlik olayları</Text>
+          <Text style={AdminStil.sectionLabel}>{t('guvenlik.sonOlaylar')}</Text>
           {events.length === 0 ? (
             <BosDurum
               icon="shield-checkmark-outline"
-              title="Olay yok"
-              body="Bildirim ve güvenlik kayıtların burada listelenir."
+              title={t('guvenlik.olayYok')}
+              body={t('guvenlik.olayYokBody')}
             />
           ) : (
             events.map((item) => {
@@ -346,7 +362,7 @@ export default function GuvenlikMerkeziEkrani() {
                   <View style={styles.olayUst}>
                     <Text style={styles.olayBaslik}>{olayAdi(item.event_type)}</Text>
                     <View style={styles.riskBadge}>
-                      <Text style={styles.riskText}>Risk {item.risk_score}</Text>
+                      <Text style={styles.riskText}>{t('guvenlik.risk')} {item.risk_score}</Text>
                     </View>
                   </View>
                   <View style={styles.olayMetaSatir}>

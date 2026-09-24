@@ -8,9 +8,11 @@ import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
 import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export default function ForgotPasswordScreen() {
+  const { t } = useCeviri();
   const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,14 +20,14 @@ export default function ForgotPasswordScreen() {
   const onSubmit = async () => {
     const mail = email.trim().toLowerCase();
     if (!mail.includes('@')) {
-      Alert.alert('E-posta gerekli', 'Kayıtlı e-posta adresini yaz.');
+      Alert.alert(t('auth.epostaGerekli'), t('auth.epostaGerekliSifirla'));
       return;
     }
     setLoading(true);
     const { error } = await resetPassword(mail);
     setLoading(false);
     if (error) {
-      Alert.alert('Hata', error);
+      Alert.alert(t('ortak.hata'), error);
       return;
     }
     router.push({
@@ -38,25 +40,25 @@ export default function ForgotPasswordScreen() {
     <Screen edges={['top']}>
       <KlavyeGuvenliAlan>
         <EkranBasligi
-          title="Şifre sıfırla"
-          subtitle="Kayıtlı e-postana 6 haneli kod gönderilir"
+          title={t('auth.sifreSifirla')}
+          subtitle={t('auth.sifreSifirlaAlt')}
           onBack={() => router.back()}
         />
         <View style={styles.content}>
           <KlavyeKapatan style={styles.flex}>
             <TextField
-              label="E-posta"
+              label={t('auth.eposta')}
               autoCapitalize="none"
               keyboardType="email-address"
               value={email}
               onChangeText={setEmail}
-              placeholder="sen@mail.com"
+              placeholder={t('auth.epostaPlaceholder')}
               returnKeyType="done"
               blurOnSubmit
               onSubmitEditing={() => void onSubmit()}
             />
             <GradientButton
-              title="Doğrulama kodu gönder"
+              title={t('auth.dogrulamaKoduGonder')}
               onPress={onSubmit}
               loading={loading}
             />

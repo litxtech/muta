@@ -4,6 +4,8 @@
  * Altın/Efsane: tam ekran sinematik; Bronz/Gümüş: üst banner.
  */
 
+import i18n from '../../../i18n';
+
 export type SeviyeGirisKademe = 'bronz' | 'gumus' | 'altin' | 'efsane';
 
 export type SeviyeGirisOgesi = {
@@ -33,26 +35,26 @@ export function SeviyeGirisSinematikMi(kademe: SeviyeGirisKademe): boolean {
 export function SeviyeGirisEtiketi(kademe: SeviyeGirisKademe): string {
   switch (kademe) {
     case 'efsane':
-      return 'EFSANE GİRİŞ';
+      return i18n.t('sesOda.girisEfsane');
     case 'altin':
-      return 'ALTIN GİRİŞ';
+      return i18n.t('sesOda.girisAltin');
     case 'gumus':
-      return 'GÜMÜŞ GİRİŞ';
+      return i18n.t('sesOda.girisGumus');
     default:
-      return 'ÖZEL GİRİŞ';
+      return i18n.t('sesOda.girisOzel');
   }
 }
 
 export function SeviyeGirisAltMetin(kademe: SeviyeGirisKademe, level: number): string {
   switch (kademe) {
     case 'efsane':
-      return `Seviye ${level} · efsane sahneye iniyor`;
+      return i18n.t('sesOda.girisAltEfsane', { level });
     case 'altin':
-      return `Seviye ${level} · altın kapıdan girdi`;
+      return i18n.t('sesOda.girisAltAltin', { level });
     case 'gumus':
-      return `Seviye ${level} · odaya katıldı`;
+      return i18n.t('sesOda.girisAltKatildi', { level });
     default:
-      return `Seviye ${level} · odaya katıldı`;
+      return i18n.t('sesOda.girisAltKatildi', { level });
   }
 }
 

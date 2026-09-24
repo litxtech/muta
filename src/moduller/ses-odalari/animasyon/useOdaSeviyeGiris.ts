@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { ProfilMiniCache } from '../../kullanici-profili/onbellek/ProfilMiniCache';
 import {
   SeviyeGirisKademesiniCoz,
   type SeviyeGirisOgesi,
@@ -123,23 +124,15 @@ export function useOdaSeviyeGiris({
           if (OdaGirisAnimasyonuGosterildiMi(key)) return;
 
           void (async () => {
-            const { data } = await supabase
-              .from('profiles')
-              .select('id, display_name, username, avatar_url, level')
-              .eq('id', uid)
-              .maybeSingle();
+            const data = await ProfilMiniCache.al(uid);
             if (!data) return;
             const level = typeof data.level === 'number' ? data.level : 0;
             const kademe = SeviyeGirisKademesiniCoz(level);
             if (!kademe) return;
-            const ad =
-              (data.display_name as string | null)?.trim() ||
-              (data.username as string | null)?.trim() ||
-              'Kullanıcı';
             kuyrugaEkle({
               userId: uid,
-              ad,
-              avatarUrl: (data.avatar_url as string | null) ?? null,
+              ad: ProfilMiniCache.gosterimAdi(data, 'Kullanıcı'),
+              avatarUrl: data.avatar_url ?? null,
               level,
               kademe,
             });

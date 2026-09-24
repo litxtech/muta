@@ -3,6 +3,7 @@
  * Katalog özeti gösterilir; “satış / nakit” dili kullanılmaz.
  */
 
+import i18n from '../../../i18n';
 import { CoinDegerOzeti, TryYazi } from '../katalog/CoinTakasPaylasimi';
 
 /** Mağaza paketlerinde kullanılan yaklaşık kur (1 $ ≈ 35 ₺) */
@@ -25,11 +26,10 @@ export function CoinYazi(coins: number): string {
 /** Teklif gövdesi — katalog özeti; “satmak” dili yok */
 export function TeklifMesajiOlustur(coins: number): string {
   const ozet = CoinDegerOzeti(coins);
-  return (
-    `Merhaba, ${CoinYazi(ozet.coins)} coin için takas teklifim var ` +
-    `(katalog özeti: ${TryYazi(ozet.saticiNetTl)}). ` +
-    `Uygulama içi sanal öğe transferidir. Kabul edersen işlemleri başlatalım.`
-  );
+  return i18n.t('takas.teklifMesaji', {
+    adet: CoinYazi(ozet.coins),
+    net: TryYazi(ozet.saticiNetTl),
+  }) as string;
 }
 
 /** Push gövdesi — kısa */
@@ -39,8 +39,8 @@ export function TeklifPushOzeti(coins: number, saticiNetTl?: number): string {
     saticiNetTl != null && Number.isFinite(Number(saticiNetTl))
       ? Number(saticiNetTl)
       : ozet.saticiNetTl;
-  return (
-    `${CoinYazi(ozet.coins)} coin takas teklifi · katalog ${TryYazi(net)}. ` +
-    `Kabul edersen işlemleri başlatalım.`
-  );
+  return i18n.t('takas.teklifPush', {
+    adet: CoinYazi(ozet.coins),
+    net: TryYazi(net),
+  }) as string;
 }

@@ -1,10 +1,11 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
+import { YonluIkon } from './YonluIkon';
 import { RenkTokenlari } from '../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import i18n from '../i18n';
 
 type Props = {
   title: string;
@@ -35,6 +36,10 @@ export function guvenliGeriDon(fallbackHref: Href = '/(tabs)/profile') {
 /**
  * Ortak üst bar: geri + ortalı başlık + opsiyonel sağ aksiyon.
  * Başlık absolute ortalı — butonlarla iç içe binmez.
+ *
+ * RTL KARARI — SEMANTİK: direction kilidi YOK; I18nManager row'u aynalar,
+ * geri butonu start kenarında kalır (Arapça'da fiziksel SAĞ) ve
+ * YonluIkon chevron'u dile göre çevirir. merkez left/right 52 simetrik — sorunsuz.
  */
 export function EkranBasligi({
   title,
@@ -44,6 +49,14 @@ export function EkranBasligi({
   right,
   fallbackHref = '/(tabs)/profile',
 }: Props) {
+  const geriEtiket = (() => {
+    try {
+      return String(i18n.t('ortak.geri'));
+    } catch {
+      return 'Back';
+    }
+  })();
+
   return (
     <View style={styles.wrap}>
       <View style={styles.top}>
@@ -53,10 +66,10 @@ export function EkranBasligi({
               style={styles.backBtn}
               onPress={onBack ?? (() => guvenliGeriDon(fallbackHref))}
               hitSlop={8}
-              accessibilityLabel="Geri"
+              accessibilityLabel={geriEtiket}
             >
-              <Ionicons
-                name="chevron-back"
+              <YonluIkon
+                yon="chevron-back"
                 size={24}
                 color={RenkTokenlari.text}
               />
@@ -95,6 +108,8 @@ const styles = StyleSheet.create({
   top: {
     flexDirection: 'row',
     alignItems: 'center',
+    /** merkez absolute — akışta sadece yanSol+yanSag; iki yana it (RTL güvenli) */
+    justifyContent: 'space-between',
     minHeight: 48,
     position: 'relative',
   },
@@ -106,7 +121,6 @@ const styles = StyleSheet.create({
   },
   yanSag: {
     minWidth: 44,
-    marginLeft: 'auto',
     zIndex: 2,
     alignItems: 'flex-end',
     justifyContent: 'center',

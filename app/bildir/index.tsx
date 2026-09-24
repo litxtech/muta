@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { GradientButton } from '../../src/components/GradientButton';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan';
@@ -27,8 +28,9 @@ import {
 } from '../../src/moduller/mesajlasma/okuma/KullanicilariAra';
 import {
   BILDIRME_SEBEPLERI,
+  BildirmeSebebiEtiketi,
   KullaniciBildir,
-  RAPOR_ALINDI_MESAJ,
+  RaporAlindiMesaj,
 } from '../../src/moduller/moderasyon/islemler/ModerasyonIslemleri';
 import { ProfilAvatarKucuk } from '../../src/moduller/canli-sohbet/bilesenler/ProfilAvatarKucuk';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
@@ -42,6 +44,7 @@ type Adim = 'ara' | 'sebep' | 'detay';
 
 /** Geniş çaplı bildirim: ara → seç → sebep → açıklama → gönder */
 export default function BildirEkrani() {
+  const { t } = useCeviri();
   const { user, isGuest } = useAuth();
   const { upgradeAcik, upgradeKapat, upgradeAc } = useMisafirIslemKapisi(isGuest);
   const [adim, setAdim] = useState<Adim>('ara');
@@ -78,7 +81,7 @@ export default function BildirEkrani() {
   );
 
   const sebepLabel = useMemo(
-    () => BILDIRME_SEBEPLERI.find((s) => s.id === sebepId)?.label ?? null,
+    () => (sebepId ? BildirmeSebebiEtiketi(sebepId) : null),
     [sebepId],
   );
 
@@ -89,11 +92,11 @@ export default function BildirEkrani() {
       return;
     }
     if (!hedef || !sebepId || !sebepLabel) {
-      Alert.alert('Bildir', 'Kullanıcı ve sebep seç.');
+      Alert.alert(t('bildir.baslik'), t('bildir.kullaniciVeSebepSec'));
       return;
     }
     if (detay.trim().length < 8) {
-      Alert.alert('Bildir', 'Kısa bir açıklama yaz (en az birkaç kelime).');
+      Alert.alert(t('bildir.baslik'), t('bildir.aciklamaKisa'));
       return;
     }
     setBusy(true);
@@ -107,28 +110,24 @@ export default function BildirEkrani() {
     });
     setBusy(false);
     if (!r.ok) {
-      Alert.alert('Bildir', r.hata ?? 'Gönderilemedi');
+      Alert.alert(t('bildir.baslik'), r.hata ?? t('bildir.gonderilemedi'));
       return;
     }
-    Alert.alert(
-      'Bildirim alındı',
-      RAPOR_ALINDI_MESAJ,
-      [
-        {
-          text: 'Raporlarım',
-          onPress: () => router.replace('/raporlarim' as any),
-        },
-        { text: 'Tamam', onPress: () => router.back() },
-      ],
-    );
+    Alert.alert(t('bildir.bildirimAlindi'), RaporAlindiMesaj(), [
+      {
+        text: t('bildir.raporlarim'),
+        onPress: () => router.replace('/raporlarim' as any),
+      },
+      { text: t('ortak.tamam'), onPress: () => router.back() },
+    ]);
   };
 
   return (
     <Screen>
       <ModulHataSiniri modulAdi="bildir">
         <EkranBasligi
-          title="Bildir"
-          subtitle="Kullanıcı ara · sebep seç · açıkla"
+          title={t('bildir.baslik')}
+          subtitle={t('bildir.altBaslik')}
           onBack={() => router.back()}
         />
 
@@ -142,19 +141,19 @@ export default function BildirEkrani() {
               size={16}
               color={RenkTokenlari.primarySoft}
             />
-            <Text style={styles.linkYazi}>Raporlarım</Text>
+            <Text style={styles.linkYazi}>{t('bildir.raporlarim')}</Text>
           </Pressable>
         </View>
 
         {adim === 'ara' ? (
           <View style={styles.govde}>
-            <Text style={styles.etiket}>Kullanıcı ara</Text>
+            <Text style={styles.etiket}>{t('bildir.kullaniciAra')}</Text>
             <View style={styles.aramaKutu}>
               <Ionicons name="search" size={18} color={RenkTokenlari.textMuted} />
               <TextInput
                 value={sorgu}
-                onChangeText={(t) => void ara(t)}
-                placeholder="İsim, kullanıcı adı veya ID"
+                onChangeText={(text) => void ara(text)}
+                placeholder={t('bildir.araPlaceholder')}
                 placeholderTextColor={RenkTokenlari.textDim}
                 style={styles.input}
                 autoCapitalize="none"
@@ -174,16 +173,14 @@ export default function BildirEkrani() {
               contentContainerStyle={{ paddingBottom: 40, gap: 8 }}
               ListEmptyComponent={
                 <Text style={styles.bos}>
-                  {sorgu.trim()
-                    ? 'Sonuç yok'
-                    : 'Bildirmek istediğin kişiyi ara'}
+                  {sorgu.trim() ? t('bildir.sonucYok') : t('bildir.araBos')}
                 </Text>
               }
               renderItem={({ item }) => {
                 const ad =
                   item.display_name?.trim() ||
                   (item.username ? `@${item.username}` : item.public_user_id) ||
-                  'Kullanıcı';
+                  t('ortak.kullanici');
                 return (
                   <Pressable
                     style={styles.kisiKart}
@@ -231,7 +228,7 @@ export default function BildirEkrani() {
                 size={16}
                 color={RenkTokenlari.primarySoft}
               />
-              <Text style={styles.linkYazi}>Kullanıcı değiştir</Text>
+              <Text style={styles.linkYazi}>{t('bildir.kullaniciDegistir')}</Text>
             </Pressable>
             <View style={styles.secili}>
               <ProfilAvatarKucuk
@@ -242,10 +239,10 @@ export default function BildirEkrani() {
               />
               <Text style={styles.kisiAd}>
                 {hedef.display_name?.trim() ||
-                  (hedef.username ? `@${hedef.username}` : 'Kullanıcı')}
+                  (hedef.username ? `@${hedef.username}` : t('ortak.kullanici'))}
               </Text>
             </View>
-            <Text style={styles.etiket}>Sebep seç</Text>
+            <Text style={styles.etiket}>{t('bildir.sebepSec')}</Text>
             {BILDIRME_SEBEPLERI.map((s) => (
               <Pressable
                 key={s.id}
@@ -255,7 +252,7 @@ export default function BildirEkrani() {
                   setAdim('detay');
                 }}
               >
-                <Text style={styles.sebepYazi}>{s.label}</Text>
+                <Text style={styles.sebepYazi}>{BildirmeSebebiEtiketi(s.id)}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -283,16 +280,16 @@ export default function BildirEkrani() {
                   size={16}
                   color={RenkTokenlari.primarySoft}
                 />
-                <Text style={styles.linkYazi}>Sebep değiştir</Text>
+                <Text style={styles.linkYazi}>{t('bildir.sebepDegistir')}</Text>
               </Pressable>
               <Text style={styles.ozet}>
                 {hedef.display_name || hedef.username} · {sebepLabel}
               </Text>
-              <Text style={styles.etiket}>Açıklama</Text>
+              <Text style={styles.etiket}>{t('bildir.aciklama')}</Text>
               <TextInput
                 value={detay}
                 onChangeText={setDetay}
-                placeholder="Ne oldu? Kısa ve net yaz…"
+                placeholder={t('bildir.aciklamaPlaceholder')}
                 placeholderTextColor={RenkTokenlari.textDim}
                 style={[styles.input, styles.detay]}
                 multiline
@@ -300,7 +297,9 @@ export default function BildirEkrani() {
                 blurOnSubmit={false}
               />
               <GradientButton
-                title={busy ? 'Gönderiliyor…' : 'Bildirimi gönder'}
+                title={
+                  busy ? t('bildir.gonderiliyor') : t('bildir.bildirimiGonder')
+                }
                 onPress={() => void gonder()}
                 disabled={busy}
               />
@@ -308,7 +307,11 @@ export default function BildirEkrani() {
           </KlavyeGuvenliAlan>
         ) : null}
 
-        <HesabiTamamlaKarti visible={upgradeAcik} onClose={upgradeKapat} />
+        <HesabiTamamlaKarti
+          visible={upgradeAcik}
+          onClose={upgradeKapat}
+          onCompleted={async () => {}}
+        />
       </ModulHataSiniri>
     </Screen>
   );

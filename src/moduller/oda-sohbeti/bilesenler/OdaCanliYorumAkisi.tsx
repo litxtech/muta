@@ -27,6 +27,7 @@ import {
 import { OdaModerasyonUygula } from '../../moderasyon/islemler/ModerasyonIslemleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   roomId: string;
@@ -54,6 +55,7 @@ export function OdaCanliYorumAkisi({
   onClose,
   onProfil,
 }: Props) {
+  const { t } = useCeviri();
   const [messages, setMessages] = useState<CanliSohbetMesajGorunum[]>([]);
   const [hedef, setHedef] = useState<CanliSohbetMesajGorunum | null>(null);
   const listRef = useRef<FlatList<CanliSohbetMesajGorunum>>(null);
@@ -72,8 +74,8 @@ export function OdaCanliYorumAkisi({
   useFocusEffect(
     useCallback(() => {
       void load();
-      const t = setInterval(() => void load(), 12_000);
-      return () => clearInterval(t);
+      const timer = setInterval(() => void load(), 12_000);
+      return () => clearInterval(timer);
     }, [load]),
   );
 
@@ -118,15 +120,15 @@ export function OdaCanliYorumAkisi({
   }, [messages.length]);
 
   const yorumSil = (item: CanliSohbetMesajGorunum) => {
-    Alert.alert('Yorumu sil', 'Bu yorum kaldırılsın mı?', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(t('canliYayin.yorumSilBaslik'), t('canliYayin.yorumSilBody'), [
+      { text: t('ortak.vazgec'), style: 'cancel' },
       {
-        text: 'Sil',
+        text: t('ortak.sil'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
             const r = await OdaSohbetMesajiSil(item.id);
-            if (!r.ok) Alert.alert('Yorum', r.hata);
+            if (!r.ok) Alert.alert(t('canliYayin.yorum'), r.hata);
             else void load();
           })();
         },
@@ -136,14 +138,16 @@ export function OdaCanliYorumAkisi({
 
   const kullaniciyiYasakla = (item: CanliSohbetMesajGorunum) => {
     const ad =
-      item.display_name?.trim() || item.username?.trim() || 'Bu kullanıcı';
+      item.display_name?.trim() ||
+      item.username?.trim() ||
+      t('ortak.kullanici');
     Alert.alert(
-      'Yorum yazmayı engelle',
-      `${ad} odadan yasaklanacak; bir daha yorum yazamaz ve odaya giremez.`,
+      t('sesOda.yorumYazmayiEngelle'),
+      t('sesOda.yorumYazmayiEngelleBody', { ad }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('ortak.vazgec'), style: 'cancel' },
         {
-          text: 'Engelle',
+          text: t('canliYayin.engelle'),
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -154,11 +158,14 @@ export function OdaCanliYorumAkisi({
                 reason: 'oda_sohbet',
               });
               if (!r.ok) {
-                Alert.alert('Engelleme', r.hata ?? 'Uygulanamadı');
+                Alert.alert(
+                  t('sesOda.engelleme'),
+                  r.hata ?? t('sesOda.uygulanamadi'),
+                );
                 return;
               }
               await OdaSohbetMesajiSil(item.id).catch(() => undefined);
-              Alert.alert('Tamam', 'Kullanıcı odadan yasaklandı.');
+              Alert.alert(t('ortak.tamam'), t('sesOda.yasaklandiMesaj'));
               void load();
             })();
           },
@@ -176,21 +183,21 @@ export function OdaCanliYorumAkisi({
     }
     if (canModerate) {
       Alert.alert(
-        item.display_name || item.username || 'Kullanıcı',
-        'Ne yapmak istersin?',
+        item.display_name || item.username || t('ortak.kullanici'),
+        t('sesOda.neYapmakIstersin'),
         [
           {
-            text: 'Yorumu sil',
+            text: t('canliYayin.yorumSilBaslik'),
             style: 'destructive',
             onPress: () => yorumSil(item),
           },
           {
-            text: 'Yorum yazmayı engelle',
+            text: t('sesOda.yorumYazmayiEngelle'),
             style: 'destructive',
             onPress: () => kullaniciyiYasakla(item),
           },
-          { text: 'Bildir…', onPress: () => setHedef(item) },
-          { text: 'Vazgeç', style: 'cancel' },
+          { text: t('canliYayin.bildirEngelle'), onPress: () => setHedef(item) },
+          { text: t('ortak.vazgec'), style: 'cancel' },
         ],
       );
       return;
@@ -202,7 +209,7 @@ export function OdaCanliYorumAkisi({
     <View style={styles.root} pointerEvents="box-none">
       {!baslikGizle ? (
         <View style={styles.header} pointerEvents="box-none">
-          <Text style={styles.title}>Yorumlar</Text>
+          <Text style={styles.title}>{t('canliYayin.yorumlar')}</Text>
           {onClose ? (
             <Pressable onPress={onClose} hitSlop={12} style={styles.close}>
               <Ionicons name="chevron-down" size={16} color={RenkTokenlari.textMuted} />
@@ -223,7 +230,7 @@ export function OdaCanliYorumAkisi({
           keyboardShouldPersistTaps="always"
           keyboardDismissMode="none"
           ListEmptyComponent={
-            <Text style={styles.empty}>İlk yorumu yaz — herkes görsün.</Text>
+            <Text style={styles.empty}>{t('canliYayin.yorumBos')}</Text>
           }
           renderItem={({ item }) => (
             <CanliSohbetMesajKarti

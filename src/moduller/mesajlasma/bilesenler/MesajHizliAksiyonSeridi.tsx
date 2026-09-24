@@ -14,6 +14,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 const SAKLAMA_ANAHTAR = '@muta/mesaj_hizli_aksiyon_gizli';
 
@@ -33,6 +34,7 @@ export function MesajHizliAksiyonSeridi({
   onCuzdanNoPaylas,
   onIdPaylas,
 }: Props) {
+  const { t } = useCeviri();
   const [gizli, setGizli] = useState(false);
   const [hazir, setHazir] = useState(false);
 
@@ -59,7 +61,7 @@ export function MesajHizliAksiyonSeridi({
     return (
       <Pressable style={styles.gizliSatir} onPress={ac}>
         <Ionicons name="apps-outline" size={14} color={RenkTokenlari.textDim} />
-        <Text style={styles.gizliYazi}>Hızlı paylaşımı göster</Text>
+        <Text style={styles.gizliYazi}>{t('mesajlar.hizliGoster')}</Text>
       </Pressable>
     );
   }
@@ -73,7 +75,7 @@ export function MesajHizliAksiyonSeridi({
       >
         <Pressable style={styles.cip} onPress={onCuzdanNoPaylas}>
           <Ionicons name="wallet-outline" size={15} color={RenkTokenlari.mint} />
-          <Text style={styles.cipYazi}>Cüzdan no paylaş</Text>
+          <Text style={styles.cipYazi}>{t('mesajlar.cuzdanNoPaylas')}</Text>
         </Pressable>
         <Pressable style={styles.cip} onPress={onIdPaylas}>
           <Ionicons
@@ -81,14 +83,14 @@ export function MesajHizliAksiyonSeridi({
             size={15}
             color={RenkTokenlari.primarySoft}
           />
-          <Text style={styles.cipYazi}>ID paylaş</Text>
+          <Text style={styles.cipYazi}>{t('mesajlar.idPaylas')}</Text>
         </Pressable>
       </ScrollView>
       <Pressable
         style={styles.kapat}
         onPress={kapat}
         hitSlop={8}
-        accessibilityLabel="Hızlı paylaşımı gizle"
+        accessibilityLabel={t('mesajlar.hizliGizle')}
       >
         <Ionicons name="close" size={16} color={RenkTokenlari.textDim} />
       </Pressable>

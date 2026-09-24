@@ -36,6 +36,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 function saat(iso: string): string {
   try {
@@ -49,6 +50,7 @@ function saat(iso: string): string {
 }
 
 export default function CanliDestekEkrani() {
+  const { t } = useCeviri();
   const { user, isGuest, refreshProfile } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
   const [oturum, setOturum] = useState<DestekOturum | null>(null);
@@ -67,7 +69,7 @@ export default function CanliDestekEkrani() {
     const sonuc = await DestekOturumAc();
     setYukleniyor(false);
     if (!sonuc.ok) {
-      Alert.alert('Canlı destek', sonuc.hata);
+      Alert.alert(t('destek.canliBaslik'), sonuc.hata);
       return;
     }
     setOturum(sonuc.paket.session);
@@ -156,15 +158,15 @@ export default function CanliDestekEkrani() {
 
   const kapat = () => {
     if (!oturum || !acik) return;
-    Alert.alert('Görüşmeyi bitir', 'Canlı destek sonlandırılsın mı?', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(t('destek.bitirBaslik'), t('destek.bitirSoru'), [
+      { text: t('ortak.vazgec'), style: 'cancel' },
       {
-        text: 'Bitir',
+        text: t('destek.bitir'),
         style: 'destructive',
         onPress: async () => {
           const r = await DestekOturumKapat(oturum.id);
           if (r.ok) setOturum(r.session);
-          else Alert.alert('Destek', r.hata);
+          else Alert.alert(t('destek.baslik'), r.hata);
         },
       },
     ]);
@@ -172,26 +174,24 @@ export default function CanliDestekEkrani() {
 
   const durumYazi = useMemo(() => {
     if (!oturum) return '';
-    if (oturum.status === 'waiting') return 'Toprak bağlanıyor…';
-    if (oturum.status === 'active') return 'Toprak çevrimiçi';
-    if (oturum.status === 'idle_closed') return 'Süre doldu';
-    return 'Görüşme kapandı';
-  }, [oturum]);
+    if (oturum.status === 'waiting') return t('destek.durumBekliyor');
+    if (oturum.status === 'active') return t('destek.durumAktif');
+    if (oturum.status === 'idle_closed') return t('destek.durumIdle');
+    return t('destek.durumKapandi');
+  }, [oturum, t]);
 
   if (isGuest) {
     return (
       <Screen edges={['top']}>
-        <EkranBasligi title="Canlı destek" fallbackHref="/(tabs)" />
+        <EkranBasligi title={t('destek.canliBaslik')} fallbackHref="/(tabs)" />
         <View style={styles.misafir}>
-          <Text style={styles.misafirBaslik}>Hesap gerekli</Text>
-          <Text style={styles.misafirAlt}>
-            Platformla canlı görüşmek için hesabını tamamla.
-          </Text>
+          <Text style={styles.misafirBaslik}>{t('ortak.hesapGerekli')}</Text>
+          <Text style={styles.misafirAlt}>{t('destek.misafirAlt')}</Text>
           <Pressable
             style={styles.misafirBtn}
             onPress={() => islemiDene('destek', () => undefined)}
           >
-            <Text style={styles.misafirBtnYazi}>Hesabı tamamla</Text>
+            <Text style={styles.misafirBtnYazi}>{t('ortak.hesabiTamamla')}</Text>
           </Pressable>
         </View>
         <HesabiTamamlaKarti
@@ -210,7 +210,7 @@ export default function CanliDestekEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="canli-destek">
         <EkranBasligi
-          title="Canlı destek"
+          title={t('destek.canliBaslik')}
           subtitle={durumYazi}
           fallbackHref="/(tabs)"
           right={
@@ -229,7 +229,7 @@ export default function CanliDestekEkrani() {
           <View style={{ flex: 1 }}>
             <Text style={styles.temsilciAd}>{DESTEK_TEMSILCI_ALIAS}</Text>
             <Text style={styles.temsilciAlt}>
-              Platform destek temsilcisi
+              {t('destek.temsilciAlt')}
               {acik && kalanSn != null
                 ? ` · ${Math.floor(kalanSn / 60)}:${String(kalanSn % 60).padStart(2, '0')}`
                 : ''}
@@ -237,7 +237,7 @@ export default function CanliDestekEkrani() {
           </View>
           {!acik ? (
             <Pressable style={styles.yeniden} onPress={() => void baslat()}>
-              <Text style={styles.yenidenYazi}>Yeni görüşme</Text>
+              <Text style={styles.yenidenYazi}>{t('destek.yeniGorusme')}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -253,9 +253,9 @@ export default function CanliDestekEkrani() {
             }
             ListEmptyComponent={
               yukleniyor ? (
-                <Text style={styles.bos}>Bağlanıyor…</Text>
+                <Text style={styles.bos}>{t('destek.baglaniyor')}</Text>
               ) : (
-                <Text style={styles.bos}>Mesaj yok</Text>
+                <Text style={styles.bos}>{t('destek.mesajYok')}</Text>
               )
             }
             renderItem={({ item }) => {
@@ -294,7 +294,7 @@ export default function CanliDestekEkrani() {
                 style={styles.input}
                 value={metin}
                 onChangeText={setMetin}
-                placeholder="Mesaj yaz…"
+                placeholder={t('destek.yaz')}
                 placeholderTextColor={RenkTokenlari.textDim}
                 multiline
                 maxLength={2000}
@@ -315,8 +315,8 @@ export default function CanliDestekEkrani() {
             <View style={styles.kapaliBar}>
               <Text style={styles.kapaliYazi}>
                 {oturum?.status === 'idle_closed'
-                  ? '3 dakika mesaj olmadığı için görüşme kapandı.'
-                  : 'Görüşme sona erdi.'}
+                  ? t('destek.idleKapandi')
+                  : t('destek.gorusmeBitti')}
               </Text>
             </View>
           )}

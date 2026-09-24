@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -25,7 +24,11 @@ import {
   type KullaniciProfilIstatistikleri,
 } from '../../src/moduller/kullanici-profili/istatistik/ProfilIstatistikleriniGetir';
 import { ProfilMedyaBuyutucu } from '../../src/moduller/kullanici-profili/bilesenler/ProfilMedyaBuyutucu';
-import { ProfilAvatarCerceve } from '../../src/moduller/kullanici-profili/bilesenler/ProfilAvatarCerceve';
+import {
+  ProfilXBaslik,
+  ProfilXGonderiSekme,
+  profilXOverlayBtnStyle,
+} from '../../src/moduller/kullanici-profili/bilesenler/ProfilXBaslik';
 import { OzelSohbetAcVeyaGetir } from '../../src/moduller/mesajlasma/islemler/MesajGonder';
 import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediyeMagaza';
 import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
@@ -42,11 +45,12 @@ import { ProfilSosyalAlani } from '../../src/moduller/takip/bilesenler/ProfilSos
 import { KullaniciGuvenlikMenusu } from '../../src/moduller/moderasyon/bilesenler/KullaniciGuvenlikMenusu';
 import { PrestigeRozetSatiri } from '../../src/moduller/vip/bilesenler/PrestigeRozetSatiri';
 import { HesapDegeriRozeti } from '../../src/moduller/kullanici-profili/bilesenler/HesapDegeriRozeti';
+import { IslemHacmiKart } from '../../src/moduller/islem-hacmi/bilesenler/IslemHacmiKart';
+import { useIslemHacmi } from '../../src/moduller/islem-hacmi/kancalar/useIslemHacmi';
 import {
   GizlilikAyarlariniKullaniciIcinGetir,
   type GizlilikAyarlari,
 } from '../../src/moduller/ayarlar/islemler/GizlilikAyarlariniYonet';
-import { TakipSayaciniFormatla } from '../../src/moduller/takip/TakipSayacFormat';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -61,9 +65,6 @@ import {
   HESAP_SILINDI_ADI,
   ProfilSilinmisMi,
 } from '../../src/moduller/kullanici-profili/yardimcilar/ProfilSilinmis';
-
-const COVER_H = 168;
-const AVATAR = 96;
 
 function formatSayi(n: number) {
   const v = Number(n);
@@ -118,18 +119,21 @@ export default function KullaniciProfilEkrani() {
   const [buyut, setBuyut] = useState<{ uri: string; tur: 'avatar' | 'cover' } | null>(
     null,
   );
+  const islemHacmi = useIslemHacmi({
+    mode: user?.id === id ? 'own' : 'public',
+    userId: id,
+    aktif: !!id && !isGuest,
+  });
   const magaza = useHediyeMagaza();
   const sesOdasiArka = !!useAktifSesOdasi()?.arkaPlanda;
-  // Ses odası modal üstünde Android insets.top bazen 0 — StatusBar yedegi
   const ustInset = Math.max(
     insets.top,
     Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0,
   );
-  // Ses odasından: üstte boşluk. Normal ziyaret: kapak çentiğe sıfır.
-  const coverH = sesOdasiArka ? COVER_H : COVER_H + ustInset;
   const overlayTop = sesOdasiArka
     ? BoslukTokenlari.sm
     : ustInset + BoslukTokenlari.sm;
+  const coverHExtra = sesOdasiArka ? 0 : ustInset;
 
   const yukle = useCallback(async () => {
     if (!id) {
@@ -139,6 +143,7 @@ export default function KullaniciProfilEkrani() {
     }
     setYukleniyor(true);
     setDurumYukleniyor(true);
+    let gizlilik: GizlilikAyarlari = EMPTY_PRIVACY;
     try {
       const [p, s, giz, oda] = await Promise.all([
         ProfilGetir(id),
@@ -146,15 +151,17 @@ export default function KullaniciProfilEkrani() {
         GizlilikAyarlariniKullaniciIcinGetir(id).catch(() => EMPTY_PRIVACY),
         KullaniciAktifOdasiniGetir(id).catch(() => null),
       ]);
+      gizlilik = giz ?? EMPTY_PRIVACY;
       setProfil(p);
       setStats(s);
-      setPrivacy(giz ?? EMPTY_PRIVACY);
+      setPrivacy(gizlilik);
       setAktifOda(oda);
     } catch {
       setProfil(null);
       setStats(null);
       setPrivacy(EMPTY_PRIVACY);
       setAktifOda(null);
+      gizlilik = EMPTY_PRIVACY;
     } finally {
       setYukleniyor(false);
     }
@@ -164,7 +171,6 @@ export default function KullaniciProfilEkrani() {
       setAjansUyelik(null);
     }
     try {
-      const gizlilik = giz ?? EMPTY_PRIVACY;
       const kendiMi = user?.id === id;
       if (kendiMi || !gizlilik.hide_status_posts) {
         setDurumlar(await DurumKullanicisiniGetir(id, 48));
@@ -278,387 +284,333 @@ export default function KullaniciProfilEkrani() {
               : styles.durumSarici
           }
         >
-        {yukleniyor || !profil ? (
-          <View style={styles.durumSarici}>
-            <Pressable
-              style={[styles.overlayBtn, styles.backBtn, { top: overlayTop }]}
-              onPress={() => guvenliGeriDon()}
-              hitSlop={8}
-              accessibilityLabel="Geri"
-            >
-              <Ionicons name="chevron-back" size={22} color={RenkTokenlari.text} />
-            </Pressable>
-            {yukleniyor ? (
-              <ActivityIndicator
-                color={RenkTokenlari.primary}
-                style={{ marginTop: overlayTop + 80 }}
-              />
-            ) : (
-              <Text style={[styles.bos, { marginTop: overlayTop + 80 }]}>
-                Profil bulunamadı
-              </Text>
-            )}
-          </View>
-        ) : silinmis ? (
-          <View style={styles.durumSarici}>
-            <Pressable
-              style={[styles.overlayBtn, styles.backBtn, { top: overlayTop }]}
-              onPress={() => guvenliGeriDon()}
-              hitSlop={8}
-              accessibilityLabel="Geri"
-            >
-              <Ionicons name="chevron-back" size={22} color={RenkTokenlari.text} />
-            </Pressable>
-            <View style={[styles.tombstone, { marginTop: overlayTop + 72 }]}>
-              <View style={styles.tombstoneAvatar}>
-                <Ionicons
-                  name="person-outline"
-                  size={36}
-                  color={RenkTokenlari.textMuted}
-                />
-              </View>
-              <Text style={styles.ad}>{HESAP_SILINDI_ADI}</Text>
-              <Text style={styles.tombstoneAlt}>
-                Bu hesap kapatıldı. Gönderiler ve içerikler kaldırıldı.
-              </Text>
-            </View>
-          </View>
-        ) : (
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            removeClippedSubviews={false}
-            scrollEventThrottle={16}
-            contentContainerStyle={[
-              styles.pad,
-              { paddingBottom: BoslukTokenlari.xxxl + insets.bottom },
-            ]}
-          >
-            <View style={[styles.coverWrap, { height: coverH }]}>
+          {yukleniyor || !profil ? (
+            <View style={styles.durumSarici}>
               <Pressable
-                onPress={() => medyaTikla('cover')}
-                style={styles.coverPress}
-                accessibilityLabel="Kapak fotoğrafı"
-                disabled={!coverUri}
-              >
-                {coverUri ? (
-                  <Image
-                    source={{ uri: coverUri }}
-                    style={[styles.cover, { height: coverH }]}
-                  />
-                ) : (
-                  <LinearGradient
-                    colors={[...RenkTokenlari.gradientPlaceholder]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[styles.cover, { height: coverH }]}
-                  />
-                )}
-                <LinearGradient
-                  colors={['transparent', RenkTokenlari.bg]}
-                  style={styles.coverFade}
-                />
-              </Pressable>
-
-              <Pressable
-                style={[styles.overlayBtn, styles.backBtn, { top: overlayTop }]}
+                style={[profilXOverlayBtnStyle, styles.backBtn, { top: overlayTop }]}
                 onPress={() => guvenliGeriDon()}
                 hitSlop={8}
                 accessibilityLabel="Geri"
               >
                 <Ionicons name="chevron-back" size={22} color={RenkTokenlari.text} />
               </Pressable>
-
-              {!kendi && id ? (
-                <Pressable
-                  style={[styles.overlayBtn, styles.moreBtn, { top: overlayTop }]}
-                  onPress={() => setGuvenlikAcik(true)}
-                  accessibilityLabel="Engelle veya bildir"
-                  hitSlop={10}
-                >
-                  <Ionicons
-                    name="ellipsis-horizontal"
-                    size={20}
-                    color={RenkTokenlari.text}
-                  />
-                </Pressable>
-              ) : null}
-            </View>
-
-            <View style={styles.avatarBand}>
-              <ModulHataSiniri
-                modulAdi="profil-avatar"
-                varyant="kart"
-                yedek={
-                  <Pressable
-                    onPress={() => medyaTikla('avatar')}
-                    style={styles.avatarHit}
-                    disabled={!avatarUri}
-                  >
-                    {avatarUri ? (
-                      <Image source={{ uri: avatarUri }} style={styles.avatar} />
-                    ) : (
-                      <LinearGradient
-                        colors={[...RenkTokenlari.gradientPrimary]}
-                        style={styles.avatar}
-                      >
-                        <Text style={styles.avatarHarf}>
-                          {ad.slice(0, 1).toUpperCase()}
-                        </Text>
-                      </LinearGradient>
-                    )}
-                  </Pressable>
-                }
-              >
-                <ProfilAvatarCerceve
-                  size={AVATAR}
-                  level={gosterSeviye ? Number(profil.level) || 1 : 0}
-                  gizli={!gosterTac}
-                >
-                  <Pressable
-                    onPress={() => medyaTikla('avatar')}
-                    style={styles.avatarHit}
-                    accessibilityLabel="Profil fotoğrafı"
-                    disabled={!avatarUri}
-                  >
-                    {avatarUri ? (
-                      <Image source={{ uri: avatarUri }} style={styles.avatar} />
-                    ) : (
-                      <LinearGradient
-                        colors={[...RenkTokenlari.gradientPrimary]}
-                        style={styles.avatar}
-                      >
-                        <Text style={styles.avatarHarf}>
-                          {ad.slice(0, 1).toUpperCase()}
-                        </Text>
-                      </LinearGradient>
-                    )}
-                  </Pressable>
-                </ProfilAvatarCerceve>
-              </ModulHataSiniri>
-            </View>
-
-            <View style={styles.identity}>
-              <View style={styles.adSatir}>
-                <Text style={styles.ad} numberOfLines={1}>
-                  {ad}
+              {yukleniyor ? (
+                <ActivityIndicator
+                  color={RenkTokenlari.primary}
+                  style={{ marginTop: overlayTop + 80 }}
+                />
+              ) : (
+                <Text style={[styles.bos, { marginTop: overlayTop + 80 }]}>
+                  Profil bulunamadı
                 </Text>
-                {profil.is_verified ? (
-                  <Ionicons name="checkmark-circle" size={18} color={RenkTokenlari.mint} />
-                ) : null}
-              </View>
-              {profil.username ? (
-                <Text style={styles.username}>@{profil.username}</Text>
-              ) : null}
-              {profil.public_user_id ? (
-                <Text style={styles.publicId}>ID {profil.public_user_id}</Text>
-              ) : null}
-              {profil.bio ? <Text style={styles.bio}>{profil.bio}</Text> : null}
-
-              {gosterHesapDegeri && stats ? (
-                <HesapDegeriRozeti
-                  value={Number(stats.account_value) || 0}
-                  label={stats.account_value_label}
-                />
-              ) : null}
-
-              {gosterPrestige && stats ? (
-                <PrestigeRozetSatiri
-                  vipLevel={Number(stats.vip_level) || 0}
-                  gifterLevel={
-                    kendi || !privacy.hide_gifter_rank ? stats.gifter_rank : null
-                  }
-                  charmLevel={Number(stats.charm_level) || 0}
-                  rechargeLevel={
-                    kendi || !privacy.hide_recharge_rank
-                      ? stats.recharge_rank
-                      : null
-                  }
-                />
-              ) : null}
+              )}
             </View>
-
-            {id ? (
-              <ProfilSosyalAlani
-                targetUserId={id}
-                viewerId={user?.id}
-                isSelf={kendi}
-                isGuest={isGuest}
+          ) : silinmis ? (
+            <View style={styles.durumSarici}>
+              <Pressable
+                style={[profilXOverlayBtnStyle, styles.backBtn, { top: overlayTop }]}
+                onPress={() => guvenliGeriDon()}
+                hitSlop={8}
+                accessibilityLabel="Geri"
+              >
+                <Ionicons name="chevron-back" size={22} color={RenkTokenlari.text} />
+              </Pressable>
+              <View style={[styles.tombstone, { marginTop: overlayTop + 72 }]}>
+                <View style={styles.tombstoneAvatar}>
+                  <Ionicons
+                    name="person-outline"
+                    size={36}
+                    color={RenkTokenlari.textMuted}
+                  />
+                </View>
+                <Text style={styles.ad}>{HESAP_SILINDI_ADI}</Text>
+                <Text style={styles.tombstoneAlt}>
+                  Bu hesap kapatıldı. Gönderiler ve içerikler kaldırıldı.
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              removeClippedSubviews={false}
+              scrollEventThrottle={16}
+              contentContainerStyle={[
+                styles.pad,
+                { paddingBottom: BoslukTokenlari.xxxl + insets.bottom },
+              ]}
+            >
+              <ProfilXBaslik
+                coverUri={coverUri}
+                avatarUri={avatarUri}
                 displayName={ad}
                 username={profil.username}
-                isVerified={profil.is_verified}
-                onMesaj={kendi ? undefined : () => void mesajAc()}
-              />
-            ) : null}
+                bio={profil.bio?.trim() || null}
+                verified={!!profil.is_verified}
+                createdAt={profil.created_at}
+                country={profil.country}
+                publicUserId={profil.public_user_id}
+                followingCount={stats?.following_count ?? 0}
+                followersCount={stats?.followers_count ?? 0}
+                gosterTakip={gosterTakip}
+                gosterTakipci={gosterTakipci}
+                level={gosterSeviye ? Number(profil.level) || 1 : 0}
+                tacGizli={!gosterTac}
+                coverHExtra={coverHExtra}
+                overlayTop={overlayTop}
+                onTakipPress={
+                  id
+                    ? () =>
+                        router.push(
+                          `/takip/takip-edilenler?userId=${id}` as any,
+                        )
+                    : undefined
+                }
+                onTakipciPress={
+                  id
+                    ? () => router.push(`/takip/takipciler?userId=${id}` as any)
+                    : undefined
+                }
+                onCoverPress={() => medyaTikla('cover')}
+                onAvatarPress={() => medyaTikla('avatar')}
+                ustSol={
+                  <Pressable
+                    style={profilXOverlayBtnStyle}
+                    onPress={() => guvenliGeriDon()}
+                    hitSlop={8}
+                    accessibilityLabel="Geri"
+                  >
+                    <Ionicons
+                      name="chevron-back"
+                      size={22}
+                      color={RenkTokenlari.text}
+                    />
+                  </Pressable>
+                }
+                ustSag={
+                  !kendi && id ? (
+                    <Pressable
+                      style={profilXOverlayBtnStyle}
+                      onPress={() => setGuvenlikAcik(true)}
+                      accessibilityLabel="Engelle veya bildir"
+                      hitSlop={10}
+                    >
+                      <Ionicons
+                        name="ellipsis-horizontal"
+                        size={20}
+                        color={RenkTokenlari.text}
+                      />
+                    </Pressable>
+                  ) : null
+                }
+                aksiyonSlot={
+                  kendi ? (
+                    <Pressable
+                      style={styles.duzenleBtn}
+                      onPress={() => router.push('/profil-duzenle' as any)}
+                      accessibilityRole="button"
+                      accessibilityLabel="Profili düzenle"
+                    >
+                      <Text style={styles.duzenleYazi}>Profili düzenle</Text>
+                    </Pressable>
+                  ) : id ? (
+                    <ProfilSosyalAlani
+                      targetUserId={id}
+                      viewerId={user?.id}
+                      isSelf={false}
+                      isGuest={isGuest}
+                      displayName={ad}
+                      username={profil.username}
+                      onMesaj={() => void mesajAc()}
+                      sadeceAksiyon
+                    />
+                  ) : null
+                }
+              >
+                <View style={styles.rozetBlok}>
+                  {(gosterHesapDegeri && stats) || islemHacmi.gorunur ? (
+                    <View style={styles.rozetSatir}>
+                      {gosterHesapDegeri && stats ? (
+                        <View style={styles.rozetHucre}>
+                          <HesapDegeriRozeti
+                            value={Number(stats.account_value) || 0}
+                            label={stats.account_value_label}
+                            kompakt={islemHacmi.gorunur}
+                          />
+                        </View>
+                      ) : null}
 
-            {gosterAktifOda && aktifOda ? (
-              <ProfilSesOdasiButonu
-                oda={aktifOda}
-                onPress={() =>
-                  router.push(`/room/${aktifOda.roomId}` as any)
+                      {islemHacmi.gorunur ? (
+                        <View style={styles.rozetHucre}>
+                          <IslemHacmiKart
+                            mode={kendi ? 'own' : 'public'}
+                            data={islemHacmi.veri}
+                            kompakt={!!(gosterHesapDegeri && stats)}
+                            onPress={
+                              kendi
+                                ? () => router.push('/islem-hacmi' as any)
+                                : undefined
+                            }
+                          />
+                        </View>
+                      ) : null}
+                    </View>
+                  ) : null}
+
+                  {gosterPrestige && stats ? (
+                    <PrestigeRozetSatiri
+                      vipLevel={Number(stats.vip_level) || 0}
+                      gifterLevel={
+                        kendi || !privacy.hide_gifter_rank
+                          ? stats.gifter_rank
+                          : null
+                      }
+                      charmLevel={Number(stats.charm_level) || 0}
+                      rechargeLevel={
+                        kendi || !privacy.hide_recharge_rank
+                          ? stats.recharge_rank
+                          : null
+                      }
+                    />
+                  ) : null}
+                </View>
+
+                {gosterAktifOda && aktifOda ? (
+                  <View style={styles.odaWrap}>
+                    <ProfilSesOdasiButonu
+                      oda={aktifOda}
+                      onPress={() =>
+                        router.push(`/room/${aktifOda.roomId}` as any)
+                      }
+                    />
+                  </View>
+                ) : null}
+
+                <View style={styles.metrics}>
+                  {gosterSeviye ? (
+                    <Metric
+                      label="Seviye"
+                      value={String(profil.level ?? 1)}
+                      icon="trophy-outline"
+                      tint={RenkTokenlari.violet}
+                    />
+                  ) : null}
+                  {gosterSeviye ? (
+                    <Metric
+                      label="Tecrübe"
+                      value={formatSayi(profil.xp ?? 0)}
+                      icon="flash-outline"
+                      tint={RenkTokenlari.accent}
+                    />
+                  ) : null}
+                  {gosterTopup ? (
+                    <Metric
+                      label="Yüklenen"
+                      value={formatSayi(stats?.total_topup_coin ?? 0)}
+                      icon="diamond-outline"
+                      tint={RenkTokenlari.accent}
+                    />
+                  ) : null}
+                  <Metric
+                    label="Alınan"
+                    value={String(stats?.total_gifts_received ?? 0)}
+                    icon="gift-outline"
+                    tint={RenkTokenlari.mint}
+                  />
+                  {!gosterSeviye && !gosterTopup ? (
+                    <Metric
+                      label="Gönderilen"
+                      value={String(stats?.total_gifts_sent ?? 0)}
+                      icon="heart-outline"
+                      tint={RenkTokenlari.danger}
+                    />
+                  ) : null}
+                </View>
+
+                {gosterAjans && ajansUyelik?.agency ? (
+                  <View style={styles.ajansWrap}>
+                    <AjansProfilRozeti
+                      varyant="uye"
+                      ajans={ajansUyelik.agency}
+                      tamGenislik
+                      onPress={() =>
+                        router.push(
+                          `/ajans/profil/${ajansUyelik.agency!.id}` as any,
+                        )
+                      }
+                    />
+                  </View>
+                ) : null}
+
+                {!kendi ? (
+                  <View style={styles.aksiyonlar}>
+                    <Pressable
+                      style={styles.hediyeBtn}
+                      onPress={() =>
+                        magaza.ac({
+                          receiverId: profil.id,
+                          aliciAdi: ad,
+                          animasyon: true,
+                        })
+                      }
+                    >
+                      <LinearGradient
+                        colors={[...RenkTokenlari.gradientPrimary]}
+                        style={styles.hediyeIc}
+                      >
+                        <Ionicons name="gift" size={18} color="#fff" />
+                        <Text style={styles.hediyeYazi}>Hediye gönder</Text>
+                      </LinearGradient>
+                    </Pressable>
+                  </View>
+                ) : null}
+              </ProfilXBaslik>
+
+              <ProfilXGonderiSekme
+                onPaylas={
+                  kendi ? () => router.push('/durum/olustur' as any) : undefined
                 }
               />
-            ) : null}
-
-            <View style={styles.followRow}>
-              <View style={styles.followItem}>
-                <Text style={styles.followN}>
-                  {gosterTakip
-                    ? TakipSayaciniFormatla(stats?.following_count ?? 0)
-                    : '—'}
-                </Text>
-                <Text style={styles.followL}>Takip</Text>
+              <View style={styles.gonderiBlok}>
+                <ModulHataSiniri modulAdi="profil-gonderiler" varyant="kart">
+                  {gosterDurumlar ? (
+                    <DurumProfilIzgarasi
+                      items={durumlar}
+                      yukleniyor={durumYukleniyor}
+                      baslikGizle
+                      yatayPadding={false}
+                      bosMetin="Bu kullanıcının henüz paylaşımı yok."
+                      onPress={(oge) => router.push(`/durum/${oge.id}` as any)}
+                      onUzunBas={kendi ? durumMenu : undefined}
+                    />
+                  ) : (
+                    <Text style={styles.gizliMetin}>Gönderiler gizli</Text>
+                  )}
+                </ModulHataSiniri>
               </View>
-              <View style={styles.followDivider} />
-              <View style={styles.followItem}>
-                <Text style={styles.followN}>
-                  {gosterTakipci
-                    ? TakipSayaciniFormatla(stats?.followers_count ?? 0)
-                    : '—'}
-                </Text>
-                <Text style={styles.followL}>Takipçi</Text>
-              </View>
-              <View style={styles.followDivider} />
-              <View style={styles.followItem}>
-                <Text style={styles.followN}>
-                  {gosterDurumlar
-                    ? TakipSayaciniFormatla(stats?.posts_count ?? durumlar.length)
-                    : '—'}
-                </Text>
-                <Text style={styles.followL}>Gönderi</Text>
-              </View>
-            </View>
+            </ScrollView>
+          )}
 
-            <View style={styles.metrics}>
-              {gosterSeviye ? (
-                <Metric
-                  label="Seviye"
-                  value={String(profil.level ?? 1)}
-                  icon="trophy-outline"
-                  tint={RenkTokenlari.violet}
-                />
-              ) : null}
-              {gosterSeviye ? (
-                <Metric
-                  label="Tecrübe"
-                  value={formatSayi(profil.xp ?? 0)}
-                  icon="flash-outline"
-                  tint={RenkTokenlari.accent}
-                />
-              ) : null}
-              {gosterTopup ? (
-                <Metric
-                  label="Yüklenen"
-                  value={formatSayi(stats?.total_topup_coin ?? 0)}
-                  icon="diamond-outline"
-                  tint={RenkTokenlari.accent}
-                />
-              ) : null}
-              <Metric
-                label="Alınan"
-                value={String(stats?.total_gifts_received ?? 0)}
-                icon="gift-outline"
-                tint={RenkTokenlari.mint}
-              />
-              {!gosterSeviye && !gosterTopup ? (
-                <Metric
-                  label="Gönderilen"
-                  value={String(stats?.total_gifts_sent ?? 0)}
-                  icon="heart-outline"
-                  tint={RenkTokenlari.danger}
-                />
-              ) : null}
-            </View>
-
-            {gosterAjans && ajansUyelik?.agency ? (
-              <View style={styles.ajansWrap}>
-                <AjansProfilRozeti
-                  varyant="uye"
-                  ajans={ajansUyelik.agency}
-                  tamGenislik
-                  onPress={() =>
-                    router.push(`/ajans/profil/${ajansUyelik.agency!.id}` as any)
-                  }
-                />
-              </View>
-            ) : null}
-
-            {!kendi ? (
-              <View style={styles.aksiyonlar}>
-                <Pressable
-                  style={styles.hediyeBtn}
-                  onPress={() =>
-                    magaza.ac({
-                      receiverId: profil.id,
-                      aliciAdi: ad,
-                      animasyon: true,
-                    })
-                  }
-                >
-                  <LinearGradient
-                    colors={[...RenkTokenlari.gradientPrimary]}
-                    style={styles.hediyeIc}
-                  >
-                    <Ionicons name="gift" size={18} color="#fff" />
-                    <Text style={styles.hediyeYazi}>Hediye gönder</Text>
-                  </LinearGradient>
-                </Pressable>
-              </View>
-            ) : (
-              <Pressable
-                style={styles.mesajBtn}
-                onPress={() => router.push('/profil-duzenle' as any)}
-              >
-                <Ionicons name="create-outline" size={16} color={RenkTokenlari.text} />
-                <Text style={styles.mesajYazi}>Profili düzenle</Text>
-              </Pressable>
-            )}
-
-            <View style={styles.gonderiBlok}>
-              <ModulHataSiniri modulAdi="profil-gonderiler" varyant="kart">
-                {gosterDurumlar ? (
-                  <DurumProfilIzgarasi
-                    items={durumlar}
-                    yukleniyor={durumYukleniyor}
-                    baslik="Gönderiler"
-                    bosMetin="Bu kullanıcının henüz paylaşımı yok."
-                    yatayPadding={false}
-                    onPress={(oge) => router.push(`/durum/${oge.id}` as any)}
-                    onUzunBas={kendi ? durumMenu : undefined}
-                    onPaylas={
-                      kendi
-                        ? () => router.push('/durum/olustur' as any)
-                        : undefined
-                    }
-                  />
-                ) : (
-                  <Text style={styles.gizliMetin}>Gönderiler gizli</Text>
-                )}
-              </ModulHataSiniri>
-            </View>
-          </ScrollView>
-        )}
-
-        <ProfilMedyaBuyutucu
-          uri={buyut?.uri ?? null}
-          tur={buyut?.tur}
-          onKapat={() => setBuyut(null)}
-        />
-
-        <HediyeMagazaBaglamasi magaza={magaza} />
-        {id ? (
-          <KullaniciGuvenlikMenusu
-            visible={guvenlikAcik}
-            targetUserId={id}
-            targetName={ad}
-            contentType="profile"
-            contentId={id}
-            onClose={() => setGuvenlikAcik(false)}
-            onBlocked={() => {
-              setGuvenlikAcik(false);
-              router.back();
-            }}
+          <ProfilMedyaBuyutucu
+            uri={buyut?.uri ?? null}
+            tur={buyut?.tur}
+            onKapat={() => setBuyut(null)}
           />
-        ) : null}
+
+          <HediyeMagazaBaglamasi magaza={magaza} />
+          {id ? (
+            <KullaniciGuvenlikMenusu
+              visible={guvenlikAcik}
+              targetUserId={id}
+              targetName={ad}
+              contentType="profile"
+              contentId={id}
+              onClose={() => setGuvenlikAcik(false)}
+              onBlocked={() => {
+                setGuvenlikAcik(false);
+                router.back();
+              }}
+            />
+          ) : null}
         </View>
       </ModulHataSiniri>
     </Screen>
@@ -695,7 +647,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pad: {
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
   bos: {
     ...TipografiTokenlari.body,
@@ -708,9 +660,9 @@ const styles = StyleSheet.create({
     gap: BoslukTokenlari.sm,
   },
   tombstoneAvatar: {
-    width: AVATAR,
-    height: AVATAR,
-    borderRadius: AVATAR / 2,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: RenkTokenlari.surface,
@@ -724,139 +676,57 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 280,
   },
-  coverWrap: {
-    width: '100%',
-    overflow: 'hidden',
-    marginBottom: -52,
-    position: 'relative',
-  },
-  coverPress: {
-    ...StyleSheet.absoluteFill,
-  },
-  cover: {
-    width: '100%',
-  },
-  coverFade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 72,
-  },
-  overlayBtn: {
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: RenkTokenlari.chipFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-    zIndex: 2,
-  },
-  backBtn: {
-    left: BoslukTokenlari.lg,
-  },
-  moreBtn: {
-    right: BoslukTokenlari.lg,
-  },
-  avatarBand: {
-    alignItems: 'center',
-    marginBottom: BoslukTokenlari.sm,
-    zIndex: 2,
-  },
-  avatarHit: {
-    width: AVATAR,
-    height: AVATAR,
-    borderRadius: AVATAR / 2,
-    overflow: 'hidden',
-  },
-  avatar: {
-    width: AVATAR,
-    height: AVATAR,
-    borderRadius: AVATAR / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarHarf: {
-    ...TipografiTokenlari.title,
-    color: '#12040C',
-    fontWeight: '800',
-  },
-  identity: {
-    alignItems: 'center',
-    paddingHorizontal: BoslukTokenlari.xl,
-    marginBottom: BoslukTokenlari.md,
-  },
-  adSatir: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    maxWidth: '100%',
-  },
   ad: {
     ...TipografiTokenlari.h1,
     color: RenkTokenlari.text,
     textAlign: 'center',
   },
-  username: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
-    marginTop: 4,
+  backBtn: {
+    position: 'absolute',
+    left: BoslukTokenlari.lg,
+    zIndex: 2,
   },
-  publicId: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textDim,
-    marginTop: 2,
-    letterSpacing: 0.4,
-  },
-  bio: {
-    ...TipografiTokenlari.body,
-    color: RenkTokenlari.textMuted,
-    textAlign: 'center',
-    marginTop: BoslukTokenlari.md,
-    lineHeight: 22,
-  },
-  followRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: BoslukTokenlari.xl,
-    marginTop: BoslukTokenlari.md,
-    marginBottom: BoslukTokenlari.sm,
-    paddingVertical: BoslukTokenlari.md,
-    paddingHorizontal: BoslukTokenlari.sm,
-    borderRadius: YaricapTokenlari.lg,
-    backgroundColor: RenkTokenlari.bgCard,
-    borderWidth: StyleSheet.hairlineWidth,
+  duzenleBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: BoslukTokenlari.md,
+    borderRadius: YaricapTokenlari.pill,
+    borderWidth: 1,
     borderColor: RenkTokenlari.border,
-    width: '90%',
+    backgroundColor: RenkTokenlari.bgCard,
   },
-  followItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  followDivider: {
-    width: StyleSheet.hairlineWidth,
-    height: 28,
-    backgroundColor: RenkTokenlari.border,
-  },
-  followN: {
-    ...TipografiTokenlari.body,
+  duzenleYazi: {
+    ...TipografiTokenlari.caption,
     color: RenkTokenlari.text,
-    fontWeight: '800',
+    fontWeight: '700',
   },
-  followL: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
+  rozetBlok: {
+    paddingHorizontal: BoslukTokenlari.lg,
+    gap: BoslukTokenlari.sm,
+    alignItems: 'stretch',
+  },
+  rozetSatir: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: BoslukTokenlari.sm,
+    marginTop: 10,
+    width: '100%',
+  },
+  rozetHucre: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
+  },
+  odaWrap: {
+    paddingHorizontal: BoslukTokenlari.lg,
+    marginTop: BoslukTokenlari.md,
   },
   metrics: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     gap: BoslukTokenlari.sm,
-    paddingHorizontal: BoslukTokenlari.xl,
+    paddingHorizontal: BoslukTokenlari.lg,
     marginTop: BoslukTokenlari.md,
     width: '100%',
   },
@@ -888,11 +758,11 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.textMuted,
   },
   ajansWrap: {
-    width: '90%',
+    marginHorizontal: BoslukTokenlari.lg,
     marginTop: BoslukTokenlari.lg,
   },
   aksiyonlar: {
-    width: '90%',
+    marginHorizontal: BoslukTokenlari.lg,
     gap: BoslukTokenlari.sm,
     marginTop: BoslukTokenlari.xl,
   },
@@ -909,28 +779,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '800',
   },
-  mesajBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: YaricapTokenlari.pill,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-    backgroundColor: RenkTokenlari.bgCard,
-    marginTop: BoslukTokenlari.xl,
-    width: '90%',
-  },
-  mesajYazi: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.text,
-    fontWeight: '700',
-  },
   gonderiBlok: {
     width: '100%',
-    paddingHorizontal: BoslukTokenlari.xl,
-    marginTop: BoslukTokenlari.lg,
+    paddingHorizontal: BoslukTokenlari.lg,
   },
   gizliMetin: {
     ...TipografiTokenlari.caption,

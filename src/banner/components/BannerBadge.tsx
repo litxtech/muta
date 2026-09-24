@@ -18,8 +18,8 @@ export function BannerBadge({ text, tags }: Props) {
 
   return (
     <View style={styles.row} accessibilityRole="text">
-      {items.map((t) => (
-        <View key={t} style={styles.badge}>
+      {items.map((t, i) => (
+        <View key={`${t}-${i}`} style={styles.badge}>
           <Text style={styles.text} numberOfLines={1}>
             {t}
           </Text>

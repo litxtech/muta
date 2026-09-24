@@ -6,6 +6,8 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import i18n from '../../../i18n';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 export function TakipOnaySheet({
   visible,
@@ -18,25 +20,26 @@ export function TakipOnaySheet({
   onConfirm: () => void;
   onClose: () => void;
 }) {
-  const handle = username ? `@${username}` : 'bu kullanıcıyı';
+  const { t } = useCeviri();
+  const handle = username ? `@${username}` : t('takip.buKullaniciyi');
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={() => undefined}>
-          <Text style={styles.title}>Takipten çık</Text>
+          <Text style={styles.title}>{t('takip.takiptenCik')}</Text>
           <Text style={styles.body}>
-            {handle} kullanıcısını takipten çıkarmak istiyor musun?
+            {t('takip.takiptenCikSoru', { ad: handle })}
           </Text>
           <Pressable
             style={styles.danger}
             onPress={onConfirm}
             accessibilityRole="button"
-            accessibilityLabel="Takipten çık"
+            accessibilityLabel={t('takip.takiptenCik')}
           >
-            <Text style={styles.dangerYazi}>Takipten Çık</Text>
+            <Text style={styles.dangerYazi}>{t('takip.takiptenCikBtn')}</Text>
           </Pressable>
           <Pressable style={styles.cancel} onPress={onClose}>
-            <Text style={styles.cancelYazi}>İptal</Text>
+            <Text style={styles.cancelYazi}>{t('ortak.iptal')}</Text>
           </Pressable>
         </Pressable>
       </Pressable>
@@ -48,13 +51,13 @@ export function takiptenCikOnayi(
   username: string | null | undefined,
   onConfirm: () => void,
 ) {
-  const handle = username ? `@${username}` : 'bu kullanıcıyı';
+  const handle = username ? `@${username}` : i18n.t('takip.buKullaniciyi');
   Alert.alert(
-    'Takipten çık',
-    `${handle} kullanıcısını takipten çıkarmak istiyor musun?`,
+    i18n.t('takip.takiptenCik'),
+    i18n.t('takip.takiptenCikSoru', { ad: handle }),
     [
-      { text: 'İptal', style: 'cancel' },
-      { text: 'Takipten Çık', style: 'destructive', onPress: onConfirm },
+      { text: i18n.t('ortak.iptal'), style: 'cancel' },
+      { text: i18n.t('takip.takiptenCikBtn'), style: 'destructive', onPress: onConfirm },
     ],
   );
 }

@@ -1,12 +1,19 @@
 /**
  * Tab bar ölçüleri — root absolute chrome (Tabs navigator dışında).
- * Oda fullScreenModal Tabs’ı dondursa bile tab bar bozulmaz.
+ * iOS: yüzen liquid-glass kapsül (yeni iPhone tab menü).
+ * Android: kenardan kenara kabuk.
  */
 
 import { Platform } from 'react-native';
 
-/** İkon satırı yüksekliği (safe-area hariç) */
-export const YUZEN_TAB_SHELL_H = 50;
+/** İkon satırı yüksekliği (safe-area / float hariç) */
+export const YUZEN_TAB_SHELL_H = Platform.OS === 'ios' ? 52 : 50;
+
+/** iOS kapsülün home indicator üstünde boşluğu */
+export const IOS_TAB_FLOAT_GAP = 8;
+
+/** iOS yatay kenar boşluğu — yüzen pill */
+export const IOS_TAB_H_MARGIN = 16;
 
 /**
  * Android sistem navigasyonu (gesture / 3-tuş) ile tab ikonları çakışmasın.
@@ -16,10 +23,12 @@ export const ANDROID_NAV_MIN_INSET = 24;
 
 /**
  * Tab ekranı scroll alt boşluğu — absolute chrome için kabuk + tipik nav payı.
- * Android’de 3-tuş çubuğu (~48) + ekstra nefes; iOS home indicator payı.
  */
 export const YUZEN_TAB_ICERIK_BOSLUGU =
-  YUZEN_TAB_SHELL_H + (Platform.OS === 'android' ? 56 : 40);
+  YUZEN_TAB_SHELL_H +
+  (Platform.OS === 'android'
+    ? 56
+    : IOS_TAB_FLOAT_GAP + 34);
 
 /** Son bilinen güvenli alt inset */
 let sonGuvenliAlt = Platform.OS === 'ios' ? 34 : ANDROID_NAV_MIN_INSET;
@@ -32,11 +41,14 @@ export function guvenliTabAltInset(safeBottom: number): number {
   if (Platform.OS === 'ios') {
     return sonGuvenliAlt > 0 ? sonGuvenliAlt : 34;
   }
-  // Android: sistem nav ile tab menü üst üste binmesin
   return Math.max(sonGuvenliAlt, ANDROID_NAV_MIN_INSET);
 }
 
-/** Toplam tab bar yüksekliği — overlay / mini-bar */
+/** Toplam tab bar yüksekliği — overlay / mini-bar / scroll pad */
 export function yuzenTabBarToplamYukseklik(safeBottom: number): number {
-  return YUZEN_TAB_SHELL_H + guvenliTabAltInset(safeBottom);
+  const inset = guvenliTabAltInset(safeBottom);
+  if (Platform.OS === 'ios') {
+    return YUZEN_TAB_SHELL_H + IOS_TAB_FLOAT_GAP + inset;
+  }
+  return YUZEN_TAB_SHELL_H + inset;
 }

@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 import { supabase } from '../../../lib/supabase';
 import { FinansIdempotencyAnahtariOlustur } from '../../cuzdan/islemler/FinansIdempotencyAnahtariOlustur';
 import { KillSwitchAktifMiSunucu } from '../../ozellik-bayraklari/okuma/KillSwitchAktifMiSunucu';
@@ -26,10 +27,10 @@ export async function HediyeGonder(input: {
   liveSessionId?: string | null;
 }): Promise<HediyeGonderSonuc> {
   if (await KillSwitchAktifMiSunucu('kill_gift_send')) {
-    return { ok: false, hata: 'Hediye gonderimi gecici olarak kapali.', kod: 'kill_switch' };
+    return { ok: false, hata: i18n.t('hediye.gonderimKapali'), kod: 'kill_switch' };
   }
   if (!(await OzellikBayragiAktifMiSunucu('gifts_enabled'))) {
-    return { ok: false, hata: 'Hediye ozelligi kapali.', kod: 'feature' };
+    return { ok: false, hata: i18n.t('hediye.ozellikKapali'), kod: 'feature' };
   }
 
   const key =

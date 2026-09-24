@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 /**
  * 1:1 görüşme oturumu — UI ekranından bağımsız yaşam döngüsü.
  * Minimize: sunum=minimized; LiveKit/DB bağlantısı açık kalır.
@@ -44,6 +45,7 @@ let durum: GorusmeOturumDurum | null = null;
 const dinleyiciler = new Set<Dinleyici>();
 let kanal: RealtimeChannel | null = null;
 let ringTimer: ReturnType<typeof setTimeout> | undefined;
+let billingTimer: ReturnType<typeof setInterval> | undefined;
 let korumaStop: (() => void) | undefined;
 let baslatmaSayaci = 0;
 
@@ -74,12 +76,42 @@ function kanalTemizle() {
     clearTimeout(ringTimer);
     ringTimer = undefined;
   }
+  if (billingTimer) {
+    clearInterval(billingTimer);
+    billingTimer = undefined;
+  }
   korumaStop?.();
   korumaStop = undefined;
   if (kanal) {
     void supabase.removeChannel(kanal);
     kanal = null;
   }
+}
+
+function billingHeartbeatBaslat(callId: string) {
+  if (billingTimer) {
+    clearInterval(billingTimer);
+    billingTimer = undefined;
+  }
+  billingTimer = setInterval(() => {
+    void (async () => {
+      try {
+        const { KisilerBillingHeartbeat } = await import(
+          '../../kisiler-kesif/islemler/KisilerKesifIslemleri'
+        );
+        const r = await KisilerBillingHeartbeat(callId);
+        if (r.ended || !r.continue) {
+          await GorusmeOturumTamamenBitir({ reason: 'insufficient_balance' });
+        } else if (r.low_balance) {
+          patch({
+            durumYazi: i18n.t('gorusme.coinAzaliyor'),
+          });
+        }
+      } catch {
+        /* billing heartbeat opsiyonel */
+      }
+    })();
+  }, 20_000);
 }
 
 async function keepAc() {
@@ -168,13 +200,16 @@ function realtimeKur(callId: string) {
             clearTimeout(ringTimer);
             ringTimer = undefined;
           }
-          patch({ baglandi: true, durumYazi: 'Bağlandı' });
+          patch({ baglandi: true, durumYazi: i18n.t('gorusme.baglandi') });
           if (next.call_type === 'video') {
             LiveKitBaglantiYoneticisi.setLocalVideoEnabled(true);
           }
           LiveKitBaglantiYoneticisi.muteLocalAudio(
             !!GorusmeOturumAl()?.muted,
           );
+          if (next.is_paid) {
+            billingHeartbeatBaslat(callId);
+          }
         }
         if (['ended', 'rejected', 'missed', 'cancelled'].includes(next.status)) {
           void GorusmeOturumTamamenBitir({
@@ -245,11 +280,11 @@ export async function GorusmeOturumEkranAc(input: {
       durumYazi:
         c.status === 'ringing'
           ? benArayan
-            ? 'Çalıyor…'
-            : 'Bağlanıyor…'
+            ? i18n.t('gorusme.caliyor')
+            : i18n.t('gorusme.baglaniyor')
           : c.status === 'active'
-            ? 'Bağlandı'
-            : 'Bağlanıyor…',
+            ? i18n.t('gorusme.baglandi')
+            : i18n.t('gorusme.baglaniyor'),
       sunum: 'fullscreen',
       hazir: false,
       hata: null,
@@ -287,7 +322,7 @@ export async function GorusmeOturumEkranAc(input: {
     }
 
     if (!medya.ok) {
-      patch({ hata: medya.hata ?? 'Bağlanılamadı', durumYazi: medya.hata ?? 'Hata' });
+      patch({ hata: medya.hata ?? i18n.t('gorusme.baglanilamadi'), durumYazi: medya.hata ?? i18n.t('ortak.hata') });
       return 'error';
     }
 
@@ -295,7 +330,7 @@ export async function GorusmeOturumEkranAc(input: {
       patch({
         mock: true,
         hazir: true,
-        durumYazi: 'Demo — ses/görüntü yok',
+        durumYazi: i18n.t('gorusme.demoSesYok'),
       });
       return 'started';
     }
@@ -307,7 +342,8 @@ export async function GorusmeOturumEkranAc(input: {
     }
 
     if (c.status === 'active' || durum.baglandi) {
-      patch({ baglandi: true, durumYazi: 'Bağlandı', hazir: true, mock: false });
+      patch({ baglandi: true, durumYazi: i18n.t('gorusme.baglandi'), hazir: true, mock: false });
+      if (c.is_paid) billingHeartbeatBaslat(callId);
     } else {
       patch({ hazir: true, mock: false });
     }
@@ -316,7 +352,7 @@ export async function GorusmeOturumEkranAc(input: {
     return 'started';
   } catch (e) {
     if (ticket === baslatmaSayaci) {
-      const msg = e instanceof Error ? e.message : 'Açılamadı';
+      const msg = e instanceof Error ? e.message : i18n.t('gorusme.acilamadi');
       patch({ hata: msg, durumYazi: msg });
       await GorusmeOturumTamamenBitir({ reason: 'start_error', dbBitir: true });
     }

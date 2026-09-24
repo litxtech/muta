@@ -28,12 +28,14 @@ import { DurumTarihSaat } from '../islemler/DurumZaman';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { DurumResimLightbox } from './DurumResimLightbox';
 import { KullaniciGuvenlikMenusu } from '../../moderasyon/bilesenler/KullaniciGuvenlikMenusu';
+import { DogrulanmisTik } from '../../kullanici-profili/bilesenler/DogrulanmisTik';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   visible: boolean;
@@ -56,6 +58,7 @@ export function DurumYorumPaneli({
   onChanged,
   onProfil,
 }: Props) {
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
   const { yukseklik: klavyeH, acik: klavyeAcik } = useKlavyeYuksekligi(0);
   const [yorumlar, setYorumlar] = useState<DurumYorum[]>([]);
@@ -113,7 +116,7 @@ export function DurumYorumPaneli({
     });
     setBusy(false);
     if (!r.ok) {
-      Alert.alert('Yorum', r.hata ?? 'Gönderilemedi');
+      Alert.alert(t('durumX.yorum'), r.hata ?? t('durumX.gonderilemedi'));
       return;
     }
     setMetin('');
@@ -129,7 +132,7 @@ export function DurumYorumPaneli({
     const r = await DurumMedyasiSecVeYukle('image');
     setMedyaBusy(false);
     if (!r.ok) {
-      if (!r.iptal) Alert.alert('Medya', r.hata);
+      if (!r.iptal) Alert.alert(t('ortak.medya'), r.hata);
       return;
     }
     setMedyaUrl(MedyaUriGuvenli(r.url));
@@ -137,16 +140,17 @@ export function DurumYorumPaneli({
 
   const sil = (y: DurumYorum) => {
     if (!y.is_mine && !canModerate) return;
-    Alert.alert('Yorumu sil', 'Bu yorum silinsin mi?', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(t('durumX.yorumuSil'), t('durumX.yorumuSilBody'), [
+      { text: t('ortak.vazgec'), style: 'cancel' },
       {
-        text: 'Sil',
+        text: t('ortak.sil'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
             const r = await DurumYorumSil(y.id);
-            if (!r.ok) Alert.alert('Yorum', r.hata ?? 'Silinemedi');
-            else {
+            if (!r.ok) {
+              Alert.alert(t('durumX.yorum'), r.hata ?? t('durum.silinemedi'));
+            } else {
               await yukle();
               onChanged?.();
             }
@@ -160,7 +164,7 @@ export function DurumYorumPaneli({
     void (async () => {
       const r = await DurumYorumBegeniToggle(y.id);
       if (!r.ok) {
-        Alert.alert('Beğeni', r.hata ?? 'Başarısız');
+        Alert.alert(t('durum.begeni'), r.hata ?? t('durum.basarisiz'));
         return;
       }
       setYorumlar((prev) =>
@@ -194,8 +198,12 @@ export function DurumYorumPaneli({
 
         <View style={styles.satirGovde}>
           <View style={styles.balon}>
-            <Pressable onPress={() => onProfil?.(y.user_id)}>
+            <Pressable
+              onPress={() => onProfil?.(y.user_id)}
+              style={styles.isimSatir}
+            >
               <Text style={styles.satirIsim}>{y.display_name}</Text>
+              <DogrulanmisTik dogrulandi={y.is_verified} size={12} />
             </Pressable>
             {y.body ? <Text style={styles.satirBody}>{y.body}</Text> : null}
             {y.media_url && /^https?:\/\//i.test(y.media_url.trim()) ? (
@@ -231,7 +239,7 @@ export function DurumYorumPaneli({
                   {y.like_count}
                 </Text>
               ) : (
-                <Text style={styles.metaYazi}>Beğen</Text>
+                <Text style={styles.metaYazi}>{t('durumX.begen')}</Text>
               )}
             </Pressable>
 
@@ -240,7 +248,7 @@ export function DurumYorumPaneli({
               onPress={() => setYanitHedef(y)}
               hitSlop={8}
             >
-              <Text style={styles.metaYazi}>Yanıtla</Text>
+              <Text style={styles.metaYazi}>{t('durumX.yanitla')}</Text>
             </Pressable>
 
             {!y.is_mine ? (
@@ -254,14 +262,14 @@ export function DurumYorumPaneli({
                   size={13}
                   color={RenkTokenlari.textDim}
                 />
-                <Text style={styles.metaYazi}>Bildir</Text>
+                <Text style={styles.metaYazi}>{t('profil.bildir')}</Text>
               </Pressable>
             ) : null}
 
             {y.is_mine || canModerate ? (
               <Pressable style={styles.metaBtn} onPress={() => sil(y)} hitSlop={8}>
                 <Text style={[styles.metaYazi, { color: RenkTokenlari.danger }]}>
-                  Sil
+                  {t('ortak.sil')}
                 </Text>
               </Pressable>
             ) : null}
@@ -297,8 +305,13 @@ export function DurumYorumPaneli({
           >
             <View style={styles.handle} />
             <View style={styles.baslikSatir}>
-              <Text style={styles.baslik}>Yorumlar</Text>
-              <Pressable onPress={onClose} hitSlop={12} style={styles.kapatBtn}>
+              <Text style={styles.baslik}>{t('durumX.yorumlar')}</Text>
+              <Pressable
+                onPress={onClose}
+                hitSlop={12}
+                style={styles.kapatBtn}
+                accessibilityLabel={t('ortak.kapat')}
+              >
                 <Ionicons name="close" size={22} color={RenkTokenlari.textMuted} />
               </Pressable>
             </View>
@@ -316,7 +329,7 @@ export function DurumYorumPaneli({
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="on-drag"
                 ListEmptyComponent={
-                  <Text style={styles.bos}>Henüz yorum yok — ilk yorumu sen yaz</Text>
+                  <Text style={styles.bos}>{t('durumX.henuzYorumYok')}</Text>
                 }
                 renderItem={({ item }) => renderYorum(item)}
               />
@@ -325,7 +338,7 @@ export function DurumYorumPaneli({
             {yanitHedef ? (
               <View style={styles.yanitBar}>
                 <Text style={styles.yanitBarYazi} numberOfLines={1}>
-                  {yanitHedef.display_name} yanıtlanıyor
+                  {t('durumX.yanitlaniyor', { ad: yanitHedef.display_name })}
                 </Text>
                 <Pressable onPress={() => setYanitHedef(null)} hitSlop={10}>
                   <Ionicons name="close-circle" size={18} color={RenkTokenlari.textDim} />
@@ -358,7 +371,7 @@ export function DurumYorumPaneli({
                 onPress={() => void resimSec()}
                 disabled={medyaBusy}
                 hitSlop={6}
-                accessibilityLabel="Yoruma resim ekle"
+                accessibilityLabel={t('durumX.yorumaResimEkle')}
               >
                 {medyaBusy ? (
                   <ActivityIndicator size="small" color={RenkTokenlari.primarySoft} />
@@ -376,8 +389,8 @@ export function DurumYorumPaneli({
                 onChangeText={setMetin}
                 placeholder={
                   yanitHedef
-                    ? `${yanitHedef.display_name} için yanıt yaz…`
-                    : 'Yorum yaz…'
+                    ? t('durumX.yanitYaz', { ad: yanitHedef.display_name })
+                    : t('durumX.yorumYaz')
                 }
                 placeholderTextColor={RenkTokenlari.textDim}
                 maxLength={500}
@@ -509,6 +522,13 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.text,
     fontWeight: '800',
     fontSize: 13,
+    flexShrink: 1,
+  },
+  isimSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexWrap: 'wrap',
   },
   satirBody: {
     ...TipografiTokenlari.body,

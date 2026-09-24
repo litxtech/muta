@@ -61,18 +61,19 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
-
-const GENDERS = [
-  { id: 'female', label: 'Kadın' },
-  { id: 'male', label: 'Erkek' },
-  { id: 'other', label: 'Diğer' },
-] as const;
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 const YIL_OPTS = DogumYilSecenekleri(18);
 const SPOTIFY_GREEN = '#1DB954';
 
 export default function RegisterScreen() {
+  const { t } = useCeviri();
   const { signUp, signInWithSpotify, refreshProfile } = useAuth();
+  const genders = [
+    { id: 'female', label: t('auth.cinsiyetKadin') },
+    { id: 'male', label: t('auth.cinsiyetErkek') },
+    { id: 'other', label: t('auth.cinsiyetDiger') },
+  ] as const;
   const [ayarHam, setAyarHam] = useState<KayitAlanAyarlari>(
     () => KayitAlanAyarlariOnbellektenAl() ?? VARSAYILAN_KAYIT_ALAN_AYARLARI,
   );
@@ -132,7 +133,7 @@ export default function RegisterScreen() {
   const avatarSec = async () => {
     const secim = await ProfilMedyasiSec('avatar');
     if (!secim.ok) {
-      if (!secim.iptal) Alert.alert('Fotoğraf', secim.hata);
+      if (!secim.iptal) Alert.alert(t('auth.fotograf'), secim.hata);
       return;
     }
     setAvatar(secim.medya);
@@ -140,17 +141,11 @@ export default function RegisterScreen() {
 
   const onSpotify = async () => {
     if (!TumPolitikaOnaylariVerildi(kayitPolitikalari, onaylar)) {
-      Alert.alert(
-        'Yasal onay',
-        'Spotify ile kayıt için yasal politikaları okuyup onaylamalısın.',
-      );
+      Alert.alert(t('auth.yasalOnay'), t('auth.yasalOnaySpotify'));
       return;
     }
     if (!yas18Beyani) {
-      Alert.alert(
-        'Yaş beyanı',
-        'Tamuso 18+ platformudur. Devam etmek için 18 yaşında veya daha büyük olduğunu beyan etmelisin.',
-      );
+      Alert.alert(t('auth.yasBeyani'), t('auth.yasBeyaniMesaj'));
       return;
     }
     setSpotifyLoading(true);
@@ -158,14 +153,17 @@ export default function RegisterScreen() {
     setSpotifyLoading(false);
     if (cancelled) return;
     if (error) {
-      Alert.alert('Spotify kaydı', error);
+      Alert.alert(t('auth.spotifyKaydi'), error);
       return;
     }
     const kabul = await KayitPolitikaKabulKaydet(
       kayitPolitikalari.map((p) => p.kod),
     );
     if (!kabul.ok) {
-      Alert.alert('Yasal onay', kabul.hata ?? 'Politika kaydı başarısız.');
+      Alert.alert(
+        t('auth.yasalOnay'),
+        kabul.hata ?? t('auth.politikaKaydiBasarisiz'),
+      );
     }
     router.replace('/(tabs)');
   };
@@ -185,21 +183,15 @@ export default function RegisterScreen() {
       ozelDegerler,
     });
     if (!dogrulama.ok) {
-      Alert.alert('Eksik bilgi', dogrulama.hata);
+      Alert.alert(t('auth.eksikBilgi'), dogrulama.hata);
       return;
     }
     if (!TumPolitikaOnaylariVerildi(kayitPolitikalari, onaylar)) {
-      Alert.alert(
-        'Yasal onay',
-        'Kayıt olmak için yasal politikaları okuyup onaylamalısın.',
-      );
+      Alert.alert(t('auth.yasalOnay'), t('auth.yasalOnayKayit'));
       return;
     }
     if (!yas18Beyani) {
-      Alert.alert(
-        'Yaş beyanı',
-        'Tamuso 18+ platformudur. Devam etmek için 18 yaşında veya daha büyük olduğunu beyan etmelisin.',
-      );
+      Alert.alert(t('auth.yasBeyani'), t('auth.yasBeyaniMesaj'));
       return;
     }
     setLoading(true);
@@ -220,9 +212,8 @@ export default function RegisterScreen() {
       if (!kabul.ok) {
         setLoading(false);
         Alert.alert(
-          'Yasal onay',
-          kabul.hata ??
-            'Politikalar kaydedilemedi. İnternet bağlantını kontrol edip tekrar dene.',
+          t('auth.yasalOnay'),
+          kabul.hata ?? t('auth.politikaKaydedilemedi'),
         );
         return;
       }
@@ -238,17 +229,14 @@ export default function RegisterScreen() {
     }
     if (result.error) {
       setLoading(false);
-      Alert.alert('Kayıt başarısız', result.error);
+      Alert.alert(t('auth.kayitBasarisiz'), result.error);
       return;
     }
     if (result.needsConfirm) {
       setLoading(false);
       const mail = (dogrulama.email ?? '').toLowerCase();
       if (!mail.includes('@')) {
-        Alert.alert(
-          'E-posta gerekli',
-          'Doğrulama kodu için geçerli bir e-posta yazmalısın.',
-        );
+        Alert.alert(t('auth.epostaGerekli'), t('auth.epostaGerekliMesaj'));
         return;
       }
       KayitBekleyenAvatarAyarla(avatar);
@@ -276,8 +264,8 @@ export default function RegisterScreen() {
     <Screen edges={['top']}>
       <KlavyeGuvenliAlan style={styles.flex}>
         <EkranBasligi
-          title="Hesap oluştur"
-          subtitle="Saniyeler içinde canlı odalara katıl"
+          title={t('auth.kayitBaslik')}
+          subtitle={t('auth.kayitAltBaslik')}
           onBack={() => router.back()}
         />
         {ayarYukleniyor ? (
@@ -298,7 +286,7 @@ export default function RegisterScreen() {
                   onPress={() => void avatarSec()}
                   style={styles.avatarWrap}
                   accessibilityRole="button"
-                  accessibilityLabel="Profil fotoğrafı seç"
+                  accessibilityLabel={t('auth.profilFotografiSec')}
                 >
                   {avatar ? (
                     <Image source={{ uri: avatar.uri }} style={styles.avatar} />
@@ -317,13 +305,13 @@ export default function RegisterScreen() {
                 </Pressable>
                 <Text style={styles.avatarHint}>
                   {KayitAlanEtiketi(
-                    'Profil fotoğrafı ekle',
+                    t('auth.profilFotografiEkle'),
                     AlanZorunluMu(ayar.alanlar.avatar),
                   )}
                 </Text>
                 {avatar ? (
                   <Pressable onPress={() => setAvatar(null)} hitSlop={8}>
-                    <Text style={styles.avatarKaldir}>Kaldır</Text>
+                    <Text style={styles.avatarKaldir}>{t('ortak.kaldir')}</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -331,7 +319,7 @@ export default function RegisterScreen() {
 
             {genderGorunur ? (
               <View style={styles.genderRow}>
-                {GENDERS.map((g) => (
+                {genders.map((g) => (
                   <Pressable
                     key={g.id}
                     onPress={() =>
@@ -355,17 +343,19 @@ export default function RegisterScreen() {
               </View>
             ) : null}
             {genderGorunur && !AlanZorunluMu(ayar.alanlar.gender) ? (
-              <Text style={styles.istegeBagliHint}>Cinsiyet (isteğe bağlı)</Text>
+              <Text style={styles.istegeBagliHint}>
+                {t('auth.cinsiyetIstegeBagli')}
+              </Text>
             ) : null}
 
             <TextField
-              label="Kullanıcı adı"
+              label={t('auth.kullaniciAdi')}
               autoCapitalize="none"
               value={username}
               onChangeText={setUsername}
             />
             <TextField
-              label="Görünen ad"
+              label={t('auth.gorunenAd')}
               value={displayName}
               onChangeText={setDisplayName}
             />
@@ -374,20 +364,17 @@ export default function RegisterScreen() {
               <View>
                 <Text style={styles.yasEtiket}>
                   {KayitAlanEtiketi(
-                    'Doğum tarihi',
+                    t('profil.dogumTarihi'),
                     AlanZorunluMu(ayar.alanlar.birth_date),
                   )}
                 </Text>
-                <Text style={styles.yasHint}>
-                  Platform yalnızca 18 yaş ve üzeri içindir. Yanlış beyan hesap
-                  kapatılmasına yol açar.
-                </Text>
+                <Text style={styles.yasHint}>{t('auth.yasPlatformHint')}</Text>
                 <View style={styles.dogumSatir}>
                   <View style={styles.dogumKol}>
                     <ProfilSecimAlani
-                      label="Yıl"
+                      label={t('auth.yil')}
                       valueLabel={dogumYil}
-                      placeholder="Yıl"
+                      placeholder={t('auth.yil')}
                       options={YIL_OPTS}
                       onSelect={(id) => {
                         setDogumYil(id);
@@ -404,9 +391,9 @@ export default function RegisterScreen() {
                   </View>
                   <View style={styles.dogumKolKisa}>
                     <ProfilSecimAlani
-                      label="Ay"
+                      label={t('auth.ay')}
                       valueLabel={dogumAy}
-                      placeholder="Ay"
+                      placeholder={t('auth.ay')}
                       options={DOGUM_AYLARI}
                       onSelect={(id) => {
                         setDogumAy(id);
@@ -422,9 +409,9 @@ export default function RegisterScreen() {
                   </View>
                   <View style={styles.dogumKolKisa}>
                     <ProfilSecimAlani
-                      label="Gün"
+                      label={t('auth.gun')}
                       valueLabel={dogumGun}
-                      placeholder="Gün"
+                      placeholder={t('auth.gun')}
                       options={DogumGunSecenekleri(
                         dogumYil || '2000',
                         dogumAy || '01',
@@ -439,7 +426,7 @@ export default function RegisterScreen() {
             {phoneGorunur ? (
               <TextField
                 label={KayitAlanEtiketi(
-                  'Telefon',
+                  t('auth.telefon'),
                   AlanZorunluMu(ayar.alanlar.phone),
                 )}
                 keyboardType="phone-pad"
@@ -452,7 +439,7 @@ export default function RegisterScreen() {
             {emailGorunur ? (
               <TextField
                 label={KayitAlanEtiketi(
-                  'E-posta',
+                  t('auth.eposta'),
                   AlanZorunluMu(ayar.alanlar.email) || !phone.trim(),
                 )}
                 autoCapitalize="none"
@@ -462,7 +449,7 @@ export default function RegisterScreen() {
               />
             ) : null}
             <TextField
-              label="Şifre"
+              label={t('auth.sifre')}
               secureTextEntry
               value={password}
               onChangeText={setPassword}
@@ -518,10 +505,10 @@ export default function RegisterScreen() {
                     alan.alan_turu === 'number' ? 'numeric' : 'default'
                   }
                   value={ozelDegerler[alan.anahtar] ?? ''}
-                  onChangeText={(t) =>
+                  onChangeText={(metin) =>
                     setOzelDegerler((prev) => ({
                       ...prev,
-                      [alan.anahtar]: t,
+                      [alan.anahtar]: metin,
                     }))
                   }
                 />
@@ -540,8 +527,7 @@ export default function RegisterScreen() {
                 ) : null}
               </View>
               <Text style={styles.yasBeyanEtiket}>
-                18 yaşında veya daha büyüğüm. (Beyan — kimlik doğrulanmış yaş
-                değildir. Platform 18+’tır.)
+                {t('auth.yas18BeyanEtiket')}
               </Text>
             </Pressable>
 
@@ -557,7 +543,7 @@ export default function RegisterScreen() {
             />
 
             <GradientButton
-              title="Kayıt Ol"
+              title={t('auth.kayit')}
               onPress={onSubmit}
               loading={loading}
             />
@@ -570,20 +556,22 @@ export default function RegisterScreen() {
                 spotifyLoading && styles.spotifyDisabled,
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Spotify ile kayıt ol"
+              accessibilityLabel={t('auth.spotifyIleKayit')}
             >
               <Ionicons name="musical-notes" size={20} color="#121212" />
               <Text style={styles.spotifyText}>
                 {spotifyLoading
-                  ? 'Spotify bağlanıyor…'
-                  : 'Spotify ile kayıt ol'}
+                  ? t('auth.spotifyBaglaniyor')
+                  : t('auth.spotifyIleKayit')}
               </Text>
             </Pressable>
 
             <Link href="/(auth)/login" asChild>
               <Pressable style={styles.switchRow}>
-                <Text style={styles.switchText}>Zaten hesabın var mı? </Text>
-                <Text style={styles.switchLink}>Giriş yap</Text>
+                <Text style={styles.switchText}>
+                  {t('auth.hesabinVarMi')}{' '}
+                </Text>
+                <Text style={styles.switchLink}>{t('auth.giris')}</Text>
               </Pressable>
             </Link>
           </KlavyeKapatan>

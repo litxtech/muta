@@ -8,6 +8,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   politikalar: PolitikaGorunum[];
@@ -23,11 +24,12 @@ export function PolitikaOnayKutulari({
   onDegisti,
   onOku,
 }: Props) {
+  const { t } = useCeviri();
   if (!politikalar.length) return null;
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.baslik}>Yasal onaylar</Text>
+      <Text style={styles.baslik}>{t('auth.yasalOnaylar')}</Text>
       {politikalar.map((p) => {
         const secili = !!onaylar[p.kod];
         return (
@@ -47,7 +49,7 @@ export function PolitikaOnayKutulari({
             </Pressable>
             <Pressable style={styles.metinHit} onPress={() => onOku(p.kod)}>
               <Text style={styles.etiket}>
-                {p.onayEtiketi} <Text style={styles.link}>Oku</Text>
+                {p.onayEtiketi} <Text style={styles.link}>{t('auth.politikayiOku')}</Text>
               </Text>
             </Pressable>
           </View>

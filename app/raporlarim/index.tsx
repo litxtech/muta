@@ -11,6 +11,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { BosDurum } from '../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
@@ -40,6 +41,7 @@ function durumRenk(st: string) {
 }
 
 export default function RaporlarimEkrani() {
+  const { t } = useCeviri();
   const [items, setItems] = useState<KullaniciRaporOzeti[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
 
@@ -63,8 +65,8 @@ export default function RaporlarimEkrani() {
     <Screen>
       <ModulHataSiniri modulAdi="raporlarim">
         <EkranBasligi
-          title="RaporlarÄ±m"
-          subtitle="Bildirimlerin Â· durum takibi"
+          title={t('raporlarim.baslik')}
+          subtitle={t('raporlarim.altBaslik')}
           onBack={() => router.back()}
         />
         <View style={styles.ust}>
@@ -73,7 +75,7 @@ export default function RaporlarimEkrani() {
             onPress={() => router.push('/bildir' as any)}
           >
             <Ionicons name="flag-outline" size={16} color={RenkTokenlari.primarySoft} />
-            <Text style={styles.chipYazi}>Yeni bildir</Text>
+            <Text style={styles.chipYazi}>{t('raporlarim.yeniBildir')}</Text>
           </Pressable>
         </View>
         <FlatList
@@ -93,8 +95,8 @@ export default function RaporlarimEkrani() {
           ListEmptyComponent={
             yukleniyor ? null : (
               <BosDurum
-                title="HenÃ¼z rapor yok"
-                body="Bir kullanÄ±cÄ±yÄ± bildirdiÄŸinde durumu burada takip edersin."
+                title={t('raporlarim.bos')}
+                body={t('raporlarim.bosBody')}
               />
             )
           }
@@ -103,7 +105,7 @@ export default function RaporlarimEkrani() {
               item.target?.display_name?.trim() ||
               (item.target?.username
                 ? `@${item.target.username}`
-                : 'KullanÄ±cÄ±');
+                : t('ortak.kullanici'));
             return (
               <Pressable
                 style={styles.kart}

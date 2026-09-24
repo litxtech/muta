@@ -18,13 +18,14 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { Room } from '../../../types/models';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { useCeviri, type CeviriAnahtari } from '../../../i18n/useCeviri';
 
-const MODE_LABEL: Record<Room['mode'], string> = {
-  party: 'Parti',
-  dating: 'Flört',
-  karaoke: 'Karaoke',
-  game: 'Oyun',
-  private: 'Özel',
+const MODE_KEY: Record<Room['mode'], CeviriAnahtari> = {
+  party: 'modlar.parti',
+  dating: 'modlar.flort',
+  karaoke: 'modlar.karaoke',
+  game: 'modlar.oyun',
+  private: 'modlar.ozel',
 };
 
 type Props = {
@@ -35,6 +36,7 @@ type Props = {
 
 /** Ana viewport’un görsel çapa sahnesi — markanın ürün yüzü */
 export function AnaSayfaSahneKarti({ room, onPress, onKesfet }: Props) {
+  const { t } = useCeviri();
   const kapak = MedyaUriGuvenli(room.cover_url ?? room.host?.avatar_url);
 
   return (
@@ -43,7 +45,7 @@ export function AnaSayfaSahneKarti({ room, onPress, onKesfet }: Props) {
         onPress={onPress}
         style={({ pressed }) => [styles.press, pressed && styles.pressed]}
         accessibilityRole="button"
-        accessibilityLabel={`${room.title} sahnesine gir`}
+        accessibilityLabel={t('anaSayfa.sahneyeGirA11y', { baslik: room.title })}
       >
         <View style={styles.sahne}>
           {kapak ? (
@@ -71,9 +73,9 @@ export function AnaSayfaSahneKarti({ room, onPress, onKesfet }: Props) {
           <View style={styles.ustSerit}>
             <View style={styles.canliRozet}>
               <AnaSayfaCanliNokta boyut={6} />
-              <Text style={styles.canliYazi}>ŞİMDİ SAHNEDE</Text>
+              <Text style={styles.canliYazi}>{t('anaSayfa.simdiSahnede')}</Text>
             </View>
-            <Text style={styles.mod}>{MODE_LABEL[room.mode]}</Text>
+            <Text style={styles.mod}>{t(MODE_KEY[room.mode])}</Text>
           </View>
 
           <View style={styles.alt}>
@@ -99,7 +101,7 @@ export function AnaSayfaSahneKarti({ room, onPress, onKesfet }: Props) {
                   <Ionicons name="person" size={12} color={RenkTokenlari.textOnPrimary} />
                 </LinearGradient>
                 <Text style={styles.host} numberOfLines={1}>
-                  {room.host?.display_name ?? 'Ev sahibi'}
+                  {room.host?.display_name ?? t('anaSayfa.evSahibi')}
                 </Text>
               </View>
               <View style={styles.dinleyici}>
@@ -115,7 +117,7 @@ export function AnaSayfaSahneKarti({ room, onPress, onKesfet }: Props) {
                 end={{ x: 1, y: 0 }}
                 style={styles.ctaIc}
               >
-                <Text style={styles.ctaYazi}>Sahneye gir</Text>
+                <Text style={styles.ctaYazi}>{t('anaSayfa.sahneyeGir')}</Text>
                 <Ionicons name="arrow-forward" size={16} color={RenkTokenlari.textOnPrimary} />
               </LinearGradient>
             </View>
@@ -125,7 +127,7 @@ export function AnaSayfaSahneKarti({ room, onPress, onKesfet }: Props) {
 
       {onKesfet ? (
         <Pressable onPress={onKesfet} style={styles.kesfetBag} hitSlop={6}>
-          <Text style={styles.kesfetYazi}>Tüm sahneleri keşfet</Text>
+          <Text style={styles.kesfetYazi}>{t('anaSayfa.tumSahneleriKesfet')}</Text>
           <Ionicons name="compass-outline" size={14} color={RenkTokenlari.primarySoft} />
         </Pressable>
       ) : null}
@@ -139,6 +141,7 @@ type BosProps = {
 };
 
 export function AnaSayfaSahneBos({ onKesfet, onOlustur }: BosProps) {
+  const { t } = useCeviri();
   return (
     <View style={styles.dis}>
       <LinearGradient
@@ -148,10 +151,10 @@ export function AnaSayfaSahneBos({ onKesfet, onOlustur }: BosProps) {
         style={styles.bosSahne}
       >
         <View style={styles.bosIcerik}>
-          <Text style={styles.bosEyebrow}>SAHNE BEKLİYOR</Text>
-          <Text style={styles.bosBaslik}>İlk sahneyi sen aç</Text>
+          <Text style={styles.bosEyebrow}>{t('anaSayfa.sahneBekliyor')}</Text>
+          <Text style={styles.bosBaslik}>{t('anaSayfa.ilkSahneyiSenAc')}</Text>
           <Text style={styles.bosAlt}>
-            Canlı oda yok — keşfet veya kendi sahneni kur.
+            {t('anaSayfa.sahneBosAlt')}
           </Text>
           <View style={styles.bosAksiyonlar}>
             <Pressable onPress={onKesfet} style={styles.bosBtnAna}>
@@ -159,12 +162,12 @@ export function AnaSayfaSahneBos({ onKesfet, onOlustur }: BosProps) {
                 colors={[...RenkTokenlari.gradientPrimary]}
                 style={styles.bosBtnAnaIc}
               >
-                <Text style={styles.bosBtnAnaYazi}>Keşfet</Text>
+                <Text style={styles.bosBtnAnaYazi}>{t('kesfet.baslik')}</Text>
               </LinearGradient>
             </Pressable>
             {onOlustur ? (
               <Pressable onPress={onOlustur} style={styles.bosBtnIkincil}>
-                <Text style={styles.bosBtnIkincilYazi}>Oda kur</Text>
+                <Text style={styles.bosBtnIkincilYazi}>{t('anaSayfa.odaKur')}</Text>
               </Pressable>
             ) : null}
           </View>

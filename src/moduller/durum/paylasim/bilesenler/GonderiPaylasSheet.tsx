@@ -26,6 +26,7 @@ import {
 import { GonderiPaylasServisi } from '../GonderiPaylasServisi';
 import { GonderiPaylasKullaniciListesi } from './GonderiPaylasKullaniciListesi';
 import type { GonderiPaylasAlici } from '../tipler';
+import { useCeviri } from '../../../../i18n/useCeviri';
 
 type Props = {
   visible: boolean;
@@ -40,6 +41,7 @@ export function GonderiPaylasSheet({
   onClose,
   onBasarili,
 }: Props) {
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [sorgu, setSorgu] = useState('');
@@ -86,7 +88,7 @@ export function GonderiPaylasSheet({
           if (!k.peer_id) continue;
           konusmaList.push({
             id: k.peer_id,
-            display_name: k.peer_display_name || k.peer_username || 'Kullanıcı',
+            display_name: k.peer_display_name || k.peer_username || t('ortak.kullanici'),
             username: k.peer_username ?? null,
             avatar_url: k.peer_avatar_url ?? null,
             thread_id: k.id,
@@ -136,7 +138,7 @@ export function GonderiPaylasSheet({
           setArama(
             liste.map((k) => ({
               id: k.id,
-              display_name: k.display_name || k.username || 'Kullanıcı',
+              display_name: k.display_name || k.username || t('ortak.kullanici'),
               username: k.username,
               avatar_url: k.avatar_url,
             })),
@@ -186,15 +188,15 @@ export function GonderiPaylasSheet({
         note: note.trim() || null,
       });
       if (!r.ok) {
-        Alert.alert('Paylaş', r.hata ?? 'Gönderilemedi.');
+        Alert.alert(t('ortak.paylas'), r.hata ?? t('durumX.gonderilemedi'));
         return;
       }
       const n = r.sent_count;
       onBasarili?.(n);
       onClose();
       Alert.alert(
-        'Gönderildi',
-        n > 1 ? `${n} kişiye gönderildi` : 'Gönderildi',
+        t('ortak.basarili'),
+        n > 1 ? t('durumX.gonderildiN', { n }) : t('ortak.basarili'),
       );
     } finally {
       gonderLock.current = false;
@@ -205,10 +207,10 @@ export function GonderiPaylasSheet({
   const secimSayisi = secilen.size;
   const cta =
     secimSayisi === 0
-      ? 'Gönder'
+      ? t('ortak.gonder')
       : secimSayisi === 1
-        ? '1 kişiye gönder'
-        : `${secimSayisi} kişiye gönder`;
+        ? t('durumX.birKisiyeGonder')
+        : t('durumX.nKisiyeGonder', { n: secimSayisi });
 
   return (
     <Modal
@@ -229,7 +231,7 @@ export function GonderiPaylasSheet({
           ]}
         >
           <View style={styles.handle} />
-          <Text style={styles.baslik}>Gönderiyi paylaş</Text>
+          <Text style={styles.baslik}>{t('durumX.gonderiyiPaylas')}</Text>
 
           <View style={styles.aramaKutu}>
             <Ionicons
@@ -240,7 +242,7 @@ export function GonderiPaylasSheet({
             <TextInput
               value={sorgu}
               onChangeText={setSorgu}
-              placeholder="Ara"
+              placeholder={t('ortak.ara')}
               placeholderTextColor={RenkTokenlari.textDim}
               style={styles.aramaInput}
               autoCapitalize="none"
@@ -254,7 +256,7 @@ export function GonderiPaylasSheet({
           <TextInput
             value={note}
             onChangeText={setNote}
-            placeholder="Mesaj ekle (isteğe bağlı)"
+            placeholder={t('durumX.mesajEkle')}
             placeholderTextColor={RenkTokenlari.textDim}
             style={styles.noteInput}
             maxLength={500}
@@ -262,7 +264,7 @@ export function GonderiPaylasSheet({
           />
 
           <Text style={styles.bolum}>
-            {aramaAktif ? 'Sonuçlar' : 'Son konuşmalar / takip'}
+            {aramaAktif ? t('durumX.sonuclar') : t('durumX.sonKonusmalar')}
           </Text>
 
           <View style={styles.listeAlan}>
@@ -275,8 +277,8 @@ export function GonderiPaylasSheet({
                 onToggle={toggle}
                 bosMetin={
                   aramaAktif
-                    ? 'Kullanıcı bulunamadı'
-                    : 'Henüz konuşma veya takip yok'
+                    ? t('durumX.kullaniciBulunamadi')
+                    : t('durumX.konusmaTakipYok')
                 }
               />
             )}

@@ -1,3 +1,4 @@
+import i18n from '../../i18n';
 import type { TakipIslemKodu } from './TakipTipleri';
 
 export function TakipHataMesaji(
@@ -6,27 +7,27 @@ export function TakipHataMesaji(
 ): string {
   switch (code) {
     case 'rate_limited':
-      return 'Çok hızlı işlem yapıyorsun. Biraz sonra tekrar dene.';
+      return i18n.t('takip.hataRateLimited');
     case 'blocked':
-      return 'Bu kullanıcıyla iletişim engellenmiş.';
+      return i18n.t('takip.hataBlocked');
     case 'self':
-      return 'Kendini takip edemezsin.';
+      return i18n.t('takip.hataSelf');
     case 'guest':
-      return 'Takip için hesabını tamamla.';
+      return i18n.t('takip.hataGuest');
     case 'not_found':
-      return 'Kullanıcı bulunamadı.';
+      return i18n.t('takip.hataNotFound');
     case 'forbidden':
-      return 'Bu işlem için yetkin yok.';
+      return i18n.t('takip.hataForbidden');
     case 'unauthenticated':
-      return 'Oturumun yok.';
+      return i18n.t('takip.hataUnauthenticated');
     case 'timeout':
-      return 'Bağlantı zaman aşımına uğradı.';
+      return i18n.t('takip.hataTimeout');
     case 'network':
-      return 'İnternet bağlantısı yok. Takip kaydedilmedi.';
+      return i18n.t('takip.hataNetwork');
     case 'server':
-      return 'Sunucu hatası. Tekrar dene.';
+      return i18n.t('takip.hataServer');
     default:
-      return fallback || 'İşlem tamamlanamadı.';
+      return fallback || i18n.t('takip.hataGenel');
   }
 }
 

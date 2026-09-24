@@ -16,6 +16,7 @@ import { openUrlSafely } from './openUrlSafely';
 import { RenkTokenlari } from '../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../tasarim-sistemi/TipografiTokenlari';
 import { Screen } from '../../components/Screen';
+import { useCeviri } from '../../i18n/useCeviri';
 
 type NavState = {
   canGoBack: boolean;
@@ -24,6 +25,7 @@ type NavState = {
 };
 
 export function TamusoWebViewScreen() {
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ url?: string; title?: string }>();
   const initialCheck = useMemo(
@@ -43,7 +45,7 @@ export function TamusoWebViewScreen() {
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [error, setError] = useState<string | null>(
-    initialCheck.ok ? null : initialCheck.reason ?? 'Geçersiz URL',
+    initialCheck.ok ? null : initialCheck.reason ?? t('webview.gecersizUrl'),
   );
   const [openingExternal, setOpeningExternal] = useState(false);
 
@@ -53,17 +55,20 @@ export function TamusoWebViewScreen() {
     if (nav.title) setTitle(nav.title);
   }, []);
 
-  const openExternal = useCallback(async (url: string) => {
-    setOpeningExternal(true);
-    setError(null);
-    const sonuc = await openUrlSafely(url);
-    setOpeningExternal(false);
-    if (sonuc === 'failed') {
-      setError('Bağlantı açılamadı');
-      return;
-    }
-    if (router.canGoBack()) router.back();
-  }, []);
+  const openExternal = useCallback(
+    async (url: string) => {
+      setOpeningExternal(true);
+      setError(null);
+      const sonuc = await openUrlSafely(url);
+      setOpeningExternal(false);
+      if (sonuc === 'failed') {
+        setError(t('webview.baglantiAcilamadi'));
+        return;
+      }
+      if (router.canGoBack()) router.back();
+    },
+    [t],
+  );
 
   useEffect(() => {
     if (!WebView && initialCheck.ok && initialCheck.url) {
@@ -75,14 +80,14 @@ export function TamusoWebViewScreen() {
     return (
       <Screen>
         <View style={[styles.errorWrap, { paddingTop: insets.top + 24 }]}>
-          <Text style={styles.errorTitle}>Sayfa açılamadı</Text>
+          <Text style={styles.errorTitle}>{t('webview.sayfaAcilamadi')}</Text>
           <Text style={styles.errorBody}>{error}</Text>
           <Pressable
             accessibilityRole="button"
             style={styles.errorBtn}
             onPress={() => router.back()}
           >
-            <Text style={styles.errorBtnText}>Kapat</Text>
+            <Text style={styles.errorBtnText}>{t('ortak.kapat')}</Text>
           </Pressable>
         </View>
       </Screen>
@@ -96,21 +101,20 @@ export function TamusoWebViewScreen() {
           {openingExternal && !error ? (
             <>
               <ActivityIndicator color={RenkTokenlari.primary} />
-              <Text style={styles.errorBody}>Bağlantı açılıyor…</Text>
+              <Text style={styles.errorBody}>{t('webview.baglantiAciliyor')}</Text>
             </>
           ) : (
             <>
-              <Text style={styles.errorTitle}>WebView yok</Text>
+              <Text style={styles.errorTitle}>{t('webview.webviewYok')}</Text>
               <Text style={styles.errorBody}>
-                {error ??
-                  'Bu development build’de WebView / WebBrowser yok. Yeni native build alın veya bağlantıyı dışarıda açın.'}
+                {error ?? t('webview.webviewYokBody')}
               </Text>
               <Pressable
                 accessibilityRole="button"
                 style={styles.errorBtn}
                 onPress={() => void openExternal(initialCheck.url!)}
               >
-                <Text style={styles.errorBtnText}>Dışarıda aç</Text>
+                <Text style={styles.errorBtnText}>{t('webview.disaridaAc')}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -121,14 +125,16 @@ export function TamusoWebViewScreen() {
                   });
                 }}
               >
-                <Text style={styles.errorBtnSecondaryText}>Sistem tarayıcısı</Text>
+                <Text style={styles.errorBtnSecondaryText}>
+                  {t('webview.sistemTarayici')}
+                </Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 style={styles.errorBtnSecondary}
                 onPress={() => router.back()}
               >
-                <Text style={styles.errorBtnSecondaryText}>Kapat</Text>
+                <Text style={styles.errorBtnSecondaryText}>{t('ortak.kapat')}</Text>
               </Pressable>
             </>
           )}
@@ -156,7 +162,7 @@ export function TamusoWebViewScreen() {
 
       {error ? (
         <View style={styles.errorWrap}>
-          <Text style={styles.errorTitle}>Yükleme hatası</Text>
+          <Text style={styles.errorTitle}>{t('webview.yuklemeHatasi')}</Text>
           <Text style={styles.errorBody}>{error}</Text>
           <Pressable
             accessibilityRole="button"
@@ -166,7 +172,7 @@ export function TamusoWebViewScreen() {
               webRef.current?.reload();
             }}
           >
-            <Text style={styles.errorBtnText}>Yeniden dene</Text>
+            <Text style={styles.errorBtnText}>{t('ortak.tekrarDene')}</Text>
           </Pressable>
         </View>
       ) : (
@@ -188,11 +194,11 @@ export function TamusoWebViewScreen() {
           }}
           onError={(e: { nativeEvent: { description?: string } }) => {
             setLoading(false);
-            setError(e.nativeEvent.description || 'Bağlantı hatası');
+            setError(e.nativeEvent.description || t('ortak.baglantiHatasi'));
           }}
           onHttpError={() => {
             setLoading(false);
-            setError('Sayfa yüklenemedi (HTTP hata)');
+            setError(t('webview.sayfaYuklenemediHttp'));
           }}
           setSupportMultipleWindows={false}
           allowsBackForwardNavigationGestures

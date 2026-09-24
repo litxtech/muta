@@ -1,0 +1,14 @@
+{
+  "altBaslik": "سجّل الخروج من جهاز واحد أو من جميعها",
+  "oturumlar": "الجلسات",
+  "migrationHint": "تأكد من تشغيل الترحيل 003.",
+  "kapatilamadi": "تعذّر الإغلاق",
+  "digerCikisYapildi": "تم تسجيل الخروج من الأجهزة الأخرى.",
+  "islemBasarisiz": "فشلت العملية",
+  "kayitliCihazYok": "لا أجهزة بعد",
+  "kayitliCihazYokBody": "تُدرج هنا الأجهزة التي تسجّل الدخول عليها.",
+  "tumCihazlardanCikis": "تسجيل الخروج من كل الأجهزة الأخرى",
+  "cihaz": "جهاز",
+  "buCihaz": "هذا الجهاز",
+  "cikis": "تسجيل الخروج"
+}

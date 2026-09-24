@@ -7,6 +7,7 @@ import {
   AnimasyonTokenlari,
   BoslukTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri, type CeviriAnahtari } from '../../../i18n/useCeviri';
 
 type Props = {
   kullaniciAdi?: string | null;
@@ -16,12 +17,12 @@ type Props = {
   solAksiyon?: ReactNode;
 };
 
-function gunlukFisilti(saat: number): string {
-  if (saat < 6) return 'Gece sahnesi açık';
-  if (saat < 12) return 'Sabah akışı';
-  if (saat < 17) return 'Gündüz akışı';
-  if (saat < 22) return 'Bu gece senin';
-  return 'Gece vardiyası';
+function gunlukFisiltiAnahtar(saat: number): CeviriAnahtari {
+  if (saat < 6) return 'anaSayfa.fisiltiGeceSahne';
+  if (saat < 12) return 'anaSayfa.fisiltiSabah';
+  if (saat < 17) return 'anaSayfa.fisiltiGunduz';
+  if (saat < 22) return 'anaSayfa.fisiltiBuGece';
+  return 'anaSayfa.fisiltiGeceVardiya';
 }
 
 /** Ana sayfa üst bar — hamburger + selam + cüzdan */
@@ -32,8 +33,12 @@ export function AnaSayfaMarkaBasligi({
   onWalletPress,
   solAksiyon,
 }: Props) {
+  const { t } = useCeviri();
   const belirme = useRef(new Animated.Value(0)).current;
-  const fisilti = useMemo(() => gunlukFisilti(new Date().getHours()), []);
+  const fisilti = useMemo(
+    () => t(gunlukFisiltiAnahtar(new Date().getHours())),
+    [t],
+  );
 
   useEffect(() => {
     Animated.timing(belirme, {
@@ -66,13 +71,13 @@ export function AnaSayfaMarkaBasligi({
           <Text style={styles.fisilti}>{fisilti}</Text>
           {kullaniciAdi ? (
             <Text style={styles.selam} numberOfLines={1}>
-              Merhaba, {kullaniciAdi}
+              {t('anaSayfa.selamAd', { ad: kullaniciAdi })}
             </Text>
           ) : (
-            <Text style={styles.selam}>Merhaba</Text>
+            <Text style={styles.selam}>{t('anaSayfa.selam')}</Text>
           )}
         </View>
-        <Pressable onPress={onWalletPress} hitSlop={8} accessibilityLabel="Cüzdan">
+        <Pressable onPress={onWalletPress} hitSlop={8} accessibilityLabel={t('sekmeler.cuzdan')}>
           <WalletChip coins={coins} diamonds={diamonds} />
         </Pressable>
       </View>

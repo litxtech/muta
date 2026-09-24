@@ -30,6 +30,7 @@ import {
 } from '../islemler/CanliSohbetIslemleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   kanal: { tur: 'oda'; id: string } | { tur: 'canli'; id: string };
@@ -58,6 +59,7 @@ export function CanliSohbetPaneli({
   onClose,
   varyant = 'dock',
 }: Props) {
+  const { t } = useCeviri();
   const [messages, setMessages] = useState<CanliSohbetMesajGorunum[]>([]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -77,9 +79,9 @@ export function CanliSohbetPaneli({
       setHata(null);
     } catch (e) {
       setMessages([]);
-      setHata(e instanceof Error ? e.message : 'Sohbet yüklenemedi');
+      setHata(e instanceof Error ? e.message : t('canliYayin.sohbetYuklenemedi'));
     }
-  }, [kanal.id, kanal.tur]);
+  }, [kanal.id, kanal.tur, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -133,7 +135,7 @@ export function CanliSohbetPaneli({
       user_id: currentUserId ?? 'me',
       body,
       created_at: new Date().toISOString(),
-      display_name: 'Sen',
+      display_name: t('gorusme.sen'),
     };
     setMessages((prev) => [...prev, optimistic]);
     setText('');
@@ -146,7 +148,7 @@ export function CanliSohbetPaneli({
           });
     setBusy(false);
     if (!r.ok) {
-      setHata(r.hata ?? 'Gönderilemedi');
+      setHata(r.hata ?? t('canliYayin.gonderilemedi'));
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setText(body);
       return;
@@ -165,7 +167,9 @@ export function CanliSohbetPaneli({
                 <View style={styles.liveDot} />
                 <Text style={styles.title} numberOfLines={1}>
                   {baslik ??
-                    (kanal.tur === 'canli' ? 'Canlı sohbet' : 'Oda sohbeti')}
+                    (kanal.tur === 'canli'
+                      ? t('canliYayin.canliSohbet')
+                      : t('canliYayin.odaSohbeti'))}
                 </Text>
                 <Text style={styles.count}>{messages.length}</Text>
               </View>
@@ -174,7 +178,7 @@ export function CanliSohbetPaneli({
                   onPress={onClose}
                   hitSlop={10}
                   style={styles.closeBtn}
-                  accessibilityLabel="Sohbeti kapat"
+                  accessibilityLabel={t('canliYayin.sohbetiKapat')}
                 >
                   <Ionicons
                     name="chevron-down"
@@ -187,14 +191,14 @@ export function CanliSohbetPaneli({
           ) : (
             <View style={styles.liveHeader}>
               <Text style={styles.liveHeaderTitle}>
-                {baslik ?? 'Yorumlar'}
+                {baslik ?? t('canliYayin.yorumlar')}
               </Text>
               {onClose ? (
                 <Pressable
                   onPress={onClose}
                   hitSlop={12}
                   style={styles.liveClose}
-                  accessibilityLabel="Yorumları gizle"
+                  accessibilityLabel={t('canliYayin.a11yYorumlariGizle')}
                 >
                   <Ionicons
                     name="chevron-down"
@@ -227,7 +231,7 @@ export function CanliSohbetPaneli({
               ListEmptyComponent={
                 <View style={styles.emptyBox}>
                   <Text style={styles.empty}>
-                    İlk yorumu yaz — herkes görsün.
+                    {t('canliYayin.yorumBos')}
                   </Text>
                 </View>
               }
@@ -244,12 +248,12 @@ export function CanliSohbetPaneli({
                         ? () => {
                             if (mine) {
                               Alert.alert(
-                                'Yorumu sil',
-                                'Bu yorum kaldırılsın mı?',
+                                t('canliYayin.yorumSilBaslik'),
+                                t('canliYayin.yorumSilBody'),
                                 [
-                                  { text: 'Vazgeç', style: 'cancel' },
+                                  { text: t('ortak.vazgec'), style: 'cancel' },
                                   {
-                                    text: 'Sil',
+                                    text: t('ortak.sil'),
                                     style: 'destructive',
                                     onPress: () => {
                                       void (async () => {
@@ -260,7 +264,10 @@ export function CanliSohbetPaneli({
                                                 item.id,
                                               );
                                         if (!r.ok) {
-                                          Alert.alert('Yorum', r.hata);
+                                          Alert.alert(
+                                            t('canliYayin.yorum'),
+                                            r.hata,
+                                          );
                                         } else void load();
                                       })();
                                     },
@@ -285,7 +292,9 @@ export function CanliSohbetPaneli({
               value={text}
               onChangeText={setText}
               placeholder={
-                canSend ? 'Yorum yaz…' : 'Yorum için hesabını tamamla'
+                canSend
+                  ? t('durumX.yorumYaz')
+                  : t('canliYayin.yorumHesap')
               }
               placeholderTextColor={RenkTokenlari.textDim}
               style={[styles.input, live && styles.inputLive]}
@@ -305,7 +314,7 @@ export function CanliSohbetPaneli({
                 live && styles.sendLive,
                 (busy || !text.trim()) && styles.sendDisabled,
               ]}
-              accessibilityLabel="Gönder"
+              accessibilityLabel={t('ortak.gonder')}
             >
               <Ionicons
                 name="send"

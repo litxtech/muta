@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri, type CeviriAnahtari } from '../../src/i18n/useCeviri';
 import { TextField } from '../../src/components/TextField';
 import { GradientButton } from '../../src/components/GradientButton';
 import { KlavyeScrollView, KlavyeFocusKaydir, type KlavyeScrollHandle } from '../../src/bilesenler/klavye/KlavyeScrollView';
@@ -51,11 +52,11 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-const CINSIYETLER: { id: Gender; label: string }[] = [
-  { id: 'female', label: 'Kadın' },
-  { id: 'male', label: 'Erkek' },
-  { id: 'other', label: 'Diğer' },
-  { id: 'prefer_not', label: 'Belirtmek istemiyorum' },
+const CINSIYETLER: { id: Gender; anahtar: CeviriAnahtari }[] = [
+  { id: 'female', anahtar: 'auth.cinsiyetKadin' },
+  { id: 'male', anahtar: 'auth.cinsiyetErkek' },
+  { id: 'other', anahtar: 'auth.cinsiyetDiger' },
+  { id: 'prefer_not', anahtar: 'profilDuzenle.belirtmekIstemiyorum' },
 ];
 
 function dogumYillar(): { id: string; label: string }[] {
@@ -91,6 +92,7 @@ function adSoyadAyir(displayName: string | null | undefined): {
 
 /** Profil: medya, kimlik, iletişim, şifre, banka/IBAN */
 export default function ProfilDuzenleEkrani() {
+  const { t } = useCeviri();
   const { profile, user, isGuest, refreshProfile, refreshWallet, updatePassword } =
     useAuth();
   const scrollRef = useRef<KlavyeScrollHandle>(null);
@@ -263,7 +265,7 @@ export default function ProfilDuzenleEkrani() {
     setMedyaBusy(null);
     if (!sonuc.ok) {
       if (sonuc.iptal) return;
-      Alert.alert('Medya', sonuc.hata);
+      Alert.alert(t('ortak.medya'), sonuc.hata);
       return;
     }
     dirtyRef.current = false;
@@ -272,11 +274,12 @@ export default function ProfilDuzenleEkrani() {
 
   const medyaSil = (tur: ProfilMedyaTuru) => {
     if (misafirEngel()) return;
-    const baslik = tur === 'cover' ? 'Kapak fotoğrafı' : 'Profil fotoğrafı';
-    Alert.alert(baslik, 'Bu fotoğraf silinsin mi?', [
-      { text: 'İptal', style: 'cancel' },
+    const baslik =
+      tur === 'cover' ? t('profil.kapakFotografi') : t('profil.profilFotografi');
+    Alert.alert(baslik, t('profilDuzenle.fotoSilSoru'), [
+      { text: t('ortak.iptal'), style: 'cancel' },
       {
-        text: 'Sil',
+        text: t('ortak.sil'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
@@ -285,7 +288,7 @@ export default function ProfilDuzenleEkrani() {
             const sonuc = await ProfilMedyasiSil(tur);
             setMedyaBusy(null);
             if (!sonuc.ok) {
-              Alert.alert('Medya', sonuc.hata);
+              Alert.alert(t('ortak.medya'), sonuc.hata);
               return;
             }
             dirtyRef.current = false;
@@ -300,18 +303,18 @@ export default function ProfilDuzenleEkrani() {
     if (misafirEngel()) return;
     const display_name = `${ad.trim()} ${soyad.trim()}`.trim();
     if (display_name.length < 2) {
-      Alert.alert('Profil', 'Ad veya soyad gir.');
+      Alert.alert(t('profil.baslik'), t('profilDuzenle.adSoyadGir'));
       return;
     }
     let birth_date: string | null = null;
     if (dogumYil && dogumAy && dogumGun) {
       birth_date = `${dogumYil}-${dogumAy}-${dogumGun}`;
     } else if (dogumYil || dogumAy || dogumGun) {
-      Alert.alert('Doğum tarihi', 'Yıl, ay ve günü birlikte seç.');
+      Alert.alert(t('profil.dogumTarihi'), t('profilDuzenle.dogumBirlikteSec'));
       return;
     }
     if (!regionId) {
-      Alert.alert('Konum', 'İl seçimi gerekli.');
+      Alert.alert(t('profilDuzenle.konum'), t('profilDuzenle.ilGerekli'));
       return;
     }
     setProfilBusy(true);
@@ -327,14 +330,17 @@ export default function ProfilDuzenleEkrani() {
         region_id: regionId,
       });
       if (!sonuc.ok) {
-        Alert.alert('Profil', sonuc.hata);
+        Alert.alert(t('profil.baslik'), sonuc.hata);
         return;
       }
       dirtyRef.current = false;
       await refreshProfile();
-      Alert.alert('Kaydedildi', 'Profil bilgilerin güncellendi.');
+      Alert.alert(t('ortak.kaydedildi'), t('profilDuzenle.profilGuncellendi'));
     } catch (e) {
-      Alert.alert('Profil', e instanceof Error ? e.message : 'Kayıt başarısız');
+      Alert.alert(
+        t('profil.baslik'),
+        e instanceof Error ? e.message : t('profilDuzenle.kayitBasarisiz'),
+      );
     } finally {
       setProfilBusy(false);
     }
@@ -342,8 +348,8 @@ export default function ProfilDuzenleEkrani() {
 
   const ilListesi = BolgeleriUlkeyeGore(bolgeler, countryCode || 'TR');
   const seciliIl = ilListesi.find((i) => i.id === regionId);
-  const cinsiyetLabel =
-    CINSIYETLER.find((c) => c.id === gender)?.label ?? '';
+  const cinsiyetAnahtar = CINSIYETLER.find((c) => c.id === gender)?.anahtar;
+  const cinsiyetLabel = cinsiyetAnahtar ? t(cinsiyetAnahtar) : '';
   const dogumGunOpts = gunler(dogumYil || '2000', dogumAy || '01');
   const yilOpts = dogumYillar();
   const ulkeTek = ulkeler.length <= 1;
@@ -351,39 +357,39 @@ export default function ProfilDuzenleEkrani() {
   const emailKaydet = async () => {
     if (misafirEngel()) return;
     if (email.trim().toLowerCase() === (user?.email ?? '').toLowerCase()) {
-      Alert.alert('E-posta', 'Zaten bu adresi kullanıyorsun.');
+      Alert.alert(t('auth.eposta'), t('profilDuzenle.ayniEposta'));
       return;
     }
     setEmailBusy(true);
     const sonuc = await EpostaGuncelle(email);
     setEmailBusy(false);
     if (!sonuc.ok) {
-      Alert.alert('E-posta', sonuc.hata);
+      Alert.alert(t('auth.eposta'), sonuc.hata);
       return;
     }
-    Alert.alert('E-posta', sonuc.mesaj);
+    Alert.alert(t('auth.eposta'), sonuc.mesaj);
   };
 
   const sifreKaydet = async () => {
     if (misafirEngel()) return;
     if (yeniSifre.length < 6) {
-      Alert.alert('Şifre', 'En az 6 karakter olmalı.');
+      Alert.alert(t('auth.sifre'), t('profilDuzenle.sifreMin'));
       return;
     }
     if (yeniSifre !== sifreTekrar) {
-      Alert.alert('Şifre', 'Şifreler eşleşmiyor.');
+      Alert.alert(t('auth.sifre'), t('auth.sifrelerEslesmiyor'));
       return;
     }
     setSifreBusy(true);
     const { error } = await updatePassword(yeniSifre);
     setSifreBusy(false);
     if (error) {
-      Alert.alert('Şifre', error);
+      Alert.alert(t('auth.sifre'), error);
       return;
     }
     setYeniSifre('');
     setSifreTekrar('');
-    Alert.alert('Şifre', 'Yeni şifren kaydedildi.');
+    Alert.alert(t('auth.sifre'), t('profilDuzenle.yeniSifreKaydedildi'));
   };
 
   const bankaKaydet = async () => {
@@ -396,10 +402,10 @@ export default function ProfilDuzenleEkrani() {
     });
     setBankaBusy(false);
     if (!sonuc.ok) {
-      Alert.alert('Banka', sonuc.hata);
+      Alert.alert(t('profilDuzenle.banka'), sonuc.hata);
       return;
     }
-    Alert.alert('Banka', 'IBAN ve banka bilgilerin kaydedildi.');
+    Alert.alert(t('profilDuzenle.banka'), t('profilDuzenle.bankaKaydedildi'));
   };
 
   const klavyeKaydir = useCallback(
@@ -412,8 +418,8 @@ export default function ProfilDuzenleEkrani() {
   return (
     <Screen edges={['top']}>
       <EkranBasligi
-        title="Profili düzenle"
-        subtitle="Kimlik · Konum · Medya · Banka"
+        title={t('profil.duzenle')}
+        subtitle={t('profilDuzenle.altBaslik')}
         fallbackHref="/(tabs)/profile"
       />
       <KlavyeScrollView
@@ -423,14 +429,14 @@ export default function ProfilDuzenleEkrani() {
         contentContainerStyle={styles.scroll}
         ekstraPad={56}
       >
-        <Text style={styles.section}>Fotoğraflar</Text>
+        <Text style={styles.section}>{t('profilDuzenle.fotograflar')}</Text>
         <View style={styles.coverWrap}>
           <Pressable
             onPress={() => medyaTikla('cover')}
             onLongPress={() => medyaAc('cover')}
             style={styles.coverPress}
             disabled={medyaBusy !== null}
-            accessibilityLabel="Kapak fotoğrafı"
+            accessibilityLabel={t('profil.kapakFotografi')}
           >
             {MedyaUriGuvenli(profile?.cover_url) ? (
               <Image
@@ -444,7 +450,9 @@ export default function ProfilDuzenleEkrani() {
               {!MedyaUriGuvenli(profile?.cover_url) ? (
                 <>
                   <Ionicons name="image-outline" size={18} color="#fff" />
-                  <Text style={styles.coverHint}>Kapak eklemek için dokun</Text>
+                  <Text style={styles.coverHint}>
+                    {t('profilDuzenle.kapakEkleHint')}
+                  </Text>
                 </>
               ) : null}
             </View>
@@ -453,14 +461,14 @@ export default function ProfilDuzenleEkrani() {
             style={styles.coverEditBtn}
             onPress={() => medyaAc('cover')}
             disabled={medyaBusy !== null}
-            accessibilityLabel="Kapak fotoğrafı düzenle"
+            accessibilityLabel={t('profilDuzenle.kapakDuzenle')}
           >
             {medyaBusy === 'cover' ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <>
                 <Ionicons name="camera-outline" size={16} color="#fff" />
-                <Text style={styles.coverEditText}>Düzenle</Text>
+                <Text style={styles.coverEditText}>{t('ortak.duzenle')}</Text>
               </>
             )}
           </Pressable>
@@ -473,7 +481,7 @@ export default function ProfilDuzenleEkrani() {
               onLongPress={() => medyaAc('avatar')}
               style={styles.avatarWrap}
               disabled={medyaBusy !== null}
-              accessibilityLabel="Profil fotoğrafı"
+              accessibilityLabel={t('profil.profilFotografi')}
             >
               {MedyaUriGuvenli(profile?.avatar_url) ? (
                 <Image
@@ -494,7 +502,7 @@ export default function ProfilDuzenleEkrani() {
               onPress={() => medyaAc('avatar')}
               disabled={medyaBusy !== null}
               hitSlop={8}
-              accessibilityLabel="Profil fotoğrafı düzenle"
+              accessibilityLabel={t('profilDuzenle.profilFotoDuzenle')}
             >
               {medyaBusy === 'avatar' ? (
                 <ActivityIndicator color="#12040C" size="small" />
@@ -504,62 +512,62 @@ export default function ProfilDuzenleEkrani() {
             </Pressable>
           </View>
           <Text style={styles.avatarHint}>
-            Fotoğrafa dokunarak büyüt · kameraya dokunarak ekle, değiştir veya sil
+            {t('profilDuzenle.avatarHint')}
           </Text>
         </View>
 
-        <Text style={styles.section}>Kimlik</Text>
+        <Text style={styles.section}>{t('profilDuzenle.kimlik')}</Text>
         <TextField
-          label="Ad"
+          label={t('profilDuzenle.ad')}
           value={ad}
           onChangeText={setDirty(setAd)}
-          placeholder="Adın"
+          placeholder={t('profilDuzenle.adPlaceholder')}
           onFocus={klavyeKaydir}
         />
         <TextField
-          label="Soyad"
+          label={t('profilDuzenle.soyad')}
           value={soyad}
           onChangeText={setDirty(setSoyad)}
-          placeholder="Soyadın"
+          placeholder={t('profilDuzenle.soyadPlaceholder')}
           onFocus={klavyeKaydir}
         />
         <TextField
-          label="Kullanıcı adı"
+          label={t('auth.kullaniciAdi')}
           value={username}
           onChangeText={setDirty(setUsername)}
           autoCapitalize="none"
           autoCorrect={false}
-          placeholder="kullanici_adi"
+          placeholder={t('profilDuzenle.kullaniciAdiPlaceholder')}
           onFocus={klavyeKaydir}
         />
         <TextField
-          label="Hakkında"
+          label={t('profil.hakkinda')}
           value={bio}
           onChangeText={setDirty(setBio)}
-          placeholder="Kendinden kısaca bahset"
+          placeholder={t('profilDuzenle.hakkindaPlaceholder')}
           multiline
           style={styles.bioInput}
           onFocus={klavyeKaydir}
         />
 
-        <Text style={styles.section}>Cinsiyet & doğum</Text>
+        <Text style={styles.section}>{t('profilDuzenle.cinsiyetDogum')}</Text>
         <ProfilSecimAlani
-          label="Cinsiyet"
+          label={t('profil.cinsiyet')}
           valueLabel={cinsiyetLabel}
-          placeholder="Seç"
-          options={CINSIYETLER.map((c) => ({ id: c.id, label: c.label }))}
+          placeholder={t('profilDuzenle.sec')}
+          options={CINSIYETLER.map((c) => ({ id: c.id, label: t(c.anahtar) }))}
           onSelect={(id) => {
             dirtyRef.current = true;
             setGender(id as Gender);
           }}
         />
-        <Text style={styles.fieldHint}>Platform 18 yaş ve üzeridir.</Text>
+        <Text style={styles.fieldHint}>{t('profilDuzenle.yasHint')}</Text>
         <View style={styles.dogumSatir}>
           <View style={{ flex: 1.1 }}>
             <ProfilSecimAlani
-              label="Yıl"
+              label={t('auth.yil')}
               valueLabel={dogumYil}
-              placeholder="Yıl"
+              placeholder={t('auth.yil')}
               options={yilOpts}
               onSelect={(id) => {
                 dirtyRef.current = true;
@@ -570,9 +578,9 @@ export default function ProfilDuzenleEkrani() {
           </View>
           <View style={{ flex: 0.85 }}>
             <ProfilSecimAlani
-              label="Ay"
+              label={t('auth.ay')}
               valueLabel={dogumAy}
-              placeholder="Ay"
+              placeholder={t('auth.ay')}
               options={AYLAR}
               onSelect={(id) => {
                 dirtyRef.current = true;
@@ -585,9 +593,9 @@ export default function ProfilDuzenleEkrani() {
           </View>
           <View style={{ flex: 0.85 }}>
             <ProfilSecimAlani
-              label="Gün"
+              label={t('auth.gun')}
               valueLabel={dogumGun}
-              placeholder="Gün"
+              placeholder={t('auth.gun')}
               options={dogumGunOpts}
               onSelect={(id) => {
                 dirtyRef.current = true;
@@ -597,13 +605,13 @@ export default function ProfilDuzenleEkrani() {
           </View>
         </View>
 
-        <Text style={styles.section}>Konum</Text>
+        <Text style={styles.section}>{t('profilDuzenle.konum')}</Text>
         <Text style={styles.sectionSub}>
-          Şimdilik yalnızca Türkiye illeri. Sistem dünya geneline hazır.
+          {t('profilDuzenle.konumAlt')}
         </Text>
         {!ulkeTek ? (
           <ProfilSecimAlani
-            label="Ülke"
+            label={t('profil.ulke')}
             valueLabel={
               ulkeler.find((u) => u.code === countryCode)?.name ?? countryCode
             }
@@ -616,21 +624,21 @@ export default function ProfilDuzenleEkrani() {
           />
         ) : (
           <View style={styles.ulkeKilit}>
-            <Text style={styles.ulkeKilitLabel}>Ülke</Text>
+            <Text style={styles.ulkeKilitLabel}>{t('profil.ulke')}</Text>
             <Text style={styles.ulkeKilitDeger}>
-              {ulkeler[0]?.name ?? 'Türkiye'}
+              {ulkeler[0]?.name ?? t('profilDuzenle.ulkeTurkiye')}
             </Text>
           </View>
         )}
         <ProfilSecimAlani
-          label="İl"
+          label={t('profil.il')}
           valueLabel={seciliIl ? `${seciliIl.code} · ${seciliIl.name}` : ''}
-          placeholder="81 ilden seç"
+          placeholder={t('profilDuzenle.ilPlaceholder')}
           searchable
           options={ilListesi.map((i) => ({
             id: i.id,
             label: i.name,
-            alt: `Plaka ${i.code}`,
+            alt: t('profilDuzenle.plaka', { kod: i.code }),
           }))}
           onSelect={(id) => {
             dirtyRef.current = true;
@@ -639,63 +647,63 @@ export default function ProfilDuzenleEkrani() {
         />
 
         <TextField
-          label="Telefon"
+          label={t('auth.telefon')}
           value={telefon}
           onChangeText={setDirty(setTelefon)}
           keyboardType="phone-pad"
-          placeholder="05xx xxx xx xx"
+          placeholder={t('profilDuzenle.telefonPlaceholder')}
           onFocus={klavyeKaydir}
         />
         <GradientButton
-          title="Profili kaydet"
+          title={t('profilDuzenle.profiliKaydet')}
           onPress={() => void profilKaydet()}
           loading={profilBusy}
         />
 
-        <Text style={styles.section}>E-posta</Text>
+        <Text style={styles.section}>{t('auth.eposta')}</Text>
         <TextField
-          label="E-posta adresi"
+          label={t('profilDuzenle.epostaAdresi')}
           value={email}
           onChangeText={setDirty(setEmail)}
           autoCapitalize="none"
           keyboardType="email-address"
-          placeholder="sen@mail.com"
+          placeholder={t('auth.epostaPlaceholder')}
           onFocus={klavyeKaydir}
         />
         <GradientButton
-          title="E-postayı güncelle"
+          title={t('profilDuzenle.epostayiGuncelle')}
           onPress={() => void emailKaydet()}
           loading={emailBusy}
           variant="ghost"
         />
 
-        <Text style={styles.section}>Şifre</Text>
+        <Text style={styles.section}>{t('auth.sifre')}</Text>
         <TextField
-          label="Yeni şifre"
+          label={t('auth.yeniSifre')}
           value={yeniSifre}
           onChangeText={setYeniSifre}
           secureTextEntry
-          placeholder="En az 6 karakter"
+          placeholder={t('profilDuzenle.sifreMinPlaceholder')}
           onFocus={klavyeKaydir}
         />
         <TextField
-          label="Şifre tekrar"
+          label={t('auth.sifreTekrar')}
           value={sifreTekrar}
           onChangeText={setSifreTekrar}
           secureTextEntry
-          placeholder="Tekrar"
+          placeholder={t('profilDuzenle.tekrarPlaceholder')}
           onFocus={klavyeKaydir}
         />
         <GradientButton
-          title="Şifreyi değiştir"
+          title={t('profilDuzenle.sifreyiDegistir')}
           onPress={() => void sifreKaydet()}
           loading={sifreBusy}
           variant="ghost"
         />
 
-        <Text style={styles.section}>Banka / IBAN</Text>
+        <Text style={styles.section}>{t('profilDuzenle.bankaBolum')}</Text>
         <Text style={styles.sectionSub}>
-          Elmas çekiminde kullanılır. Hesap sahibi adın kimlikle uyumlu olmalı.
+          {t('profilDuzenle.bankaAlt')}
         </Text>
         {bankaYukleniyor ? (
           <ActivityIndicator
@@ -705,17 +713,17 @@ export default function ProfilDuzenleEkrani() {
         ) : (
           <>
             <TextField
-              label="Hesap sahibi"
+              label={t('profilDuzenle.hesapSahibi')}
               value={hesapSahibi}
               onChangeText={setHesapSahibi}
-              placeholder="Ad Soyad"
+              placeholder={t('profilDuzenle.hesapSahibiPlaceholder')}
               onFocus={klavyeKaydir}
             />
             <TextField
-              label="Banka adı"
+              label={t('profilDuzenle.bankaAdi')}
               value={bankaAdi}
               onChangeText={setBankaAdi}
-              placeholder="Örn. Ziraat Bankası"
+              placeholder={t('profilDuzenle.bankaAdiPlaceholder')}
               onFocus={klavyeKaydir}
             />
             <TextField
@@ -727,7 +735,7 @@ export default function ProfilDuzenleEkrani() {
               onFocus={klavyeKaydir}
             />
             <GradientButton
-              title="Banka bilgisini kaydet"
+              title={t('profilDuzenle.bankaKaydet')}
               onPress={() => void bankaKaydet()}
               loading={bankaBusy}
             />

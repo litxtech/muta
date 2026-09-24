@@ -11,17 +11,21 @@ import { router } from 'expo-router';
 import { ProfilAvatarKucuk } from '../../../canli-sohbet/bilesenler/ProfilAvatarKucuk';
 import {
   DurumMedyaHttpsMi,
+  DurumMuzikPayloadAl,
   DurumOyunKazanciPayloadAl,
   type DurumOggesi,
 } from '../../islemler/DurumIslemleri';
+import { DurumMuzikKarti } from '../../bilesenler/DurumMuzikKarti';
 import { DurumOyunKazanciKart } from '../../bilesenler/DurumOyunKazanciKart';
 import { DurumVideoOnizleme } from '../../bilesenler/DurumVideoOnizleme';
 import { RenkTokenlari } from '../../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../../tasarim-sistemi/TipografiTokenlari';
 import { SilinmisGonderiKarti } from './SilinmisGonderiKarti';
+import { DogrulanmisTik } from '../../../kullanici-profili/bilesenler/DogrulanmisTik';
 import {
   type PaylasilanDurumOnizleme,
 } from '../tipler';
+import { useCeviri } from '../../../../i18n/useCeviri';
 
 type Props = {
   onizleme: PaylasilanDurumOnizleme | null | undefined;
@@ -50,12 +54,13 @@ function PaylasilanGonderiKartiIc({
   onLongPress,
   yukleniyor,
 }: Props) {
+  const { t } = useCeviri();
   const [genis, setGenis] = useState(false);
 
   if (yukleniyor && !onizleme) {
     return (
       <View style={[styles.kart, mine ? styles.mine : styles.theirs]}>
-        <Text style={styles.yukleniyor}>Gönderi yükleniyor…</Text>
+        <Text style={styles.yukleniyor}>{t('ortak.yukleniyor')}</Text>
       </View>
     );
   }
@@ -85,15 +90,20 @@ function PaylasilanGonderiKartiIc({
     https &&
     onizleme.media_type !== 'video' &&
     onizleme.media_type !== 'text' &&
-    onizleme.post_kind !== 'game_win';
+    onizleme.post_kind !== 'game_win' &&
+    onizleme.post_kind !== 'music';
   const isText =
-    onizleme.media_type === 'text' || (!https && onizleme.post_kind !== 'game_win');
+    onizleme.media_type === 'text' ||
+    (!https &&
+      onizleme.post_kind !== 'game_win' &&
+      onizleme.post_kind !== 'music');
 
   const fakeOge = {
     post_kind: onizleme.post_kind ?? 'media',
     payload: onizleme.payload ?? {},
   } as DurumOggesi;
   const kazanc = DurumOyunKazanciPayloadAl(fakeOge);
+  const muzik = DurumMuzikPayloadAl(fakeOge);
 
   const cap = metinKisa(onizleme.caption);
   const captionGoster =
@@ -133,19 +143,22 @@ function PaylasilanGonderiKartiIc({
         onPress={detayGit}
         style={styles.kart}
         accessibilityRole="button"
-        accessibilityLabel="Paylaşılan gönderiyi aç"
+        accessibilityLabel={t('durumX.paylasilanAc')}
       >
         <Pressable style={styles.owner} onPress={profilGit}>
           <ProfilAvatarKucuk
             size={32}
-            displayName={onizleme.display_name ?? 'Kullanıcı'}
+            displayName={onizleme.display_name ?? t('ortak.kullanici')}
             username={onizleme.username}
             avatarUrl={onizleme.avatar_url}
           />
           <View style={styles.ownerMetin}>
-            <Text style={styles.isim} numberOfLines={1}>
-              {onizleme.display_name ?? 'Kullanıcı'}
-            </Text>
+            <View style={styles.isimSatir}>
+              <Text style={styles.isim} numberOfLines={1}>
+                {onizleme.display_name ?? t('ortak.kullanici')}
+              </Text>
+              <DogrulanmisTik dogrulandi={onizleme.is_verified} size={13} />
+            </View>
             {handle ? (
               <Text style={styles.handle} numberOfLines={1}>
                 {handle}
@@ -157,6 +170,10 @@ function PaylasilanGonderiKartiIc({
         {kazanc ? (
           <View style={styles.medyaWrap}>
             <DurumOyunKazanciKart payload={kazanc} />
+          </View>
+        ) : muzik ? (
+          <View style={styles.medyaWrap}>
+            <DurumMuzikKarti payload={muzik} />
           </View>
         ) : isVideo ? (
           <View style={styles.video}>
@@ -179,7 +196,7 @@ function PaylasilanGonderiKartiIc({
         ) : isText ? (
           <View style={styles.metinKutu}>
             <Text style={styles.metinPreview} numberOfLines={genis ? 12 : 4}>
-              {(onizleme.caption ?? '').trim() || 'Metin gönderisi'}
+              {(onizleme.caption ?? '').trim() || t('durumX.metinGonderisi')}
             </Text>
           </View>
         ) : null}
@@ -197,7 +214,7 @@ function PaylasilanGonderiKartiIc({
                 }}
                 hitSlop={6}
               >
-                <Text style={styles.devam}>…devamını gör</Text>
+                <Text style={styles.devam}>…{t('durumX.devaminiGor')}</Text>
               </Pressable>
             ) : null}
           </View>
@@ -205,7 +222,7 @@ function PaylasilanGonderiKartiIc({
 
         {isText && (onizleme.caption ?? '').trim().length > 160 && !genis ? (
           <Pressable onPress={() => setGenis(true)} hitSlop={6}>
-            <Text style={styles.devam}>…devamını gör</Text>
+            <Text style={styles.devam}>…{t('durumX.devaminiGor')}</Text>
           </Pressable>
         ) : null}
       </Pressable>
@@ -253,10 +270,17 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   ownerMetin: { flex: 1, minWidth: 0, gap: 1 },
+  isimSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minWidth: 0,
+  },
   isim: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.text,
     fontWeight: '700',
+    flexShrink: 1,
   },
   handle: {
     ...TipografiTokenlari.micro,

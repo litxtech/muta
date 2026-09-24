@@ -13,6 +13,7 @@ import { MedyaUriGuvenli } from '../../../mesajlasma/yardimcilar/MedyaUriGecerli
 import { RenkTokenlari } from '../../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../../tasarim-sistemi/TipografiTokenlari';
 import type { GonderiPaylasAlici } from '../tipler';
+import { useCeviri } from '../../../../i18n/useCeviri';
 
 type Props = {
   items: GonderiPaylasAlici[];
@@ -71,12 +72,14 @@ function GonderiPaylasKullaniciListesiIc({
   items,
   secilen,
   onToggle,
-  bosMetin = 'Kullanıcı bulunamadı',
+  bosMetin,
 }: Props) {
+  const { t } = useCeviri();
+  const bos = bosMetin ?? t('durumX.kullaniciBulunamadi');
   if (items.length === 0) {
     return (
       <View style={styles.bos}>
-        <Text style={styles.bosYazi}>{bosMetin}</Text>
+        <Text style={styles.bosYazi}>{bos}</Text>
       </View>
     );
   }

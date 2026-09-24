@@ -15,8 +15,10 @@ import {
 import { useAktifSesOdasi } from '../oturum/useAktifSesOdasi';
 import { SesOdasiArkaPlanTamamenCik } from '../arka-plan/SesOdasiArkaPlanServisi';
 import { useSesOdasiPipModu } from '../pip/useSesOdasiPip';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 export function AktifSesOdasiPipKart() {
+  const { t } = useCeviri();
   const durum = useAktifSesOdasi();
   const isInPipMode = useSesOdasiPipModu();
 
@@ -31,25 +33,25 @@ export function AktifSesOdasiPipKart() {
       <View style={styles.kart}>
         <View style={styles.ust}>
           <View style={styles.dot} />
-          <Text style={styles.canli}>CANLI</Text>
+          <Text style={styles.canli}>{t('canliYayin.rozetCanli')}</Text>
           <Pressable
             onPress={tamamenCik}
             hitSlop={12}
             style={styles.kapat}
-            accessibilityLabel="Odadan çık"
+            accessibilityLabel={t('sesOda.odadanCik')}
           >
             <Ionicons name="close" size={18} color={RenkTokenlari.text} />
           </Pressable>
         </View>
         <Text style={styles.title} numberOfLines={2}>
-          {durum.title || 'Ses odası'}
+          {durum.title || t('sesOda.sesOdasi')}
         </Text>
         <Text style={styles.alt} numberOfLines={1}>
-          Ses devam ediyor
+          {t('sesOda.sesDevamEdiyor')}
         </Text>
         {durum.dinleyiciSayisi > 0 ? (
           <Text style={styles.meta} numberOfLines={1}>
-            {durum.dinleyiciSayisi} dinleyici
+            {durum.dinleyiciSayisi} {t('sesOda.dinleyici')}
           </Text>
         ) : null}
       </View>

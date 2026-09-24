@@ -27,6 +27,8 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { ODA_DOCK_BTN, ODA_DOCK_ICON } from './OdaButonOlculeri';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { useDil } from '../../../i18n/DilSaglayici';
 
 type Props = {
   roomId: string;
@@ -37,6 +39,8 @@ const KART_W = 280;
 
 /** Host/yardımcı: dock butonu — koltuk izinleri kartı */
 export function MikrofonIstekPaneli({ roomId, onDegisti }: Props) {
+  const { t } = useCeviri();
+  const { locale } = useDil();
   const [liste, setListe] = useState<MikrofonIstegi[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [acik, setAcik] = useState(false);
@@ -58,8 +62,8 @@ export function MikrofonIstekPaneli({ roomId, onDegisti }: Props) {
   useFocusEffect(
     useCallback(() => {
       void yukle();
-      const t = setInterval(() => void yukle(), 4000);
-      return () => clearInterval(t);
+      const timer = setInterval(() => void yukle(), 4000);
+      return () => clearInterval(timer);
     }, [yukle]),
   );
 
@@ -97,7 +101,10 @@ export function MikrofonIstekPaneli({ roomId, onDegisti }: Props) {
     const r = await MikrofonIstegiYanitla({ requestId: id, kabul });
     setBusy(null);
     if (!r.ok) {
-      Alert.alert('Koltuk izni', r.hata ?? 'Yanıtlanamadı');
+      Alert.alert(
+        t('sesOda.koltukIzinleri'),
+        r.hata ?? t('sesOda.istekYanitlanamadi'),
+      );
       void yukle();
       return;
     }
@@ -137,9 +144,11 @@ export function MikrofonIstekPaneli({ roomId, onDegisti }: Props) {
         onPress={acKapa}
         style={[styles.buton, acik && styles.butonAcik]}
         accessibilityRole="button"
-        accessibilityLabel="Koltuk izinleri"
+        accessibilityLabel={t('sesOda.koltukIzinleri')}
         accessibilityHint={
-          sayi > 0 ? `${sayi} bekleyen istek` : 'Bekleyen istek yok'
+          sayi > 0
+            ? t('sesOda.bekleyenIstekSayi', { sayi })
+            : t('sesOda.bekleyenIstekYok')
         }
       >
         <Ionicons
@@ -170,11 +179,11 @@ export function MikrofonIstekPaneli({ roomId, onDegisti }: Props) {
             onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.kartBaslik}>
-              <Text style={styles.baslik}>Koltuk izinleri</Text>
+              <Text style={styles.baslik}>{t('sesOda.koltukIzinleri')}</Text>
               <Text style={styles.sayiEtiket}>{sayi}</Text>
             </View>
             {sayi === 0 ? (
-              <Text style={styles.bos}>Bekleyen istek yok</Text>
+              <Text style={styles.bos}>{t('sesOda.bekleyenIstekYok')}</Text>
             ) : (
               <ScrollView
                 style={styles.liste}
@@ -188,8 +197,10 @@ export function MikrofonIstekPaneli({ roomId, onDegisti }: Props) {
                     istek.user_id.slice(0, 8);
                   const koltuk =
                     typeof istek.requested_seat_index === 'number'
-                      ? `Koltuk ${istek.requested_seat_index + 1}`
-                      : 'İlk boş koltuk';
+                      ? t('sesOda.koltukN', {
+                          n: istek.requested_seat_index + 1,
+                        })
+                      : t('sesOda.ilkBosKoltuk');
                   return (
                     <View key={istek.id} style={styles.satir}>
                       {MedyaUriGuvenli(istek.profile?.avatar_url) ? (
@@ -202,7 +213,7 @@ export function MikrofonIstekPaneli({ roomId, onDegisti }: Props) {
                       ) : (
                         <View style={[styles.avatar, styles.avatarBos]}>
                           <Text style={styles.harf}>
-                            {ad.charAt(0).toLocaleUpperCase('tr-TR')}
+                            {ad.charAt(0).toLocaleUpperCase(locale)}
                           </Text>
                         </View>
                       )}
@@ -223,18 +234,18 @@ export function MikrofonIstekPaneli({ roomId, onDegisti }: Props) {
                             style={[styles.btn, styles.red]}
                             hitSlop={6}
                             accessibilityRole="button"
-                            accessibilityLabel={`${ad} isteğini reddet`}
+                            accessibilityLabel={t('sesOda.istegiReddet', { ad })}
                           >
-                            <Text style={styles.btnYazi}>Reddet</Text>
+                            <Text style={styles.btnYazi}>{t('sesOda.reddet')}</Text>
                           </Pressable>
                           <Pressable
                             onPress={() => void yanitla(istek.id, true)}
                             style={[styles.btn, styles.kabul]}
                             hitSlop={6}
                             accessibilityRole="button"
-                            accessibilityLabel={`${ad} isteğini onayla`}
+                            accessibilityLabel={t('sesOda.istegiOnayla', { ad })}
                           >
-                            <Text style={styles.btnYazi}>Onayla</Text>
+                            <Text style={styles.btnYazi}>{t('sesOda.onayla')}</Text>
                           </Pressable>
                         </View>
                       )}

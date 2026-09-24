@@ -18,13 +18,14 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { Room } from '../../../types/models';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { useCeviri, type CeviriAnahtari } from '../../../i18n/useCeviri';
 
-const MODE_LABEL: Record<Room['mode'], string> = {
-  party: 'Parti',
-  dating: 'Flört',
-  karaoke: 'Karaoke',
-  game: 'Oyun',
-  private: 'Özel',
+const MODE_KEY: Record<Room['mode'], CeviriAnahtari> = {
+  party: 'modlar.parti',
+  dating: 'modlar.flort',
+  karaoke: 'modlar.karaoke',
+  game: 'modlar.oyun',
+  private: 'modlar.ozel',
 };
 
 type Props = {
@@ -34,6 +35,7 @@ type Props = {
 
 /** Yatay canlı nabız şeridi — portrait sahne kartları */
 export function AnaSayfaNabizSeridi({ odalar, onOdaPress }: Props) {
+  const { t } = useCeviri();
   if (odalar.length === 0) return null;
 
   return (
@@ -70,9 +72,9 @@ export function AnaSayfaNabizSeridi({ odalar, onOdaPress }: Props) {
               <View style={styles.ust}>
                 <View style={styles.canli}>
                   <AnaSayfaCanliNokta boyut={5} />
-                  <Text style={styles.canliYazi}>CANLI</Text>
+                  <Text style={styles.canliYazi}>{t('anaSayfa.canliRozet')}</Text>
                 </View>
-                <Text style={styles.mod}>{MODE_LABEL[oda.mode]}</Text>
+                <Text style={styles.mod}>{t(MODE_KEY[oda.mode])}</Text>
               </View>
 
               <View style={styles.alt}>

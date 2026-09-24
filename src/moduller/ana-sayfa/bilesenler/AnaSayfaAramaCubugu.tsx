@@ -8,6 +8,7 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { kullaniciTemaKodunuAl } from '../../../tasarim-sistemi/tema/TemaDurumu';
 import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   deger: string;
@@ -22,11 +23,13 @@ const KUTU_H = 44;
 export function AnaSayfaAramaCubugu({
   deger,
   onDegisti,
-  placeholder = 'İnsanları, odaları, etiketleri keşfet...',
+  placeholder,
   onSubmit,
 }: Props) {
   useTemayaAboneOl();
+  const { t } = useCeviri();
   const acik = kullaniciTemaKodunuAl() === 'acik';
+  const yerTutucu = placeholder ?? t('anaSayfa.aramaPlaceholder');
 
   return (
     <View
@@ -51,7 +54,7 @@ export function AnaSayfaAramaCubugu({
         <TextInput
           value={deger}
           onChangeText={onDegisti}
-          placeholder={placeholder}
+          placeholder={yerTutucu}
           placeholderTextColor={RenkTokenlari.textDim}
           style={styles.input}
           returnKeyType="search"
@@ -62,7 +65,7 @@ export function AnaSayfaAramaCubugu({
           textAlignVertical="center"
           underlineColorAndroid="transparent"
           onSubmitEditing={onSubmit}
-          accessibilityLabel="Keşfet araması"
+          accessibilityLabel={t('anaSayfa.aramaA11y')}
           {...(Platform.OS === 'android'
             ? { includeFontPadding: false }
             : null)}
@@ -71,7 +74,7 @@ export function AnaSayfaAramaCubugu({
           <Pressable
             onPress={() => onDegisti('')}
             hitSlop={8}
-            accessibilityLabel="Aramayı temizle"
+            accessibilityLabel={t('anaSayfa.aramaTemizle')}
             style={styles.temizle}
           >
             <Ionicons name="close-circle" size={18} color={RenkTokenlari.textMuted} />

@@ -8,6 +8,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   altYazi: string;
@@ -16,17 +17,18 @@ type Props = {
 };
 
 export function MesajMarkaBasligi({ altYazi, sohbetSayisi, onYeniSohbet }: Props) {
+  const { t } = useCeviri();
   return (
     <View style={styles.wrap}>
       <View style={styles.ust}>
         <View style={styles.markaBlok}>
-          <Text style={styles.fisilti}>SOHBET</Text>
-          <Text style={styles.baslik}>Mesajlar</Text>
+          <Text style={styles.fisilti}>{t('mesajlar.fisilti')}</Text>
+          <Text style={styles.baslik}>{t('mesajlar.baslik')}</Text>
           <Text style={styles.alt}>{altYazi}</Text>
         </View>
         <Pressable
           onPress={onYeniSohbet}
-          accessibilityLabel="Yeni sohbet"
+          accessibilityLabel={t('mesajlar.yeniSohbet')}
           style={({ pressed }) => [styles.composeHit, pressed && styles.pressed]}
         >
           <LinearGradient
@@ -40,7 +42,7 @@ export function MesajMarkaBasligi({ altYazi, sohbetSayisi, onYeniSohbet }: Props
       {sohbetSayisi > 0 ? (
         <View style={styles.sayac}>
           <View style={styles.accent} />
-          <Text style={styles.sayacYazi}>Aktif sohbet</Text>
+          <Text style={styles.sayacYazi}>{t('mesajlar.aktifSohbet')}</Text>
           <Text style={styles.sayacSayi}>{sohbetSayisi}</Text>
         </View>
       ) : null}

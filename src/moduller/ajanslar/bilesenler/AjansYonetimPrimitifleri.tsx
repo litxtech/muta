@@ -18,6 +18,7 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { premiumCtaGradient } from '../../../tasarim-sistemi/premium/PremiumAmbient';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { DogrulanmisTik } from '../../kullanici-profili/bilesenler/DogrulanmisTik';
 
 export function AjansKart({
   children,
@@ -250,7 +251,7 @@ export function AjansHeroKapak({
                 ) : null}
                 {verified ? (
                   <View style={[styles.badge, styles.badgeOk]}>
-                    <Ionicons name="checkmark-circle" size={12} color={RenkTokenlari.mint} />
+                    <DogrulanmisTik size={12} />
                     <Text style={styles.badgeYazi}>Doğrulandı</Text>
                   </View>
                 ) : null}

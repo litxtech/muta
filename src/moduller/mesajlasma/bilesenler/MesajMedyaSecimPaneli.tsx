@@ -16,6 +16,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { DmMedyaKaynak, DmMedyaTuru } from '../islemler/DmMedyasiYukle';
+import { useCeviri, type CeviriAnahtari } from '../../../i18n/useCeviri';
 
 export type MesajMedyaSecim = {
   tur: DmMedyaTuru;
@@ -32,8 +33,8 @@ type Secenek = {
   id: string;
   tur: DmMedyaTuru;
   kaynak: DmMedyaKaynak;
-  baslik: string;
-  alt: string;
+  baslik: CeviriAnahtari;
+  alt: CeviriAnahtari;
   icon: keyof typeof Ionicons.glyphMap;
   tint: string;
   vurgulu?: boolean;
@@ -44,8 +45,8 @@ const SECENEKLER: Secenek[] = [
     id: 'kamera-foto',
     tur: 'image',
     kaynak: 'kamera',
-    baslik: 'Kamera',
-    alt: 'Fotoğraf çek',
+    baslik: 'mesajlar.kamera',
+    alt: 'mesajlar.fotoCek',
     icon: 'camera',
     tint: '#5ADCC8',
   },
@@ -53,8 +54,8 @@ const SECENEKLER: Secenek[] = [
     id: 'kamera-video',
     tur: 'video',
     kaynak: 'kamera',
-    baslik: 'Kamera',
-    alt: 'Video çek',
+    baslik: 'mesajlar.kamera',
+    alt: 'mesajlar.videoCek',
     icon: 'videocam',
     tint: '#C48CFF',
   },
@@ -62,8 +63,8 @@ const SECENEKLER: Secenek[] = [
     id: 'galeri-foto',
     tur: 'image',
     kaynak: 'galeri',
-    baslik: 'Galeri',
-    alt: 'Fotoğraf seç',
+    baslik: 'mesajlar.galeri',
+    alt: 'mesajlar.fotoSec',
     icon: 'images',
     tint: '#FFB45A',
   },
@@ -71,8 +72,8 @@ const SECENEKLER: Secenek[] = [
     id: 'galeri-video',
     tur: 'video',
     kaynak: 'galeri',
-    baslik: 'Galeri video',
-    alt: 'Videoyu seç ve gönder',
+    baslik: 'mesajlar.galeriVideo',
+    alt: 'mesajlar.videoSecGonder',
     icon: 'film',
     tint: '#7DD3FC',
     vurgulu: true,
@@ -86,12 +87,15 @@ function SecimKarti({
   item: Secenek;
   onPress: () => void;
 }) {
+  const { t } = useCeviri();
+  const baslik = t(item.baslik);
+  const alt = t(item.alt);
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.kartPress, pressed && styles.kartPressed]}
       accessibilityRole="button"
-      accessibilityLabel={`${item.baslik}: ${item.alt}`}
+      accessibilityLabel={`${baslik}: ${alt}`}
     >
       <LinearGradient
         colors={
@@ -109,9 +113,9 @@ function SecimKarti({
         <View style={[styles.ikonKutu, { backgroundColor: `${item.tint}28` }]}>
           <Ionicons name={item.icon} size={26} color={item.tint} />
         </View>
-        <Text style={styles.kartBaslik}>{item.baslik}</Text>
+        <Text style={styles.kartBaslik}>{baslik}</Text>
         <Text style={styles.kartAlt} numberOfLines={2}>
-          {item.alt}
+          {alt}
         </Text>
         {item.vurgulu ? (
           <View style={[styles.rozet, { backgroundColor: item.tint }]}>
@@ -125,6 +129,7 @@ function SecimKarti({
 
 /** Modern medya seçim kartı — kamera / galeri foto & video */
 export function MesajMedyaSecimPaneli({ visible, onClose, onSec }: Props) {
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
 
   return (
@@ -144,14 +149,14 @@ export function MesajMedyaSecimPaneli({ visible, onClose, onSec }: Props) {
         <View style={styles.handle} />
         <View style={styles.baslikSatir}>
           <View style={styles.baslikMetin}>
-            <Text style={styles.fisilti}>MEDYA</Text>
-            <Text style={styles.baslik}>Gönderilecek içeriği seç</Text>
+            <Text style={styles.fisilti}>{t('mesajlar.medyaFisilti')}</Text>
+            <Text style={styles.baslik}>{t('mesajlar.medyaBaslik')}</Text>
           </View>
           <Pressable
             style={styles.kapat}
             onPress={onClose}
             hitSlop={10}
-            accessibilityLabel="Kapat"
+            accessibilityLabel={t('ortak.kapat')}
           >
             <Ionicons name="close" size={20} color={RenkTokenlari.textMuted} />
           </Pressable>
@@ -175,9 +180,9 @@ export function MesajMedyaSecimPaneli({ visible, onClose, onSec }: Props) {
           style={styles.iptal}
           onPress={onClose}
           accessibilityRole="button"
-          accessibilityLabel="Vazgeç"
+          accessibilityLabel={t('ortak.vazgec')}
         >
-          <Text style={styles.iptalYazi}>Vazgeç</Text>
+          <Text style={styles.iptalYazi}>{t('ortak.vazgec')}</Text>
         </Pressable>
       </View>
     </TamusoModal>

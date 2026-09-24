@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   label: {
     ...typography.caption,
     color: colors.textMuted,
-    marginLeft: 4,
+    marginStart: 4,
   },
   input: {
     minHeight: 54,
@@ -54,6 +54,6 @@ const styles = StyleSheet.create({
   error: {
     ...typography.caption,
     color: colors.danger,
-    marginLeft: 4,
+    marginStart: 4,
   },
 });

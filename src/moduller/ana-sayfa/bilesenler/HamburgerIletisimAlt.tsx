@@ -17,23 +17,24 @@ import {
   VARSAYILAN_PLATFORM_ILETISIM,
   type PlatformIletisimAyar,
 } from '../../platform-iletisim/islemler/PlatformIletisimIslemleri';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   onCikis: () => void;
 };
 
-async function mailtoAc(email: string) {
-  const url = `mailto:${email}?subject=${encodeURIComponent('Tamuso şikayet / destek')}`;
+async function mailtoAc(email: string, konu: string, epostaBaslik: string) {
+  const url = `mailto:${email}?subject=${encodeURIComponent(konu)}`;
   try {
     await Linking.openURL(url);
   } catch {
-    Alert.alert('E-posta', email);
+    Alert.alert(epostaBaslik, email);
   }
 }
 
-async function whatsappAc(e164: string) {
+async function whatsappAc(e164: string, mesaj: string, waBaslik: string) {
   const phone = e164.replace(/\D/g, '');
-  const text = encodeURIComponent('Merhaba, Tamuso hakkında iletişim kurmak istiyorum.');
+  const text = encodeURIComponent(mesaj);
   const appUrl = `whatsapp://send?phone=${phone}&text=${text}`;
   const webUrl = `https://wa.me/${phone}?text=${text}`;
   try {
@@ -43,7 +44,7 @@ async function whatsappAc(e164: string) {
     try {
       await Linking.openURL(webUrl);
     } catch {
-      Alert.alert('WhatsApp', phone);
+      Alert.alert(waBaslik, phone);
     }
   }
 }
@@ -51,6 +52,7 @@ async function whatsappAc(e164: string) {
 /** Hamburger altı — kurumsal iletişim (yatay) + çıkış */
 export function HamburgerIletisimAlt({ onCikis }: Props) {
   useTemayaAboneOl();
+  const { t } = useCeviri();
   const [ayar, setAyar] = useState<PlatformIletisimAyar>(
     VARSAYILAN_PLATFORM_ILETISIM,
   );
@@ -69,18 +71,24 @@ export function HamburgerIletisimAlt({ onCikis }: Props) {
     }, [yukle]),
   );
 
+  const iletisimBaslik =
+    !ayar.baslik?.trim() ||
+    ayar.baslik.trim() === VARSAYILAN_PLATFORM_ILETISIM.baslik
+      ? t('anaSayfa.iletisimBaslik')
+      : ayar.baslik;
+
   return (
     <View style={styles.wrap}>
       <Text style={styles.baslik} numberOfLines={1}>
-        {ayar.baslik}
+        {iletisimBaslik}
       </Text>
 
       <View style={styles.yatay}>
         <Pressable
-          onPress={() => void mailtoAc(ayar.support_email)}
+          onPress={() => void mailtoAc(ayar.support_email, t('anaSayfa.mailKonu'), t('ortak.eposta'))}
           style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
           accessibilityRole="button"
-          accessibilityLabel={`E-posta ${ayar.support_email}`}
+          accessibilityLabel={`${t('ortak.eposta')} ${ayar.support_email}`}
         >
           <Ionicons
             name="mail-outline"
@@ -88,23 +96,23 @@ export function HamburgerIletisimAlt({ onCikis }: Props) {
             color={RenkTokenlari.primarySoft}
           />
           <Text style={styles.chipYazi} numberOfLines={1}>
-            E-posta
+            {t('ortak.eposta')}
           </Text>
         </Pressable>
 
         <Pressable
-          onPress={() => void whatsappAc(ayar.whatsapp_e164)}
+          onPress={() => void whatsappAc(ayar.whatsapp_e164, t('anaSayfa.whatsappMesaj'), t('ortak.whatsapp'))}
           style={({ pressed }) => [
             styles.chip,
             styles.chipWa,
             pressed && styles.pressed,
           ]}
           accessibilityRole="button"
-          accessibilityLabel={`WhatsApp ${ayar.whatsapp_gorunen}`}
+          accessibilityLabel={`${t('ortak.whatsapp')} ${ayar.whatsapp_gorunen}`}
         >
           <Ionicons name="logo-whatsapp" size={14} color="#25D366" />
           <Text style={styles.chipYazi} numberOfLines={1}>
-            WhatsApp
+            {t('ortak.whatsapp')}
           </Text>
         </Pressable>
       </View>
@@ -113,11 +121,11 @@ export function HamburgerIletisimAlt({ onCikis }: Props) {
         onPress={onCikis}
         style={({ pressed }) => [styles.cikis, pressed && styles.pressed]}
         accessibilityRole="button"
-        accessibilityLabel="Çıkış yap"
+        accessibilityLabel={t('auth.cikisYap')}
         hitSlop={8}
       >
         <Ionicons name="close" size={20} color={RenkTokenlari.danger} />
-        <Text style={styles.cikisYazi}>Çıkış yap</Text>
+        <Text style={styles.cikisYazi}>{t('auth.cikisYap')}</Text>
       </Pressable>
     </View>
   );

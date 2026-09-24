@@ -22,7 +22,7 @@ import Animated, {
 import { CamArkaplan } from '../../../bilesenler/yuzey/CamArkaplan';
 import { CanliHediyeSimgesi } from '../../cuzdan/bilesenler/CanliCoinSimgesi';
 import { CoinPaketMagaza } from '../../cuzdan/bilesenler/CoinPaketMagaza';
-import type { CoinPackage, Gift, GiftRarity } from '../../../types/models';
+import type { CoinPackage, Gift } from '../../../types/models';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -30,6 +30,11 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { HediyePkAlici } from '../islemler/HediyeMagazaTipleri';
+import { HediyeAdiCevir } from '../katalog/HediyeAdiCevir';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { AktifDil } from '../../../i18n';
+import { DIL_LOCALE_MAP } from '../../../i18n/diller';
+import type { CeviriAnahtari } from '../../../i18n/useCeviri';
 
 const ANDROID = Platform.OS === 'android';
 const SUTUN = 5;
@@ -43,14 +48,23 @@ const SHEET_CIKIS = ANDROID
 const PERDE_GIRIS = ANDROID ? undefined : FadeIn.duration(180);
 const PERDE_CIKIS = ANDROID ? undefined : FadeOut.duration(140);
 
-const SEKMELER: { id: 'populer' | 'all' | GiftRarity; label: string }[] = [
-  { id: 'populer', label: 'Popüler' },
-  { id: 'all', label: 'Tümü' },
-  { id: 'common', label: 'Klasik' },
-  { id: 'rare', label: 'Nadir' },
-  { id: 'epic', label: 'Lüks' },
-  { id: 'legendary', label: 'Efsane' },
-];
+const SEKME_IDS = [
+  'populer',
+  'all',
+  'common',
+  'rare',
+  'epic',
+  'legendary',
+] as const;
+
+const SEKME_ANAHTAR: Record<(typeof SEKME_IDS)[number], CeviriAnahtari> = {
+  populer: 'hediye.sekmePopuler',
+  all: 'hediye.sekmeTumu',
+  common: 'hediye.sekmeKlasik',
+  rare: 'hediye.sekmeNadir',
+  epic: 'hediye.sekmeLuks',
+  legendary: 'hediye.sekmeEfsane',
+};
 
 const ADET_SECENEKLERI = [1, 7, 17, 77, 188, 777] as const;
 
@@ -79,6 +93,7 @@ type KartProps = {
   item: Gift;
   aktif: boolean;
   ucuz: boolean;
+  locale: string;
   onSec: (g: Gift) => void;
   onHizliGonder: (g: Gift) => void;
 };
@@ -87,6 +102,7 @@ const HediyeKart = React.memo(function HediyeKart({
   item,
   aktif,
   ucuz,
+  locale,
   onSec,
   onHizliGonder,
 }: KartProps) {
@@ -103,12 +119,12 @@ const HediyeKart = React.memo(function HediyeKart({
     >
       <CanliHediyeSimgesi emoji={item.emoji} size={30} secili={aktif} />
       <Text style={styles.hediyeAd} numberOfLines={1}>
-        {item.name}
+        {HediyeAdiCevir(item.code, item.name)}
       </Text>
       <View style={styles.fiyatSatir}>
         <Text style={styles.coinIcon}>🪙</Text>
         <Text style={styles.fiyat}>
-          {item.coin_cost.toLocaleString('tr-TR')}
+          {item.coin_cost.toLocaleString(locale)}
         </Text>
       </View>
     </Pressable>
@@ -132,8 +148,10 @@ export function HediyeMagazaPaneli({
   onCoinPaketHazirla,
   gonderiyor = false,
 }: Props) {
+  const { t } = useCeviri();
+  const locale = DIL_LOCALE_MAP[AktifDil()];
   const insets = useSafeAreaInsets();
-  const [sekme, setSekme] = useState<(typeof SEKMELER)[number]['id']>('populer');
+  const [sekme, setSekme] = useState<(typeof SEKME_IDS)[number]>('populer');
   const [secili, setSecili] = useState<Gift | null>(null);
   const [adet, setAdet] = useState(1);
   /** Aynı Modal içinde coin paketleri — iOS ikinci Modal açmaz */
@@ -228,11 +246,12 @@ export function HediyeMagazaPaneli({
         item={item}
         aktif={secili?.id === item.id}
         ucuz={coins != null && item.coin_cost > coins}
+        locale={locale}
         onSec={onSec}
         onHizliGonder={onHizliGonder}
       />
     ),
-    [coins, onHizliGonder, onSec, secili?.id],
+    [coins, locale, onHizliGonder, onSec, secili?.id],
   );
 
   const keyExtractor = useCallback((item: Gift) => item.id, []);
@@ -300,14 +319,14 @@ export function HediyeMagazaPaneli({
             <View style={styles.ust}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.baslik}>
-                  {coinModu ? 'Coin yükle' : 'Hediye gönder'}
+                  {coinModu ? t('hediye.coinYukle') : t('hediye.gonderBaslik')}
                 </Text>
                 <Text style={styles.alt}>
                   {coinModu
-                    ? '1 coin = 0,10 ₺ · anında yükle'
+                    ? t('hediye.coinYukleAlt')
                     : aliciAdi
-                      ? `Alıcı: ${aliciAdi}`
-                      : 'Canlı hediyeler'}
+                      ? t('hediye.alici', { ad: aliciAdi })
+                      : t('hediye.canliHediyeler')}
                   {coinModu ? '' : ` · ${sirali.length}`}
                 </Text>
               </View>
@@ -316,7 +335,7 @@ export function HediyeMagazaPaneli({
                   onPress={() => setCoinModu(false)}
                   style={styles.kapatBtn}
                   hitSlop={8}
-                  accessibilityLabel="Hediyeye dön"
+                  accessibilityLabel={t('hediye.hediyeyeDon')}
                 >
                   <Ionicons
                     name="arrow-back"
@@ -354,7 +373,7 @@ export function HediyeMagazaPaneli({
               <>
                 {pkAlicilar && pkAlicilar.length > 1 ? (
                   <View style={styles.pkAlicilar}>
-                    <Text style={styles.pkBaslik}>PK — kime?</Text>
+                    <Text style={styles.pkBaslik}>{t('hediye.pkKime')}</Text>
                     <View style={styles.pkSatir}>
                       {pkAlicilar.map((a) => {
                         const aktif = seciliPkAliciId === a.id;
@@ -386,12 +405,12 @@ export function HediyeMagazaPaneli({
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.sekmeler}
                 >
-                  {SEKMELER.map((s) => {
-                    const aktif = sekme === s.id;
+                  {SEKME_IDS.map((id) => {
+                    const aktif = sekme === id;
                     return (
                       <Pressable
-                        key={s.id}
-                        onPress={() => setSekme(s.id)}
+                        key={id}
+                        onPress={() => setSekme(id)}
                         style={[styles.sekme, aktif && styles.sekmeAktif]}
                       >
                         <Text
@@ -400,7 +419,7 @@ export function HediyeMagazaPaneli({
                             aktif && styles.sekmeYaziAktif,
                           ]}
                         >
-                          {s.label}
+                          {t(SEKME_ANAHTAR[id])}
                         </Text>
                       </Pressable>
                     );
@@ -421,7 +440,7 @@ export function HediyeMagazaPaneli({
                 </View>
 
                 <View style={styles.adetBar}>
-                  <Text style={styles.adetEtiket}>Adet</Text>
+                  <Text style={styles.adetEtiket}>{t('hediye.adet')}</Text>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -457,7 +476,7 @@ export function HediyeMagazaPaneli({
                   >
                     <Text style={styles.bakiyeIcon}>🪙</Text>
                     <Text style={styles.bakiyeYazi}>
-                      {(coins ?? 0).toLocaleString('tr-TR')}
+                      {(coins ?? 0).toLocaleString(locale)}
                     </Text>
                     {icindeCoin || onCoinYukle ? (
                       <Ionicons
@@ -495,10 +514,14 @@ export function HediyeMagazaPaneli({
                         ]}
                       >
                         {gonderiyor
-                          ? 'Gönderiliyor…'
+                          ? t('hediye.gonderiliyor')
                           : yetmez
-                            ? 'Coin yükle'
-                            : `Gönder${secili ? ` · ${toplam.toLocaleString('tr-TR')}` : ''}`}
+                            ? t('hediye.coinYukle')
+                            : secili
+                              ? t('hediye.gonderToplam', {
+                                  toplam: toplam.toLocaleString(locale),
+                                })
+                              : t('ortak.gonder')}
                       </Text>
                     </LinearGradient>
                   </Pressable>

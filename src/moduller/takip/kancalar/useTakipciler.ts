@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import i18n from '../../../i18n';
 import { TakipAnalitik } from '../analytics/TakipAnalytics';
 import { TakipServisi } from '../islemler/TakipServisi';
 import type {
@@ -51,7 +52,7 @@ export function useTakipListesi(input: {
         cursorRef.current = page.next_cursor;
         setItems((prev) => (reset ? page.items : [...prev, ...page.items]));
       } catch (e) {
-        setHata(e instanceof Error ? e.message : 'Liste yüklenemedi');
+        setHata(e instanceof Error ? e.message : i18n.t('takip.listeYuklenemedi'));
         if (reset) setItems([]);
       } finally {
         setYukleniyor(false);

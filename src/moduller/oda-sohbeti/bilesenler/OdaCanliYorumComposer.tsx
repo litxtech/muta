@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { OdaSohbetMesajiGonder } from '../../canli-sohbet/islemler/CanliSohbetIslemleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   roomId: string;
@@ -34,6 +35,7 @@ export function OdaCanliYorumComposer({
   onSent,
   onFocus,
 }: Props) {
+  const { t } = useCeviri();
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<TextInput>(null);
@@ -55,7 +57,10 @@ export function OdaCanliYorumComposer({
     setBusy(false);
     if (!r.ok) {
       setText(body);
-      Alert.alert('Yorum gönderilemedi', r.hata || 'Bir hata oluştu. Tekrar dene.');
+      Alert.alert(
+        t('canliYayin.yorum'),
+        r.hata || t('canliYayin.gonderilemedi'),
+      );
       return;
     }
     onSent?.();
@@ -70,7 +75,7 @@ export function OdaCanliYorumComposer({
           onPress={upgradeIste}
           style={styles.upgradeHit}
           accessibilityRole="button"
-          accessibilityLabel="Hesabı tamamla — yorum yazmak için"
+          accessibilityLabel={t('sesOda.hesapYorumA11y')}
         >
           <Ionicons
             name="lock-closed-outline"
@@ -78,13 +83,13 @@ export function OdaCanliYorumComposer({
             color={RenkTokenlari.primarySoft}
           />
           <Text style={styles.upgradeYazi} numberOfLines={1}>
-            Yorum yazmak için hesabı tamamla
+            {t('sesOda.hesapYorumYaz')}
           </Text>
         </Pressable>
         <Pressable
           onPress={upgradeIste}
           style={styles.send}
-          accessibilityLabel="Hesabı tamamla"
+          accessibilityLabel={t('ortak.hesabiTamamla')}
         >
           <Ionicons name="person-add" size={18} color={RenkTokenlari.text} />
         </Pressable>
@@ -98,7 +103,7 @@ export function OdaCanliYorumComposer({
         ref={inputRef}
         value={text}
         onChangeText={setText}
-        placeholder="Bir şeyler yaz…"
+        placeholder={t('sesOda.birSeylerYaz')}
         placeholderTextColor={RenkTokenlari.textDim}
         style={styles.input}
         maxLength={500}
@@ -114,7 +119,7 @@ export function OdaCanliYorumComposer({
         onPress={() => void gonder()}
         disabled={busy || !text.trim()}
         style={[styles.send, (busy || !text.trim()) && styles.sendDisabled]}
-        accessibilityLabel="Gönder"
+        accessibilityLabel={t('ortak.gonder')}
       >
         <Ionicons
           name="send"

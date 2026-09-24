@@ -12,10 +12,12 @@ import {
 } from 'react-native';
 import {
   BILDIRME_SEBEPLERI,
+  BildirmeSebebiEtiketi,
   KullaniciBildir,
   KullaniciEngelle,
-  RAPOR_ALINDI_MESAJ_ENGELLE,
+  RaporAlindiMesajEngelle,
 } from '../islemler/ModerasyonIslemleri';
+import { useCeviri } from '../../../i18n/useCeviri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -43,6 +45,8 @@ type Props = {
   contentId?: string | null;
   contentPreview?: string | null;
   contentMediaUrl?: string | null;
+  /** Takipçi listesi: menüde “Takipçilerden kaldır” satırı */
+  onTakipciKaldir?: () => void;
   onClose: () => void;
   onBlocked?: () => void;
   onReported?: () => void;
@@ -61,10 +65,12 @@ export function KullaniciGuvenlikMenusu({
   contentId,
   contentPreview,
   contentMediaUrl,
+  onTakipciKaldir,
   onClose,
   onBlocked,
   onReported,
 }: Props) {
+  const { t } = useCeviri();
   const [adim, setAdim] = useState<'menu' | 'bildir'>('menu');
   const [sebepId, setSebepId] = useState<string | null>(null);
   const [detay, setDetay] = useState('');
@@ -78,24 +84,23 @@ export function KullaniciGuvenlikMenusu({
   };
 
   const misafirUyar = () => {
-    Alert.alert(
-      'Bildirim',
-      'Misafir hesapla da bildirebilirsin; engellemek için hesabını tamamlaman önerilir.',
-    );
+    Alert.alert(t('guvenlik.bildirim'), t('moderasyon.misafirBildirUyari'));
   };
 
   const engelle = () => {
     if (isGuest) {
-      Alert.alert('Misafir', 'Engellemek için hesabını tamamla.');
+      Alert.alert(t('ortak.misafir'), t('moderasyon.misafirEngelle'));
       return;
     }
     Alert.alert(
-      'Engelle',
-      `${targetName ?? 'Bu kişi'} engellenecek. İçerikleri senden gizlenir; mesaj / arama / takip yapamaz.`,
+      t('profil.engelle'),
+      t('moderasyon.engelleOnay', {
+        ad: targetName ?? t('moderasyon.buKisi'),
+      }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('ortak.vazgec'), style: 'cancel' },
         {
-          text: 'Engelle',
+          text: t('profil.engelle'),
           style: 'destructive',
           onPress: () => {
             void (async () => {
@@ -103,12 +108,15 @@ export function KullaniciGuvenlikMenusu({
               const r = await KullaniciEngelle(targetUserId);
               setBusy(false);
               if (!r.ok) {
-                Alert.alert('Engelle', r.hata ?? 'Başarısız');
+                Alert.alert(
+                  t('profil.engelle'),
+                  r.hata ?? t('moderasyon.engelleBasarisiz'),
+                );
                 return;
               }
               Alert.alert(
-                'Engellendi',
-                'Bu kullanıcı artık sizinle doğrudan etkileşim kuramayacak ve içerikleri size gösterilmeyecek. Engeli Profil → Engellenen hesaplar’dan kaldırabilirsin.',
+                t('moderasyon.engellendiBaslik'),
+                t('moderasyon.engellendiBody'),
               );
               onBlocked?.();
               kapat();
@@ -121,11 +129,10 @@ export function KullaniciGuvenlikMenusu({
 
   const bildir = async () => {
     if (!sebepId) {
-      Alert.alert('Bildir', 'Bir sebep seç.');
+      Alert.alert(t('bildir.baslik'), t('moderasyon.sebepSec'));
       return;
     }
-    const etiket =
-      BILDIRME_SEBEPLERI.find((s) => s.id === sebepId)?.label ?? sebepId;
+    const etiket = BildirmeSebebiEtiketi(sebepId);
     setBusy(true);
     const r = await KullaniciBildir({
       reason: etiket,
@@ -143,28 +150,33 @@ export function KullaniciGuvenlikMenusu({
     });
     setBusy(false);
     if (!r.ok) {
-      Alert.alert('Bildir', r.hata ?? 'Gönderilemedi');
+      Alert.alert(
+        t('bildir.baslik'),
+        r.hata ?? t('moderasyon.gonderilemedi'),
+      );
       return;
     }
-    Alert.alert(
-      'Rapor alındı',
-      RAPOR_ALINDI_MESAJ_ENGELLE,
-      [
-        { text: 'Tamam', onPress: () => { onReported?.(); kapat(); } },
-        {
-          text: 'Engelle',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              await KullaniciEngelle(targetUserId);
-              onBlocked?.();
-              onReported?.();
-              kapat();
-            })();
-          },
+    Alert.alert(t('guvenlik.raporAlindi'), RaporAlindiMesajEngelle(), [
+      {
+        text: t('ortak.tamam'),
+        onPress: () => {
+          onReported?.();
+          kapat();
         },
-      ],
-    );
+      },
+      {
+        text: t('profil.engelle'),
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            await KullaniciEngelle(targetUserId);
+            onBlocked?.();
+            onReported?.();
+            kapat();
+          })();
+        },
+      },
+    ]);
   };
 
   return (
@@ -176,25 +188,42 @@ export function KullaniciGuvenlikMenusu({
           ) : adim === 'menu' ? (
             <>
               <Text style={styles.title} numberOfLines={1}>
-                {targetName ?? 'Kullanıcı'}
+                {targetName ?? t('ortak.kullanici')}
               </Text>
-              <Text style={styles.hint}>
-                Apple ve Google kurallarına uygun güvenlik işlemleri
-              </Text>
-              <Pressable style={styles.row} onPress={() => setAdim('bildir')}>
-                <Text style={styles.rowText}>Bildir</Text>
+              <Text style={styles.hint}>{t('moderasyon.guvenlikHint')}</Text>
+              {onTakipciKaldir ? (
+                <Pressable
+                  style={[styles.row, styles.rowDanger]}
+                  onPress={() => {
+                    kapat();
+                    onTakipciKaldir();
+                  }}
+                >
+                  <Text style={[styles.rowText, styles.danger]}>
+                    {t('takip.takipciyiKaldir')}
+                  </Text>
+                </Pressable>
+              ) : null}
+              <Pressable
+                style={styles.row}
+                onPress={() => {
+                  if (isGuest) misafirUyar();
+                  setAdim('bildir');
+                }}
+              >
+                <Text style={styles.rowText}>{t('bildir.baslik')}</Text>
               </Pressable>
               <Pressable style={[styles.row, styles.rowDanger]} onPress={engelle}>
-                <Text style={[styles.rowText, styles.danger]}>Engelle</Text>
+                <Text style={[styles.rowText, styles.danger]}>{t('profil.engelle')}</Text>
               </Pressable>
               <Pressable style={styles.row} onPress={kapat}>
-                <Text style={styles.rowMuted}>Vazgeç</Text>
+                <Text style={styles.rowMuted}>{t('ortak.vazgec')}</Text>
               </Pressable>
             </>
           ) : (
             <ScrollView keyboardShouldPersistTaps="handled">
-              <Text style={styles.title}>Bildir</Text>
-              <Text style={styles.hint}>Ne için raporluyorsun?</Text>
+              <Text style={styles.title}>{t('bildir.baslik')}</Text>
+              <Text style={styles.hint}>{t('moderasyon.neIcin')}</Text>
               {BILDIRME_SEBEPLERI.map((s) => (
                 <Pressable
                   key={s.id}
@@ -207,24 +236,24 @@ export function KullaniciGuvenlikMenusu({
                       sebepId === s.id && styles.sebepTextAktif,
                     ]}
                   >
-                    {s.label}
+                    {BildirmeSebebiEtiketi(s.id)}
                   </Text>
                 </Pressable>
               ))}
               <TextInput
                 value={detay}
                 onChangeText={setDetay}
-                placeholder="Ek detay (isteğe bağlı)"
+                placeholder={t('moderasyon.ekDetay')}
                 placeholderTextColor={RenkTokenlari.textDim}
                 style={styles.input}
                 multiline
                 maxLength={500}
               />
               <Pressable style={styles.gonder} onPress={() => void bildir()}>
-                <Text style={styles.gonderText}>Raporu gönder</Text>
+                <Text style={styles.gonderText}>{t('moderasyon.raporuGonder')}</Text>
               </Pressable>
               <Pressable style={styles.row} onPress={() => setAdim('menu')}>
-                <Text style={styles.rowMuted}>Geri</Text>
+                <Text style={styles.rowMuted}>{t('ortak.geri')}</Text>
               </Pressable>
             </ScrollView>
           )}

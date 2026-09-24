@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { FikirKarti } from '../../src/moduller/fikir-geri-bildirim/bilesenler/FikirKarti';
 import { FikirToplulukListele } from '../../src/moduller/fikir-geri-bildirim/islemler/FikirIslemleri';
@@ -26,6 +27,7 @@ import {
 type Sekme = 'popular' | 'new' | 'reviewing';
 
 export default function FikirMerkeziEkrani() {
+  const { t } = useCeviri();
   const [sekme, setSekme] = useState<Sekme>('popular');
   const [items, setItems] = useState<FikirOzet[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -59,8 +61,8 @@ export default function FikirMerkeziEkrani() {
     <Screen>
       <ModulHataSiniri modulAdi="fikir-merkezi">
         <EkranBasligi
-          title="Fikir & Öneri"
-          subtitle="Birlikte geliştirelim"
+          title={t('fikirler.baslik')}
+          subtitle={t('fikirler.altBirlikte')}
           onBack={() => router.back()}
         />
         <FlatList
@@ -84,25 +86,22 @@ export default function FikirMerkeziEkrani() {
                 style={styles.hero}
               >
                 <Ionicons name="bulb" size={28} color={RenkTokenlari.accent} />
-                <Text style={styles.heroBaslik}>Tamuso'yu Birlikte Geliştirelim</Text>
-                <Text style={styles.heroAlt}>
-                  Bir fikrin mi var? Yeni özelliklerden deneyim iyileştirmelerine
-                  kadar önerilerini bizimle paylaş. Her geri bildirimi önemsiyoruz.
-                </Text>
+                <Text style={styles.heroBaslik}>{t('fikirler.heroBaslik')}</Text>
+                <Text style={styles.heroAlt}>{t('fikirler.heroAlt')}</Text>
                 <View style={styles.aksiyonlar}>
                   <Pressable
                     style={styles.cta}
                     onPress={() => router.push('/fikirler/olustur' as any)}
                   >
                     <Ionicons name="add" size={18} color={RenkTokenlari.textOnPrimary} />
-                    <Text style={styles.ctaYazi}>Fikir Gönder</Text>
+                    <Text style={styles.ctaYazi}>{t('fikirler.fikirGonder')}</Text>
                   </Pressable>
                   <Pressable
                     style={styles.ctaIkincil}
                     onPress={() => router.push('/fikirler/benim' as any)}
                   >
                     <Ionicons name="folder-outline" size={18} color={RenkTokenlari.text} />
-                    <Text style={styles.ctaIkincilYazi}>Fikirlerim</Text>
+                    <Text style={styles.ctaIkincilYazi}>{t('fikirler.benim')}</Text>
                   </Pressable>
                 </View>
               </LinearGradient>
@@ -110,11 +109,11 @@ export default function FikirMerkeziEkrani() {
               <View style={styles.sekmeler}>
                 {(
                   [
-                    ['popular', 'Popüler'],
-                    ['new', 'Yeni'],
-                    ['reviewing', 'Değerlendirilenler'],
+                    ['popular', 'fikirler.sekmePopuler'],
+                    ['new', 'fikirler.sekmeYeni'],
+                    ['reviewing', 'fikirler.sekmeDegerlendirilen'],
                   ] as const
-                ).map(([k, y]) => (
+                ).map(([k, key]) => (
                   <Pressable
                     key={k}
                     onPress={() => setSekme(k)}
@@ -123,27 +122,25 @@ export default function FikirMerkeziEkrani() {
                     <Text
                       style={[styles.sekmeYazi, sekme === k && styles.sekmeYaziAktif]}
                     >
-                      {y}
+                      {t(key)}
                     </Text>
                   </Pressable>
                 ))}
               </View>
               <Text style={styles.bolumBaslik}>
                 {sekme === 'popular'
-                  ? 'Popüler Fikirler'
+                  ? t('fikirler.bolumPopuler')
                   : sekme === 'new'
-                    ? 'Yeni Fikirler'
-                    : 'Değerlendirilenler'}
+                    ? t('fikirler.bolumYeni')
+                    : t('fikirler.bolumDegerlendirilen')}
               </Text>
             </View>
           }
           ListEmptyComponent={
             yukleniyor ? null : (
               <View style={styles.bos}>
-                <Text style={styles.bosBaslik}>Henüz topluluk fikri yok</Text>
-                <Text style={styles.bosAlt}>
-                  Public yapılan fikirler burada görünür. Seninkiler Fikirlerim'de.
-                </Text>
+                <Text style={styles.bosBaslik}>{t('fikirler.bosTopluluk')}</Text>
+                <Text style={styles.bosAlt}>{t('fikirler.bosToplulukBody')}</Text>
               </View>
             )
           }

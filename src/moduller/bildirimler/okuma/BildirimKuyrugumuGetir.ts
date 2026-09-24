@@ -66,6 +66,50 @@ export async function BildirimOkunduIsaretle(
   return { ok: !!row?.ok, unread: Number(row?.unread) || 0 };
 }
 
+export async function BildirimSil(
+  id: string,
+): Promise<{ ok: boolean; deleted: number; unread: number }> {
+  const { data, error } = await supabase.rpc('bildirim_sil', { p_id: id });
+  if (error) throw error;
+  const row = data as { ok?: boolean; deleted?: number; unread?: number } | null;
+  return {
+    ok: !!row?.ok,
+    deleted: Number(row?.deleted) || 0,
+    unread: Number(row?.unread) || 0,
+  };
+}
+
+export async function BildirimleriTopluSil(
+  ids: string[],
+): Promise<{ ok: boolean; deleted: number; unread: number }> {
+  if (ids.length === 0) return { ok: true, deleted: 0, unread: 0 };
+  const { data, error } = await supabase.rpc('bildirimleri_toplu_sil', {
+    p_ids: ids,
+  });
+  if (error) throw error;
+  const row = data as { ok?: boolean; deleted?: number; unread?: number } | null;
+  return {
+    ok: !!row?.ok,
+    deleted: Number(row?.deleted) || 0,
+    unread: Number(row?.unread) || 0,
+  };
+}
+
+export async function BildirimleriHepsiniSil(): Promise<{
+  ok: boolean;
+  deleted: number;
+  unread: number;
+}> {
+  const { data, error } = await supabase.rpc('bildirimleri_hepsini_sil');
+  if (error) throw error;
+  const row = data as { ok?: boolean; deleted?: number; unread?: number } | null;
+  return {
+    ok: !!row?.ok,
+    deleted: Number(row?.deleted) || 0,
+    unread: Number(row?.unread) || 0,
+  };
+}
+
 export async function BildirimKuyrugaEkleDev(input: {
   title: string;
   body?: string;

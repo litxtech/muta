@@ -12,6 +12,7 @@ export {
   BildirimIzniDurumuAl,
   MesajPushIzniGerekirseIste,
 } from './kayit/BildirimIzniIste';
+export { PushWorkerTetikle } from './kayit/PushWorkerTetikle';
 export {
   PushTercihleriniGetir,
   PushTercihiniKaydet,
@@ -27,6 +28,9 @@ export {
   BildirimOkunmamisSayim,
   BildirimleriHepsiniOkundu,
   BildirimOkunduIsaretle,
+  BildirimSil,
+  BildirimleriTopluSil,
+  BildirimleriHepsiniSil,
 } from './okuma/BildirimKuyrugumuGetir';
 export { BildirimHedefYolu, BildirimTarihSaat } from './islemler/BildirimHedefYolu';
 export { BildirimSaglayici, useBildirimler } from './baglam/BildirimSaglayici';

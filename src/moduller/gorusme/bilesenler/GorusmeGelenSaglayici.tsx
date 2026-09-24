@@ -19,6 +19,7 @@ import {
 import { KullanicilarEngelliMi } from '../../moderasyon/islemler/ModerasyonIslemleri';
 import type { DirectCall } from '../tipler';
 import { GorusmeOturumAl } from '../oturum/GorusmeOturumYoneticisi';
+import i18n from '../../../i18n';
 
 /** LiveKit VideoView zincirini app acilisinda yukleme */
 function GorusmeGelenEkraniLazy(
@@ -51,7 +52,7 @@ async function arayanProfilYukle(callerId: string) {
     name:
       data?.display_name?.trim() ||
       data?.username?.trim() ||
-      'Arayan',
+      i18n.t('gorusme.arayan'),
     avatar: data?.avatar_url ?? null,
   };
 }
@@ -64,7 +65,7 @@ export function GorusmeGelenSaglayici({
 }) {
   const { user } = useAuth();
   const [gelen, setGelen] = useState<DirectCall | null>(null);
-  const [peerName, setPeerName] = useState('Arayan');
+  const [peerName, setPeerName] = useState(() => i18n.t('gorusme.arayan'));
   const [peerAvatar, setPeerAvatar] = useState<string | null>(null);
   const gelenIdRef = useRef<string | null>(null);
 
@@ -84,7 +85,7 @@ export function GorusmeGelenSaglayici({
 
       // Once UI — profili bekleme
       setGelen(c);
-      setPeerName('Arayan');
+      setPeerName(i18n.t('gorusme.arayan'));
       setPeerAvatar(null);
 
       // Engelli / profil arka planda

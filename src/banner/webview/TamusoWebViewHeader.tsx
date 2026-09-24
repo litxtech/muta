@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../i18n/useCeviri';
 
 type Props = {
   title: string;
@@ -36,12 +37,14 @@ export function TamusoWebViewHeader({
   onClose,
   onMenu,
 }: Props) {
+  const { t } = useCeviri();
+
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Kapat"
+          accessibilityLabel={t('ortak.kapat')}
           onPress={onClose}
           style={styles.iconBtn}
           hitSlop={8}
@@ -52,7 +55,7 @@ export function TamusoWebViewHeader({
         <View style={styles.nav}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Geri"
+            accessibilityLabel={t('ortak.geri')}
             onPress={onBack}
             disabled={!canGoBack}
             style={[styles.iconBtn, !canGoBack && styles.disabled]}
@@ -61,7 +64,7 @@ export function TamusoWebViewHeader({
           </Pressable>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="İleri"
+            accessibilityLabel={t('ortak.ileri')}
             onPress={onForward}
             disabled={!canGoForward}
             style={[styles.iconBtn, !canGoForward && styles.disabled]}
@@ -80,7 +83,7 @@ export function TamusoWebViewHeader({
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Yenile"
+          accessibilityLabel={t('ortak.yenile')}
           onPress={onReload}
           style={styles.iconBtn}
         >
@@ -94,7 +97,7 @@ export function TamusoWebViewHeader({
         {onMenu ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Menü"
+            accessibilityLabel={t('anaSayfa.menu')}
             onPress={onMenu}
             style={styles.iconBtn}
           >

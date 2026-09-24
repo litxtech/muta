@@ -8,6 +8,7 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { BosDurum } from '../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { FikirKarti } from '../../src/moduller/fikir-geri-bildirim/bilesenler/FikirKarti';
@@ -17,6 +18,7 @@ import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export default function FikirlerimEkrani() {
+  const { t } = useCeviri();
   const [items, setItems] = useState<FikirOzet[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [offset, setOffset] = useState(0);
@@ -60,8 +62,8 @@ export default function FikirlerimEkrani() {
     <Screen>
       <ModulHataSiniri modulAdi="fikirlerim">
         <EkranBasligi
-          title="Fikirlerim"
-          subtitle="Gönderdiklerin · durum takibi"
+          title={t('fikirler.benim')}
+          subtitle={t('fikirler.altGonderdiklerin')}
           onBack={() => router.back()}
         />
         <FlatList
@@ -86,8 +88,8 @@ export default function FikirlerimEkrani() {
           ListEmptyComponent={
             yukleniyor ? null : (
               <BosDurum
-                title="Henüz fikir yok"
-                body="İlk fikrini gönder; durumunu burada takip et."
+                title={t('fikirler.bosBaslik')}
+                body={t('fikirler.bosBody')}
               />
             )
           }

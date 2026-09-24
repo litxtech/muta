@@ -13,8 +13,10 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 export function KesfetSehirYukselenSeridi() {
+  const { t } = useCeviri();
   const [rows, setRows] = useState<SehirYukselen[]>([]);
   const acik = OzellikBayragiAktifMi('city_league_enabled');
 
@@ -38,9 +40,9 @@ export function KesfetSehirYukselenSeridi() {
   return (
     <View style={styles.wrap}>
       <View style={styles.baslikSatir}>
-        <Text style={styles.baslik}>Yükselen şehirler</Text>
+        <Text style={styles.baslik}>{t('kesfet.yukselenSehirler')}</Text>
         <Pressable onPress={() => router.push('/sehir' as any)}>
-          <Text style={styles.link}>Tümü</Text>
+          <Text style={styles.link}>{t('modlar.tumu')}</Text>
         </Pressable>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
@@ -56,7 +58,7 @@ export function KesfetSehirYukselenSeridi() {
             <Text style={styles.ad} numberOfLines={1}>
               {c.name}
             </Text>
-            <Text style={styles.meta}>+{c.delta_24h} / 24s</Text>
+            <Text style={styles.meta}>+{c.delta_24h} {t('kesfet.son24s')}</Text>
           </Pressable>
         ))}
       </ScrollView>

@@ -12,9 +12,11 @@ import {
 } from 'react-native';
 import {
   BILDIRME_SEBEPLERI,
+  BildirmeSebebiEtiketi,
   KullaniciBildir,
-  RAPOR_ALINDI_MESAJ,
+  RaporAlindiMesaj,
 } from '../islemler/ModerasyonIslemleri';
+import { useCeviri } from '../../../i18n/useCeviri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -53,6 +55,7 @@ export function IcerikBildirPaneli({
   isGuest,
   onReported,
 }: Props) {
+  const { t } = useCeviri();
   const [sebepId, setSebepId] = useState<string | null>(null);
   const [detay, setDetay] = useState('');
   const [busy, setBusy] = useState(false);
@@ -65,16 +68,15 @@ export function IcerikBildirPaneli({
 
   const gonder = async () => {
     if (!sebepId) {
-      Alert.alert('Bildir', 'Bir sebep seç.');
+      Alert.alert(t('bildir.baslik'), t('moderasyon.sebepSec'));
       return;
     }
     if (!contentId) {
-      Alert.alert('Bildir', 'İçerik bulunamadı.');
+      Alert.alert(t('bildir.baslik'), t('moderasyon.icerikBulunamadi'));
       return;
     }
 
-    const etiket =
-      BILDIRME_SEBEPLERI.find((s) => s.id === sebepId)?.label ?? sebepId;
+    const etiket = BildirmeSebebiEtiketi(sebepId);
     setBusy(true);
     const r = await KullaniciBildir({
       reason: etiket,
@@ -92,22 +94,21 @@ export function IcerikBildirPaneli({
     });
     setBusy(false);
     if (!r.ok) {
-      Alert.alert('Bildir', r.hata ?? 'Gönderilemedi');
+      Alert.alert(
+        t('bildir.baslik'),
+        r.hata ?? t('moderasyon.gonderilemedi'),
+      );
       return;
     }
-    Alert.alert(
-      'Rapor alındı',
-      RAPOR_ALINDI_MESAJ,
-      [
-        {
-          text: 'Tamam',
-          onPress: () => {
-            onReported?.();
-            kapat();
-          },
+    Alert.alert(t('guvenlik.raporAlindi'), RaporAlindiMesaj(), [
+      {
+        text: t('ortak.tamam'),
+        onPress: () => {
+          onReported?.();
+          kapat();
         },
-      ],
-    );
+      },
+    ]);
   };
 
   return (
@@ -121,10 +122,9 @@ export function IcerikBildirPaneli({
             />
           ) : (
             <ScrollView keyboardShouldPersistTaps="handled">
-              <Text style={styles.title}>Bildir</Text>
+              <Text style={styles.title}>{t('bildir.baslik')}</Text>
               <Text style={styles.hint}>
-                {tur === 'room' ? 'Bu ses odasını' : 'Bu canlı yayını'} neden
-                raporluyorsun?
+                {tur === 'room' ? t('moderasyon.odaNeden') : t('moderasyon.canliNeden')}
                 {title ? `\n“${title}”` : ''}
               </Text>
               {BILDIRME_SEBEPLERI.map((s) => (
@@ -139,24 +139,24 @@ export function IcerikBildirPaneli({
                       sebepId === s.id && styles.sebepTextAktif,
                     ]}
                   >
-                    {s.label}
+                    {BildirmeSebebiEtiketi(s.id)}
                   </Text>
                 </Pressable>
               ))}
               <TextInput
                 value={detay}
                 onChangeText={setDetay}
-                placeholder="Ek detay (isteğe bağlı)"
+                placeholder={t('moderasyon.ekDetay')}
                 placeholderTextColor={RenkTokenlari.textDim}
                 style={styles.input}
                 multiline
                 maxLength={500}
               />
               <Pressable style={styles.gonder} onPress={() => void gonder()}>
-                <Text style={styles.gonderText}>Raporu gönder</Text>
+                <Text style={styles.gonderText}>{t('moderasyon.raporuGonder')}</Text>
               </Pressable>
               <Pressable style={styles.vazgec} onPress={kapat}>
-                <Text style={styles.vazgecText}>Vazgeç</Text>
+                <Text style={styles.vazgecText}>{t('ortak.vazgec')}</Text>
               </Pressable>
             </ScrollView>
           )}

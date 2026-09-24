@@ -13,17 +13,24 @@ import { BildirimIzniIste } from './BildirimIzniIste';
 
 type PushProvider = 'apns' | 'fcm' | 'expo' | 'none';
 
+function tokenDoluMu(token: string | null | undefined): token is string {
+  return typeof token === 'string' && token.trim().length > 8;
+}
+
 async function tokenKaydet(
   deviceId: string,
   platform: string,
   provider: PushProvider,
-  pushToken: string | null,
+  pushToken: string,
 ): Promise<{ ok: boolean; hata?: string }> {
+  if (!tokenDoluMu(pushToken) || provider === 'none') {
+    return { ok: false, hata: 'bos_token' };
+  }
   const { error } = await supabase.rpc('cihaz_push_token_kaydet', {
     p_device_id: deviceId,
     p_platform: platform === 'unknown' ? 'web' : platform,
     p_push_provider: provider,
-    p_push_token: pushToken,
+    p_push_token: pushToken.trim(),
     p_app_version: UygulamaVersiyonunuGetir(),
     p_locale: null,
     p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? null,
@@ -33,21 +40,18 @@ async function tokenKaydet(
 }
 
 /**
- * Android → Firebase FCM device token (asıl).
- * iOS → Expo Push Token (APNs / EAS).
- * Expo token Android'de yedek olarak da kaydedilir.
- * İzin her zaman token'dan önce istenir (BildirimIzniIste).
+ * Android → Firebase FCM device token (asıl) + Expo yedek.
+ * iOS → yalnızca dolu Expo Push Token (APNs Expo üzerinden).
+ * Boş apns/fcm satırı ASLA yazılmaz.
  */
 export async function CihazPushTokeniniKaydet(input?: {
   pushToken?: string | null;
 }): Promise<{ ok: boolean; hata?: string; token?: string | null }> {
   try {
-    // UI settle olsun — splash/auth sırasında dialog bastırılmasın
     await new Promise<void>((resolve) => {
       InteractionManager.runAfterInteractions(() => resolve());
     });
 
-    // Token almadan önce OS iznini net iste (Android FCM kapalı olsa bile dialog çıksın)
     await BildirimIzniIste();
 
     const deviceId = await CihazKimliginiGetir();
@@ -60,33 +64,42 @@ export async function CihazPushTokeniniKaydet(input?: {
           ? input.pushToken
           : await AndroidFcmTokeniniAl();
 
-      if (fcm) {
+      if (tokenDoluMu(fcm)) {
         const r = await tokenKaydet(deviceId, plat, 'fcm', fcm);
         if (!r.ok) return { ...r, token: fcm };
       }
 
       const expo = await ExpoPushTokeniniAl();
-      if (expo) {
+      if (tokenDoluMu(expo)) {
         await tokenKaydet(deviceId, plat, 'expo', expo);
       }
 
-      if (!fcm && !expo) {
+      if (!tokenDoluMu(fcm) && !tokenDoluMu(expo)) {
         return {
           ok: false,
-          hata: 'Bildirim izni veya FCM token yok',
+          hata: 'Bildirim izni veya FCM/Expo token yok',
           token: null,
         };
       }
       return { ok: true, token: fcm ?? expo };
     }
 
-    // iOS / diğer
-    let pushToken = input?.pushToken ?? null;
-    if (pushToken === undefined || pushToken === null) {
-      pushToken = await ExpoPushTokeniniAl();
+    // iOS: sadece Expo token — boş apns kaydı yok
+    const pushToken =
+      tokenDoluMu(input?.pushToken) &&
+      input!.pushToken!.startsWith('ExponentPushToken')
+        ? input!.pushToken!.trim()
+        : await ExpoPushTokeniniAl();
+
+    if (!tokenDoluMu(pushToken)) {
+      return {
+        ok: false,
+        hata: 'Expo push token alınamadı (izin veya APNs/build)',
+        token: null,
+      };
     }
-    const provider: PushProvider = pushToken ? 'expo' : BildirimPlatformuSec();
-    const r = await tokenKaydet(deviceId, plat, provider, pushToken);
+
+    const r = await tokenKaydet(deviceId, plat, 'expo', pushToken);
     if (!r.ok) return { ...r, token: pushToken };
     return { ok: true, token: pushToken };
   } catch (e) {

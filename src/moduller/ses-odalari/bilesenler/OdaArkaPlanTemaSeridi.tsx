@@ -8,6 +8,7 @@ import {
 } from '../../oda-olusturma/katalog/OdaTemaKatalogu';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   seciliKod?: string | null;
@@ -18,6 +19,7 @@ type Props = {
  * Yatay modern tema şeridi — oda arka plan seçimi.
  */
 export function OdaArkaPlanTemaSeridi({ seciliKod, onSec }: Props) {
+  const { t } = useCeviri();
   return (
     <ScrollView
       horizontal
@@ -32,7 +34,7 @@ export function OdaArkaPlanTemaSeridi({ seciliKod, onSec }: Props) {
             onPress={() => onSec(tema)}
             accessibilityRole="button"
             accessibilityState={{ selected: secili }}
-            accessibilityLabel={`${tema.ad} teması`}
+            accessibilityLabel={t('sesOda.temaA11y', { tema: tema.ad })}
             style={({ pressed }) => [
               styles.hit,
               pressed && styles.pressed,

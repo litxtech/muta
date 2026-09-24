@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, type TextStyle } from 'react-native';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 /** Kapalıyken gösterilecek satır üst sınırı */
 const KAPALI_SATIR = 5;
@@ -14,13 +15,14 @@ type Props = {
 
 /**
  * Uzun caption / metin gönderisi — önce ölçer, gerekirse
- * «…devamını gör» ile yerinde açar.
+ * «devamını gör» ile yerinde açar.
  */
 export function DurumCaptionAcilir({
   metin,
   style,
   kapaliSatir = KAPALI_SATIR,
 }: Props) {
+  const { t } = useCeviri();
   const [acik, setAcik] = useState(false);
   /** null = henüz ölçülmedi; true = kırpılmalı; false = kısa */
   const [kirpikGerekli, setKirpikGerekli] = useState<boolean | null>(null);
@@ -50,9 +52,9 @@ export function DurumCaptionAcilir({
           }}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Devamını gör"
+          accessibilityLabel={t('durumX.devaminiGor')}
         >
-          <Text style={styles.devam}>…devamını gör</Text>
+          <Text style={styles.devam}>{t('durumX.devaminiGor')}</Text>
         </Pressable>
       ) : null}
       {kirpikGerekli === true && acik ? (
@@ -63,9 +65,9 @@ export function DurumCaptionAcilir({
           }}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Daha az göster"
+          accessibilityLabel={t('durumX.dahaAzGoster')}
         >
-          <Text style={styles.devam}>daha az göster</Text>
+          <Text style={styles.devam}>{t('durumX.dahaAzGoster')}</Text>
         </Pressable>
       ) : null}
     </>

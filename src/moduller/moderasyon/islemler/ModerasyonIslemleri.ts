@@ -1,5 +1,7 @@
 import { supabase } from '../../../lib/supabase';
 import { OzellikBayragiAktifMiSunucu } from '../../ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
+import i18n from '../../../i18n';
+import type { CeviriAnahtari } from '../../../i18n/useCeviri';
 
 export type ModerasyonAksiyonu =
   | 'mute'
@@ -121,26 +123,46 @@ export async function KullanicilarEngelliMi(
 }
 
 /** Apple / Google standart rapor sebepleri */
+const BILDIRME_SEBEP_ANAHTAR: Record<string, CeviriAnahtari> = {
+  spam: 'moderasyon.sebepSpam',
+  harassment: 'moderasyon.sebepHarassment',
+  hate: 'moderasyon.sebepHate',
+  sexual: 'moderasyon.sebepSexual',
+  child_safety: 'moderasyon.sebepChildSafety',
+  violence: 'moderasyon.sebepViolence',
+  impersonation: 'moderasyon.sebepImpersonation',
+  other: 'moderasyon.sebepOther',
+};
+
 export const BILDIRME_SEBEPLERI = [
-  { id: 'spam', label: 'Spam veya dolandırıcılık' },
-  { id: 'harassment', label: 'Taciz veya zorbalık' },
-  { id: 'hate', label: 'Nefret söylemi' },
-  { id: 'sexual', label: 'Cinsel içerik / uygunsuz' },
-  { id: 'child_safety', label: 'Çocuk istismarı / reşit olmayan içerik' },
-  { id: 'violence', label: 'Şiddet veya tehdit' },
-  { id: 'impersonation', label: 'Kimliğe bürünme' },
-  { id: 'other', label: 'Diğer' },
+  { id: 'spam' },
+  { id: 'harassment' },
+  { id: 'hate' },
+  { id: 'sexual' },
+  { id: 'child_safety' },
+  { id: 'violence' },
+  { id: 'impersonation' },
+  { id: 'other' },
 ] as const;
 
+export function BildirmeSebebiEtiketi(id: string): string {
+  const key = BILDIRME_SEBEP_ANAHTAR[id];
+  return key ? (i18n.t(key) as string) : id;
+}
+
 /** Rapor başarı alert / kart notu — 24 saat SLA */
-export const RAPOR_ALINDI_MESAJ =
-  'Raporunuz alındı. İnceleme ekibimiz 24 saat içinde işlem yapacaktır. Takibi Raporlarım’dan yapabilirsiniz.';
+export function RaporAlindiMesaj(): string {
+  return i18n.t('guvenlik.raporAlindiMesaj') as string;
+}
 
-export const RAPOR_ALINDI_MESAJ_ENGELLE =
-  'Raporunuz alındı. İnceleme ekibimiz 24 saat içinde işlem yapacaktır. İstersen bu kişiyi de engelleyebilirsin.';
+export function RaporAlindiMesajEngelle(): string {
+  return i18n.t('guvenlik.raporAlindiEngelleMesaj') as string;
+}
 
-export const RAPOR_ALINDI_MESAJ_COCUK =
-  'Öncelikli rapor alındı. Çocuk koruma ekibine iletildi; 24 saat içinde işlem yapılacaktır.';
+export function RaporAlindiMesajCocuk(): string {
+  return i18n.t('guvenlik.raporAlindiCocukMesaj') as string;
+}
 
-export const RAPOR_DURUM_KART_NOTU_ACIK =
-  'Raporunuz alındı. İnceleme sırasına eklendi; 24 saat içinde işlem yapılacaktır.';
+export function RaporDurumKartNotuAcik(): string {
+  return i18n.t('guvenlik.raporAlindiMesaj') as string;
+}

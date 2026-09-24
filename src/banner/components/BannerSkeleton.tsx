@@ -9,6 +9,7 @@ import {
 } from '../core/BannerConstants';
 import type { BannerSizeType } from '../core/BannerConstants';
 import { RenkTokenlari } from '../../tasarim-sistemi/RenkTokenlari';
+import { useCeviri } from '../../i18n/useCeviri';
 
 type Props = {
   sizeType?: BannerSizeType;
@@ -21,6 +22,7 @@ export function BannerSkeleton({
   aspectRatio,
   compact,
 }: Props) {
+  const { t } = useCeviri();
   const ratio = resolveBannerAspect(sizeType, aspectRatio);
   return (
     <View
@@ -29,7 +31,7 @@ export function BannerSkeleton({
         { aspectRatio: ratio },
         compact && styles.compact,
       ]}
-      accessibilityLabel="Banner yükleniyor"
+      accessibilityLabel={t('banner.yukleniyorA11y')}
     >
       <View
         style={[styles.shimmer, { backgroundColor: RenkTokenlari.surface }]}

@@ -5,7 +5,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_rose",
     "code": "rose",
-    "name": "Gül",
+    "name": "Rose",
     "emoji": "🌹",
     "coin_cost": 1,
     "diamond_value": 1,
@@ -15,7 +15,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_like",
     "code": "like",
-    "name": "Beğeni",
+    "name": "Like",
     "emoji": "👍",
     "coin_cost": 1,
     "diamond_value": 1,
@@ -25,7 +25,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_spark",
     "code": "spark",
-    "name": "Kıvılcım",
+    "name": "Spark",
     "emoji": "✨",
     "coin_cost": 5,
     "diamond_value": 4,
@@ -35,7 +35,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_heart",
     "code": "heart",
-    "name": "Kalp",
+    "name": "Heart",
     "emoji": "❤️",
     "coin_cost": 9,
     "diamond_value": 7,
@@ -45,7 +45,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_kiss",
     "code": "kiss",
-    "name": "Öpücük",
+    "name": "Kiss",
     "emoji": "💋",
     "coin_cost": 15,
     "diamond_value": 12,
@@ -55,7 +55,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_star",
     "code": "star",
-    "name": "Yıldız",
+    "name": "Star",
     "emoji": "⭐",
     "coin_cost": 25,
     "diamond_value": 20,
@@ -65,7 +65,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_fire",
     "code": "fire",
-    "name": "Ateş",
+    "name": "Fire",
     "emoji": "🔥",
     "coin_cost": 39,
     "diamond_value": 31,
@@ -75,7 +75,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_balloon",
     "code": "balloon",
-    "name": "Balon",
+    "name": "Balloon",
     "emoji": "🎈",
     "coin_cost": 49,
     "diamond_value": 39,
@@ -85,7 +85,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_candy",
     "code": "candy",
-    "name": "Şeker",
+    "name": "Candy",
     "emoji": "🍬",
     "coin_cost": 69,
     "diamond_value": 55,
@@ -95,7 +95,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_clap",
     "code": "clap",
-    "name": "Alkış",
+    "name": "Clap",
     "emoji": "👏",
     "coin_cost": 89,
     "diamond_value": 71,
@@ -105,7 +105,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_flower",
     "code": "flower",
-    "name": "Çiçek",
+    "name": "Flower",
     "emoji": "🌸",
     "coin_cost": 99,
     "diamond_value": 79,
@@ -115,7 +115,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_coffee",
     "code": "coffee",
-    "name": "Kahve",
+    "name": "Coffee",
     "emoji": "☕",
     "coin_cost": 120,
     "diamond_value": 96,
@@ -125,7 +125,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_ice",
     "code": "ice",
-    "name": "Dondurma",
+    "name": "Ice cream",
     "emoji": "🍦",
     "coin_cost": 149,
     "diamond_value": 119,
@@ -145,7 +145,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_perfume",
     "code": "perfume",
-    "name": "Parfüm",
+    "name": "Perfume",
     "emoji": "🧴",
     "coin_cost": 249,
     "diamond_value": 199,
@@ -155,7 +155,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_ring",
     "code": "ring",
-    "name": "Yüzük",
+    "name": "Ring",
     "emoji": "💍",
     "coin_cost": 299,
     "diamond_value": 239,
@@ -165,7 +165,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_teddy",
     "code": "teddy",
-    "name": "Ayıcık",
+    "name": "Teddy",
     "emoji": "🧸",
     "coin_cost": 399,
     "diamond_value": 319,
@@ -175,7 +175,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_bouquet",
     "code": "bouquet",
-    "name": "Buket",
+    "name": "Bouquet",
     "emoji": "💐",
     "coin_cost": 499,
     "diamond_value": 399,
@@ -185,7 +185,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_champagne",
     "code": "champagne",
-    "name": "Şampanya",
+    "name": "Champagne",
     "emoji": "🍾",
     "coin_cost": 699,
     "diamond_value": 559,
@@ -195,7 +195,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_watch",
     "code": "watch",
-    "name": "Saat",
+    "name": "Watch",
     "emoji": "⌚",
     "coin_cost": 899,
     "diamond_value": 719,
@@ -205,7 +205,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_glasses",
     "code": "glasses",
-    "name": "Gözlük",
+    "name": "Glasses",
     "emoji": "🕶️",
     "coin_cost": 999,
     "diamond_value": 799,
@@ -215,7 +215,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_mic",
     "code": "mic",
-    "name": "Mikrofon",
+    "name": "Mic",
     "emoji": "🎤",
     "coin_cost": 1299,
     "diamond_value": 1039,
@@ -225,7 +225,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_guitar",
     "code": "guitar",
-    "name": "Gitar",
+    "name": "Guitar",
     "emoji": "🎸",
     "coin_cost": 1599,
     "diamond_value": 1279,
@@ -235,7 +235,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_camera",
     "code": "camera",
-    "name": "Kamera",
+    "name": "Camera",
     "emoji": "📷",
     "coin_cost": 1999,
     "diamond_value": 1599,
@@ -245,7 +245,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_diamond",
     "code": "diamond",
-    "name": "Elmas",
+    "name": "Diamond",
     "emoji": "💎",
     "coin_cost": 2499,
     "diamond_value": 1999,
@@ -255,7 +255,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_sports_car",
     "code": "sports_car",
-    "name": "Spor Araba",
+    "name": "Sports car",
     "emoji": "🏎️",
     "coin_cost": 2999,
     "diamond_value": 2399,
@@ -265,7 +265,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_motorcycle",
     "code": "motorcycle",
-    "name": "Motor",
+    "name": "Motorcycle",
     "emoji": "🏍️",
     "coin_cost": 3499,
     "diamond_value": 2799,
@@ -275,7 +275,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_yacht",
     "code": "yacht",
-    "name": "Yat",
+    "name": "Yacht",
     "emoji": "🛥️",
     "coin_cost": 4999,
     "diamond_value": 3999,
@@ -285,7 +285,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_helicopter",
     "code": "helicopter",
-    "name": "Helikopter",
+    "name": "Helicopter",
     "emoji": "🚁",
     "coin_cost": 6999,
     "diamond_value": 5599,
@@ -305,7 +305,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_castle",
     "code": "castle",
-    "name": "Kale",
+    "name": "Castle",
     "emoji": "🏰",
     "coin_cost": 9999,
     "diamond_value": 7999,
@@ -315,7 +315,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_crown",
     "code": "crown",
-    "name": "Taç",
+    "name": "Crown",
     "emoji": "👑",
     "coin_cost": 12999,
     "diamond_value": 10399,
@@ -325,7 +325,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_lion",
     "code": "lion",
-    "name": "Aslan",
+    "name": "Lion",
     "emoji": "🦁",
     "coin_cost": 15999,
     "diamond_value": 12799,
@@ -335,7 +335,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_dragon",
     "code": "dragon",
-    "name": "Ejder",
+    "name": "Dragon",
     "emoji": "🐉",
     "coin_cost": 19999,
     "diamond_value": 15999,
@@ -345,7 +345,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_phoenix",
     "code": "phoenix",
-    "name": "Anka",
+    "name": "Phoenix",
     "emoji": "🦅",
     "coin_cost": 24999,
     "diamond_value": 19999,
@@ -355,7 +355,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_rocket",
     "code": "rocket",
-    "name": "Roket",
+    "name": "Rocket",
     "emoji": "🚀",
     "coin_cost": 29999,
     "diamond_value": 23999,
@@ -365,7 +365,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_universe",
     "code": "universe",
-    "name": "Evren",
+    "name": "Universe",
     "emoji": "🌌",
     "coin_cost": 39999,
     "diamond_value": 31999,
@@ -375,7 +375,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_galaxy",
     "code": "galaxy",
-    "name": "Galaksi",
+    "name": "Galaxy",
     "emoji": "🪐",
     "coin_cost": 49999,
     "diamond_value": 39999,
@@ -385,7 +385,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_rainbow",
     "code": "rainbow",
-    "name": "Gökkuşağı",
+    "name": "Rainbow",
     "emoji": "🌈",
     "coin_cost": 59999,
     "diamond_value": 47999,
@@ -395,7 +395,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_golden_mic",
     "code": "golden_mic",
-    "name": "Altın Mik",
+    "name": "Golden mic",
     "emoji": "🎙️",
     "coin_cost": 69999,
     "diamond_value": 55999,
@@ -405,7 +405,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_trophy",
     "code": "trophy",
-    "name": "Kupa",
+    "name": "Trophy",
     "emoji": "🏆",
     "coin_cost": 79999,
     "diamond_value": 63999,
@@ -415,7 +415,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_firework",
     "code": "firework",
-    "name": "Havai Fişek",
+    "name": "Firework",
     "emoji": "🎆",
     "coin_cost": 89999,
     "diamond_value": 71999,
@@ -435,7 +435,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_neon_heart",
     "code": "neon_heart",
-    "name": "Neon Kalp",
+    "name": "Neon heart",
     "emoji": "💗",
     "coin_cost": 120000,
     "diamond_value": 96000,
@@ -445,7 +445,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_diamond_rain",
     "code": "diamond_rain",
-    "name": "Elmas Yağmur",
+    "name": "Diamond rain",
     "emoji": "💠",
     "coin_cost": 150000,
     "diamond_value": 120000,
@@ -455,7 +455,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_super_car",
     "code": "super_car",
-    "name": "Süper Araba",
+    "name": "Super car",
     "emoji": "🚗",
     "coin_cost": 180000,
     "diamond_value": 144000,
@@ -465,7 +465,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_palace",
     "code": "palace",
-    "name": "Saray",
+    "name": "Palace",
     "emoji": "🏯",
     "coin_cost": 220000,
     "diamond_value": 176000,
@@ -475,7 +475,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_spaceship",
     "code": "spaceship",
-    "name": "Uzay Gemisi",
+    "name": "Spaceship",
     "emoji": "🛸",
     "coin_cost": 280000,
     "diamond_value": 224000,
@@ -485,7 +485,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_world",
     "code": "world",
-    "name": "Dünya",
+    "name": "World",
     "emoji": "🌍",
     "coin_cost": 350000,
     "diamond_value": 280000,
@@ -495,7 +495,7 @@ export const HEDIYE_FALLBACK_50: Gift[] = [
   {
     "id": "fb_infinity",
     "code": "infinity",
-    "name": "Sonsuzluk",
+    "name": "Infinity",
     "emoji": "♾️",
     "coin_cost": 500000,
     "diamond_value": 400000,

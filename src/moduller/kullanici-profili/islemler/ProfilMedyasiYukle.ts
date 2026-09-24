@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 import { supabase } from '../../../lib/supabase';
 import { GaleriAc } from '../../../ortak/medya/ImagePickerHazirMi';
 import {
@@ -27,7 +28,7 @@ export async function ProfilMedyasiSec(
     if (secim.hata.includes('build') || secim.hata.includes('native')) {
       return {
         ok: false,
-        hata: 'Fotoğraf seçici bu build’de yok. Yeni development build kur.',
+        hata: i18n.t('auth.fotoSeciciYok'),
         iptal: secim.iptal,
       };
     }
@@ -50,7 +51,7 @@ export async function ProfilMedyasiUriIleYukle(
 ): Promise<{ ok: true; url: string } | { ok: false; hata: string }> {
   try {
     const uid = (await supabase.auth.getUser()).data.user?.id;
-    if (!uid) return { ok: false, hata: 'Oturum yok' };
+    if (!uid) return { ok: false, hata: i18n.t('ortak.oturumYok') };
 
     const { YaptirimAktifMi } = await import(
       '../../admin/ses-odalari/AdminSesOdasiIslemleri'
@@ -58,7 +59,7 @@ export async function ProfilMedyasiUriIleYukle(
     if (await YaptirimAktifMi('upload_ban')) {
       return {
         ok: false,
-        hata: 'Yükleme cezan aktif. Medya yükleyemezsin.',
+        hata: i18n.t('auth.yuklemeCezasi'),
       };
     }
 
@@ -77,9 +78,7 @@ export async function ProfilMedyasiUriIleYukle(
     if (!up.ok) {
       return {
         ok: false,
-        hata: up.hata.includes('Bucket')
-          ? 'Medya deposu hazır değil (migration 016).'
-          : up.hata,
+        hata: i18n.t('auth.medyaYuklenemedi'),
       };
     }
 
@@ -95,16 +94,13 @@ export async function ProfilMedyasiUriIleYukle(
     if (dbErr) {
       return {
         ok: false,
-        hata:
-          column === 'cover_url' && dbErr.message.includes('cover_url')
-            ? 'Kapak alanı henüz yok (migration 016).'
-            : dbErr.message,
+        hata: i18n.t('auth.medyaYuklenemedi'),
       };
     }
 
     return { ok: true, url };
   } catch (e) {
-    return { ok: false, hata: e instanceof Error ? e.message : String(e) };
+    return { ok: false, hata: i18n.t('auth.medyaYuklenemedi') };
   }
 }
 

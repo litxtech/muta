@@ -22,8 +22,10 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { router } from 'expo-router';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 export function TakipIstekleriEkrani() {
+  const { t } = useCeviri();
   const { items, yukleniyor, hata, kabul, reddet } = useTakipIstekleri();
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -31,8 +33,8 @@ export function TakipIstekleriEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="takip-istekleri">
         <EkranBasligi
-          title="Takip İstekleri"
-          subtitle="Onayla veya sil"
+          title={t('takip.istekler')}
+          subtitle={t('takip.isteklerAlt')}
           fallbackHref="/(tabs)/profile"
         />
         {yukleniyor && !items.length ? (
@@ -43,12 +45,12 @@ export function TakipIstekleriEkrani() {
             keyExtractor={(i) => i.request_id ?? i.user_id}
             ListEmptyComponent={
               hata ? (
-                <BosDurum icon="warning-outline" title="Yüklenemedi" body={hata} />
+                <BosDurum icon="warning-outline" title={t('takip.yuklenemedi')} body={hata} />
               ) : (
                 <BosDurum
                   icon="mail-unread-outline"
-                  title="Bekleyen istek yok"
-                  body="Gizli hesabına gelen takip istekleri burada görünür."
+                  title={t('takip.bekleyenYok')}
+                  body={t('takip.bekleyenYokBody')}
                 />
               )
             }
@@ -69,11 +71,11 @@ export function TakipIstekleriEkrani() {
                         setBusy(item.user_id);
                         const r = await kabul(item.request_id!, item.user_id);
                         setBusy(null);
-                        if (!r.ok) Alert.alert('İstek', r.hata ?? TakipHataMesaji(r.code));
+                        if (!r.ok) Alert.alert(t('takip.istekler'), r.hata ?? TakipHataMesaji(r.code));
                       })();
                     }}
                   >
-                    <Text style={styles.onayYazi}>Onayla</Text>
+                    <Text style={styles.onayYazi}>{t('ortak.onayla')}</Text>
                   </Pressable>
                   <Pressable
                     style={styles.sil}
@@ -84,11 +86,11 @@ export function TakipIstekleriEkrani() {
                         setBusy(item.user_id);
                         const r = await reddet(item.request_id!, item.user_id);
                         setBusy(null);
-                        if (!r.ok) Alert.alert('İstek', r.hata ?? TakipHataMesaji(r.code));
+                        if (!r.ok) Alert.alert(t('takip.istekler'), r.hata ?? TakipHataMesaji(r.code));
                       })();
                     }}
                   >
-                    <Text style={styles.silYazi}>Sil</Text>
+                    <Text style={styles.silYazi}>{t('ortak.sil')}</Text>
                   </Pressable>
                 </View>
               </View>

@@ -15,6 +15,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Secenek = { id: string; label: string; alt?: string };
 
@@ -31,21 +32,23 @@ type Props = {
 export function ProfilSecimAlani({
   label,
   valueLabel,
-  placeholder = 'Seç',
+  placeholder,
   options,
   onSelect,
   searchable,
 }: Props) {
+  const { t } = useCeviri();
+  const placeholderMetin = placeholder ?? t('olusturTab.sec');
   const [acik, setAcik] = useState(false);
   const [q, setQ] = useState('');
 
   const liste = useMemo(() => {
-    const t = q.trim().toLocaleLowerCase('tr-TR');
-    if (!t) return options;
+    const qNorm = q.trim().toLocaleLowerCase('tr-TR');
+    if (!qNorm) return options;
     return options.filter(
       (o) =>
-        o.label.toLocaleLowerCase('tr-TR').includes(t) ||
-        (o.alt ?? '').toLocaleLowerCase('tr-TR').includes(t),
+        o.label.toLocaleLowerCase('tr-TR').includes(qNorm) ||
+        (o.alt ?? '').toLocaleLowerCase('tr-TR').includes(qNorm),
     );
   }, [options, q]);
 
@@ -57,7 +60,7 @@ export function ProfilSecimAlani({
           style={[styles.value, !valueLabel && styles.placeholder]}
           numberOfLines={1}
         >
-          {valueLabel || placeholder}
+          {valueLabel || placeholderMetin}
         </Text>
         <Ionicons name="chevron-down" size={18} color={RenkTokenlari.textDim} />
       </Pressable>
@@ -72,7 +75,7 @@ export function ProfilSecimAlani({
                 style={styles.search}
                 value={q}
                 onChangeText={setQ}
-                placeholder="Ara…"
+                placeholder={t('ortak.ara')}
                 placeholderTextColor={RenkTokenlari.textDim}
                 autoCorrect={false}
               />

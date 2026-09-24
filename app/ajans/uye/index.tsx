@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../../src/components/Screen';
 import { EkranBasligi } from '../../../src/components/EkranBasligi';
+import { useCeviri } from '../../../src/i18n/useCeviri';
 import { ModulHataSiniri } from '../../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useAuth } from '../../../src/contexts/AuthContext';
 import { useAjansUyeligi } from '../../../src/moduller/ajanslar/kancalar/useAjansUyeligi';
@@ -35,6 +36,7 @@ function saatMetni(sn: number) {
 }
 
 export default function AjansUyePaneli() {
+  const { t } = useCeviri();
   const { refreshProfile } = useAuth();
   const { uyelik, yukleniyor } = useAjansUyeligi();
   const { yetkili, yonetimHref } = useAjansYonetim();
@@ -57,13 +59,13 @@ export default function AjansUyePaneli() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="ajans-uye" varyant="ekran" fallbackHref="/(tabs)/profile">
         <EkranBasligi
-          title="Ajansım"
+          title={t('ajans.ajansim')}
           subtitle={
             uye
-              ? ajans?.name ?? 'Üye paneli'
+              ? ajans?.name ?? t('ajans.uyePaneli')
               : beklemede
-                ? 'Başvuru inceleniyor'
-                : 'Ajansa katıl'
+                ? t('ajans.basvuruInceleniyor')
+                : t('ajans.ajansaKatil')
           }
         />
         {yukleniyor && !ajans ? (
@@ -102,10 +104,10 @@ export default function AjansUyePaneli() {
                     </Text>
                     <Text style={styles.ajansMeta} numberOfLines={1}>
                       {beklemede
-                        ? 'Ajans incelemesi bekleniyor'
+                        ? t('ajans.incelemeBekleniyor')
                         : uyelik.role === 'owner'
-                          ? 'Ajans sahibi'
-                          : 'Ajans üyesisin'}
+                          ? t('ajans.sahip')
+                          : t('ajans.uyeRol')}
                     </Text>
                     {ajans.slogan ? (
                       <Text style={styles.ajansSlogan} numberOfLines={1}>
@@ -122,11 +124,8 @@ export default function AjansUyePaneli() {
               </Pressable>
             ) : (
               <View style={styles.bosKart}>
-                <Text style={styles.bosBaslik}>Henüz bir ajansa kayıtlı değilsin</Text>
-                <Text style={styles.bosGovde}>
-                  Ajansları keşfet, profilinden başvur. Kabul edilince burada canlı
-                  yayın, ses odası ve istatistiklerin açılır.
-                </Text>
+                <Text style={styles.bosBaslik}>{t('ajans.bosUyeBaslik')}</Text>
+                <Text style={styles.bosGovde}>{t('ajans.bosUyeBody')}</Text>
               </View>
             )}
 
@@ -137,64 +136,61 @@ export default function AjansUyePaneli() {
                   size={22}
                   color={RenkTokenlari.accent}
                 />
-                <Text style={styles.bilgiYazi}>
-                  Başvurun ajans sahibine iletildi. Onaylanınca bu ekranda
-                  yapabileceklerin açılır.
-                </Text>
+                <Text style={styles.bilgiYazi}>{t('ajans.beklemeBilgi')}</Text>
               </View>
             ) : null}
 
             {uye ? (
               <>
-                <Text style={styles.bolum}>Yapabileceklerin</Text>
+                <Text style={styles.bolum}>{t('ajans.bolumYapabileceklerin')}</Text>
                 <Aksiyon
                   icon="radio-outline"
-                  baslik="Canlı yayına çık"
-                  alt="Ajans yayıncısı olarak sahneye gir"
+                  baslik={t('ajans.aksiyonCanli')}
+                  alt={t('ajans.aksiyonCanliAlt')}
                   onPress={() => router.push('/canli' as any)}
                 />
                 <Aksiyon
                   icon="mic-outline"
-                  baslik="Ses odası aç"
-                  alt="Kendi odanı kur, ajansına ciro yaz"
+                  baslik={t('ajans.aksiyonSes')}
+                  alt={t('ajans.aksiyonSesAlt')}
                   onPress={() => router.push('/(tabs)/create' as any)}
                 />
                 <Aksiyon
                   icon="business-outline"
-                  baslik="Ajans profili"
-                  alt="Yayıncılar ve istatistikler"
+                  baslik={t('ajans.aksiyonProfil')}
+                  alt={t('ajans.aksiyonProfilAlt')}
                   onPress={() =>
                     ajans && router.push(`/ajans/profil/${ajans.id}` as any)
                   }
                 />
                 <Aksiyon
                   icon="person-outline"
-                  baslik="Ev sahibi profili"
-                  alt="Canlı süre ve kazanç"
+                  baslik={t('ajans.aksiyonHost')}
+                  alt={t('ajans.aksiyonHostAlt')}
                   onPress={() => router.push('/host' as any)}
                 />
                 {yetkili ? (
                   <Aksiyon
                     icon="settings-outline"
-                    baslik="Ajans yönetimi"
-                    alt="Üyeler · davet · coin"
+                    baslik={t('ajans.aksiyonYonetim')}
+                    alt={t('ajans.aksiyonYonetimAlt')}
                     onPress={() => router.push(yonetimHref as any)}
                   />
                 ) : null}
 
                 {host ? (
                   <View style={styles.statSatir}>
-                    <Stat etiket="Saat canlı" deger={saatMetni(host.total_live_seconds)} />
-                    <Stat etiket="Elmas" deger={String(host.gift_income_diamonds)} />
-                    <Stat etiket="PK" deger={String(host.pk_wins)} />
+                    <Stat etiket={t('ajans.statSaat')} deger={saatMetni(host.total_live_seconds)} />
+                    <Stat etiket={t('ajans.statElmas')} deger={String(host.gift_income_diamonds)} />
+                    <Stat etiket={t('ajans.statPk')} deger={String(host.pk_wins)} />
                   </View>
                 ) : null}
               </>
             ) : (
               <Aksiyon
                 icon="compass-outline"
-                baslik="Ajansları keşfet"
-                alt="Profiline bak, başvur"
+                baslik={t('ajans.aksiyonKesfet')}
+                alt={t('ajans.aksiyonKesfetAlt')}
                 onPress={() => router.push('/ajans' as any)}
               />
             )}

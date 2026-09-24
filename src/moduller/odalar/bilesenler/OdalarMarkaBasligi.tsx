@@ -7,6 +7,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   canliSayisi: number;
@@ -14,19 +15,20 @@ type Props = {
 
 /** Odalar sekmesi marka başlığı */
 export function OdalarMarkaBasligi({ canliSayisi }: Props) {
+  const { t } = useCeviri();
   return (
     <View style={styles.wrap}>
       <View style={styles.ust}>
         <View style={styles.markaBlok}>
-          <Text style={styles.fisilti}>SES ODALARI</Text>
-          <Text style={styles.baslik}>Canlı odalar</Text>
-          <Text style={styles.slogan}>Katıl · dinle · sohbet et</Text>
+          <Text style={styles.fisilti}>{t('odalar.fisilti')}</Text>
+          <Text style={styles.baslik}>{t('odalar.canliOdalar')}</Text>
+          <Text style={styles.slogan}>{t('odalar.slogan')}</Text>
         </View>
         <View style={styles.canliRozet}>
           <AnaSayfaCanliNokta boyut={6} />
           <View style={styles.canliMetin}>
             <Text style={styles.canliSayi}>{canliSayisi}</Text>
-            <Text style={styles.canliEtiket}>canlı</Text>
+            <Text style={styles.canliEtiket}>{t('odalar.canli')}</Text>
           </View>
         </View>
       </View>

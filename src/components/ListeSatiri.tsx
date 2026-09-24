@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { YonluIkon } from './YonluIkon';
 import { RenkTokenlari } from '../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -47,7 +48,7 @@ export function ListeSatiri({
         </Text>
       ) : null}
       {onPress && showChevron ? (
-        <Ionicons name="chevron-forward" size={16} color={RenkTokenlari.textDim} />
+        <YonluIkon yon="chevron-forward" size={16} color={RenkTokenlari.textDim} />
       ) : null}
     </View>
   );
@@ -124,6 +125,7 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.body,
     color: RenkTokenlari.text,
     flex: 1,
+    minWidth: 0,
   },
   labelDanger: {
     color: RenkTokenlari.danger,

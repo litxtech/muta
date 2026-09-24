@@ -22,6 +22,7 @@ import {
 import { kullaniciTemaKodunuAl } from '../../../tasarim-sistemi/tema/TemaDurumu';
 import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
 import { SayiKisaBicim } from '../../../tasarim-sistemi/premium/SeviyeXpHesap';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   ogeler: SonGezilenGorunum[];
@@ -31,6 +32,7 @@ type Props = {
 /** Son gezilenler — hafif kart (gölge yok) */
 export function AnaSayfaSonGezilenSeridi({ ogeler, onPress }: Props) {
   useTemayaAboneOl();
+  const { t } = useCeviri();
   if (ogeler.length === 0) return null;
 
   const acik = kullaniciTemaKodunuAl() === 'acik';
@@ -40,7 +42,7 @@ export function AnaSayfaSonGezilenSeridi({ ogeler, onPress }: Props) {
       <View style={styles.baslikSatir}>
         <View style={styles.baslikSol}>
           <AnaSayfaCanliNokta boyut={6} nabiz={false} />
-          <Text style={styles.baslik}>Son gezilenler</Text>
+          <Text style={styles.baslik}>{t('anaSayfa.sonGezilenler')}</Text>
         </View>
         <Text style={styles.sayi}>{ogeler.length}</Text>
       </View>
@@ -77,7 +79,7 @@ export function AnaSayfaSonGezilenSeridi({ ogeler, onPress }: Props) {
                 !oge.canli && styles.kartSoluk,
               ]}
               accessibilityRole="button"
-              accessibilityLabel={`${oge.title}, ${yayinMi ? 'yayın' : 'ses odası'}`}
+              accessibilityLabel={t('anaSayfa.gezilenA11y', { baslik: oge.title || (yayinMi ? t('anaSayfa.yayin') : t('olusturTab.oda')), tur: yayinMi ? t('anaSayfa.yayin') : t('anaSayfa.sesOdasiKisa') })}
             >
               <View style={[styles.kart, { borderColor: border }]}>
                 {kapak ? (
@@ -127,7 +129,9 @@ export function AnaSayfaSonGezilenSeridi({ ogeler, onPress }: Props) {
                         { color: oge.canli ? tint : '#fff' },
                       ]}
                     >
-                      {yayinMi ? 'YAYIN' : 'SES'}
+                      {yayinMi
+                        ? t('anaSayfa.yayinRozet')
+                        : t('olusturTab.rozetSes')}
                     </Text>
                   </View>
                   {oge.listenerCount > 0 ? (
@@ -142,7 +146,7 @@ export function AnaSayfaSonGezilenSeridi({ ogeler, onPress }: Props) {
 
                 <View style={styles.alt}>
                   <Text style={styles.baslikKart} numberOfLines={2}>
-                    {oge.title}
+                    {oge.title || (yayinMi ? t('anaSayfa.yayin') : t('olusturTab.oda'))}
                   </Text>
                   <View style={styles.altSatir}>
                     <OdaUyeAvatarYigini

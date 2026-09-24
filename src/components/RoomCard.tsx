@@ -12,14 +12,15 @@ import {
 import { MedyaUriGuvenli } from '../moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { IcerikGuvenlikDugmesi } from '../moduller/moderasyon/bilesenler/IcerikGuvenlikDugmesi';
 import { useAuth } from '../contexts/AuthContext';
+import { useCeviri, type CeviriAnahtari } from '../i18n/useCeviri';
 import type { Room } from '../types/models';
 
-const MODE_LABEL: Record<Room['mode'], string> = {
-  party: 'Parti',
-  dating: 'Flört',
-  karaoke: 'Karaoke',
-  game: 'Oyun',
-  private: 'Özel',
+const MODE_KEY: Record<Room['mode'], CeviriAnahtari> = {
+  party: 'modlar.parti',
+  dating: 'modlar.flort',
+  karaoke: 'modlar.karaoke',
+  game: 'modlar.oyun',
+  private: 'modlar.ozel',
 };
 
 type Props = {
@@ -39,15 +40,18 @@ function RoomCardBase({ room, onPress, variant = 'kart' }: Props) {
 export const RoomCard = React.memo(RoomCardBase);
 
 function AvatarKart({ room, onPress }: { room: Room; onPress: () => void }) {
+  const { t } = useCeviri();
   const { isGuest } = useAuth();
   const kapak = MedyaUriGuvenli(room.cover_url ?? room.host?.avatar_url);
+  const modEtiket = t(MODE_KEY[room.mode]);
+  const evSahibi = room.host?.display_name ?? t('kesfet.evSahibi');
 
   return (
     <Pressable
       onPress={onPress}
       style={styles.avatarPress}
       accessibilityRole="button"
-      accessibilityLabel={`${room.title}, canlı`}
+      accessibilityLabel={`${room.title}, ${t('odalar.canli')}`}
     >
       <View style={styles.avatarHalka}>
         {kapak ? (
@@ -91,15 +95,18 @@ function AvatarKart({ room, onPress }: { room: Room; onPress: () => void }) {
       <Text style={styles.avatarAlt} numberOfLines={1}>
         {room.room_code
           ? room.room_code
-          : `${MODE_LABEL[room.mode]} · ${room.host?.display_name ?? 'Ev sahibi'}`}
+          : `${modEtiket} · ${evSahibi}`}
       </Text>
     </Pressable>
   );
 }
 
 function KapakKart({ room, onPress }: { room: Room; onPress: () => void }) {
+  const { t } = useCeviri();
   const { isGuest } = useAuth();
   const kapak = MedyaUriGuvenli(room.cover_url ?? room.host?.avatar_url);
+  const modEtiket = t(MODE_KEY[room.mode]);
+  const evSahibi = room.host?.display_name ?? t('kesfet.evSahibi');
 
   return (
     <Pressable onPress={onPress} style={styles.press}>
@@ -122,10 +129,10 @@ function KapakKart({ room, onPress }: { room: Room; onPress: () => void }) {
         <View style={styles.top}>
           <View style={styles.livePill}>
             <AnaSayfaCanliNokta boyut={5} />
-            <Text style={styles.liveText}>CANLI</Text>
+            <Text style={styles.liveText}>{t('kesfet.canliRozet')}</Text>
           </View>
           <View style={styles.topSag}>
-            <Text style={styles.mode}>{MODE_LABEL[room.mode]}</Text>
+            <Text style={styles.mode}>{modEtiket}</Text>
             <IcerikGuvenlikDugmesi
               tur="room"
               contentId={room.id}
@@ -162,7 +169,7 @@ function KapakKart({ room, onPress }: { room: Room; onPress: () => void }) {
                 <Ionicons name="person" size={11} color={RenkTokenlari.textOnPrimary} />
               </LinearGradient>
               <Text style={styles.host} numberOfLines={1}>
-                {room.host?.display_name ?? 'Ev sahibi'}
+                {evSahibi}
               </Text>
             </View>
             <View style={styles.meta}>

@@ -37,6 +37,10 @@ import { OzellikBayragiAktifMi } from '../../ozellik-bayraklari/OzellikBayragiAk
 import { IcerikGuvenlikDugmesi } from '../../moderasyon/bilesenler/IcerikGuvenlikDugmesi';
 import { PkSkorSeridi } from '../../pk/bilesenler/PkSkorSeridi';
 import type { PkCanliMacDetay } from '../../pk/skor/PkCanliMaciniGetir';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { AktifDil } from '../../../i18n';
+import { DIL_LOCALE_MAP } from '../../../i18n/diller';
+import i18n from '../../../i18n';
 
 export type CanliYayinMeta = {
   id: string;
@@ -108,6 +112,8 @@ export function CanliYayinTiyatro({
   pkMac,
   isGuest = false,
 }: Props) {
+  const { t } = useCeviri();
+  const locale = DIL_LOCALE_MAP[AktifDil()];
   const insets = useSafeAreaInsets();
   const { yukseklik: klavyeH, acik: klavyeAcik } = useKlavyeYuksekligi(0);
   const [yorumYenile, setYorumYenile] = useState(0);
@@ -134,14 +140,14 @@ export function CanliYayinTiyatro({
     return LiveKitBaglantiYoneticisi.dinle((_durum, detay) => {
       if (detay === 'reconnecting' || detay === 'signal-reconnecting') {
         if (bannerTimer.current) clearTimeout(bannerTimer.current);
-        setBaglantiBanner('Bağlantı yeniden kuruluyor…');
+        setBaglantiBanner(i18n.t('canliYayin.baglantiYeniden'));
       } else if (detay === 'reconnected' || detay === 'connected') {
         setBaglantiBanner((onceki) => {
           if (
-            onceki === 'Bağlantı yeniden kuruluyor…' ||
-            onceki === 'Bağlantı koptu'
+            onceki === i18n.t('canliYayin.baglantiYeniden') ||
+            onceki === i18n.t('canliYayin.baglantiKoptu')
           ) {
-            return 'Bağlantı yeniden kuruldu';
+            return i18n.t('canliYayin.baglantiYenidenKuruldu');
           }
           return null;
         });
@@ -152,7 +158,7 @@ export function CanliYayinTiyatro({
         // Gerçek kopmada kısa debounce: hemen reconnect gelirse banner yok.
         if (bannerTimer.current) clearTimeout(bannerTimer.current);
         bannerTimer.current = setTimeout(() => {
-          setBaglantiBanner('Bağlantı koptu');
+          setBaglantiBanner(i18n.t('canliYayin.baglantiKoptu'));
         }, 1600);
       } else if (detay === 'left' || detay === 'connecting') {
         if (bannerTimer.current) clearTimeout(bannerTimer.current);
@@ -226,9 +232,9 @@ export function CanliYayinTiyatro({
 
   const cikisIste = () => {
     if (rol === 'host' && onBitir) {
-      Alert.alert('Yayını bitir', 'Çıkınca yayın sonlanır.', [
-        { text: 'Vazgeç', style: 'cancel' },
-        { text: 'Bitir', style: 'destructive', onPress: () => onBitir() },
+      Alert.alert(t('canliYayin.yayiniBitir'), t('canliYayin.yayiniBitirBodyKisa'), [
+        { text: t('ortak.vazgec'), style: 'cancel' },
+        { text: t('canliYayin.bitir'), style: 'destructive', onPress: () => onBitir() },
       ]);
       return;
     }
@@ -245,7 +251,7 @@ export function CanliYayinTiyatro({
     void TakipEt(meta.host_id).then((r) => {
       setTakipBusy(false);
       if (r.ok) setTakipEdildi(true);
-      else Alert.alert('Takip', r.hata ?? 'Takip edilemedi');
+      else Alert.alert(t('canliYayin.takipBaslik'), r.hata ?? t('canliYayin.takipEdilemedi'));
     });
   };
 
@@ -377,9 +383,9 @@ export function CanliYayinTiyatro({
                   {meta.hostAd}
                 </Text>
                 <Text style={styles.hostAlt} numberOfLines={1}>
-                  🪙 {meta.total_coins_earned.toLocaleString('tr-TR')}
+                  🪙 {meta.total_coins_earned.toLocaleString(locale)}
                   {meta.like_count > 0
-                    ? ` · ♥ ${meta.like_count.toLocaleString('tr-TR')}`
+                    ? ` · ♥ ${meta.like_count.toLocaleString(locale)}`
                     : ''}
                 </Text>
               </View>
@@ -391,12 +397,12 @@ export function CanliYayinTiyatro({
                 onPress={takipEt}
                 disabled={takipBusy}
               >
-                <Text style={styles.takipYazi}>Takip Et</Text>
+                <Text style={styles.takipYazi}>{t('canliYayin.takipEt')}</Text>
               </Pressable>
             ) : null}
             {takipEdildi ? (
               <View style={styles.takipEdildi}>
-                <Text style={styles.takipEdildiYazi}>Takip</Text>
+                <Text style={styles.takipEdildiYazi}>{t('canliYayin.takipEdildi')}</Text>
               </View>
             ) : null}
           </View>
@@ -434,7 +440,7 @@ export function CanliYayinTiyatro({
                   kameraCevirBusy ? styles.kameraCevirBusy : null,
                 ]}
                 disabled={kameraCevirBusy}
-                accessibilityLabel="Kamerayı çevir"
+                accessibilityLabel={t('canliYayin.a11yKameraCevir')}
                 hitSlop={6}
               >
                 <Ionicons name="camera-reverse" size={20} color="#fff" />
@@ -443,7 +449,7 @@ export function CanliYayinTiyatro({
             <Pressable
               onPress={cikisIste}
               style={styles.kapatBtn}
-              accessibilityLabel={rol === 'host' ? 'Yayını bitir' : 'Çık'}
+              accessibilityLabel={rol === 'host' ? t('canliYayin.a11yYayiniBitir') : t('canliYayin.a11yCik')}
             >
               <Ionicons name="close" size={20} color="#fff" />
             </Pressable>
@@ -456,11 +462,11 @@ export function CanliYayinTiyatro({
           pointerEvents="box-none"
         >
           <View style={styles.chip}>
-            <Text style={styles.chipYazi}>🔥 Saatlik</Text>
+            <Text style={styles.chipYazi}>🔥 {t('canliYayin.saatlik')}</Text>
           </View>
           <View style={styles.livePill}>
             <View style={styles.dot} />
-            <Text style={styles.liveText}>CANLI</Text>
+            <Text style={styles.liveText}>{t('canliYayin.rozetCanli')}</Text>
           </View>
         </View>
 
@@ -479,7 +485,7 @@ export function CanliYayinTiyatro({
         ]}
         pointerEvents="box-none"
       >
-        <ModulHataSiniri modulAdi="canlı sohbet" varyant="kart">
+        <ModulHataSiniri modulAdi="canli-sohbet" varyant="kart">
           <CanliYorumAkisi
             sessionId={meta.id}
             currentUserId={currentUserId}
@@ -511,7 +517,7 @@ export function CanliYayinTiyatro({
             onSent={() => {
               setYorumYenile((n) => n + 1);
             }}
-            placeholder="Yorum ekle..."
+            placeholder={t('canliYayin.yorumEkle')}
           />
           {!klavyeAcik ? (
             <View style={styles.aksiyonlar}>
@@ -519,7 +525,7 @@ export function CanliYayinTiyatro({
                 <Pressable
                   onPress={() => onHediye()}
                   style={styles.aksiyonBtn}
-                  accessibilityLabel="Hediye"
+                  accessibilityLabel={t('hediye.baslik')}
                 >
                   <Text style={styles.aksiyonEmoji}>🎁</Text>
                 </Pressable>
@@ -542,10 +548,10 @@ export function CanliYayinTiyatro({
                     onCoinYukle?.();
                   }}
                   accessibilityRole="button"
-                  accessibilityLabel="Coin yükle"
+                  accessibilityLabel={t('canliYayin.a11yCoinYukle')}
                 >
                   <Text style={styles.coinText}>
-                    🪙 {walletCoins.toLocaleString('tr-TR')}
+                    🪙 {walletCoins.toLocaleString(locale)}
                   </Text>
                   {onCoinYukle ? (
                     <Ionicons name="add-circle" size={16} color="#F0B429" />
@@ -568,7 +574,7 @@ export function CanliYayinTiyatro({
         avatarUrl={profilKart?.avatarUrl}
         bio={profilKart?.bio}
         level={profilKart?.level}
-        baslik="Profil"
+        baslik={t('sekmeler.profil')}
         onNeedUpgrade={onNeedUpgrade}
         yukseklikOrani={0.58}
         onProfilAc={

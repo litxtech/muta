@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { PaylasilanDurumlariGetir } from './PaylasilanDurumlariGetir';
@@ -79,8 +80,8 @@ export function usePaylasilanDurumOnizleme(statusIds: string[]) {
               availability,
               message:
                 availability === 'REMOVED_BY_PLATFORM'
-                  ? 'Bu içerik platform tarafından kaldırıldı.'
-                  : 'Bu gönderi sahibi tarafından silindi.',
+                  ? i18n.t('durumX.platformKaldirildi')
+                  : i18n.t('durumX.sahibiSildi'),
             },
           }));
         },

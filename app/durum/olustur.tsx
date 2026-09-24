@@ -34,8 +34,10 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 export default function DurumOlusturEkrani() {
+  const { t } = useCeviri();
   const { isGuest } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
   const { acik: klavyeAcik } = useKlavyeYuksekligi();
@@ -53,12 +55,12 @@ export default function DurumOlusturEkrani() {
   }, []);
 
   const MOODLAR: { kod: string; etiket: string; emoji: string }[] = [
-    { kod: 'mutlu', etiket: 'İyi hissediyorum', emoji: '😊' },
-    { kod: 'enerjik', etiket: 'Enerjik', emoji: '⚡' },
-    { kod: 'sakin', etiket: 'Sakin', emoji: '🌙' },
-    { kod: 'sosyal', etiket: 'Sohbetteyim', emoji: '💬' },
-    { kod: 'muzik', etiket: 'Müzik', emoji: '🎧' },
-    { kod: 'oyun', etiket: 'Oyundayım', emoji: '🎮' },
+    { kod: 'mutlu', etiket: t('durum.moodMutlu'), emoji: '😊' },
+    { kod: 'enerjik', etiket: t('durum.moodEnerjik'), emoji: '⚡' },
+    { kod: 'sakin', etiket: t('durum.moodSakin'), emoji: '🌙' },
+    { kod: 'sosyal', etiket: t('durum.moodSosyal'), emoji: '💬' },
+    { kod: 'muzik', etiket: t('durum.moodMuzik'), emoji: '🎧' },
+    { kod: 'oyun', etiket: t('durum.moodOyun'), emoji: '🎮' },
   ];
 
   const sec = (tur: 'image' | 'video') => {
@@ -69,12 +71,12 @@ export default function DurumOlusturEkrani() {
         });
         setBusy(false);
         if (r.ok === false) {
-          if (!r.iptal) Alert.alert('Medya', r.hata);
+          if (!r.iptal) Alert.alert(t('ortak.medya'), r.hata);
           return;
         }
         // Yalnızca https public URL — file:// / content:// Image/Video crash önlenir.
         if (!DurumMedyaHttpsMi(r.url)) {
-          Alert.alert('Medya', 'Yüklenen dosya adresi geçersiz.');
+          Alert.alert(t('ortak.medya'), t('durum.medyaGecersiz'));
           return;
         }
         setMediaUrl(r.url.trim());
@@ -93,13 +95,13 @@ export default function DurumOlusturEkrani() {
       .join(' · ');
 
     if (!mediaUrl && !birlesik) {
-      Alert.alert('Durum', 'Kısa bir metin yaz, mood seç veya medya ekle.');
+      Alert.alert(t('durum.baslik'), t('durum.bosUyari'));
       return;
     }
 
     const medyaVar = !!mediaUrl && DurumMedyaHttpsMi(mediaUrl);
     if (mediaUrl && !medyaVar) {
-      Alert.alert('Durum', 'Medya adresi geçersiz. Yeniden seç veya kaldır.');
+      Alert.alert(t('durum.baslik'), t('durum.medyaAdresGecersiz'));
       return;
     }
 
@@ -121,7 +123,7 @@ export default function DurumOlusturEkrani() {
         );
         setBusy(false);
         if (!r.ok) {
-          Alert.alert('Durum', r.hata ?? 'Paylaşılamadı');
+          Alert.alert(t('durum.baslik'), r.hata ?? t('durum.paylasilamadi'));
           return;
         }
         try {
@@ -150,8 +152,8 @@ export default function DurumOlusturEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="durum">
         <EkranBasligi
-          title="Anlık durum"
-          subtitle="Metin · mood · isteğe bağlı foto/video"
+          title={t('durum.olusturBaslik')}
+          subtitle={t('durum.olusturAlt')}
           fallbackHref={'/(tabs)/durum' as any}
         />
         <KlavyeGuvenliAlan style={styles.flex}>
@@ -164,7 +166,7 @@ export default function DurumOlusturEkrani() {
             showsVerticalScrollIndicator={false}
             onScrollBeginDrag={Keyboard.dismiss}
           >
-            <Text style={styles.moodBaslik}>Nasıl hissediyorsun?</Text>
+            <Text style={styles.moodBaslik}>{t('durum.moodSoru')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -220,14 +222,14 @@ export default function DurumOlusturEkrani() {
                 {mediaType === 'video' ? (
                   <View style={styles.videoBadge}>
                     <Ionicons name="videocam" size={16} color="#fff" />
-                    <Text style={styles.videoBadgeYazi}>Video</Text>
+                    <Text style={styles.videoBadgeYazi}>{t('ortak.video')}</Text>
                   </View>
                 ) : null}
                 <Pressable
                   style={styles.degistir}
                   onPress={() => setMediaUrl(null)}
                 >
-                  <Text style={styles.degistirYazi}>Değiştir</Text>
+                  <Text style={styles.degistirYazi}>{t('ortak.degistir')}</Text>
                 </Pressable>
               </Pressable>
             ) : (
@@ -238,7 +240,7 @@ export default function DurumOlusturEkrani() {
                     size={28}
                     color={RenkTokenlari.primarySoft}
                   />
-                  <Text style={styles.secYazi}>Fotoğraf</Text>
+                  <Text style={styles.secYazi}>{t('durum.fotograf')}</Text>
                 </Pressable>
                 <Pressable style={styles.secBtn} onPress={() => sec('video')}>
                   <Ionicons
@@ -246,13 +248,13 @@ export default function DurumOlusturEkrani() {
                     size={28}
                     color={RenkTokenlari.accent}
                   />
-                  <Text style={styles.secYazi}>Video</Text>
+                  <Text style={styles.secYazi}>{t('ortak.video')}</Text>
                 </Pressable>
               </View>
             )}
             {!mediaUrl ? (
               <Text style={styles.istegeBagli}>
-                Medya isteğe bağlı — sadece metin veya mood ile de paylaşabilirsin.
+                {t('durum.medyaIstegeBagli')}
               </Text>
             ) : null}
 
@@ -267,8 +269,8 @@ export default function DurumOlusturEkrani() {
                 onChangeText={setCaption}
                 placeholder={
                   mediaUrl
-                    ? 'Açıklama yaz… (isteğe bağlı)'
-                    : 'Ne düşünüyorsun?'
+                    ? t('durum.aciklamaPlaceholder')
+                    : t('durum.neDusunuyorsun')
                 }
                 placeholderTextColor={RenkTokenlari.textDim}
                 multiline
@@ -283,14 +285,14 @@ export default function DurumOlusturEkrani() {
             {busy ? (
               <ActivityIndicator color={RenkTokenlari.primarySoft} />
             ) : (
-              <GradientButton title="Paylaş" onPress={yayinla} />
+              <GradientButton title={t('ortak.paylas')} onPress={yayinla} />
             )}
 
             <Pressable
               style={styles.bosAlan}
               onPress={Keyboard.dismiss}
               accessibilityRole="button"
-              accessibilityLabel="Klavyeyi kapat"
+              accessibilityLabel={t('ortak.klavyeyiKapat')}
             />
           </ScrollView>
         </KlavyeGuvenliAlan>

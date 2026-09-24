@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   baslik: string;
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export function AnaSayfaBolumBasligi({ baslik, altBaslik, onSeeAll, children }: Props) {
+  const { t } = useCeviri();
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
@@ -25,7 +27,7 @@ export function AnaSayfaBolumBasligi({ baslik, altBaslik, onSeeAll, children }: 
         </View>
         {onSeeAll ? (
           <Pressable onPress={onSeeAll} style={styles.seeAllBtn} hitSlop={8}>
-            <Text style={styles.seeAll}>Tümü</Text>
+            <Text style={styles.seeAll}>{t('anaSayfa.tumunuGor')}</Text>
             <Ionicons name="chevron-forward" size={14} color={RenkTokenlari.primarySoft} />
           </Pressable>
         ) : null}

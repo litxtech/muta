@@ -20,15 +20,16 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri, type CeviriAnahtari } from '../../../i18n/useCeviri';
 
-const MODE_LABEL: Record<string, string> = {
-  party: 'Parti',
-  dating: 'Flört',
-  karaoke: 'Karaoke',
-  game: 'Oyun',
-  private: 'Özel',
-  solo: 'Tekli',
-  pk: 'PK',
+const MODE_KEY: Record<string, CeviriAnahtari> = {
+  party: 'modlar.parti',
+  dating: 'modlar.flort',
+  karaoke: 'modlar.karaoke',
+  game: 'modlar.oyun',
+  private: 'modlar.ozel',
+  solo: 'modlar.tekli',
+  pk: 'pk.baslik',
 };
 
 type Props = {
@@ -44,13 +45,15 @@ function sayacBicimle(n: number): string {
 }
 
 function AnaSayfaFeedKartIc({ oge, onPress }: Props) {
+  const { t } = useCeviri();
   const { isGuest } = useAuth();
   const ses = oge.tur === 'oda';
   const contentId = oge.id.includes(':') ? oge.id.split(':')[1]! : oge.id;
   const hostAd =
     oge.host?.display_name ??
-    (oge.host?.username ? `@${oge.host.username}` : 'Ev sahibi');
-  const mod = oge.mode && MODE_LABEL[oge.mode] ? MODE_LABEL[oge.mode] : null;
+    (oge.host?.username ? `@${oge.host.username}` : t('anaSayfa.evSahibi'));
+  const modKey = oge.mode && MODE_KEY[oge.mode] ? MODE_KEY[oge.mode] : null;
+  const mod = modKey ? t(modKey) : null;
   const kapak = MedyaUriGuvenli(oge.cover_url);
   const hostAvatar = MedyaUriGuvenli(oge.host?.avatar_url);
   const uyeAvatarlari =
@@ -82,7 +85,7 @@ function AnaSayfaFeedKartIc({ oge, onPress }: Props) {
         <Pressable
           onPress={onPress}
           accessibilityRole="button"
-          accessibilityLabel={`${oge.title}. ${ses ? 'Ses odası' : 'Canlı yayın'}`}
+          accessibilityLabel={`${oge.title}. ${ses ? t('anaSayfa.filtreSes') : t('anaSayfa.menuCanliYayin')}`}
           style={styles.press}
         >
           <View style={styles.kart}>
@@ -110,11 +113,21 @@ function AnaSayfaFeedKartIc({ oge, onPress }: Props) {
             />
 
             <View style={styles.ust}>
-              <View style={[styles.rozet, { borderColor: `${anaYumusak}80` }]}>
-                <AnaSayfaCanliNokta boyut={5} renk={anaYumusak} nabiz={false} />
-                <Text style={[styles.rozetYazi, { color: anaYumusak }]}>
-                  {ses ? 'SES' : 'CANLI'}
-                </Text>
+              <View style={styles.ustSol}>
+                <View style={[styles.rozet, { borderColor: `${anaYumusak}80` }]}>
+                  <AnaSayfaCanliNokta boyut={5} renk={anaYumusak} nabiz={false} />
+                  <Text style={[styles.rozetYazi, { color: anaYumusak }]}>
+                    {ses ? t('olusturTab.rozetSes') : t('anaSayfa.canliRozet')}
+                  </Text>
+                </View>
+                {oge.kendim ? (
+                  <View style={styles.sabitRozet}>
+                    <Ionicons name="pin" size={9} color="#F5E6A8" />
+                    <Text style={styles.sabitYazi}>
+                      {ses ? t('anaSayfa.odanRozet') : t('anaSayfa.yayininRozet')}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
               <View style={styles.ustSag}>
                 {oge.listener_count > 0 ? (
@@ -145,7 +158,7 @@ function AnaSayfaFeedKartIc({ oge, onPress }: Props) {
               {oge.popular && !ses ? (
                 <View style={styles.populer}>
                   <Ionicons name="flame" size={10} color="#FFD36B" />
-                  <Text style={styles.populerYazi}>Popüler</Text>
+                  <Text style={styles.populerYazi}>{t('anaSayfa.populer')}</Text>
                 </View>
               ) : mod ? (
                 <Text style={[styles.mod, { color: anaYumusak }]}>
@@ -206,6 +219,7 @@ export const AnaSayfaFeedKart = memo(
     a.oge.listener_count === b.oge.listener_count &&
     a.oge.cover_url === b.oge.cover_url &&
     a.oge.tur === b.oge.tur &&
+    a.oge.kendim === b.oge.kendim &&
     a.onPress === b.onPress,
 );
 
@@ -232,6 +246,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  ustSol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 1,
+  },
   ustSag: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -252,6 +272,24 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.6,
+  },
+  sabitRozet: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: YaricapTokenlari.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(245,230,168,0.5)',
+    backgroundColor: 'rgba(58,42,8,0.72)',
+  },
+  sabitYazi: {
+    ...TipografiTokenlari.micro,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: '#F5E6A8',
   },
   sayac: {
     flexDirection: 'row',

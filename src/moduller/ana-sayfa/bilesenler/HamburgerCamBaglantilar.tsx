@@ -7,6 +7,9 @@ import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { useDil } from '../../../i18n/DilSaglayici';
+import { rtlMetinStili } from '../../../i18n/rtl';
 
 export type HamburgerOdaOzeti = {
   roomId: string;
@@ -37,11 +40,16 @@ export function HamburgerCamBaglantilar({
   onOdaPress,
   onAjansPress,
 }: Props) {
+  const { t } = useCeviri();
+  const { rtl } = useDil();
   useTemayaAboneOl();
 
   if (!oda && !ajans) return null;
 
   const logo = MedyaUriGuvenli(ajans?.logoUrl);
+  const metinRtl = rtlMetinStili(rtl, true);
+  /** Parent drawer direction:'ltr' kilitli — chevron dil intent'ine göre */
+  const chevronAdi = rtl ? 'chevron-back' : 'chevron-forward';
 
   return (
     <View style={styles.dis}>
@@ -55,13 +63,9 @@ export function HamburgerCamBaglantilar({
       <View style={styles.kenar} pointerEvents="none" />
 
       <View style={styles.icerik}>
-        {oda ? (
-          <Pressable
-            onPress={() => onOdaPress(oda)}
-            style={({ pressed }) => [styles.satir, pressed && styles.pressed]}
-            accessibilityRole="button"
-            accessibilityLabel={`Ses odası ${oda.title}`}
-          >
+        {oda ? (() => {
+          const odaAdi = oda.title.trim() || t('anaSayfa.odam');
+          const ikon = (
             <View style={[styles.ikon, oda.isLive && styles.ikonCanli]}>
               <Ionicons
                 name="mic"
@@ -69,64 +73,113 @@ export function HamburgerCamBaglantilar({
                 color={oda.isLive ? RenkTokenlari.live : RenkTokenlari.primarySoft}
               />
             </View>
+          );
+          const metin = (
             <View style={styles.metin}>
-              <Text style={styles.etiket} numberOfLines={1}>
-                Ses odası
+              <Text style={[styles.etiket, metinRtl]} numberOfLines={1}>
+                {t('anaSayfa.sesOdasiEtiket')}
               </Text>
-              <Text style={styles.ad} numberOfLines={1}>
-                {oda.title.trim() || 'Odam'}
+              <Text style={[styles.ad, metinRtl]} numberOfLines={1}>
+                {odaAdi}
               </Text>
             </View>
-            {oda.isLive ? (
-              <View style={styles.canliRozet}>
-                <View style={styles.canliNokta} />
-                <Text style={styles.canliYazi}>CANLI</Text>
-              </View>
-            ) : (
-              <Ionicons
-                name="chevron-forward"
-                size={14}
-                color={RenkTokenlari.textDim}
-              />
-            )}
-          </Pressable>
-        ) : null}
-
-        {oda && ajans ? <View style={styles.ayrac} /> : null}
-
-        {ajans ? (
-          <Pressable
-            onPress={() => onAjansPress(ajans)}
-            style={({ pressed }) => [styles.satir, pressed && styles.pressed]}
-            accessibilityRole="button"
-            accessibilityLabel={`Ajans ${ajans.name}`}
-          >
-            {logo ? (
-              <Image source={{ uri: logo }} style={styles.logo} />
-            ) : (
-              <View style={[styles.ikon, styles.ikonAjans]}>
-                <Ionicons
-                  name="briefcase"
-                  size={13}
-                  color={RenkTokenlari.accent}
-                />
-              </View>
-            )}
-            <View style={styles.metin}>
-              <Text style={styles.etiket} numberOfLines={1}>
-                {ajans.role === 'owner' ? 'Ajansım' : 'Ajans'}
-              </Text>
-              <Text style={styles.ad} numberOfLines={1}>
-                {ajans.name.trim() || 'Ajans'}
-              </Text>
+          );
+          const kuyruk = oda.isLive ? (
+            <View style={styles.canliRozet}>
+              <View style={styles.canliNokta} />
+              <Text style={styles.canliYazi}>{t('anaSayfa.canliRozet')}</Text>
             </View>
+          ) : (
             <Ionicons
-              name="chevron-forward"
+              name={chevronAdi}
               size={14}
               color={RenkTokenlari.textDim}
             />
-          </Pressable>
-        ) : null}
+          );
+          return (
+            <Pressable
+              onPress={() => onOdaPress(oda)}
+              style={({ pressed }) => [styles.satir, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel={t('anaSayfa.sesOdasiA11y', { baslik: odaAdi })}
+            >
+              {rtl ? (
+                <>
+                  {kuyruk}
+                  {metin}
+                  {ikon}
+                </>
+              ) : (
+                <>
+                  {ikon}
+                  {metin}
+                  {kuyruk}
+                </>
+              )}
+            </Pressable>
+          );
+        })() : null}
+
+        {oda && ajans ? <View style={styles.ayrac} /> : null}
+
+        {ajans ? (() => {
+          const bas = logo ? (
+            <View style={styles.logoWrap}>
+              <Image
+                source={{ uri: logo }}
+                style={styles.logo}
+                resizeMode="cover"
+              />
+            </View>
+          ) : (
+            <View style={[styles.ikon, styles.ikonAjans]}>
+              <Ionicons
+                name="briefcase"
+                size={13}
+                color={RenkTokenlari.accent}
+              />
+            </View>
+          );
+          const metin = (
+            <View style={styles.metin}>
+              <Text style={[styles.etiket, metinRtl]} numberOfLines={1}>
+                {ajans.role === 'owner' ? t('ajans.ajansim') : t('anaSayfa.ajansEtiket')}
+              </Text>
+              <Text style={[styles.ad, metinRtl]} numberOfLines={1}>
+                {ajans.name.trim() || t('anaSayfa.ajansEtiket')}
+              </Text>
+            </View>
+          );
+          const kuyruk = (
+            <Ionicons
+              name={chevronAdi}
+              size={14}
+              color={RenkTokenlari.textDim}
+            />
+          );
+          return (
+            <Pressable
+              onPress={() => onAjansPress(ajans)}
+              style={({ pressed }) => [styles.satir, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel={t('anaSayfa.ajansA11y', { ad: ajans.name })}
+            >
+              {rtl ? (
+                <>
+                  {kuyruk}
+                  {metin}
+                  {bas}
+                </>
+              ) : (
+                <>
+                  {bas}
+                  {metin}
+                  {kuyruk}
+                </>
+              )}
+            </Pressable>
+          );
+        })() : null}
       </View>
     </View>
   );
@@ -158,7 +211,8 @@ export function useHamburgerCamBaglantilar(aktif: boolean): {
             odaSonuc.ok && odaSonuc.roomId && odaSonuc.isLive
               ? {
                   roomId: odaSonuc.roomId,
-                  title: odaSonuc.title?.trim() || 'Odam',
+                  // Boş bırak — bileşen t('anaSayfa.odam') fallback'ini uygular
+                  title: odaSonuc.title?.trim() || '',
                   isLive: true,
                 }
               : null,
@@ -211,7 +265,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     gap: 0,
   },
+  /** LTR kilit — drawer paterni: Yoga aynalamasın, sıra JSX'te */
   satir: {
+    direction: 'ltr',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -236,12 +292,18 @@ const styles = StyleSheet.create({
   ikonAjans: {
     backgroundColor: 'rgba(212, 175, 55, 0.14)',
   },
+  logoWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    overflow: 'hidden',
+    backgroundColor: RenkTokenlari.pressFill,
+    flexShrink: 0,
+  },
   logo: {
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: RenkTokenlari.pressFill,
-    flexShrink: 0,
   },
   metin: { flex: 1, minWidth: 0, gap: 0 },
   etiket: {

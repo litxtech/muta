@@ -22,18 +22,21 @@ const IOS_MEDYA_SECENEK = [
   'defaultToSpeaker',
 ] as const;
 
-/** Misafir playout — müzik devam + oda konuşurken kısılır (duck). */
+/**
+ * Misafir playout — oda müziği (expo-audio) ile karışır.
+ * duckOthers YOK: LiveKit uzak ses varken sistem oda müziğini boğuyordu (iPhone sessiz müzik).
+ * Konuşurken kısma yazılımda (useOdaMuzikDucking).
+ */
 const IOS_MISAFIR_SECENEK = [
   'mixWithOthers',
-  'duckOthers',
   'allowBluetooth',
   'allowBluetoothA2DP',
   'defaultToSpeaker',
 ] as const;
 
 /**
- * Konuşmacı / mic açık — playAndRecord + voiceChat (AEC).
- * Exclusive çağrı hissi; müzik genelde durur (beklenen).
+ * Konuşmacı / mic açık — playAndRecord + voiceChat (AEC / yankı iptali).
+ * mixWithOthers: oda müziği karışır; voiceChat konuşmaların birbirine gitmesini sağlar.
  */
 export const IOS_SES_ODA_AYAR = {
   audioCategory: 'playAndRecord' as const,
@@ -42,14 +45,13 @@ export const IOS_SES_ODA_AYAR = {
 };
 
 /**
- * Ses odası misafir playout — playAndRecord zorunlu (playback Android Opus'u keser).
- * duckOthers: Spotify vb. kesilmez, oda sesi varken kısılır.
- * videoChat: voiceChat kadar agresif interrupt yapmaz.
+ * Ses odası misafir — playAndRecord + voiceChat (uzak Opus stabil).
+ * mixWithOthers: müzik; videoChat yerine voiceChat → konuşma kopması azalır.
  */
 export const IOS_SES_ODA_MISAFIR = {
   audioCategory: 'playAndRecord' as const,
   audioCategoryOptions: [...IOS_MISAFIR_SECENEK],
-  audioMode: 'videoChat' as const,
+  audioMode: 'voiceChat' as const,
 };
 
 const IOS_KAYIT_VPIO_KAPALI = {

@@ -50,6 +50,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         'Tamuso uses Bluetooth to connect headphones and headsets during voice rooms and calls.',
       ITSAppUsesNonExemptEncryption: false,
       LSApplicationQueriesSchemes: ['whatsapp', 'whatsapp-business'],
+      CFBundleAllowMixedLocalizations: true,
+      CFBundleLocalizations: ['tr', 'en', 'es', 'ar'],
     },
   },
   android: {
@@ -93,6 +95,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-apple-authentication',
     'expo-web-browser',
     'expo-iap',
+    'expo-localization',
+    [
+      '@stripe/stripe-react-native',
+      {
+        enableGooglePay: true,
+      },
+    ],
     'expo-system-ui',
     'expo-sharing',
     [

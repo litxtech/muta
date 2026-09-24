@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import i18n from '../../../i18n';
 import { TakipAnalitik } from '../analytics/TakipAnalytics';
 import { TakipCache } from '../onbellek/TakipCache';
 import { TakipServisi } from '../islemler/TakipServisi';
@@ -34,7 +35,7 @@ export function useTakipMutasyonu(input: {
       islem: 'follow' | 'unfollow' | 'cancel',
     ): Promise<TakipIslemSonucu> => {
       if (kilit.current) {
-        return { ok: false, code: 'rate_limited', hata: 'İşlem sürüyor' };
+        return { ok: false, code: 'rate_limited', hata: i18n.t('takip.hataRateLimited') };
       }
       kilit.current = true;
       setIsleniyor(true);
@@ -111,7 +112,7 @@ export function useTakipMutasyonu(input: {
       } catch {
         input.setDurum(onceki);
         TakipAnalitik('follow_failed');
-        return { ok: false, code: 'network', hata: 'İnternet bağlantısı yok. Takip kaydedilmedi.' };
+        return { ok: false, code: 'network', hata: i18n.t('takip.hataNetwork') };
       } finally {
         kilit.current = false;
         setIsleniyor(false);

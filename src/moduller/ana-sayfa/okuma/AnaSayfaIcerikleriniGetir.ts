@@ -1,5 +1,7 @@
 import { supabase } from '../../../lib/supabase';
 import type { Profile, Room, RoomMode } from '../../../types/models';
+import { PerformansTelemetri } from '../../../ortak/performans/PerformansTelemetri';
+import { CanliFeedCache } from '../onbellek/CanliFeedCache';
 
 export type FeedOggesi = {
   id: string;
@@ -211,36 +213,61 @@ function canliOgayaCevir(
 
 /**
  * Feed sıralaması:
- * 1) Kendi canlı yayın (en üst)
- * 2) Kendi ses odası (sabit)
+ * 1) Kendi ses odası (sabit üst)
+ * 2) Kendi canlı yayın
  * 3) Skor / tarih
  */
 function feedSirala(ogeler: FeedOggesi[], selfUserId?: string | null): FeedOggesi[] {
   if (!selfUserId) {
     return [...ogeler].sort(
-      (a, b) => b.skor - a.skor || b.created_at.localeCompare(a.created_at),
+      (a, b) =>
+        b.skor - a.skor ||
+        b.created_at.localeCompare(a.created_at) ||
+        a.id.localeCompare(b.id),
     );
   }
   return [...ogeler].sort((a, b) => {
-    const aCanli = a.kendim && a.tur === 'canli' ? 1 : 0;
-    const bCanli = b.kendim && b.tur === 'canli' ? 1 : 0;
-    if (aCanli !== bCanli) return bCanli - aCanli;
     const aOda = a.kendim && a.tur === 'oda' ? 1 : 0;
     const bOda = b.kendim && b.tur === 'oda' ? 1 : 0;
     if (aOda !== bOda) return bOda - aOda;
-    return b.skor - a.skor || b.created_at.localeCompare(a.created_at);
+    const aCanli = a.kendim && a.tur === 'canli' ? 1 : 0;
+    const bCanli = b.kendim && b.tur === 'canli' ? 1 : 0;
+    if (aCanli !== bCanli) return bCanli - aCanli;
+    return (
+      b.skor - a.skor ||
+      b.created_at.localeCompare(a.created_at) ||
+      a.id.localeCompare(b.id)
+    );
   });
 }
 
 export async function CanliFeedGetir(
   limit = 40,
   selfUserId?: string | null,
-  opts?: { uyeAvatar?: boolean },
+  opts?: { uyeAvatar?: boolean; force?: boolean },
 ): Promise<FeedOggesi[]> {
   const odaLimit = Math.min(Math.max(limit, 1), 60);
   const canliLimit = Math.min(odaLimit, 24);
   const uid = selfUserId?.trim() || null;
   const uyeAvatar = opts?.uyeAvatar !== false;
+
+  if (!opts?.force) {
+    const cached = CanliFeedCache.al(odaLimit, uid, uyeAvatar);
+    if (cached) return cached;
+  }
+
+  return PerformansTelemetri.olc('CanliFeedGetir', () =>
+    canliFeedGetirIc(odaLimit, canliLimit, uid, uyeAvatar),
+  );
+}
+
+async function canliFeedGetirIc(
+  odaLimit: number,
+  canliLimit: number,
+  uid: string | null,
+  uyeAvatar: boolean,
+): Promise<FeedOggesi[]> {
+  const limit = odaLimit;
 
   const [odalarRes, canliRes, kendiOdaRes, kendiCanliRes] = await Promise.all([
     supabase
@@ -308,7 +335,7 @@ export async function CanliFeedGetir(
     }
   }
 
-  const odaRows = (odalarRes.data as Room[]) ?? [];
+  const odaRows = (odalarRes.data as unknown as Room[]) ?? [];
   const odaIds = [
     ...new Set(
       [
@@ -392,28 +419,33 @@ export async function CanliFeedGetir(
     }
   }
 
-  return feedSirala(ogeler, uid).slice(0, limit);
+  const sonuc = feedSirala(ogeler, uid).slice(0, limit);
+  CanliFeedCache.yaz(odaLimit, uid, uyeAvatar, sonuc);
+  return sonuc;
 }
+
+const LEGACY_ODA_SELECT =
+  'id, host_id, title, topic, cover_url, mode, listener_count, total_coins_earned, created_at, is_live, host:profiles!rooms_host_id_fkey(id, display_name, username, avatar_url, level)';
 
 /** Geriye uyumluluk */
 export async function CanliOdalariGetir(limit = 20): Promise<Room[]> {
   const { data, error } = await supabase
     .from('rooms')
-    .select('*, host:profiles!rooms_host_id_fkey(*)')
+    .select(LEGACY_ODA_SELECT)
     .eq('is_live', true)
     .order('listener_count', { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return (data as Room[]) ?? [];
+  return (data as unknown as Room[]) ?? [];
 }
 
 export async function TrendOdalariGetir(limit = 10): Promise<Room[]> {
   const { data, error } = await supabase
     .from('rooms')
-    .select('*, host:profiles!rooms_host_id_fkey(*)')
+    .select(LEGACY_ODA_SELECT)
     .eq('is_live', true)
     .order('total_coins_earned', { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return (data as Room[]) ?? [];
+  return (data as unknown as Room[]) ?? [];
 }

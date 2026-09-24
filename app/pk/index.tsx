@@ -9,6 +9,7 @@ import {
 import { useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { BosDurum } from '../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
@@ -31,6 +32,7 @@ import {
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 function SeciliArena({ mac }: { mac: PkMacZengin }) {
+  const { t } = useCeviri();
   const gecikmeli = useGecikmeliPkOnizleme(mac.score_a, mac.score_b, 3000);
   const kalan = PkKalanSaniye(mac.ends_at);
   const toplam = gecikmeli.score_a + gecikmeli.score_b;
@@ -40,7 +42,7 @@ function SeciliArena({ mac }: { mac: PkMacZengin }) {
     <View style={styles.arena}>
       <View style={styles.arenaAura} />
       <Text style={styles.type}>{mac.pk_type.toUpperCase()}</Text>
-      <Text style={styles.gecikmeEtiket}>Önizleme · 3 saniye geriden</Text>
+      <Text style={styles.gecikmeEtiket}>{t('pk.onizlemeEtiket')}</Text>
       <Text style={styles.timer}>
         {kalan == null
           ? '—'
@@ -54,13 +56,14 @@ function SeciliArena({ mac }: { mac: PkMacZengin }) {
       <View style={styles.barTrack}>
         <View style={[styles.barA, { width: `${oranA}%` as `${number}%` }]} />
       </View>
-      <Text style={styles.meta}>Canlı skor 3 sn gecikmeli gösterilir</Text>
+      <Text style={styles.meta}>{t('pk.skorMeta')}</Text>
     </View>
   );
 }
 
 /** PK skor UI — authoritative deger backend'den; onizleme 3 sn geriden */
 export default function PkEkrani() {
+  const { t } = useCeviri();
   const [maclar, setMaclar] = useState<PkMacZengin[]>([]);
   const [secili, setSecili] = useState<string | null>(null);
   const [olaylar, setOlaylar] = useState<PkSkorOlayi[]>([]);
@@ -117,8 +120,8 @@ export default function PkEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="pk">
         <EkranBasligi
-          title="Canlı PK"
-          subtitle="Şeffaf aura · 3 sn gecikmeli önizleme"
+          title={t('pk.baslik')}
+          subtitle={t('pk.alt')}
         />
         <FlatList
           data={maclar}
@@ -135,18 +138,18 @@ export default function PkEkrani() {
             <View style={styles.header}>
               {!enabled ? (
                 <View style={styles.warnCard}>
-                  <Text style={styles.warn}>PK özelliği şu an kapalı.</Text>
+                  <Text style={styles.warn}>{t('pk.kapali')}</Text>
                 </View>
               ) : null}
               {aktifMac ? <SeciliArena mac={aktifMac} /> : null}
-              <Text style={styles.section}>Canlı PK önizlemeleri</Text>
+              <Text style={styles.section}>{t('pk.canliOnizlemeler')}</Text>
             </View>
           }
           ListEmptyComponent={
             <BosDurum
               icon="flash-outline"
-              title="Canlı PK yok"
-              body="Yeni maçlar başladığında şeffaf aura’lı kartlar burada görünür."
+              title={t('pk.bosBaslik')}
+              body={t('pk.bosBody')}
             />
           }
           renderItem={({ item }) => (
@@ -159,12 +162,12 @@ export default function PkEkrani() {
           ListFooterComponent={
             aktifMac ? (
               <View style={styles.footer}>
-                <Text style={styles.section}>Skor olayları</Text>
+                <Text style={styles.section}>{t('pk.skorOlaylari')}</Text>
                 {olaylar.length === 0 ? (
                   <BosDurum
                     icon="trophy-outline"
-                    title="Henüz skor yok"
-                    body="Hediye ve aksiyonlar burada listelenir."
+                    title={t('pk.skorBosBaslik')}
+                    body={t('pk.skorBosBody')}
                   />
                 ) : (
                   olaylar.map((item) => (
@@ -174,7 +177,7 @@ export default function PkEkrani() {
                       </Text>
                       <Text style={styles.eventDelta}>+{item.delta}</Text>
                       <Text style={styles.eventReason}>
-                        {item.reason ?? 'skor'}
+                        {item.reason ?? t('pk.skorVarsayilan')}
                       </Text>
                     </View>
                   ))

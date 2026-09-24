@@ -4,7 +4,7 @@ import '../src/tasarim-sistemi/tema/StilYama';
 import { InteractionManager, LogBox } from 'react-native';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AuthProvider } from '../src/contexts/AuthContext';
+import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
 import { CuzdanUiProvider } from '../src/moduller/cuzdan/ui-config/useCuzdanUiConfig';
 import { BildirimSaglayici } from '../src/moduller/bildirimler/baglam/BildirimSaglayici';
 import { MesajOkunmamisSaglayici } from '../src/moduller/mesajlasma/baglam/MesajOkunmamisSaglayici';
@@ -23,6 +23,8 @@ import { ImagePickerOnIsit } from '../src/ortak/medya/ImagePickerHazirMi';
 import { TemaSaglayici, useTema } from '../src/tasarim-sistemi/tema/TemaSaglayici';
 import { TabBarGuvenlikKur } from '../src/components/tab-navigasyon/TabBarGuvenlik';
 import { YuzenTabBar } from '../src/components/YuzenTabBar';
+import { DilSaglayici } from '../src/i18n/DilSaglayici';
+import '../src/i18n';
 import '../src/moduller/livekit/polyfill/AbortReasonPolyfill';
 
 // Tab bar AppState/Dimensions kilidi — en erken
@@ -107,6 +109,7 @@ function KokIcerik() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: palet.bg }}>
       <UygulamaHataSiniri>
         <AuthProvider>
+          <DilSaglayiciKoku>
           <CuzdanUiProvider>
           <KullanimSuresiSaglayici>
           <BildirimSaglayici>
@@ -142,6 +145,7 @@ function KokIcerik() {
           <Stack.Screen name="takip/takipciler" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="takip/takip-edilenler" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="takip/istekler" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="takip/ortak" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="destek/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="fikirler/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="fikirler/olustur" options={{ animation: 'slide_from_bottom' }} />
@@ -278,6 +282,10 @@ function KokIcerik() {
             name="admin/coin-paketleri"
             options={{ animation: 'slide_from_right' }}
           />
+          <Stack.Screen
+            name="admin/satin-alma-itirazlar"
+            options={{ animation: 'slide_from_right' }}
+          />
           <Stack.Screen name="admin/oyunlar" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="admin/oyun-test" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
@@ -308,7 +316,21 @@ function KokIcerik() {
           <Stack.Screen name="paylasim/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="paylas/[kod]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ayarlar/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ayarlar/dil" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ayarlar/gizlilik" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen
+            name="ayarlar/kisiler-aramalar"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="ayarlar/satin-alma-gecmisi"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen name="kisiler/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen
+            name="admin/kisiler-aramalar"
+            options={{ animation: 'slide_from_right' }}
+          />
           <Stack.Screen name="profil-ayarlar/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="profil-duzenle/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="kyc/index" options={{ animation: 'slide_from_right' }} />
@@ -360,8 +382,16 @@ function KokIcerik() {
           </BildirimSaglayici>
           </KullanimSuresiSaglayici>
           </CuzdanUiProvider>
+          </DilSaglayiciKoku>
         </AuthProvider>
       </UygulamaHataSiniri>
     </GestureHandlerRootView>
+  );
+}
+
+function DilSaglayiciKoku({ children }: { children: React.ReactNode }) {
+  const { profile } = useAuth();
+  return (
+    <DilSaglayici profilDili={profile?.language ?? null}>{children}</DilSaglayici>
   );
 }

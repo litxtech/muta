@@ -18,6 +18,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   ogeler: FeedOggesi[];
@@ -26,6 +27,7 @@ type Props = {
 
 /** Yatay canlı yayın odakları — ses odalarından ayrı, üstte */
 export function AnaSayfaCanliOdakSeridi({ ogeler, onPress }: Props) {
+  const { t } = useCeviri();
   if (ogeler.length === 0) return null;
 
   return (
@@ -33,7 +35,7 @@ export function AnaSayfaCanliOdakSeridi({ ogeler, onPress }: Props) {
       <View style={styles.baslikSatir}>
         <View style={styles.baslikSol}>
           <AnaSayfaCanliNokta boyut={6} />
-          <Text style={styles.baslik}>Canlı odaklar</Text>
+          <Text style={styles.baslik}>{t('anaSayfa.canliOdaklar')}</Text>
         </View>
         <Text style={styles.sayi}>{ogeler.length}</Text>
       </View>
@@ -46,7 +48,7 @@ export function AnaSayfaCanliOdakSeridi({ ogeler, onPress }: Props) {
         {ogeler.map((oge, index) => {
           const hostAd =
             oge.host?.display_name ??
-            (oge.host?.username ? `@${oge.host.username}` : 'Yayıncı');
+            (oge.host?.username ? `@${oge.host.username}` : t('anaSayfa.yayinci'));
           return (
             <Pressable
               key={oge.id}
@@ -80,7 +82,7 @@ export function AnaSayfaCanliOdakSeridi({ ogeler, onPress }: Props) {
                 <View style={styles.ust}>
                   <View style={styles.rozet}>
                     <AnaSayfaCanliNokta boyut={5} />
-                    <Text style={styles.rozetYazi}>YAYIN</Text>
+                    <Text style={styles.rozetYazi}>{t('anaSayfa.yayinRozet')}</Text>
                   </View>
                   <Ionicons
                     name="videocam"

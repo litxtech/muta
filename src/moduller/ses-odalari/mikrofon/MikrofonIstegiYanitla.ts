@@ -1,16 +1,17 @@
 import { supabase } from '../../../lib/supabase';
+import i18n from '../../../i18n';
 
 function hataMetni(raw?: string): string {
   const m = (raw ?? '').toLowerCase();
-  if (m.includes('not authorized')) return 'Bu isteği yanıtlama yetkin yok.';
-  if (m.includes('no free mic seat')) return 'Boş koltuk yok.';
-  if (m.includes('already resolved')) return 'Bu istek zaten yanıtlandı.';
-  if (m.includes('not found')) return 'İstek bulunamadı.';
-  if (m.includes('not authenticated')) return 'Oturum gerekli.';
+  if (m.includes('not authorized')) return i18n.t('sesOda.yetkiYok');
+  if (m.includes('no free mic seat')) return i18n.t('sesOda.bosKoltukYok');
+  if (m.includes('already resolved')) return i18n.t('sesOda.zatenYanitlandi');
+  if (m.includes('not found')) return i18n.t('sesOda.istekBulunamadi');
+  if (m.includes('not authenticated')) return i18n.t('ortak.oturumYok');
   if (m.includes('duplicate') || m.includes('unique')) {
-    return 'Kayıt çakışması. Tekrar dene.';
+    return i18n.t('sesOda.kayitCakismasi');
   }
-  return raw?.trim() || 'İstek yanıtlanamadı.';
+  return raw?.trim() || i18n.t('sesOda.istekYanitlanamadi');
 }
 
 export async function MikrofonIstegiYanitla(input: {

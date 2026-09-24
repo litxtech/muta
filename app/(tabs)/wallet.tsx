@@ -49,7 +49,7 @@ import {
   CekimTalebiOlustur,
   CekimTaleplerimiGetir,
 } from '../../src/moduller/cuzdan/cekim/CekimTalebiOlustur';
-import { CEKIM_ODEME_BILGISI } from '../../src/moduller/cuzdan/cekim/CekimOdemeBilgisi';
+import { CEKIM_ODEME_IS_GUNU } from '../../src/moduller/cuzdan/cekim/CekimOdemeBilgisi';
 import { BankaHesabiGetir } from '../../src/moduller/kullanici-profili/islemler/BankaHesabi';
 import type { BankaHesabi } from '../../src/moduller/kullanici-profili/islemler/BankaHesabi';
 import {
@@ -109,6 +109,7 @@ import {
 import { CuzdanDinamikSimge } from '../../src/moduller/cuzdan/bilesenler/CuzdanDinamikSimge';
 import { CuzdanDinamikAksiyonGrid } from '../../src/moduller/cuzdan/bilesenler/CuzdanDinamikAksiyonGrid';
 import type { CuzdanUiAction } from '../../src/moduller/cuzdan/ui-config/CuzdanUiTipleri';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 type CekimTalebi = {
   id: string;
@@ -116,15 +117,6 @@ type CekimTalebi = {
   status: string;
   method: string;
   created_at: string;
-};
-
-const CEKIM_DURUM: Record<string, string> = {
-  pending: 'İncelemede',
-  under_review: 'İncelemede',
-  approved: 'Onaylandı',
-  rejected: 'Reddedildi',
-  paid: 'Ödendi',
-  frozen: 'Donduruldu',
 };
 
 type Sekme = 'hareket' | 'hediye' | 'yukle' | 'cekim';
@@ -152,6 +144,7 @@ function sekmeParamCoz(v: unknown): Sekme | null {
 }
 
 export default function WalletScreen() {
+  const { t } = useCeviri();
   const { wallet, refreshWallet, adjustWallet, isGuest, refreshProfile, user, profile } =
     useAuth();
   const { config: cuzdanUi } = useCuzdanUiConfig();
@@ -184,6 +177,18 @@ export default function WalletScreen() {
   const [takasAcik, setTakasAcik] = useState(false);
   const [cekimAcik, setCekimAcik] = useState(false);
   const insets = useSafeAreaInsets();
+
+  const cekimDurum = useMemo<Record<string, string>>(
+    () => ({
+      pending: t('cuzdanX.durumIncelemede'),
+      under_review: t('cuzdanX.durumIncelemede'),
+      approved: t('cuzdanX.durumOnaylandi'),
+      rejected: t('cuzdanX.durumReddedildi'),
+      paid: t('cuzdanX.durumOdendi'),
+      frozen: t('cuzdanX.durumDonduruldu'),
+    }),
+    [t],
+  );
 
   const yenileHepsi = useCallback(async (iptalRef?: { current: boolean }) => {
     const iptal = () => iptalRef?.current === true;
@@ -324,7 +329,7 @@ export default function WalletScreen() {
         hediyeler: hediyeBuyuk,
         cekimler: (cekimler as CekimTalebi[]).map((w) => ({
           ...w,
-          durumEtiket: CEKIM_DURUM[w.status] ?? w.status,
+          durumEtiket: cekimDurum[w.status] ?? w.status,
         })),
         oyunlar: oyunBuyuk,
         oyunOzet: oyunOzet ?? null,
@@ -346,6 +351,7 @@ export default function WalletScreen() {
     profile?.public_user_id,
     wallet?.coins,
     wallet?.diamonds,
+    cekimDurum,
   ]);
 
   const yuklemeler = useMemo(
@@ -364,7 +370,7 @@ export default function WalletScreen() {
   const onBuy = (pkg: CoinPackage) => {
     islemiDene('coin_satinal', () => {
       if (purchaseLocked) {
-        Alert.alert('Kapalı', 'Coin satın alma geçici olarak durduruldu.');
+        Alert.alert(t('cuzdanX.kapali'), t('cuzdanX.satinAlmaDurduruldu'));
         return;
       }
       const toplam = pkg.coins + pkg.bonus_coins;
@@ -377,20 +383,20 @@ export default function WalletScreen() {
             : 'Stripe';
       const bonusSatir =
         pkg.bonus_coins > 0
-          ? `\n${pkg.coins.toLocaleString('tr-TR')} + ${pkg.bonus_coins.toLocaleString('tr-TR')} bonus`
+          ? `\n${pkg.coins.toLocaleString('tr-TR')} + ${pkg.bonus_coins.toLocaleString('tr-TR')} ${t('cuzdanX.bonus')}`
           : '';
       Alert.alert(
-        'Coin yükle',
-        `${pkg.title}${bonusSatir}\nToplam ${toplam.toLocaleString('tr-TR')} coin\n${fiyatYazi}\nÖdeme: ${kanal}`,
+        t('cuzdanX.coinYukle'),
+        `${pkg.title}${bonusSatir}\n${t('cuzdanX.toplamCoin', { toplam: toplam.toLocaleString('tr-TR') })}\n${fiyatYazi}\n${t('cuzdanX.odemeKanali', { kanal })}`,
         [
-          { text: 'İptal', style: 'cancel' },
+          { text: t('ortak.iptal'), style: 'cancel' },
             {
-              text: 'Satın al',
+              text: t('cuzdan.satinAl'),
               onPress: async () => {
                 try {
                   const sonuc = await CoinPaketiSatinAl(pkg);
                   if (!sonuc.ok) {
-                    Alert.alert('Satın alma', sonuc.hata);
+                    Alert.alert(t('cuzdanX.satinAlma'), sonuc.hata);
                     return;
                   }
                   if (sonuc.method === 'stripe' && sonuc.url) {
@@ -408,15 +414,15 @@ export default function WalletScreen() {
                     void refreshWallet().catch(() => undefined);
                   }
                   Alert.alert(
-                    'Başarılı',
+                    t('ortak.basarili'),
                     sonuc.coinsAdded != null
-                      ? `+${sonuc.coinsAdded} coin`
-                      : 'Ödeme tamam',
+                      ? t('cuzdanX.coinEklendi', { adet: sonuc.coinsAdded })
+                      : t('cuzdanX.odemeTamam'),
                   );
                 } catch (e) {
                   Alert.alert(
-                    'Satın alma',
-                    e instanceof Error ? e.message : 'Beklenmeyen hata',
+                    t('cuzdanX.satinAlma'),
+                    e instanceof Error ? e.message : t('cuzdanX.beklenmeyenHata'),
                   );
                 }
               },
@@ -430,30 +436,30 @@ export default function WalletScreen() {
     islemiDene('cekim', () => {
       const diamonds = Number.parseInt(withdrawAmount.replace(/\D/g, ''), 10);
       if (!Number.isFinite(diamonds) || diamonds <= 0) {
-        Alert.alert('Tutar', 'Geçerli bir elmas miktarı gir.');
+        Alert.alert(t('cuzdanX.tutar'), t('cuzdanX.gecerliElmasGir'));
         return;
       }
       if ((wallet?.diamonds ?? 0) < diamonds) {
-        Alert.alert('Yetersiz', 'Elmas bakiyesi yetersiz.');
+        Alert.alert(t('cuzdanX.yetersiz'), t('cuzdanX.elmasYetersiz'));
         return;
       }
       if (!banka?.iban) {
-        Alert.alert('Banka bilgisi', 'Önce IBAN ve banka adını kaydet.', [
-          { text: 'İptal', style: 'cancel' },
+        Alert.alert(t('cuzdanX.bankaBilgisi'), t('cuzdanX.ibanKaydet'), [
+          { text: t('ortak.iptal'), style: 'cancel' },
           {
-            text: 'Profili düzenle',
+            text: t('profil.duzenle'),
             onPress: () => router.push('/profil-duzenle' as any),
           },
         ]);
         return;
       }
       Alert.alert(
-        'Çekim talebi',
-        `${diamonds} elmas → ${banka.bank_name}\n${banka.iban}\n\n${CEKIM_ODEME_BILGISI}`,
+        t('cuzdanX.cekimTalebi'),
+        `${diamonds} ${t('cuzdan.elmas').toLocaleLowerCase()} → ${banka.bank_name}\n${banka.iban}\n\n${t('cuzdanXExtra.odemeBilgisi', { gun: CEKIM_ODEME_IS_GUNU })}`,
         [
-          { text: 'İptal', style: 'cancel' },
+          { text: t('ortak.iptal'), style: 'cancel' },
           {
-            text: 'Talep et',
+            text: t('cuzdanX.talepEt'),
             onPress: async () => {
               setWithdrawBusy(true);
               const sonuc = await CekimTalebiOlustur({
@@ -467,15 +473,18 @@ export default function WalletScreen() {
               });
               setWithdrawBusy(false);
               if (!sonuc.ok) {
-                Alert.alert('Çekim', sonuc.hata ?? 'Reddedildi');
+                Alert.alert(
+                  t('cuzdan.cekim'),
+                  sonuc.hata ?? t('cuzdanX.durumReddedildi'),
+                );
                 return;
               }
               setWithdrawAmount('');
               adjustWallet({ diamonds: -diamonds });
               await yenileHepsi();
               Alert.alert(
-                'Talep alındı',
-                `İncelemede.\n\n${CEKIM_ODEME_BILGISI}`,
+                t('cuzdanX.talepAlindi'),
+                `${t('cuzdanX.durumIncelemede')}.\n\n${t('cuzdanXExtra.odemeBilgisi', { gun: CEKIM_ODEME_IS_GUNU })}`,
               );
             },
           },
@@ -485,11 +494,11 @@ export default function WalletScreen() {
   };
 
   const sekmeler: { id: Sekme; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { id: 'hareket', label: 'Hareket', icon: 'swap-vertical' },
-    { id: 'hediye', label: 'Hediye', icon: 'gift-outline' },
-    { id: 'yukle', label: 'Yükle', icon: 'card-outline' },
+    { id: 'hareket', label: t('cuzdan.hareket'), icon: 'swap-vertical' },
+    { id: 'hediye', label: t('cuzdan.hediye'), icon: 'gift-outline' },
+    { id: 'yukle', label: t('cuzdan.yukleSekme'), icon: 'card-outline' },
     ...(cekimAcik
-      ? ([{ id: 'cekim' as const, label: 'Çekim', icon: 'cash-outline' as const }] as const)
+      ? ([{ id: 'cekim' as const, label: t('cuzdan.cekim'), icon: 'cash-outline' as const }] as const)
       : []),
   ];
 
@@ -524,9 +533,9 @@ export default function WalletScreen() {
         ...a,
         title:
           mutaHesap?.kyc_status === 'approved'
-            ? 'Kimlik onaylı'
+            ? t('cuzdanX.kimlikOnayli')
             : mutaHesap?.kyc_status === 'pending'
-              ? 'KYC bekliyor'
+              ? t('cuzdanX.kycBekliyor')
               : a.title,
         icon_color:
           mutaHesap?.kyc_status === 'approved'
@@ -534,7 +543,7 @@ export default function WalletScreen() {
             : a.icon_color,
       };
     });
-  }, [cuzdanUi, flagMap, mutaHesap?.kyc_status]);
+  }, [cuzdanUi, flagMap, mutaHesap?.kyc_status, t]);
 
   const aksiyonCalistir = useCallback(
     (a: CuzdanUiAction) => {
@@ -596,7 +605,7 @@ export default function WalletScreen() {
                 />
               ) : null}
               <Text style={[styles.baslik, { color: tema.primaryText }]}>
-                {cuzdanUi.general.screen_name || 'Cüzdan'}
+                {cuzdanUi.general.screen_name || t('cuzdan.baslik')}
               </Text>
             </View>
             {cuzdanUi.general.subtitle ? (
@@ -651,7 +660,10 @@ export default function WalletScreen() {
                   islemiDene('mesaj_gonder', () => {
                     const no = mutaHesap?.wallet_number?.replace(/\D/g, '') ?? '';
                     if (no.length !== 18) {
-                      Alert.alert('Cüzdan', 'Numara henüz hazır değil.');
+                      Alert.alert(
+                        t('cuzdan.baslik'),
+                        t('cuzdanX.numaraHazirDegil'),
+                      );
                       return;
                     }
                     setKartPaylasAcik(true);
@@ -662,7 +674,7 @@ export default function WalletScreen() {
                     void (async () => {
                       const no = mutaHesap?.wallet_number ?? '';
                       const r = await CuzdanKartiniWhatsAppPaylas(no);
-                      if (!r.ok) Alert.alert('WhatsApp', r.hata);
+                      if (!r.ok) Alert.alert(t('ortak.whatsapp'), r.hata);
                     })();
                   })
                 }
@@ -682,7 +694,7 @@ export default function WalletScreen() {
                     cuzdanUi,
                     'purchase_locked',
                     'tr',
-                    'Satın alma geçici olarak kapalı',
+                    t('cuzdanX.satinAlmaKapali'),
                   )}
                 </Text>
               ) : null}
@@ -702,25 +714,25 @@ export default function WalletScreen() {
             {goster('summary') ? (
             <View style={styles.ozetBolum}>
               <Text style={[styles.bolumEtiket, { color: tema.secondaryText }]}>
-                {CuzdanMetinAl(cuzdanUi, 'summary_title', 'tr', 'Özet')}
+                {CuzdanMetinAl(cuzdanUi, 'summary_title', 'tr', t('cuzdan.ozet'))}
               </Text>
               <View style={styles.summaryRow}>
                 <OzetKutu
                   icon="arrow-up-circle"
                   tint={RenkTokenlari.danger}
-                  label="Gönderilen"
+                  label={t('cuzdan.gonderilen')}
                   value={String(stats?.total_gifts_sent ?? gonderilen.length)}
                 />
                 <OzetKutu
                   icon="arrow-down-circle"
                   tint={RenkTokenlari.mint}
-                  label="Alınan"
+                  label={t('cuzdan.alinan')}
                   value={String(stats?.total_gifts_received ?? alinan.length)}
                 />
                 <OzetKutu
                   icon="trending-up"
                   tint={tema.accent}
-                  label="Yükleme"
+                  label={t('cuzdan.yukleme')}
                   value={String(yuklemeler.length)}
                 />
               </View>
@@ -729,7 +741,7 @@ export default function WalletScreen() {
 
             {goster('tabs') ? (
             <View style={styles.sekmeBolum}>
-              <Text style={styles.bolumEtiket}>İşlemler</Text>
+              <Text style={styles.bolumEtiket}>{t('cuzdanX.islemler')}</Text>
               <View style={styles.tabs}>
                 {sekmeler.map((s) => {
                   const aktif = sekme === s.id;
@@ -776,27 +788,31 @@ export default function WalletScreen() {
               <View style={styles.panel}>
                 <View style={styles.panelBaslikSatir}>
                   <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={styles.panelTitle}>Hesap hareketleri</Text>
-                    <Text style={styles.panelSub}>
-                      Yükleme · hediye · oyun · çekim — detay için dokun
+                    <Text style={styles.panelTitle}>
+                      {t('cuzdanX.hesapHareketleri')}
                     </Text>
+                    <Text style={styles.panelSub}>{t('cuzdanX.hareketAlt')}</Text>
                   </View>
                   <BelgePaylasDugmesi
                     onPress={() => {
                       if (belgeBusy) return;
                       void hesapOzetiniAc();
                     }}
-                    label={belgeBusy ? 'Hazırlanıyor…' : 'PDF / Excel'}
+                    label={belgeBusy ? t('cuzdanX.hazirlaniyor') : t('cuzdanXExtra.pdfExcel')}
                   />
                 </View>
                 {oyunStats && oyunStats.totalGames > 0 ? (
                   <Text style={styles.oyunOzetSatir}>
-                    Oyun: {oyunStats.totalGames} · Kazanç (1.): {oyunStats.wins} ·
-                    Oran %{oyunStats.winRate} · {oyunStats.leagueLabel}
+                    {t('cuzdanX.oyunOzet', {
+                      oyun: oyunStats.totalGames,
+                      kazanc: oyunStats.wins,
+                      oran: oyunStats.winRate,
+                      lig: oyunStats.leagueLabel,
+                    })}
                   </Text>
                 ) : null}
                 {ledger.length === 0 ? (
-                  <Empty text="Henüz hareket yok" />
+                  <Empty text={t('cuzdanX.hareketYok')} />
                 ) : (
                   ledger.map((row) => (
                     <Pressable
@@ -830,7 +846,9 @@ export default function WalletScreen() {
                         <Text style={styles.lineMeta}>
                           {formatTarih(row.created_at)}
                           {' · '}
-                          {row.delta >= 0 ? 'Giriş' : 'Çıkış'}
+                          {row.delta >= 0
+                            ? t('cuzdanX.giris')
+                            : t('cuzdanX.cikis')}
                         </Text>
                       </View>
                       <Text
@@ -861,18 +879,16 @@ export default function WalletScreen() {
 
             {sekme === 'hediye' && goster('gifts') ? (
               <View style={styles.panel}>
-                <Text style={styles.panelTitle}>Hediye geçmişi</Text>
-                <Text style={styles.panelSub}>
-                  Alınan hediye · elmas · TL karşılığı · detay için dokun
-                </Text>
+                <Text style={styles.panelTitle}>{t('cuzdanX.hediyeGecmisi')}</Text>
+                <Text style={styles.panelSub}>{t('cuzdanX.hediyeAlt')}</Text>
                 {hediyeler.length === 0 ? (
-                  <Empty text="Henüz hediye yok" />
+                  <Empty text={t('cuzdanX.hediyeYok')} />
                 ) : (
                   hediyeler.map((h, i) => {
                     const kim =
                       h.karsi_profil?.display_name ??
                       h.karsi_profil?.username ??
-                      'Kullanıcı';
+                      t('ortak.kullanici');
                     const gonderildi = h.yon === 'gonderilen';
                     const tryDeger = CoinTryKarsiligi(h.coins_spent);
                     return (
@@ -890,7 +906,7 @@ export default function WalletScreen() {
                         </View>
                         <View style={styles.lineCopy}>
                           <Text style={styles.lineTitle} numberOfLines={1}>
-                            {h.gift?.name ?? 'Hediye'}
+                            {h.gift?.name ?? t('cuzdanX.hediye')}
                             {h.quantity > 1 ? ` ×${h.quantity}` : ''}
                           </Text>
                           <Text style={styles.lineMeta} numberOfLines={2}>
@@ -900,11 +916,11 @@ export default function WalletScreen() {
                           </Text>
                           {!gonderildi ? (
                             <Text style={styles.lineTry}>
-                              Kazanç: {TryYazi(tryDeger)}
+                              {t('cuzdanX.kazanc', { deger: TryYazi(tryDeger) })}
                             </Text>
                           ) : (
                             <Text style={styles.lineTryMuted}>
-                              Değer: {TryYazi(tryDeger)}
+                              {t('cuzdanX.deger', { deger: TryYazi(tryDeger) })}
                             </Text>
                           )}
                         </View>
@@ -960,34 +976,34 @@ export default function WalletScreen() {
 
             {sekme === 'cekim' && goster('withdraw') && cekimAcik ? (
               <View style={styles.panel}>
-                <Text style={styles.panelTitle}>Elmas çekimi</Text>
+                <Text style={styles.panelTitle}>{t('cuzdanX.elmasCekimi')}</Text>
                 <View style={styles.odemeBilgiKart}>
                   <Ionicons
                     name="time-outline"
                     size={18}
                     color={RenkTokenlari.accent}
                   />
-                  <Text style={styles.odemeBilgiYazi}>{CEKIM_ODEME_BILGISI}</Text>
+                  <Text style={styles.odemeBilgiYazi}>
+                    {t('cuzdanXExtra.odemeBilgisi', { gun: CEKIM_ODEME_IS_GUNU })}
+                  </Text>
                 </View>
                 {banka?.iban ? (
                   <View style={styles.ibanKart}>
-                    <Text style={styles.ibanEtiket}>Kayıtlı hesap</Text>
+                    <Text style={styles.ibanEtiket}>{t('cuzdanX.kayitliHesap')}</Text>
                     <Text style={styles.ibanAd}>{banka.account_holder}</Text>
                     <Text style={styles.ibanBanka}>{banka.bank_name}</Text>
                     <Text style={styles.ibanNo}>{banka.iban}</Text>
                   </View>
                 ) : (
                   <Pressable onPress={() => router.push('/profil-duzenle' as any)}>
-                    <Text style={styles.panelHintWarn}>
-                      IBAN kayıtlı değil — profil düzenlemeden ekle
-                    </Text>
+                    <Text style={styles.panelHintWarn}>{t('cuzdanX.ibanYok')}</Text>
                   </Pressable>
                 )}
                 <TextField
                   value={withdrawAmount}
                   onChangeText={setWithdrawAmount}
                   keyboardType="number-pad"
-                  placeholder="Miktar (elmas)"
+                  placeholder={t('cuzdanX.miktarElmas')}
                   onFocus={(e) =>
                     KlavyeFocusKaydir(scrollRef.current, e as never, {
                       delayMs: 60,
@@ -1000,11 +1016,13 @@ export default function WalletScreen() {
                   disabled={withdrawBusy}
                 >
                   <Text style={styles.withdrawText}>
-                    {withdrawBusy ? 'Gönderiliyor…' : 'Çekim talebi oluştur'}
+                    {withdrawBusy
+                      ? t('guvenlik.gonderiliyor')
+                      : t('cuzdanX.cekimTalebiOlustur')}
                   </Text>
                 </Pressable>
                 {withdrawals.length === 0 ? (
-                  <Empty text="Çekim talebi yok" />
+                  <Empty text={t('cuzdanX.cekimTalebiYok')} />
                 ) : (
                   withdrawals.map((w) => (
                     <Pressable
@@ -1013,19 +1031,22 @@ export default function WalletScreen() {
                         setDetay({
                           tur: 'cekim',
                           veri: w,
-                          durumEtiket: CEKIM_DURUM[w.status] ?? w.status,
+                          durumEtiket: cekimDurum[w.status] ?? w.status,
                         })
                       }
                       style={({ pressed }) => [styles.line, pressed && styles.linePressed]}
                     >
                       <View style={styles.lineCopy}>
                         <Text style={styles.lineTitle}>
-                          {w.diamonds} elmas · {w.method}
+                          {t('cuzdanX.elmasSatir', {
+                            adet: w.diamonds,
+                            yontem: w.method,
+                          })}
                         </Text>
                         <Text style={styles.lineMeta}>{formatTarih(w.created_at)}</Text>
                       </View>
                       <Text style={styles.status}>
-                        {CEKIM_DURUM[w.status] ?? w.status}
+                        {cekimDurum[w.status] ?? w.status}
                       </Text>
                       <Ionicons
                         name="chevron-forward"
@@ -1063,7 +1084,9 @@ export default function WalletScreen() {
           ]}
         >
           <View style={styles.paylasModalUst}>
-            <Text style={styles.paylasModalBaslik}>Cüzdan kartını paylaş</Text>
+            <Text style={styles.paylasModalBaslik}>
+              {t('cuzdanX.kartiPaylasBaslik')}
+            </Text>
             <Pressable
               onPress={() => !kartPaylasBusy && setKartPaylasAcik(false)}
               hitSlop={8}
@@ -1072,23 +1095,21 @@ export default function WalletScreen() {
               <Ionicons name="close" size={24} color={RenkTokenlari.text} />
             </Pressable>
           </View>
-          <Text style={styles.paylasModalAlt}>
-            Kullanıcı seç — cüzdan no ve QR uygulama içi mesajla gider.
-          </Text>
+          <Text style={styles.paylasModalAlt}>{t('cuzdanX.kartiPaylasAlt')}</Text>
           <MesajKullaniciAramaPaneli
             haricUserId={user?.id}
             seciliyor={kartPaylasBusy}
             onSec={(k: ArananKullanici) => {
               const no = mutaHesap?.wallet_number ?? '';
               const ad =
-                k.display_name?.trim() || k.username || 'kullanıcı';
+                k.display_name?.trim() || k.username || t('ortak.kullanici');
               Alert.alert(
-                'Kartı paylaş',
-                `${ad} kullanıcısına cüzdan kartı mesajı gönderilsin mi?`,
+                t('cuzdanX.kartiPaylas'),
+                t('cuzdanX.kartiPaylasSoru', { ad }),
                 [
-                  { text: 'Vazgeç', style: 'cancel' },
+                  { text: t('ortak.vazgec'), style: 'cancel' },
                   {
-                    text: 'Gönder',
+                    text: t('ortak.gonder'),
                     onPress: () => {
                       void (async () => {
                         setKartPaylasBusy(true);
@@ -1098,18 +1119,22 @@ export default function WalletScreen() {
                         });
                         setKartPaylasBusy(false);
                         if (!r.ok) {
-                          Alert.alert('Paylaşım', r.hata);
+                          Alert.alert(t('paylasim.baslik'), r.hata);
                           return;
                         }
                         setKartPaylasAcik(false);
-                        Alert.alert('Gönderildi', 'Cüzdan kartı mesaj olarak iletildi.', [
-                          {
-                            text: 'Sohbete git',
-                            onPress: () =>
-                              router.push(`/mesaj/${r.threadId}` as any),
-                          },
-                          { text: 'Tamam' },
-                        ]);
+                        Alert.alert(
+                          t('cuzdanX.gonderildi'),
+                          t('cuzdanX.kartIletildi'),
+                          [
+                            {
+                              text: t('cuzdanX.sohbeteGit'),
+                              onPress: () =>
+                                router.push(`/mesaj/${r.threadId}` as any),
+                            },
+                            { text: t('ortak.tamam') },
+                          ],
+                        );
                       })();
                     },
                   },

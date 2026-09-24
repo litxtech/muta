@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CanliYayinSohbetMesajiGonder } from '../../canli-sohbet/islemler/CanliSohbetIslemleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   sessionId: string;
@@ -31,8 +32,9 @@ export function CanliYorumComposer({
   canSend,
   onNeedUpgrade,
   onSent,
-  placeholder = 'Yorum ekle...',
+  placeholder,
 }: Props) {
+  const { t } = useCeviri();
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<TextInput>(null);
@@ -50,7 +52,7 @@ export function CanliYorumComposer({
     setBusy(false);
     if (!r.ok) {
       setText(body);
-      Alert.alert('Yorum', r.hata || 'Gönderilemedi');
+      Alert.alert(t('canliYayin.yorum'), r.hata || t('canliYayin.gonderilemedi'));
       return;
     }
     onSent?.();
@@ -68,7 +70,7 @@ export function CanliYorumComposer({
             color={RenkTokenlari.primarySoft}
           />
           <Text style={styles.upgradeYazi} numberOfLines={1}>
-            Yorum için hesabı tamamla
+            {t('canliYayin.yorumHesap')}
           </Text>
         </Pressable>
       </View>
@@ -81,7 +83,7 @@ export function CanliYorumComposer({
         ref={inputRef}
         value={text}
         onChangeText={setText}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t('canliYayin.yorumEkle')}
         placeholderTextColor="rgba(255,255,255,0.55)"
         style={styles.input}
         maxLength={500}
@@ -99,7 +101,7 @@ export function CanliYorumComposer({
         onPress={() => void gonder()}
         disabled={busy || !text.trim()}
         style={[styles.send, (busy || !text.trim()) && styles.sendDisabled]}
-        accessibilityLabel="Gönder"
+        accessibilityLabel={t('ortak.gonder')}
       >
         <Ionicons
           name="send"

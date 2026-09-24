@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   aktif: boolean;
@@ -14,6 +15,7 @@ type Props = {
  * Expo Go / izin yok / native hata → placeholder (asla çökme).
  */
 export function CanliKameraOnizleme({ aktif, facing = 'front' }: Props) {
+  const { t } = useCeviri();
   const [permission, requestPermission] = useCameraPermissions();
   const [hata, setHata] = useState<string | null>(null);
   const [kameraKirildi, setKameraKirildi] = useState(false);
@@ -24,13 +26,13 @@ export function CanliKameraOnizleme({ aktif, facing = 'front' }: Props) {
     if (!permission.granted) {
       void requestPermission()
         .then((r) => {
-          if (!r.granted) setHata('Kamera izni gerekli');
+          if (!r.granted) setHata(t('canliYayin.kameraIzni'));
         })
         .catch(() =>
-          setHata('Kamera kullanılamıyor (native build gerekebilir)'),
+          setHata(t('canliYayin.kameraKullanilamiyor')),
         );
     }
-  }, [aktif, permission, requestPermission]);
+  }, [aktif, permission, requestPermission, t]);
 
   if (!aktif) return null;
 
@@ -39,8 +41,8 @@ export function CanliKameraOnizleme({ aktif, facing = 'front' }: Props) {
       <View style={styles.placeholder}>
         <Text style={styles.placeholderText}>
           {kameraKirildi
-            ? 'Kamera önizleme bu cihazda açılamadı'
-            : (hata ?? 'Kamera izni bekleniyor…')}
+            ? t('canliYayin.kameraOnizlemeYok')
+            : (hata ?? t('canliYayin.kameraIzniBekleniyor'))}
         </Text>
       </View>
     );
@@ -55,7 +57,7 @@ export function CanliKameraOnizleme({ aktif, facing = 'front' }: Props) {
           onMountError={() => setKameraKirildi(true)}
         />
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>CANLI ÖNİZLEME</Text>
+          <Text style={styles.badgeText}>{t('canliYayin.canliOnizleme')}</Text>
         </View>
       </View>
     );
@@ -63,7 +65,7 @@ export function CanliKameraOnizleme({ aktif, facing = 'front' }: Props) {
     return (
       <View style={styles.placeholder}>
         <Text style={styles.placeholderText}>
-          Kamera önizleme kullanılamıyor
+          {t('canliYayin.kameraOnizlemeKapali')}
         </Text>
       </View>
     );

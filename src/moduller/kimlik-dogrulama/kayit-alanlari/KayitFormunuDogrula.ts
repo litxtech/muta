@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 import type { KayitAlanAyarlari, KayitOzelAlan } from './tipler';
 import { AlanGorunurMu, AlanZorunluMu } from './tipler';
 import { DogumTarihiDogrula } from '../yas/YasKapisi';
@@ -28,7 +29,9 @@ export type KayitFormDogrulamaSonuc =
   | { ok: false; hata: string };
 
 function etiketZorunlu(etiket: string, istegeBagli: boolean): string {
-  return istegeBagli ? `${etiket} (isteğe bağlı)` : etiket;
+  return istegeBagli
+    ? i18n.t('auth.etiketIstegeBagli', { etiket })
+    : etiket;
 }
 
 export function KayitAlanEtiketi(
@@ -50,11 +53,11 @@ export function KayitFormunuDogrula(
   if (!girdi.username.trim() || !girdi.displayName.trim() || !girdi.password) {
     return {
       ok: false,
-      hata: 'Kullanıcı adı, görünen ad ve şifre gerekli.',
+      hata: i18n.t('auth.kimlikSifreGerekli'),
     };
   }
   if (girdi.password.length < 6) {
-    return { ok: false, hata: 'Şifre en az 6 karakter olmalı.' };
+    return { ok: false, hata: i18n.t('auth.sifreMinKarakter') };
   }
 
   const phoneMod = ayar.alanlar.phone;
@@ -67,10 +70,10 @@ export function KayitFormunuDogrula(
   const emailHam = AlanGorunurMu(emailMod) ? girdi.email.trim() : '';
 
   if (AlanZorunluMu(phoneMod) && !phoneHam) {
-    return { ok: false, hata: 'Telefon numarası gerekli.' };
+    return { ok: false, hata: i18n.t('auth.telefonGerekli') };
   }
   if (AlanZorunluMu(emailMod) && !emailHam) {
-    return { ok: false, hata: 'E-posta gerekli.' };
+    return { ok: false, hata: i18n.t('auth.epostaGerekli') };
   }
 
   // Auth için telefon veya gerçek e-posta şart
@@ -78,17 +81,17 @@ export function KayitFormunuDogrula(
     if (AlanGorunurMu(emailMod)) {
       return {
         ok: false,
-        hata: 'Telefon yoksa geçerli bir e-posta yazmalısın.',
+        hata: i18n.t('auth.epostaGecerliYaz'),
       };
     }
     return {
       ok: false,
-      hata: 'Kayıt için telefon veya e-posta gerekli. Admin panelinden en az birini aç.',
+      hata: i18n.t('auth.telefonVeyaEposta'),
     };
   }
 
   if (AlanZorunluMu(genderMod) && !girdi.gender) {
-    return { ok: false, hata: 'Cinsiyet seçmelisin.' };
+    return { ok: false, hata: i18n.t('auth.cinsiyetSec') };
   }
 
   let birthDate: string | undefined;
@@ -111,7 +114,7 @@ export function KayitFormunuDogrula(
   }
 
   if (AlanZorunluMu(avatarMod) && !girdi.avatarVar) {
-    return { ok: false, hata: 'Profil fotoğrafı gerekli.' };
+    return { ok: false, hata: i18n.t('auth.profilFotoGerekli') };
   }
 
   const customFields: Record<string, string> = {};
@@ -119,7 +122,7 @@ export function KayitFormunuDogrula(
     if (alan.aktif === false) continue;
     const deger = (girdi.ozelDegerler[alan.anahtar] ?? '').trim();
     if (alan.mod === 'required' && !ozelDoldurulduMu(alan, deger)) {
-      return { ok: false, hata: `${alan.etiket} gerekli.` };
+      return { ok: false, hata: i18n.t('auth.alanGerekli', { alan: alan.etiket }) };
     }
     if (deger) customFields[alan.anahtar] = deger;
   }

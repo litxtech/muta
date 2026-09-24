@@ -1,5 +1,6 @@
 import React from 'react';
 import { CanliSohbetPaneli } from '../../canli-sohbet/bilesenler/CanliSohbetPaneli';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   roomId: string;
@@ -17,6 +18,7 @@ export function OdaSohbetPaneli({
   onNeedUpgrade,
   onClose,
 }: Props) {
+  const { t } = useCeviri();
   return (
     <CanliSohbetPaneli
       kanal={{ tur: 'oda', id: roomId }}
@@ -25,7 +27,7 @@ export function OdaSohbetPaneli({
       onNeedUpgrade={onNeedUpgrade}
       onClose={onClose}
       varyant="live"
-      baslik="Yorumlar"
+      baslik={t('canliYayin.yorumlar')}
     />
   );
 }

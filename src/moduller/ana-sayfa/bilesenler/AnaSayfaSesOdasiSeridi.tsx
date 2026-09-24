@@ -23,6 +23,7 @@ import {
 import { SayiKisaBicim } from '../../../tasarim-sistemi/premium/SeviyeXpHesap';
 import { kullaniciTemaKodunuAl } from '../../../tasarim-sistemi/tema/TemaDurumu';
 import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   ogeler: FeedOggesi[];
@@ -39,19 +40,20 @@ export function AnaSayfaSesOdasiSeridi({
   onTumunuGor,
 }: Props) {
   useTemayaAboneOl();
+  const { t } = useCeviri();
   const acik = kullaniciTemaKodunuAl() === 'acik';
 
   if (ogeler.length === 0) {
     return (
       <View style={styles.wrap}>
         <AnaSayfaPremiumBolumBasligi
-          baslik="Sesli Sohbet Odaları"
+          baslik={t('anaSayfa.sesliSohbetOdalari')}
           emoji="🎧"
           onTumunuGor={onTumunuGor}
         />
         <View style={styles.bos}>
-          <Text style={styles.bosBaslik}>Şu an açık ses odası yok.</Text>
-          <Text style={styles.bosAlt}>İlk odanı aç, sohbet başlasın.</Text>
+          <Text style={styles.bosBaslik}>{t('anaSayfa.sesBosBaslik')}</Text>
+          <Text style={styles.bosAlt}>{t('anaSayfa.sesBosAlt')}</Text>
         </View>
       </View>
     );
@@ -60,7 +62,7 @@ export function AnaSayfaSesOdasiSeridi({
   return (
     <View style={styles.wrap}>
       <AnaSayfaPremiumBolumBasligi
-        baslik="Sesli Sohbet Odaları"
+        baslik={t('anaSayfa.sesliSohbetOdalari')}
         emoji="🎧"
         onTumunuGor={onTumunuGor}
       />
@@ -70,11 +72,11 @@ export function AnaSayfaSesOdasiSeridi({
         contentContainerStyle={styles.serit}
         decelerationRate="fast"
       >
-        {ogeler.map((oge) => {
+        {ogeler.map((oge, i) => {
           const hostAvatar = MedyaUriGuvenli(oge.host?.avatar_url);
           const hostAd =
             oge.host?.display_name ??
-            (oge.host?.username ? `@${oge.host.username}` : 'Ev sahibi');
+            (oge.host?.username ? `@${oge.host.username}` : t('anaSayfa.evSahibi'));
           const harf = (hostAd[0] ?? 'O').toUpperCase();
           const uyeAvatarlari =
             oge.uye_avatarlari && oge.uye_avatarlari.length > 0
@@ -85,14 +87,14 @@ export function AnaSayfaSesOdasiSeridi({
 
           return (
             <Pressable
-              key={oge.id}
+              key={`${oge.id}-${i}`}
               onPress={() => onPress(oge)}
               style={({ pressed }) => [
                 styles.kartPress,
                 pressed && styles.pressed,
               ]}
               accessibilityRole="button"
-              accessibilityLabel={`${oge.title}, ses odası`}
+              accessibilityLabel={t('anaSayfa.sesA11y', { baslik: oge.title })}
             >
               <View
                 style={[

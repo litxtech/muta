@@ -4,6 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { CanliCoinSimgesi } from './CanliCoinSimgesi';
 import { CoinDegerOzetiPaneli } from './CoinDegerOzetiPaneli';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { DIL_LOCALE_MAP } from '../../../i18n/diller';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -38,10 +40,6 @@ type Props = {
   onWhatsAppPaylas?: () => void;
 };
 
-function formatBakiye(n: number): string {
-  return n.toLocaleString('tr-TR');
-}
-
 function maskeHesap(kod?: string | null): string {
   const temiz = (kod ?? '').replace(/\D/g, '');
   if (temiz.length >= 18) {
@@ -51,13 +49,17 @@ function maskeHesap(kod?: string | null): string {
   return `${pad.slice(0, 4)}  ${pad.slice(4)}`;
 }
 
-async function panoyaKopyala(metin: string, baslik: string) {
+async function panoyaKopyala(
+  metin: string,
+  baslik: string,
+  t: (key: any, opts?: Record<string, unknown>) => string,
+) {
   try {
     const Clipboard = await import('expo-clipboard');
     await Clipboard.setStringAsync(metin);
-    Alert.alert('Kopyalandı', `${baslik}\n${metin}`);
+    Alert.alert(t('ortak.kopyalandi'), `${baslik}\n${metin}`);
   } catch {
-    Alert.alert('Kopyala', 'Panoya yazılamadı.');
+    Alert.alert(t('ortak.kopyala'), t('takas.kopyalaBasarisiz'));
   }
 }
 
@@ -79,11 +81,14 @@ export function CuzdanBankaKarti({
   onPaylas,
   onWhatsAppPaylas,
 }: Props) {
+  const { t, dil } = useCeviri();
+  const loc = DIL_LOCALE_MAP[dil];
+  const formatBakiye = (n: number) => n.toLocaleString(loc);
   const hamNo = (cuzdanNo ?? '').replace(/\D/g, '');
   const gosterilen = maskeHesap(cuzdanNo || hesapKodu);
   const kopyalanabilir = hamNo.length >= 18;
   const paylasilabilir = kopyalanabilir && (!!onPaylas || !!onWhatsAppPaylas);
-  const tip = (kartTipi ?? '').trim() || 'Dijital cüzdan';
+  const tip = (kartTipi ?? '').trim() || t('cuzdanX.dijitalCuzdan');
   const tagline = (markaTagline ?? '').trim();
 
   return (
@@ -133,9 +138,11 @@ export function CuzdanBankaKarti({
           {kopyalanabilir ? (
             <Pressable
               style={styles.ikonBtn}
-              onPress={() => void panoyaKopyala(hamNo, 'Cüzdan no')}
+              onPress={() =>
+                void panoyaKopyala(hamNo, t('cuzdanX.cuzdanNo'), t)
+              }
               hitSlop={8}
-              accessibilityLabel="Cüzdan numarasını kopyala"
+              accessibilityLabel={t('cuzdanX.a11yCuzdanNoKopyala')}
             >
               <Ionicons
                 name="copy-outline"
@@ -149,7 +156,7 @@ export function CuzdanBankaKarti({
               style={styles.ikonBtn}
               onPress={onQrOku}
               hitSlop={8}
-              accessibilityLabel="QR oku"
+              accessibilityLabel={t('takas.a11yQrOku')}
             >
               <Ionicons
                 name="camera-outline"
@@ -164,7 +171,7 @@ export function CuzdanBankaKarti({
           <View style={styles.bakiyeKart}>
             <View style={styles.etiketSatir}>
               <CanliCoinSimgesi size={22} seviye={0.4} />
-              <Text style={styles.etiket}>Coin</Text>
+              <Text style={styles.etiket}>{t('cuzdan.coin')}</Text>
             </View>
             <Text style={styles.tutar} numberOfLines={1}>
               {formatBakiye(coins)}
@@ -178,7 +185,7 @@ export function CuzdanBankaKarti({
               >
                 <Ionicons name="diamond" size={11} color={RenkTokenlari.textOnPrimary} />
               </LinearGradient>
-              <Text style={styles.etiket}>Elmas</Text>
+              <Text style={styles.etiket}>{t('cuzdan.elmas')}</Text>
             </View>
             <Text style={styles.tutar} numberOfLines={1}>
               {formatBakiye(diamonds)}
@@ -192,13 +199,13 @@ export function CuzdanBankaKarti({
 
         <View style={styles.alt}>
           <View style={styles.altSol}>
-            <Text style={styles.altEtiket}>Hesap sahibi</Text>
+            <Text style={styles.altEtiket}>{t('cuzdanX.hesapSahibi')}</Text>
             <Text style={styles.altDeger} numberOfLines={1}>
-              {(sahipAdi ?? 'Üye').toUpperCase()}
+              {(sahipAdi ?? t('cuzdanX.uye')).toUpperCase()}
             </Text>
           </View>
           <View style={styles.altSag}>
-            <Text style={styles.altEtiket}>Yükleme / harcama</Text>
+            <Text style={styles.altEtiket}>{t('cuzdanX.yuklemeHarcama')}</Text>
             <Text style={styles.altDegerMini}>
               +{formatBakiye(yuklenen)}  ·  −{formatBakiye(harcanan)}
             </Text>
@@ -211,25 +218,25 @@ export function CuzdanBankaKarti({
               <Pressable
                 style={styles.paylasBtn}
                 onPress={onPaylas}
-                accessibilityLabel="Cüzdan kartını uygulama içi paylaş"
+                accessibilityLabel={t('cuzdanX.a11yKartPaylas')}
               >
                 <Ionicons
                   name="chatbubble-ellipses-outline"
                   size={16}
                   color={RenkTokenlari.accent}
                 />
-                <Text style={styles.paylasYazi}>Kartı paylaş</Text>
+                <Text style={styles.paylasYazi}>{t('cuzdanX.kartiPaylas')}</Text>
               </Pressable>
             ) : null}
             {onWhatsAppPaylas ? (
               <Pressable
                 style={[styles.paylasBtn, styles.paylasWa]}
                 onPress={onWhatsAppPaylas}
-                accessibilityLabel="WhatsApp ile QR paylaş"
+                accessibilityLabel={t('cuzdanX.a11yWaQr')}
               >
                 <Ionicons name="logo-whatsapp" size={16} color="#25D366" />
                 <Text style={[styles.paylasYazi, styles.paylasWaYazi]}>
-                  WhatsApp
+                  {t('ortak.whatsapp')}
                 </Text>
               </Pressable>
             ) : null}

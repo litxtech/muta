@@ -20,6 +20,7 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { GorusmeTuru, ThreadKarsiProfil } from '../tipler';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 export function sureMetni(saniye: number): string {
   const h = Math.floor(saniye / 3600);
@@ -100,12 +101,13 @@ export function GorusmeAktifEkrani({
   onFlip,
   onMinimize,
 }: AktifProps) {
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
   const saniye = useGorusmeSuresi(baglandi, answeredAt);
   const ad =
     peer?.display_name?.trim() ||
     peer?.username?.trim() ||
-    'Kullanıcı';
+    t('ortak.kullanici');
   const video = callType === 'video';
   const avatarUri = MedyaUriGuvenli(peer?.avatar_url);
   const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
@@ -146,7 +148,7 @@ export function GorusmeAktifEkrani({
               <Pressable
                 onPress={onMinimize}
                 style={styles.kucult}
-                accessibilityLabel="Görüşmeyi küçült"
+                accessibilityLabel={t('gorusme.kucultA11y')}
                 hitSlop={10}
               >
                 <Ionicons name="chevron-down" size={26} color="#fff" />
@@ -158,8 +160,8 @@ export function GorusmeAktifEkrani({
               <View style={styles.turPill}>
                 <View style={[styles.liveDot, baglandi && styles.liveDotOn]} />
                 <Text style={styles.tur}>
-                  {video ? 'Görüntülü' : 'Sesli'}
-                  {isCaller && !baglandi ? ' · Aranıyor' : ''}
+                  {video ? t('gorusme.goruntulu') : t('gorusme.sesli')}
+                  {isCaller && !baglandi ? t('gorusme.araniyorEk') : ''}
                 </Text>
               </View>
               <Text style={styles.ad} numberOfLines={1}>
@@ -169,7 +171,7 @@ export function GorusmeAktifEkrani({
                 {baglandi ? sureMetni(saniye) : durumYazi}
               </Text>
               {baglandi ? (
-                <Text style={styles.sureEtiket}>Konuşma süresi</Text>
+                <Text style={styles.sureEtiket}>{t('gorusme.konusmaSuresi')}</Text>
               ) : null}
             </View>
             <View style={styles.kucultBos} />
@@ -187,7 +189,7 @@ export function GorusmeAktifEkrani({
                 </View>
               )}
               <Text style={styles.ortaHint}>
-                {baglandi ? 'Sesli görüşme' : 'Karşı taraf bekleniyor…'}
+                {baglandi ? t('gorusme.sesliGorusme') : t('gorusme.karsiBekleniyor')}
               </Text>
             </>
           ) : null}
@@ -197,20 +199,20 @@ export function GorusmeAktifEkrani({
           <View style={styles.kontroller}>
             <Kontrol
               icon={muted ? 'mic-off' : 'mic'}
-              label={muted ? 'Sessiz' : 'Mikrofon'}
+              label={muted ? t('gorusme.sessiz') : t('gorusme.mikrofon')}
               aktif={muted}
               onPress={onMute}
             />
             <Kontrol
               icon={speaker ? 'volume-high' : 'volume-mute'}
-              label={speaker ? 'Hoparlör' : 'Kulaklık'}
+              label={speaker ? t('gorusme.hoparlor') : t('gorusme.kulaklik')}
               aktif={speaker}
               onPress={onSpeaker}
             />
             {video && onCamera ? (
               <Kontrol
                 icon={cameraOn ? 'videocam' : 'videocam-off'}
-                label="Kamera"
+                label={t('gorusme.kamera')}
                 aktif={!cameraOn}
                 onPress={onCamera}
               />
@@ -218,13 +220,13 @@ export function GorusmeAktifEkrani({
             {video && onFlip && cameraOn ? (
               <Kontrol
                 icon="camera-reverse"
-                label="Çevir"
+                label={t('gorusme.cevir')}
                 onPress={onFlip}
               />
             ) : !video ? (
               <Kontrol
                 icon="ellipsis-horizontal"
-                label="Diğer"
+                label={t('gorusme.diger')}
                 onPress={() => undefined}
               />
             ) : null}
@@ -233,7 +235,7 @@ export function GorusmeAktifEkrani({
           <Pressable
             style={styles.bitir}
             onPress={onHangup}
-            accessibilityLabel="Görüşmeyi bitir"
+            accessibilityLabel={t('gorusme.bitirA11y')}
           >
             <Ionicons
               name="call"
@@ -242,7 +244,7 @@ export function GorusmeAktifEkrani({
               style={{ transform: [{ rotate: '135deg' }] }}
             />
           </Pressable>
-          <Text style={styles.bitirYazi}>Bitir</Text>
+          <Text style={styles.bitirYazi}>{t('gorusme.bitir')}</Text>
         </View>
       </View>
     </View>
@@ -265,6 +267,7 @@ export function GorusmeGelenEkrani({
   onAccept,
   onReject,
 }: GelenProps) {
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
   const harf = peerName.charAt(0).toLocaleUpperCase('tr-TR');
   // Modal'da inset 0 gelebilir — notch için güvenli taban
@@ -281,9 +284,9 @@ export function GorusmeGelenEkrani({
       >
         <View style={styles.gelenUst}>
           <Text style={styles.gelenTur}>
-            {callType === 'video' ? 'Görüntülü arama' : 'Sesli arama'}
+            {callType === 'video' ? t('gorusme.goruntuluArama') : t('gorusme.sesliArama')}
           </Text>
-          <Text style={styles.gelenAlt}>Arıyor…</Text>
+          <Text style={styles.gelenAlt}>{t('gorusme.ariyor')}</Text>
           <Text style={styles.gelenAd}>{peerName}</Text>
         </View>
 
@@ -317,7 +320,7 @@ export function GorusmeGelenEkrani({
                 style={{ transform: [{ rotate: '135deg' }] }}
               />
             </Pressable>
-            <Text style={styles.gelenLabel}>Reddet</Text>
+            <Text style={styles.gelenLabel}>{t('gorusme.reddet')}</Text>
           </View>
           <View style={styles.gelenAksiyon}>
             <Pressable style={styles.kabul} onPress={onAccept}>
@@ -327,7 +330,7 @@ export function GorusmeGelenEkrani({
                 color="#fff"
               />
             </Pressable>
-            <Text style={styles.gelenLabel}>Kabul et</Text>
+            <Text style={styles.gelenLabel}>{t('gorusme.kabulEt')}</Text>
           </View>
         </View>
       </View>

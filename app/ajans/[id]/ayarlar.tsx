@@ -35,21 +35,24 @@ import {
 } from '../../../src/moduller/ajanslar/okuma/AjansProfilGetir';
 import { MedyaUriGuvenli } from '../../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { RenkTokenlari } from '../../../src/tasarim-sistemi/RenkTokenlari';
+import { useCeviri } from '../../../src/i18n/useCeviri';
+import type { CeviriAnahtari } from '../../../src/i18n/useCeviri';
 
-const YONETICI_TOGGLELARI: Array<{ code: string; label: string }> = [
-  { code: 'agency.manage_members', label: 'Üyeleri yönet' },
-  { code: 'agency.manage_applications', label: 'Başvuruları yönet' },
-  { code: 'agency.manage_announcements', label: 'Duyuru gönder' },
-  { code: 'agency.manage_events', label: 'Etkinlik oluştur' },
-  { code: 'agency.manage_schedule', label: 'Program yönet' },
-  { code: 'agency.view_analytics', label: 'Analitik gör' },
-  { code: 'agency.view_finance', label: 'İşlemleri gör' },
-  { code: 'agency.manage_coin_operations', label: 'Coin işlemi yap' },
-  { code: 'agency.manage_profile', label: 'Ajans profilini değiştir' },
-  { code: 'agency.manage_support', label: 'Destek taleplerini gör' },
+const YONETICI_TOGGLE_KODLARI: Array<{ code: string; labelKey: CeviriAnahtari }> = [
+  { code: 'agency.manage_members', labelKey: 'ajans.izinUyeleriYonet' },
+  { code: 'agency.manage_applications', labelKey: 'ajans.izinBasvurulariYonet' },
+  { code: 'agency.manage_announcements', labelKey: 'ajans.izinDuyuruGonder' },
+  { code: 'agency.manage_events', labelKey: 'ajans.izinEtkinlikOlustur' },
+  { code: 'agency.manage_schedule', labelKey: 'ajans.izinProgramYonet' },
+  { code: 'agency.view_analytics', labelKey: 'ajans.izinAnalitikGor' },
+  { code: 'agency.view_finance', labelKey: 'ajans.izinIslemleriGor' },
+  { code: 'agency.manage_coin_operations', labelKey: 'ajans.izinCoinIslemi' },
+  { code: 'agency.manage_profile', labelKey: 'ajans.izinProfilDegistir' },
+  { code: 'agency.manage_support', labelKey: 'ajans.izinDestekGor' },
 ];
 
 export default function AjansAyarlarEkrani() {
+  const { t } = useCeviri();
   const id = useAjansRouteId();
   const [detay, setDetay] = useState<AjansPanelDetay | null>(null);
   const [ad, setAd] = useState('');
@@ -111,14 +114,14 @@ export default function AjansAyarlarEkrani() {
   return (
     <AjansAltEkranKabuk
       agencyId={id}
-      title="Ayarlar"
-      subtitle="Profil · roller · akademi"
+      title={t('ajans.ayarlar')}
+      subtitle={t('ajans.ayarlarAlt')}
       aktif="ayarlar"
       yukleniyor={yukleniyor && !detay}
       refreshing={yukleniyor && !!detay}
       onRefresh={() => void yukle()}
     >
-      <AjansBolumBaslik>Ajans profili</AjansBolumBaslik>
+      <AjansBolumBaslik>{t('ajans.profilBolum')}</AjansBolumBaslik>
       <AjansKart>
         {(bannerUrl || logoUrl) && (
           <View>
@@ -135,36 +138,36 @@ export default function AjansAyarlarEkrani() {
         )}
         <AjansCta
           ghost
-          label="Logo yükle"
+          label={t('ajans.logoYukle')}
           onPress={() => {
             void (async () => {
               setBusy(true);
               const r = await AjansMedyaYukle({ agencyId: id, tur: 'logo' });
               setBusy(false);
-              if (!r.ok && !r.iptal) Alert.alert('Medya', r.hata);
+              if (!r.ok && !r.iptal) Alert.alert(t('ajans.alertMedya'), r.hata);
               else await yukle();
             })();
           }}
         />
         <AjansCta
           ghost
-          label="Banner yükle"
+          label={t('ajans.bannerYukle')}
           onPress={() => {
             void (async () => {
               setBusy(true);
               const r = await AjansMedyaYukle({ agencyId: id, tur: 'banner' });
               setBusy(false);
-              if (!r.ok && !r.iptal) Alert.alert('Medya', r.hata);
+              if (!r.ok && !r.iptal) Alert.alert(t('ajans.alertMedya'), r.hata);
               else await yukle();
             })();
           }}
         />
-        <AjansInput value={ad} onChangeText={setAd} placeholder="Ajans adı" />
-        <AjansInput value={slogan} onChangeText={setSlogan} placeholder="Slogan" />
-        <AjansInput value={ulke} onChangeText={setUlke} placeholder="Ülke" />
-        <AjansInput value={aciklama} onChangeText={setAciklama} placeholder="Açıklama" multiline />
+        <AjansInput value={ad} onChangeText={setAd} placeholder={t('ajans.phAjansAdi')} />
+        <AjansInput value={slogan} onChangeText={setSlogan} placeholder={t('ajans.phSlogan')} />
+        <AjansInput value={ulke} onChangeText={setUlke} placeholder={t('ajans.phUlkeKisa')} />
+        <AjansInput value={aciklama} onChangeText={setAciklama} placeholder={t('ajans.phAciklamaKisa')} multiline />
         <AjansCta
-          label="Profili kaydet"
+          label={t('ajans.profilKaydet')}
           onPress={() => {
             void (async () => {
               const r = await AjansProfilGuncelle({
@@ -174,43 +177,43 @@ export default function AjansAyarlarEkrani() {
                 country: ulke.trim() || undefined,
                 description: aciklama.trim() || undefined,
               });
-              if (!r.ok) Alert.alert('Profil', r.hata);
-              else Alert.alert('Tamam', 'Güncellendi');
+              if (!r.ok) Alert.alert(t('ajans.alertProfil'), r.hata);
+              else Alert.alert(t('ajans.tamam'), t('ajans.guncellendi'));
             })();
           }}
         />
         <AjansCta
           ghost
-          label="Davetler"
+          label={t('ajans.davetler')}
           onPress={() => router.push(ajansHref(id, 'davetler') as any)}
         />
       </AjansKart>
 
-      <AjansBolumBaslik>Yönetici yetkileri</AjansBolumBaslik>
+      <AjansBolumBaslik>{t('ajans.yoneticiYetkileri')}</AjansBolumBaslik>
       <AjansKart>
         {staff.length === 0 ? (
-          <AjansHint>Henüz staff yok — üye detayından rol ata</AjansHint>
+          <AjansHint>{t('ajans.staffYok')}</AjansHint>
         ) : (
           staff.map((s) => (
             <AjansListeSatir
               key={String(s.user_id)}
               title={`${s.display_name || s.username} · ${s.role_code}`}
-              subtitle="Yetki toggle için seç"
+              subtitle={t('ajans.yetkiToggleSec')}
               onPress={() => setSeciliStaff(String(s.user_id))}
             />
           ))
         )}
         {seciliStaff ? (
           <View style={{ gap: 8 }}>
-            {YONETICI_TOGGLELARI.map((t) => {
-              const override = overrides.find((o) => o.permission === t.code);
+            {YONETICI_TOGGLE_KODLARI.map((item) => {
+              const override = overrides.find((o) => o.permission === item.code);
               const granted = override?.granted ?? false;
               return (
                 <View
-                  key={t.code}
+                  key={item.code}
                   style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
                 >
-                  <Text style={{ color: RenkTokenlari.text, flex: 1 }}>{t.label}</Text>
+                  <Text style={{ color: RenkTokenlari.text, flex: 1 }}>{t(item.labelKey)}</Text>
                   <Switch
                     value={granted}
                     disabled={busy}
@@ -220,11 +223,11 @@ export default function AjansAyarlarEkrani() {
                         const r = await AjansStaffYetkiAyarla({
                           agencyId: id,
                           userId: seciliStaff,
-                          permission: t.code,
+                          permission: item.code,
                           granted: v,
                         });
                         setBusy(false);
-                        if (!r.ok) Alert.alert('Yetki', r.hata);
+                        if (!r.ok) Alert.alert(t('ajans.alertYetki'), r.hata);
                         else await yukle();
                       })();
                     }}
@@ -236,17 +239,17 @@ export default function AjansAyarlarEkrani() {
         ) : null}
       </AjansKart>
 
-      <AjansBolumBaslik>Ajans kanalları</AjansBolumBaslik>
+      <AjansBolumBaslik>{t('ajans.kanallarBolum')}</AjansBolumBaslik>
       <AjansKart>
         <AjansCta
-          label="Kanalları hazırla"
+          label={t('ajans.kanallariHazirla')}
           onPress={() => {
             void (async () => {
               const r = await AjansKanalHazirla(id);
-              if (!r.ok) Alert.alert('Kanal', r.hata);
+              if (!r.ok) Alert.alert(t('ajans.alertKanal'), r.hata);
               else {
                 setKanallar(r.kanallar);
-                Alert.alert('Tamam', 'Kanallar hazır');
+                Alert.alert(t('ajans.tamam'), t('ajans.kanallarHazir'));
               }
             })();
           }}
@@ -263,24 +266,24 @@ export default function AjansAyarlarEkrani() {
         ))}
       </AjansKart>
 
-      <AjansBolumBaslik>Akademi</AjansBolumBaslik>
+      <AjansBolumBaslik>{t('ajans.akademiBolum')}</AjansBolumBaslik>
       <AjansKart>
         <AjansInput
           value={akademiBaslik}
           onChangeText={setAkademiBaslik}
-          placeholder="Rehber başlığı"
+          placeholder={t('ajans.phRehberBaslik')}
         />
         <AjansCta
-          label="Ekle (Başlangıç)"
+          label={t('ajans.ekleBaslangic')}
           onPress={() => {
             void (async () => {
               const r = await AjansAkademiEkle({
                 agencyId: id,
                 category: 'baslangic',
-                title: akademiBaslik.trim() || 'Başlangıç rehberi',
-                body: 'Ajans kurallarını oku ve profilini tamamla.',
+                title: akademiBaslik.trim() || t('ajans.baslangicRehberi'),
+                body: t('ajans.baslangicRehberBody'),
               });
-              if (!r.ok) Alert.alert('Akademi', r.hata);
+              if (!r.ok) Alert.alert(t('ajans.alertAkademi'), r.hata);
               else {
                 setAkademiBaslik('');
                 await yukle();
@@ -292,92 +295,92 @@ export default function AjansAyarlarEkrani() {
           <AjansListeSatir
             key={String(a.id)}
             title={String(a.title)}
-            subtitle={`${a.category}${a.completed ? ' · tamamlandı' : ''}`}
+            subtitle={`${a.category}${a.completed ? t('ajans.tamamlandiSuffix') : ''}`}
           />
         ))}
       </AjansKart>
 
-      <AjansBolumBaslik>Başvuru formu</AjansBolumBaslik>
+      <AjansBolumBaslik>{t('ajans.basvuruFormuBolum')}</AjansBolumBaslik>
       <AjansKart>
         <AjansCta
-          label="Varsayılan formu kaydet"
+          label={t('ajans.varsayilanFormKaydet')}
           onPress={() => {
             void (async () => {
               const r = await AjansFormKaydet({
                 agencyId: id,
-                title: 'Host Başvuru Formu',
+                title: t('ajans.hostBasvuruFormu'),
                 fields: [
                   {
                     field_type: 'short_text',
-                    label: 'Hangi saatlerde aktifsın?',
+                    label: t('ajans.formSaatler'),
                     required: true,
                     sort_order: 1,
                   },
                   {
                     field_type: 'single_choice',
-                    label: 'Ne tür yayın yapıyorsun?',
-                    options: ['Sohbet', 'Müzik', 'Oyun'],
+                    label: t('ajans.formYayinTuru'),
+                    options: [t('ajans.formSecSohbet'), t('ajans.formSecMuzik'), t('ajans.formSecOyun')],
                     required: true,
                     sort_order: 2,
                   },
                   {
                     field_type: 'yes_no',
-                    label: 'Daha önce yayın yaptın mı?',
+                    label: t('ajans.formOncekiYayin'),
                     required: false,
                     sort_order: 3,
                   },
                 ],
               });
-              if (!r.ok) Alert.alert('Form', r.hata);
+              if (!r.ok) Alert.alert(t('ajans.form'), r.hata);
               else {
                 const f = await AjansFormGetir(id);
-                Alert.alert('Tamam', `${f.fields?.length ?? 0} alan kaydedildi`);
+                Alert.alert(t('ajans.tamam'), t('ajans.alanKaydedildi', { count: f.fields?.length ?? 0 }));
               }
             })();
           }}
         />
         <AjansCta
           ghost
-          label="Ödül tanımla (rozet)"
+          label={t('ajans.odulTanimla')}
           onPress={() => {
             void (async () => {
               const r = await AjansOdulTanimla({
                 agencyId: id,
                 rewardType: 'badge',
-                title: 'Ajans Yıldızı',
-                description: 'Aktif host ödülü',
+                title: t('ajans.ajansYildizi'),
+                description: t('ajans.aktifHostOdulu'),
               });
-              if (!r.ok) Alert.alert('Ödül', r.hata);
-              else Alert.alert('Tamam', 'Ödül tanımlandı');
+              if (!r.ok) Alert.alert(t('ajans.alertOdul'), r.hata);
+              else Alert.alert(t('ajans.tamam'), t('ajans.odulTanimlandi'));
             })();
           }}
         />
       </AjansKart>
 
-      <AjansBolumBaslik>Kurallar</AjansBolumBaslik>
+      <AjansBolumBaslik>{t('ajans.kurallarBolum')}</AjansBolumBaslik>
       <AjansKart>
-        <AjansInput value={kurallar} onChangeText={setKurallar} multiline placeholder="Ajans kuralları" />
+        <AjansInput value={kurallar} onChangeText={setKurallar} multiline placeholder={t('ajans.phKurallar')} />
         <AjansCta
-          label="Kuralları kaydet"
+          label={t('ajans.kurallariKaydet')}
           onPress={() => {
             void (async () => {
               const r = await AjansKurallariKaydet({ agencyId: id, body: kurallar });
-              if (!r.ok) Alert.alert('Kurallar', r.hata);
-              else Alert.alert('Tamam', 'Kaydedildi');
+              if (!r.ok) Alert.alert(t('ajans.alertKurallar'), r.hata);
+              else Alert.alert(t('ajans.tamam'), t('ajans.kaydedildi'));
             })();
           }}
         />
       </AjansKart>
 
-      <AjansBolumBaslik>IBAN şablonu</AjansBolumBaslik>
+      <AjansBolumBaslik>{t('ajans.ibanBolum')}</AjansBolumBaslik>
       <AjansKart>
-        <AjansInput value={holder} onChangeText={setHolder} placeholder="Hesap sahibi" />
-        <AjansInput value={banka} onChangeText={setBanka} placeholder="Banka" />
-        <AjansInput value={iban} onChangeText={setIban} placeholder="IBAN" autoCapitalize="characters" />
-        <AjansInput value={telefon} onChangeText={setTelefon} placeholder="Telefon" />
-        <AjansInput value={odemeNot} onChangeText={setOdemeNot} placeholder="Not" />
+        <AjansInput value={holder} onChangeText={setHolder} placeholder={t('ajans.phHesapSahibi')} />
+        <AjansInput value={banka} onChangeText={setBanka} placeholder={t('ajans.phBanka')} />
+        <AjansInput value={iban} onChangeText={setIban} placeholder={t('ajans.phIban')} autoCapitalize="characters" />
+        <AjansInput value={telefon} onChangeText={setTelefon} placeholder={t('ajans.phTelefonKisa')} />
+        <AjansInput value={odemeNot} onChangeText={setOdemeNot} placeholder={t('ajans.phNot')} />
         <AjansCta
-          label="Ödeme şablonunu kaydet"
+          label={t('ajans.odemeSablonuKaydet')}
           onPress={() => {
             void (async () => {
               const r = await AjansOdemeSablonuKaydet({
@@ -388,28 +391,28 @@ export default function AjansAyarlarEkrani() {
                 phone: telefon,
                 note: odemeNot,
               });
-              if (!r.ok) Alert.alert('Ödeme', r.hata);
-              else Alert.alert('Tamam', 'Kaydedildi');
+              if (!r.ok) Alert.alert(t('ajans.alertOdeme'), r.hata);
+              else Alert.alert(t('ajans.tamam'), t('ajans.kaydedildi'));
             })();
           }}
         />
       </AjansKart>
 
-      <AjansBolumBaslik>Tehlikeli alan</AjansBolumBaslik>
+      <AjansBolumBaslik>{t('ajans.tehlikeliAlan')}</AjansBolumBaslik>
       <AjansKart>
         <AjansCta
           ghost
-          label="Ajansı kapat"
+          label={t('ajans.ajansiKapat')}
           onPress={() => {
-            Alert.alert('Ajansı kapat', 'Emin misin?', [
-              { text: 'Vazgeç', style: 'cancel' },
+            Alert.alert(t('ajans.ajansiKapat'), t('ajans.ajansiKapatSoru'), [
+              { text: t('ajans.vazgec'), style: 'cancel' },
               {
-                text: 'Kapat',
+                text: t('ortak.kapat'),
                 style: 'destructive',
                 onPress: () => {
                   void (async () => {
                     const r = await AjansSil(id);
-                    if (!r.ok) Alert.alert('Ajans', r.hata);
+                    if (!r.ok) Alert.alert(t('ajans.alertAjans'), r.hata);
                     else router.replace('/ajans/yonetim' as any);
                   })();
                 },

@@ -23,6 +23,8 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { kullaniciTemaKodunuAl } from '../../../tasarim-sistemi/tema/TemaDurumu';
 import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
+import { DogrulanmisTik } from '../../kullanici-profili/bilesenler/DogrulanmisTik';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   sorgu: string;
@@ -39,6 +41,7 @@ export function AnaSayfaAramaOnerileri({
   onAjansSec,
 }: Props) {
   useTemayaAboneOl();
+  const { t } = useCeviri();
   const acik = kullaniciTemaKodunuAl() === 'acik';
   const [kullanicilar, setKullanicilar] = useState<KesfetAramaKullanici[]>([]);
   const [ajanslar, setAjanslar] = useState<KesfetAramaAjans[]>([]);
@@ -104,21 +107,21 @@ export function AnaSayfaAramaOnerileri({
         {yukleniyor ? (
           <View style={styles.loaderSatir}>
             <ActivityIndicator size="small" color={RenkTokenlari.primary} />
-            <Text style={styles.loaderYazi}>Öneriler…</Text>
+            <Text style={styles.loaderYazi}>{t('anaSayfa.oneriler')}</Text>
           </View>
         ) : null}
 
         {bos ? (
-          <Text style={styles.bos}>Kullanıcı veya ajans bulunamadı</Text>
+          <Text style={styles.bos}>{t('anaSayfa.kullaniciVeyaAjansYok')}</Text>
         ) : null}
 
         {kullanicilar.length > 0 ? (
           <View style={styles.bolum}>
-            <Text style={styles.bolumBaslik}>Kullanıcılar</Text>
+            <Text style={styles.bolumBaslik}>{t('anaSayfa.kullanicilar')}</Text>
             {kullanicilar.map((k) => {
               const ad =
                 k.display_name?.trim() ||
-                (k.username ? `@${k.username}` : 'Kullanıcı');
+                (k.username ? `@${k.username}` : t('ortak.kullanici'));
               const avatar = MedyaUriGuvenli(k.avatar_url);
               const harf = (ad[0] ?? 'K').toUpperCase();
               return (
@@ -130,7 +133,7 @@ export function AnaSayfaAramaOnerileri({
                     pressed && styles.satirPressed,
                   ]}
                   accessibilityRole="button"
-                  accessibilityLabel={`${ad} profili`}
+                  accessibilityLabel={t('anaSayfa.profilA11y', { ad })}
                 >
                   {avatar ? (
                     <Image source={{ uri: avatar }} style={styles.avatar} />
@@ -140,10 +143,12 @@ export function AnaSayfaAramaOnerileri({
                     </View>
                   )}
                   <View style={styles.copy}>
-                    <Text style={styles.ad} numberOfLines={1}>
-                      {ad}
-                      {k.is_verified ? ' ✓' : ''}
-                    </Text>
+                    <View style={styles.adSatir}>
+                      <Text style={styles.ad} numberOfLines={1}>
+                        {ad}
+                      </Text>
+                      <DogrulanmisTik dogrulandi={k.is_verified} size={14} />
+                    </View>
                     {k.username ? (
                       <Text style={styles.alt} numberOfLines={1}>
                         @{k.username}
@@ -163,7 +168,7 @@ export function AnaSayfaAramaOnerileri({
 
         {ajanslar.length > 0 ? (
           <View style={styles.bolum}>
-            <Text style={styles.bolumBaslik}>Ajanslar</Text>
+            <Text style={styles.bolumBaslik}>{t('anaSayfa.ajanslar')}</Text>
             {ajanslar.map((a) => {
               const logo = MedyaUriGuvenli(a.logo_url);
               const harf = (a.name?.[0] ?? 'A').toUpperCase();
@@ -176,7 +181,7 @@ export function AnaSayfaAramaOnerileri({
                     pressed && styles.satirPressed,
                   ]}
                   accessibilityRole="button"
-                  accessibilityLabel={`${a.name} ajansı`}
+                  accessibilityLabel={t('anaSayfa.ajansA11y', { ad: a.name })}
                 >
                   {logo ? (
                     <Image source={{ uri: logo }} style={styles.avatar} />
@@ -204,7 +209,7 @@ export function AnaSayfaAramaOnerileri({
                         {a.agency_public_id}
                       </Text>
                     ) : (
-                      <Text style={styles.alt}>Ajans</Text>
+                      <Text style={styles.alt}>{t('anaSayfa.ajansEtiket')}</Text>
                     )}
                   </View>
                   <Ionicons
@@ -290,11 +295,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   copy: { flex: 1, minWidth: 0, gap: 1 },
+  adSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minWidth: 0,
+  },
   ad: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.text,
     fontWeight: '700',
     fontSize: 14,
+    flexShrink: 1,
   },
   alt: {
     ...TipografiTokenlari.micro,

@@ -4,7 +4,9 @@
  * Gerçek tahsilat fiyatı StoreKit / Play Billing'den okunur (price_try referans).
  */
 
-export const COIN_TRY_ORANI = 0.1;
+import { COIN_TRY_ORANI, CoinTryOraniCanli } from './CoinTryOrani';
+
+export { COIN_TRY_ORANI, CoinTryOraniCanli };
 
 /** Mağaza IAP Product ID'leri — DEĞİŞTİRİLMEZ */
 export const TAMUSO_COIN_PRODUCT_IDS = [
@@ -164,7 +166,8 @@ export function TumPaketHesaplari(): CoinPaketHesap[] {
 export function TabanCoinHesapla(priceTry: number): number {
   const p = Number(priceTry);
   if (!Number.isFinite(p) || p <= 0) return 0;
-  return Math.max(1, Math.round(p / COIN_TRY_ORANI));
+  const oran = CoinTryOraniCanli() || COIN_TRY_ORANI;
+  return Math.max(1, Math.round(p / oran));
 }
 
 export function GulKarsiligi(toplamCoin: number): number {

@@ -14,6 +14,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import {
   KycBasvuruGonder,
   KycSonBasvuruGetir,
@@ -25,20 +26,6 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
-
-const BELGE_TIPLERI: { id: KycDocType; label: string }[] = [
-  { id: 'id_card', label: 'Kimlik' },
-  { id: 'passport', label: 'Pasaport' },
-  { id: 'drivers_license', label: 'Ehliyet' },
-  { id: 'temporary_id', label: 'Geçici kimlik' },
-];
-
-const CANLILIK_ADIMLARI = [
-  'Kameraya düz bak',
-  'Yavaşça sola bak',
-  'Yavaşça sağa bak',
-  'Gülümse',
-] as const;
 
 /** GG.AA.YYYY — rakam yazıldıkça nokta ekler */
 function dogumTarihiFormatla(raw: string): string {
@@ -70,10 +57,24 @@ function dogumTarihiIso(tr: string): string | null {
 }
 
 export default function KycEkrani() {
+  const { t } = useCeviri();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [izin, izinIste] = useCameraPermissions();
   const camRef = useRef<CameraView>(null);
+
+  const BELGE_TIPLERI: { id: KycDocType; label: string }[] = [
+    { id: 'id_card', label: t('kyc.belgeKimlik') },
+    { id: 'passport', label: t('kyc.belgePasaport') },
+    { id: 'drivers_license', label: t('kyc.belgeEhliyet') },
+    { id: 'temporary_id', label: t('kyc.belgeGecici') },
+  ];
+  const CANLILIK_ADIMLARI = [
+    t('kyc.canlilikDuz'),
+    t('kyc.canlilikSol'),
+    t('kyc.canlilikSag'),
+    t('kyc.canlilikGulumse'),
+  ] as const;
 
   const [docType, setDocType] = useState<KycDocType>('id_card');
   const [firstName, setFirstName] = useState('');
@@ -82,8 +83,8 @@ export default function KycEkrani() {
   const [hometown, setHometown] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [country, setCountry] = useState('Türkiye');
-  const [nationality, setNationality] = useState('Türkiye');
+  const [country, setCountry] = useState(() => t('kyc.ulkeVarsayilan'));
+  const [nationality, setNationality] = useState(() => t('kyc.ulkeVarsayilan'));
   const [frontUri, setFrontUri] = useState<string | null>(null);
   const [backUri, setBackUri] = useState<string | null>(null);
   const [selfieUri, setSelfieUri] = useState<string | null>(null);
@@ -113,7 +114,7 @@ export default function KycEkrani() {
     if (!izin?.granted) {
       const n = await izinIste();
       if (!n.granted) {
-        Alert.alert('Kamera', 'Canlılık için kamera izni gerekli.');
+        Alert.alert(t('kyc.kamera'), t('kyc.kameraIzin'));
         return;
       }
     }
@@ -134,18 +135,18 @@ export default function KycEkrani() {
         setSelfieUri(shot.uri);
         setLivenessPassed(true);
         setLivenessAktif(false);
-        Alert.alert('Canlılık', 'Kontrol tamamlandı.');
+        Alert.alert(t('kyc.canlilik'), t('kyc.canlilikTamam'));
         return;
       }
       setLivenessStep((s) => s + 1);
     } catch {
-      Alert.alert('Kamera', 'Kare alınamadı.');
+      Alert.alert(t('kyc.kamera'), t('kyc.kareAlinamadi'));
     }
   }, [livenessStep]);
 
   const gonder = async () => {
     if (!frontUri || !selfieUri || !livenessPassed) {
-      Alert.alert('Eksik', 'Belge, selfie ve canlılık zorunlu.');
+      Alert.alert(t('kyc.eksik'), t('kyc.eksikBelgeSelfie'));
       return;
     }
     const arkaZorunlu =
@@ -153,29 +154,26 @@ export default function KycEkrani() {
       docType === 'id_card' ||
       docType === 'drivers_license';
     if (arkaZorunlu && !backUri) {
-      Alert.alert('Belge', 'Bu belge tipinde arka yüz zorunlu.');
+      Alert.alert(t('kyc.belge'), t('kyc.arkaYuzZorunlu'));
       return;
     }
     if (!firstName.trim() || !lastName.trim()) {
-      Alert.alert('Eksik', 'Ad ve soyad zorunlu.');
+      Alert.alert(t('kyc.eksik'), t('kyc.adSoyadZorunlu'));
       return;
     }
     if (!phone.trim() || !email.trim()) {
-      Alert.alert('Eksik', 'Telefon ve e-posta zorunlu.');
+      Alert.alert(t('kyc.eksik'), t('kyc.telefonEpostaZorunlu'));
       return;
     }
     const birthIso = dogumTarihiIso(birthDate);
     if (!birthIso) {
-      Alert.alert(
-        'Doğum tarihi',
-        'GG.AA.YYYY formatında gir (ör. 01.05.1997).',
-      );
+      Alert.alert(t('kyc.dogumTarihi'), t('kyc.dogumTarihiFormat'));
       return;
     }
     const yas =
       new Date().getFullYear() - Number(birthIso.slice(0, 4));
     if (yas < 18) {
-      Alert.alert('Yaş', '18 yaşından küçükler başvuramaz.');
+      Alert.alert(t('kyc.yas'), t('kyc.yas18'));
       return;
     }
     setGonderiyor(true);
@@ -201,19 +199,19 @@ export default function KycEkrani() {
     });
     setGonderiyor(false);
     if (!r.ok) {
-      Alert.alert('KYC', r.hata);
+      Alert.alert(t('kyc.baslik'), r.hata);
       return;
     }
     setDurum('pending');
-    Alert.alert('Gönderildi', 'Başvurun incelemeye alındı.', [
-      { text: 'Tamam', onPress: () => router.back() },
+    Alert.alert(t('kyc.gonderildi'), t('kyc.basvuruIncelemede'), [
+      { text: t('ortak.tamam'), onPress: () => router.back() },
     ]);
   };
 
   return (
     <Screen>
       <Stack.Screen options={{ headerShown: false }} />
-      <EkranBasligi title="Kimlik onayı" subtitle="Belge · canlılık · selfie" />
+      <EkranBasligi title={t('kyc.baslik')} subtitle={t('kyc.altBaslik')} />
       <ScrollView
         contentContainerStyle={[
           styles.pad,
@@ -223,18 +221,20 @@ export default function KycEkrani() {
       >
         {durum ? (
           <Text style={styles.durum}>
-            Son durum:{' '}
-            {durum === 'pending'
-              ? 'İncelemede'
-              : durum === 'approved'
-                ? 'Onaylandı'
-                : durum === 'rejected'
-                  ? 'Reddedildi'
-                  : durum}
+            {t('kyc.sonDurum', {
+              durum:
+                durum === 'pending'
+                  ? t('kyc.durumIncelemede')
+                  : durum === 'approved'
+                    ? t('kyc.durumOnaylandi')
+                    : durum === 'rejected'
+                      ? t('kyc.durumReddedildi')
+                      : durum,
+            })}
           </Text>
         ) : null}
 
-        <Text style={styles.bolum}>Belge tipi</Text>
+        <Text style={styles.bolum}>{t('kyc.belgeTipi')}</Text>
         <View style={styles.chipSatir}>
           {BELGE_TIPLERI.map((b) => (
             <Pressable
@@ -254,40 +254,40 @@ export default function KycEkrani() {
           ))}
         </View>
 
-        <Text style={styles.bolum}>Kişisel bilgiler</Text>
+        <Text style={styles.bolum}>{t('kyc.kisiselBilgiler')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Ad"
+          placeholder={t('kyc.placeholderAd')}
           placeholderTextColor={RenkTokenlari.textDim}
           value={firstName}
           onChangeText={setFirstName}
         />
         <TextInput
           style={styles.input}
-          placeholder="Soyad"
+          placeholder={t('kyc.placeholderSoyad')}
           placeholderTextColor={RenkTokenlari.textDim}
           value={lastName}
           onChangeText={setLastName}
         />
         <TextInput
           style={styles.input}
-          placeholder="Doğum tarihi (örn. 01.05.1997)"
+          placeholder={t('kyc.placeholderDogum')}
           placeholderTextColor={RenkTokenlari.textDim}
           value={birthDate}
-          onChangeText={(t) => setBirthDate(dogumTarihiFormatla(t))}
+          onChangeText={(raw) => setBirthDate(dogumTarihiFormatla(raw))}
           keyboardType="number-pad"
           maxLength={10}
         />
         <TextInput
           style={styles.input}
-          placeholder="Memleket"
+          placeholder={t('kyc.placeholderMemleket')}
           placeholderTextColor={RenkTokenlari.textDim}
           value={hometown}
           onChangeText={setHometown}
         />
         <TextInput
           style={styles.input}
-          placeholder="Telefon"
+          placeholder={t('kyc.placeholderTelefon')}
           placeholderTextColor={RenkTokenlari.textDim}
           value={phone}
           onChangeText={setPhone}
@@ -295,7 +295,7 @@ export default function KycEkrani() {
         />
         <TextInput
           style={styles.input}
-          placeholder="E-posta"
+          placeholder={t('kyc.placeholderEposta')}
           placeholderTextColor={RenkTokenlari.textDim}
           value={email}
           onChangeText={setEmail}
@@ -304,7 +304,7 @@ export default function KycEkrani() {
         />
         <TextInput
           style={styles.input}
-          placeholder="Yaşadığı ülke"
+          placeholder={t('kyc.placeholderUlke')}
           placeholderTextColor={RenkTokenlari.textDim}
           value={country}
           onChangeText={setCountry}
@@ -314,7 +314,7 @@ export default function KycEkrani() {
         </Text>
         <TextInput
           style={styles.input}
-          placeholder="Uyruk / vatandaşlık"
+          placeholder={t('kyc.placeholderUyruk')}
           placeholderTextColor={RenkTokenlari.textDim}
           value={nationality}
           onChangeText={setNationality}
@@ -323,10 +323,10 @@ export default function KycEkrani() {
           Pasaport/kimlikte yazan vatandaşlık (örn. Türkiye)
         </Text>
 
-        <Text style={styles.bolum}>Belge fotoğrafları</Text>
+        <Text style={styles.bolum}>{t('kyc.belgeFotograflari')}</Text>
         <Pressable style={styles.btnIkincil} onPress={() => void fotoSec('front')}>
           <Text style={styles.btnIkincilYazi}>
-            {frontUri ? 'Ön yüz seçildi ✓' : 'Ön yüz seç'}
+            {frontUri ? t('kyc.onYuzSecildi') : t('kyc.onYuzSec')}
           </Text>
         </Pressable>
         {docType !== 'passport' ? (
@@ -335,16 +335,16 @@ export default function KycEkrani() {
             onPress={() => void fotoSec('back')}
           >
             <Text style={styles.btnIkincilYazi}>
-              {backUri ? 'Arka yüz seçildi ✓' : 'Arka yüz seç (zorunlu)'}
+              {backUri ? t('kyc.arkaYuzSecildi') : t('kyc.arkaYuzSec')}
             </Text>
           </Pressable>
         ) : null}
 
-        <Text style={styles.bolum}>Canlılık kontrolü</Text>
+        <Text style={styles.bolum}>{t('kyc.canlilikKontrolu')}</Text>
         {!livenessAktif ? (
           <Pressable style={styles.btn} onPress={() => void canlilikBaslat()}>
             <Text style={styles.btnYazi}>
-              {livenessPassed ? 'Canlılık tamam ✓' : 'Selfie + canlılık başlat'}
+              {livenessPassed ? t('kyc.canlilikTamamRozet') : t('kyc.selfieBaslat')}
             </Text>
           </Pressable>
         ) : (
@@ -354,7 +354,7 @@ export default function KycEkrani() {
               {CANLILIK_ADIMLARI[livenessStep]}
             </Text>
             <Pressable style={styles.btn} onPress={() => void canlilikKareAl()}>
-              <Text style={styles.btnYazi}>Kare al</Text>
+              <Text style={styles.btnYazi}>{t('kyc.kareAl')}</Text>
             </Pressable>
           </View>
         )}
@@ -365,7 +365,7 @@ export default function KycEkrani() {
           onPress={() => void gonder()}
         >
           <Text style={styles.btnYazi}>
-            {gonderiyor ? 'Gönderiliyor…' : 'Başvuruyu gönder'}
+            {gonderiyor ? t('kyc.gonderiliyor') : t('kyc.basvuruGonder')}
           </Text>
         </Pressable>
       </ScrollView>

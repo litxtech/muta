@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../../i18n/useCeviri';
 import {
   PaylasilanDurumMesaji,
   type PaylasilanDurumAvailability,
@@ -16,6 +17,7 @@ type Props = {
 };
 
 function SilinmisGonderiKartiIc({ availability, message, mine }: Props) {
+  const { t } = useCeviri();
   const metin = PaylasilanDurumMesaji(availability, message);
   return (
     <View style={[styles.kart, mine ? styles.mine : styles.theirs]}>
@@ -25,7 +27,7 @@ function SilinmisGonderiKartiIc({ availability, message, mine }: Props) {
           size={16}
           color={RenkTokenlari.textDim}
         />
-        <Text style={styles.baslikYazi}>Gönderiye ulaşılamıyor</Text>
+        <Text style={styles.baslikYazi}>{t('durumX.gonderiyeUlasilamiyor')}</Text>
       </View>
       <Text style={styles.govde}>{metin}</Text>
     </View>

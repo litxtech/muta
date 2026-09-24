@@ -10,6 +10,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   canliSayisi: number;
@@ -18,6 +19,7 @@ type Props = {
 
 /** Canlı yayın açma / keşfet marka başlığı */
 export function CanliYayinMarkaBasligi({ canliSayisi, onGeri }: Props) {
+  const { t } = useCeviri();
   return (
     <Animated.View
       entering={FadeInDown.duration(AnimasyonTokenlari.yavas)
@@ -29,7 +31,7 @@ export function CanliYayinMarkaBasligi({ canliSayisi, onGeri }: Props) {
         {onGeri ? (
           <Pressable
             onPress={onGeri}
-            accessibilityLabel="Geri"
+            accessibilityLabel={t('ortak.geri')}
             hitSlop={10}
             style={({ pressed }) => [styles.geri, pressed && styles.pressed]}
           >
@@ -37,15 +39,15 @@ export function CanliYayinMarkaBasligi({ canliSayisi, onGeri }: Props) {
           </Pressable>
         ) : null}
         <View style={styles.markaBlok}>
-          <Text style={styles.fisilti}>CANLI YAYIN</Text>
-          <Text style={styles.baslik}>Canlıya çık</Text>
-          <Text style={styles.slogan}>Kamera · sohbet · hediye</Text>
+          <Text style={styles.fisilti}>{t('canliYayin.fisilti')}</Text>
+          <Text style={styles.baslik}>{t('canliYayin.baslik')}</Text>
+          <Text style={styles.slogan}>{t('canliYayin.slogan')}</Text>
         </View>
         <View style={styles.canliRozet}>
           <AnaSayfaCanliNokta boyut={6} />
           <View style={styles.canliMetin}>
             <Text style={styles.canliSayi}>{canliSayisi}</Text>
-            <Text style={styles.canliEtiket}>canlı</Text>
+            <Text style={styles.canliEtiket}>{t('canliYayin.canliEtiket')}</Text>
           </View>
         </View>
       </View>

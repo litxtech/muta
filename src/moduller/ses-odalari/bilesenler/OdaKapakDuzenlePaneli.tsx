@@ -37,6 +37,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   visible: boolean;
@@ -72,6 +73,7 @@ export function OdaKapakDuzenlePaneli({
   onClose,
   onKaydedildi,
 }: Props) {
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
   const { yukseklik: klavyeH, acik: klavyeAcik } = useKlavyeYuksekligi();
   const scrollRef = useRef<ScrollView>(null);
@@ -111,7 +113,7 @@ export function OdaKapakDuzenlePaneli({
 
   const onizlemeUri = yerelUri ?? kapakUrl;
   const onizlemeTema = OdaTemasiniCoz(temaKod);
-  const onizlemeBaslik = title.trim() || 'Oda adı';
+  const onizlemeBaslik = title.trim() || t('sesOda.odaAdi');
   const onizlemeKonu = topic.trim();
 
   const kapakSec = async () => {
@@ -119,7 +121,7 @@ export function OdaKapakDuzenlePaneli({
     try {
       const sec = await OdaKapakSec();
       if (!sec.ok) {
-        if (!sec.iptal) Alert.alert('Arka plan', sec.hata);
+        if (!sec.iptal) Alert.alert(t('sesOda.arkaPlan'), sec.hata);
         return;
       }
       setYerelUri(sec.uri);
@@ -143,13 +145,13 @@ export function OdaKapakDuzenlePaneli({
   } | null> => {
     const r = await OdaKoltukSayisiniAyarla(roomId, hedef);
     if (!r.ok) {
-      Alert.alert('Koltuk', r.hata);
+      Alert.alert(t('sesOda.koltuk'), r.hata);
       return null;
     }
     if (r.kicked > 0) {
       Alert.alert(
-        'Koltuk',
-        `${r.kicked} kişi (en son gelenler) koltuktan düşürüldü.`,
+        t('sesOda.koltuk'),
+        t('sesOda.koltuktanDustu', { adet: r.kicked }),
       );
     }
     return {
@@ -161,7 +163,7 @@ export function OdaKapakDuzenlePaneli({
   const kaydet = async () => {
     const baslik = title.trim();
     if (!baslik) {
-      Alert.alert('Oda', 'Başlık gerekli');
+      Alert.alert(t('sesOda.oda'), t('sesOda.baslikGerekli'));
       return;
     }
 
@@ -179,7 +181,7 @@ export function OdaKapakDuzenlePaneli({
         if (yerelUri) {
           const up = await OdaKapakUriIleYukle(yerelUri, yerelMime);
           if (!up.ok) {
-            Alert.alert('Kapak', up.hata);
+            Alert.alert(t('sesOda.kapak'), up.hata);
             return;
           }
           cover = up.url;
@@ -193,7 +195,7 @@ export function OdaKapakDuzenlePaneli({
           themeCode: temaKod,
         });
         if (!r.ok) {
-          Alert.alert('Oda', r.hata);
+          Alert.alert(t('sesOda.oda'), r.hata);
           return;
         }
 
@@ -223,11 +225,11 @@ export function OdaKapakDuzenlePaneli({
 
     if (fazla > 0) {
       Alert.alert(
-        'Koltuk sayısı',
-        `${maxSeats} koltuğa inince ${fazla} kişi (en son gelenler) otomatik koltuktan düşürülecek. Devam edilsin mi?`,
+        t('sesOda.koltukSayisi'),
+        `${t('sesOda.koltukDusurSoru', { max: maxSeats, fazla })}`,
         [
-          { text: 'Vazgeç', style: 'cancel' },
-          { text: 'Uygula', style: 'destructive', onPress: () => void devamEt() },
+          { text: t('ortak.vazgec'), style: 'cancel' },
+          { text: t('sesOda.uygula'), style: 'destructive', onPress: () => void devamEt() },
         ],
       );
       return;
@@ -267,16 +269,16 @@ export function OdaKapakDuzenlePaneli({
           <View style={styles.handle} />
           <View style={styles.ust}>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={styles.baslik}>Oda kartı & arka plan</Text>
+              <Text style={styles.baslik}>{t('sesOda.odaKartiBaslik')}</Text>
               <Text style={styles.alt}>
-                Modern tema seç veya kendi fotoğrafını yükle — odada tam ekran görünür
+                {t('sesOda.odaKartiAlt')}
               </Text>
             </View>
             <Pressable
               onPress={onClose}
               style={styles.kapatBtn}
               hitSlop={8}
-              accessibilityLabel="Kapat"
+              accessibilityLabel={t('ortak.kapat')}
             >
               <Ionicons
                 name="close"
@@ -296,12 +298,12 @@ export function OdaKapakDuzenlePaneli({
           >
             {!klavyeAcik ? (
               <>
-                <Text style={styles.onizlemeEtiket}>Önizleme</Text>
+                <Text style={styles.onizlemeEtiket}>{t('sesOda.onizleme')}</Text>
                 <Pressable
                   onPress={() => void kapakSec()}
                   disabled={kapakBusy || busy}
                   style={styles.kartOnizleme}
-                  accessibilityLabel="Arka plan seç"
+                  accessibilityLabel={t('sesOda.arkaPlanSec')}
                 >
                   {onizlemeUri ? (
                     <Image
@@ -324,7 +326,7 @@ export function OdaKapakDuzenlePaneli({
                   <View style={styles.kartUst} pointerEvents="none">
                     <View style={styles.canliPill}>
                       <View style={styles.canliNokta} />
-                      <Text style={styles.canliYazi}>CANLI</Text>
+                      <Text style={styles.canliYazi}>{t('kesfet.canliRozet')}</Text>
                     </View>
                   </View>
                   <View style={styles.kartAlt} pointerEvents="none">
@@ -338,8 +340,8 @@ export function OdaKapakDuzenlePaneli({
                     ) : (
                       <Text style={styles.kartKonu} numberOfLines={1}>
                         {onizlemeUri
-                          ? 'Özel fotoğraf'
-                          : `${onizlemeTema.ad} teması`}
+                          ? t('sesOda.ozelFotograf')
+                          : t('sesOda.temaA11y', { tema: onizlemeTema.ad })}
                       </Text>
                     )}
                   </View>
@@ -356,9 +358,9 @@ export function OdaKapakDuzenlePaneli({
                         <Text style={styles.kapakChipYazi}>
                           {onizlemeUri
                             ? yerelUri
-                              ? 'Yeni foto'
-                              : 'Değiştir'
-                            : 'Foto yükle'}
+                              ? t('sesOda.yeniFoto')
+                              : t('ortak.degistir')
+                            : t('sesOda.fotoYukle')}
                         </Text>
                       </View>
                     )}
@@ -370,7 +372,7 @@ export function OdaKapakDuzenlePaneli({
                     onPress={kapakKaldir}
                     disabled={busy}
                     style={styles.kaldirBtn}
-                    accessibilityLabel="Özel arka planı kaldır"
+                    accessibilityLabel={t('sesOda.ozelArkaPlanKaldir')}
                   >
                     <Ionicons
                       name="trash-outline"
@@ -378,18 +380,18 @@ export function OdaKapakDuzenlePaneli({
                       color={RenkTokenlari.textMuted}
                     />
                     <Text style={styles.kaldirYazi}>
-                      Özel fotoğrafı kaldır · temaya dön
+                      {t('sesOda.ozelFotoKaldirTema')}
                     </Text>
                   </Pressable>
                 ) : null}
 
-                <Text style={styles.onizlemeEtiket}>Modern temalar</Text>
+                <Text style={styles.onizlemeEtiket}>{t('sesOda.modernTemalar')}</Text>
                 <Text style={styles.temaAlt}>
-                  Foto yokken oda bu temayı arka plan olarak kullanır
+                  {t('sesOda.temaAltAciklama')}
                 </Text>
                 <OdaArkaPlanTemaSeridi
                   seciliKod={temaKod}
-                  onSec={(t) => setTemaKod(t.kod)}
+                  onSec={(tema) => setTemaKod(tema.kod)}
                 />
               </>
             ) : (
@@ -397,7 +399,7 @@ export function OdaKapakDuzenlePaneli({
                 onPress={() => void kapakSec()}
                 disabled={kapakBusy || busy}
                 style={styles.miniOnizleme}
-                accessibilityLabel="Kapak önizleme"
+                accessibilityLabel={t('sesOda.kapakOnizleme')}
               >
                 {onizlemeUri ? (
                   <Image
@@ -428,29 +430,33 @@ export function OdaKapakDuzenlePaneli({
             )}
 
             <TextField
-              label="Başlık"
+              label={t('sesOda.baslik')}
               value={title}
               onChangeText={setTitle}
               maxLength={40}
-              placeholder="Oda adı"
+              placeholder={t('sesOda.odaAdi')}
               onFocus={() => alanOdak()}
             />
             <TextField
-              label="Açıklama"
+              label={t('sesOda.aciklama')}
               value={topic}
               onChangeText={setTopic}
               maxLength={120}
-              placeholder="Kısa konu / davet metni"
+              placeholder={t('sesOda.aciklamaPlaceholder')}
               multiline
               numberOfLines={2}
               onFocus={() => alanOdak()}
             />
 
-            <Text style={styles.koltukEtiket}>Koltuk sayısı</Text>
+            <Text style={styles.koltukEtiket}>{t('sesOda.koltukSayisi')}</Text>
             <Text style={styles.koltukAlt}>
-              {ODA_KOLTUK_MIN}–{ODA_KOLTUK_MAX} arası · dolu {doluKoltuk}
+              {t('sesOda.koltukAralikDolu', {
+                min: ODA_KOLTUK_MIN,
+                max: ODA_KOLTUK_MAX,
+                dolu: doluKoltuk,
+              })}
               {maxSeats < (maxSeatsIlk || 8) && doluKoltuk > maxSeats
-                ? ` · ${doluKoltuk - maxSeats} kişi düşer`
+                ? t('sesOda.kisiDuser', { adet: doluKoltuk - maxSeats })
                 : ''}
             </Text>
             <View style={styles.koltukSatir}>
@@ -463,7 +469,7 @@ export function OdaKapakDuzenlePaneli({
                   styles.koltukBtn,
                   (busy || maxSeats <= ODA_KOLTUK_MIN) && styles.koltukBtnDisabled,
                 ]}
-                accessibilityLabel="Koltuk azalt"
+                accessibilityLabel={t('sesOda.koltukAzalt')}
                 accessibilityRole="button"
               >
                 <Ionicons
@@ -486,7 +492,7 @@ export function OdaKapakDuzenlePaneli({
                   styles.koltukBtn,
                   (busy || maxSeats >= ODA_KOLTUK_MAX) && styles.koltukBtnDisabled,
                 ]}
-                accessibilityLabel="Koltuk artır"
+                accessibilityLabel={t('sesOda.koltukArtir')}
                 accessibilityRole="button"
               >
                 <Ionicons
@@ -502,13 +508,13 @@ export function OdaKapakDuzenlePaneli({
             </View>
 
             <GradientButton
-              title={busy ? 'Kaydediliyor…' : 'Kaydet'}
+              title={busy ? t('ortak.kaydediliyor') : t('ortak.kaydet')}
               onPress={() => void kaydet()}
               loading={busy}
               style={styles.cta}
             />
             <Pressable onPress={onClose} style={styles.iptal} disabled={busy}>
-              <Text style={styles.iptalYazi}>Vazgeç</Text>
+              <Text style={styles.iptalYazi}>{t('ortak.vazgec')}</Text>
             </Pressable>
           </ScrollView>
         </View>

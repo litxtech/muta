@@ -19,8 +19,10 @@ import { yuzenTabBarToplamYukseklik } from '../../../components/YuzenTabBosluk';
 import { AktifSesOdasiOneCikar } from '../oturum/AktifSesOdasiOturumu';
 import { useAktifSesOdasi } from '../oturum/useAktifSesOdasi';
 import { SesOdasiArkaPlanTamamenCik } from '../arka-plan/SesOdasiArkaPlanServisi';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 export function AktifSesOdasiMiniBar() {
+  const { t } = useCeviri();
   const durum = useAktifSesOdasi();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
@@ -59,7 +61,7 @@ export function AktifSesOdasiMiniBar() {
           if (next && next.is_live === false) {
             void (async () => {
               await SesOdasiArkaPlanTamamenCik();
-              Alert.alert('Oda kapatıldı', 'Yönetim bu ses odasını kapattı.');
+              Alert.alert(t('sesOda.sesOdasi'), t('sesOda.yonetimKapatti'));
             })();
           }
         },
@@ -78,17 +80,17 @@ export function AktifSesOdasiMiniBar() {
 
   const tamamenCik = useCallback(() => {
     if (!durum) return;
-    Alert.alert('Odadan çık', 'Sesli odadan ayrılmak istiyor musun? Ses kapanır.', [
-      { text: 'Kal', style: 'cancel' },
+    Alert.alert(t('sesOda.odadanCik'), t('sesOda.ayrilSoru'), [
+      { text: t('sesOda.kal'), style: 'cancel' },
       {
-        text: 'Çık',
+        text: t('sesOda.cik'),
         style: 'destructive',
         onPress: () => {
           void SesOdasiArkaPlanTamamenCik();
         },
       },
     ]);
-  }, [durum]);
+  }, [durum, t]);
 
   if (!gorunur || !durum) return null;
 
@@ -109,7 +111,7 @@ export function AktifSesOdasiMiniBar() {
             {durum.title}
           </Text>
           <Text style={styles.alt} numberOfLines={1}>
-            Ses devam ediyor · Odaya dön
+            {t('sesOda.sesDevamOdayaDon')}
           </Text>
         </View>
         <Ionicons name="mic" size={16} color={RenkTokenlari.mint} />
@@ -117,7 +119,7 @@ export function AktifSesOdasiMiniBar() {
           onPress={tamamenCik}
           hitSlop={10}
           style={styles.kapat}
-          accessibilityLabel="Odadan çık"
+          accessibilityLabel={t('sesOda.odadanCik')}
         >
           <Ionicons name="close" size={18} color={RenkTokenlari.text} />
         </Pressable>

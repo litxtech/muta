@@ -6,6 +6,7 @@ import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { KesfetBolumBasligi } from './KesfetBolumBasligi';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 export type KesfetPortal = {
   key: string;
@@ -22,10 +23,11 @@ type Props = {
 
 /** Keşfet — platform dünyalarına hızlı portal şeridi */
 export function KesfetDunyaPortallari({ portallar, onSec }: Props) {
+  const { t } = useCeviri();
   return (
     <View style={styles.wrap}>
       <View style={styles.baslikPad}>
-        <KesfetBolumBasligi baslik="Dünyalar" alt="Platforma hızlı geçiş" />
+        <KesfetBolumBasligi baslik={t('kesfet.dunyalar')} alt={t('kesfet.dunyalarAlt')} />
       </View>
       <ScrollView
         horizontal

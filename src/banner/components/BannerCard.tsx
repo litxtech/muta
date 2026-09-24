@@ -26,6 +26,7 @@ import { BannerActionService } from '../services/BannerActionService';
 import { BannerTrackingService } from '../services/BannerTrackingService';
 import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../tasarim-sistemi/RenkTokenlari';
+import { useCeviri } from '../../i18n/useCeviri';
 
 type Props = {
   banner: BannerCampaign;
@@ -48,6 +49,7 @@ export function BannerCard({
   onDismiss,
   debug,
 }: Props) {
+  const { t } = useCeviri();
   const aspect = useMemo(
     () => resolveBannerAspect(banner.size_type, banner.aspect_ratio),
     [banner.size_type, banner.aspect_ratio],
@@ -135,8 +137,8 @@ export function BannerCard({
       onLayout={onLayout}
       accessibilityLabel={
         banner.title?.trim() ||
-        (autoGorsel ? 'Tanıtım' : banner.name) ||
-        'Tanıtım bannerı'
+        (autoGorsel ? t('banner.tanitim') : banner.name) ||
+        t('banner.tanitimBanner')
       }
     >
       <Pressable
@@ -225,7 +227,7 @@ export function BannerCard({
       {banner.dismissible && (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Bannerı kapat"
+          accessibilityLabel={t('banner.kapatA11y')}
           style={styles.dismiss}
           onPress={handleDismiss}
           hitSlop={10}

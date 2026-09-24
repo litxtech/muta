@@ -35,10 +35,12 @@ import {
   CihazPushTokeniniKaydet,
   MesajPushIzniGerekirseIste,
 } from '../../src/moduller/bildirimler/BildirimlerPublicSozlesmesi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 type Sekme = 'sohbet' | 'arsiv' | 'gorusme';
 
 export default function MessagesScreen() {
+  const { t } = useCeviri();
   const acik = OzellikBayragiAktifMi('messages_enabled');
   const { isGuest, refreshProfile, refreshWallet } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
@@ -112,10 +114,10 @@ export default function MessagesScreen() {
   };
 
   const konuMenu = (konu: MesajKonusu) => {
-    Alert.alert(konu.peer_display_name || 'Sohbet', undefined, [
+    Alert.alert(konu.peer_display_name || t('mesajlar.sohbetler'), undefined, [
       arsivModu
         ? {
-            text: 'Arşivden çıkar',
+            text: t('mesajlar.arsivdenCikar'),
             onPress: () => {
               void (async () => {
                 await MesajThreadArsivle(konu.id, false);
@@ -124,7 +126,7 @@ export default function MessagesScreen() {
             },
           }
         : {
-            text: 'Arşivle',
+            text: t('mesajlar.arsivle'),
             onPress: () => {
               void (async () => {
                 await MesajThreadArsivle(konu.id, true);
@@ -133,21 +135,21 @@ export default function MessagesScreen() {
             },
           },
       {
-        text: 'Sohbeti sil',
+        text: t('mesajlar.sohbetiSil'),
         style: 'destructive',
         onPress: () => {
           Alert.alert(
-            'Sohbeti sil',
-            'Bu sohbet senden tamamen silinir. Karşı taraf etkilenmez. Yeni mesaj gelirse tekrar görünür.',
+            t('mesajlar.sohbetiSil'),
+            t('mesajlar.sohbetiSilBody'),
             [
-              { text: 'Vazgeç', style: 'cancel' },
+              { text: t('ortak.vazgec'), style: 'cancel' },
               {
-                text: 'Sil',
+                text: t('ortak.sil'),
                 style: 'destructive',
                 onPress: () => {
                   void (async () => {
                     const r = await MesajSohbetSil(konu.id);
-                    if (!r.ok) Alert.alert('Silinemedi', r.hata);
+                    if (!r.ok) Alert.alert(t('mesajlar.silinemedi'), r.hata);
                     else await load('sessiz');
                   })();
                 },
@@ -156,19 +158,19 @@ export default function MessagesScreen() {
           );
         },
       },
-      { text: 'Vazgeç', style: 'cancel' },
+      { text: t('ortak.vazgec'), style: 'cancel' },
     ]);
   };
 
   const altYazi = !acik
-    ? 'Mesajlaşma şu an kapalı'
+    ? t('mesajlar.kapali')
     : isGuest
-      ? 'Mesaj göndermek için hesabını tamamla'
+      ? t('mesajlar.misafirHint')
       : sekme === 'arsiv'
-        ? 'Arşivlenmiş sohbetler'
+        ? t('mesajlar.arsivAlt')
         : sekme === 'gorusme'
-          ? 'Devam eden ve geçmiş görüşmeler'
-          : 'Anlık mesajlaşma · foto & video';
+          ? t('mesajlar.gorusmeAlt')
+          : t('mesajlar.sohbetAlt');
 
   return (
     <Screen edges={['top']} tabSayfaKaydir>
@@ -195,7 +197,7 @@ export default function MessagesScreen() {
             <Text
               style={[styles.tabText, sekme === 'sohbet' && styles.tabTextAktif]}
             >
-              Sohbetler
+              {t('mesajlar.sohbetler')}
             </Text>
           </Pressable>
           <Pressable
@@ -208,7 +210,7 @@ export default function MessagesScreen() {
                 sekme === 'gorusme' && styles.tabTextAktif,
               ]}
             >
-              Görüşmeler
+              {t('mesajlar.gorusmeler')}
             </Text>
           </Pressable>
           <Pressable
@@ -218,7 +220,7 @@ export default function MessagesScreen() {
             <Text
               style={[styles.tabText, sekme === 'arsiv' && styles.tabTextAktif]}
             >
-              Arşiv
+              {t('mesajlar.arsiv')}
             </Text>
           </Pressable>
         </View>

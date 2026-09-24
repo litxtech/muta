@@ -19,27 +19,38 @@ import {
 import { RenkTokenlari } from '../../../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../../src/tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
-
-function dk(n: number) {
-  const m = Math.max(0, Math.floor(n || 0));
-  const sa = Math.floor(m / 60);
-  const kalan = m % 60;
-  return sa > 0 ? `${sa}sa ${kalan}dk` : `${kalan}dk`;
-}
-
-const FILTRELER: Array<{ key: 'all' | 'active' | 'new' | 'suspended'; label: string }> = [
-  { key: 'all', label: 'Tümü' },
-  { key: 'active', label: 'Aktif' },
-  { key: 'new', label: 'Yeni' },
-  { key: 'suspended', label: 'Askı' },
-];
+import { useCeviri } from '../../../../src/i18n/useCeviri';
 
 export default function AjansUyelerEkrani() {
+  const { t } = useCeviri();
   const id = useAjansRouteId();
   const [uyeler, setUyeler] = useState<AjansUyeOzet[]>([]);
   const [arama, setArama] = useState('');
-  const [filtre, setFiltre] = useState<(typeof FILTRELER)[number]['key']>('all');
+  const [filtre, setFiltre] = useState<'all' | 'active' | 'new' | 'suspended'>('all');
   const [yukleniyor, setYukleniyor] = useState(true);
+
+  const dk = useCallback(
+    (n: number) => {
+      const m = Math.max(0, Math.floor(n || 0));
+      const sa = Math.floor(m / 60);
+      const kalan = m % 60;
+      return sa > 0
+        ? t('ajans.dkSa', { sa, dk: kalan })
+        : t('ajans.dkSadece', { dk: kalan });
+    },
+    [t],
+  );
+
+  const filtreler = useMemo(
+    () =>
+      [
+        { key: 'all' as const, label: t('ajans.filtreTumu') },
+        { key: 'active' as const, label: t('ajans.filtreAktif') },
+        { key: 'new' as const, label: t('ajans.filtreYeni') },
+        { key: 'suspended' as const, label: t('ajans.filtreAski') },
+      ] as const,
+    [t],
+  );
 
   const yukle = useCallback(async () => {
     if (!id) return;
@@ -82,8 +93,8 @@ export default function AjansUyelerEkrani() {
   return (
     <AjansAltEkranKabuk
       agencyId={id}
-      title="Üyeler"
-      subtitle={`${filtreli.length} üye`}
+      title={t('ajans.uyeler')}
+      subtitle={t('ajans.uyelerAlt', { count: filtreli.length })}
       aktif="uyeler"
       yukleniyor={yukleniyor && uyeler.length === 0}
       refreshing={yukleniyor && uyeler.length > 0}
@@ -92,10 +103,10 @@ export default function AjansUyelerEkrani() {
       <AjansInput
         value={arama}
         onChangeText={setArama}
-        placeholder="İsim, username, ID"
+        placeholder={t('ajans.phUyeAra')}
       />
       <View style={styles.filtreSatir}>
-        {FILTRELER.map((f) => (
+        {filtreler.map((f) => (
           <Pressable
             key={f.key}
             style={[styles.chip, filtre === f.key && styles.chipAktif]}
@@ -109,21 +120,30 @@ export default function AjansUyelerEkrani() {
       </View>
       <AjansKart>
         {filtreli.length === 0 ? (
-          <AjansHint>Üye bulunamadı</AjansHint>
+          <AjansHint>{t('ajans.uyeBulunamadi')}</AjansHint>
         ) : (
-          filtreli.map((u) => (
-            <AjansListeSatir
-              key={u.user_id}
-              title={u.display_name || u.username || 'Üye'}
-              subtitle={`@${u.username || '—'} · ID ${u.public_user_id || '—'}\n${
-                u.status === 'suspended' ? 'Askıda' : 'Aktif'
-              } · Ses ${dk(u.ses_dakika_ay)} · Yayın ${dk(u.yayin_dakika_ay)}`}
-              avatarUrl={u.avatar_url}
-              onPress={() =>
-                router.push(ajansHref(id, `uyeler/${u.user_id}`) as any)
-              }
-            />
-          ))
+          filtreli.map((u) => {
+            const durum =
+              u.status === 'suspended' ? t('ajans.durumAskida') : t('ajans.durumAktifKisa');
+            return (
+              <AjansListeSatir
+                key={u.user_id}
+                title={u.display_name || u.username || t('ajans.uyeVarsayilan')}
+                subtitle={`@${u.username || '—'} · ID ${u.public_user_id || '—'}\n${t(
+                  'ajans.uyeAltSatir',
+                  {
+                    durum,
+                    ses: dk(u.ses_dakika_ay),
+                    yayin: dk(u.yayin_dakika_ay),
+                  },
+                )}`}
+                avatarUrl={u.avatar_url}
+                onPress={() =>
+                  router.push(ajansHref(id, `uyeler/${u.user_id}`) as any)
+                }
+              />
+            );
+          })
         )}
       </AjansKart>
     </AjansAltEkranKabuk>

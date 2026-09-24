@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import i18n from '../../../i18n';
 import { useAuth } from '../../../contexts/AuthContext';
 import { TakipServisi } from '../islemler/TakipServisi';
 import type { TakipDurumu } from '../TakipTipleri';
@@ -21,7 +22,7 @@ export function useTakipDurumu(targetUserId: string | null | undefined) {
       const d = await TakipServisi.durumGetir(targetUserId, user?.id);
       setDurum(d);
     } catch (e) {
-      setHata(e instanceof Error ? e.message : 'Yüklenemedi');
+      setHata(e instanceof Error ? e.message : i18n.t('takip.yuklenemedi'));
     } finally {
       setYukleniyor(false);
     }

@@ -4,7 +4,7 @@ import type { Wallet } from '../../../types/models';
 export async function CuzdanBakiyesiniGetir(userId: string): Promise<Wallet | null> {
   const { data, error } = await supabase
     .from('wallets')
-    .select('*')
+    .select('user_id, coins, diamonds, updated_at')
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;

@@ -5,6 +5,7 @@ import {
 } from 'expo-audio';
 import { Camera } from 'expo-camera';
 import { UygulamaKimligi } from '../../../yapilandirma/UygulamaKimligi';
+import i18n from '../../../i18n';
 
 /**
  * Mikrofon (+ isteğe bağlı kamera) — RTC join öncesi.
@@ -37,14 +38,16 @@ export async function MedyaIzinleriniIste(input?: {
       if (!mic.granted) {
         const hata =
           Platform.OS === 'ios'
-            ? `Mikrofon izni gerekli. Ayarlar → ${UygulamaKimligi.APP_NAME} → Mikrofon.`
-            : 'Mikrofon izni gerekli. Ayarlar → Uygulamalar → İzinler → Mikrofon.';
+            ? i18n.t('medyaIzin.mikrofonHataIos', {
+                app: UygulamaKimligi.APP_NAME,
+              })
+            : i18n.t('medyaIzin.mikrofonHataAndroid');
         if (ayarlarDiyalog) {
           ayarlaraYonlendir(
-            'Mikrofon izni',
+            i18n.t('medyaIzin.mikrofonBaslik'),
             dinleme
-              ? 'Odadakileri duymak için ses izni gerekli. Konuşmazsın; mikrofonun kapalı kalır. Ayarlardan açabilirsin.'
-              : 'Konuşmak için mikrofon gerekli. Ayarlardan açabilirsin.',
+              ? i18n.t('medyaIzin.mikrofonDinleme')
+              : i18n.t('medyaIzin.mikrofonYayin'),
           );
         }
         return { ok: false, hata };
@@ -59,12 +62,14 @@ export async function MedyaIzinleriniIste(input?: {
       if (!cam.granted) {
         const hata =
           Platform.OS === 'ios'
-            ? `Kamera izni gerekli. Ayarlar → ${UygulamaKimligi.APP_NAME} → Kamera.`
-            : 'Kamera izni gerekli. Ayarlar → Uygulamalar → İzinler → Kamera.';
+            ? i18n.t('medyaIzin.kameraHataIos', {
+                app: UygulamaKimligi.APP_NAME,
+              })
+            : i18n.t('medyaIzin.kameraHataAndroid');
         if (ayarlarDiyalog) {
           ayarlaraYonlendir(
-            'Kamera izni',
-            'Görüntülü arama için kamera gerekli. Ayarlardan açabilirsin.',
+            i18n.t('medyaIzin.kameraBaslik'),
+            i18n.t('medyaIzin.kameraMesaj'),
           );
         }
         return { ok: false, hata };
@@ -79,16 +84,16 @@ export async function MedyaIzinleriniIste(input?: {
     );
     return {
       ok: false,
-      hata: 'Medya izni kontrol edilemedi. Mikrofon/kamera izinlerini açıp tekrar dene.',
+      hata: i18n.t('medyaIzin.kontrolEdilemedi'),
     };
   }
 }
 
 function ayarlaraYonlendir(baslik: string, mesaj: string) {
   Alert.alert(baslik, mesaj, [
-    { text: 'Vazgeç', style: 'cancel' },
+    { text: i18n.t('ortak.vazgec'), style: 'cancel' },
     {
-      text: 'Ayarlar',
+      text: i18n.t('profil.ayarlar'),
       onPress: () => {
         void Linking.openSettings();
       },

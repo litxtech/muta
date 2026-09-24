@@ -14,6 +14,8 @@ import { Screen } from '../../src/components/Screen';
 import { TextField } from '../../src/components/TextField';
 import { GradientButton } from '../../src/components/GradientButton';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
+import type { CeviriAnahtari } from '../../src/i18n/useCeviri';
 import { BosDurum } from '../../src/components/BosDurum';
 import { KlavyeKapatan } from '../../src/components/KlavyeKapatan';
 import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan';
@@ -37,17 +39,6 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-function durumEtiketi(status: string) {
-  const map: Record<string, string> = {
-    pending: 'İnceleniyor',
-    under_review: 'İnceleniyor',
-    approved: 'Onaylandı',
-    rejected: 'Reddedildi',
-    active: 'Aktif',
-  };
-  return map[status] ?? status;
-}
-
 type FormState = {
   name: string;
   country: string;
@@ -68,26 +59,41 @@ const BOS_FORM: FormState = {
   description: '',
 };
 
-function formDogrula(f: FormState): string | null {
-  if (f.name.trim().length < 3) return 'Ajans adı en az 3 karakter olmalı.';
-  if (f.country.trim().length < 2) return 'Ülke / bölge zorunlu (örn. TR).';
+type CevirFn = (key: CeviriAnahtari, opts?: Record<string, unknown>) => string;
+
+function durumEtiketi(status: string, t: CevirFn) {
+  const map: Record<string, CeviriAnahtari> = {
+    pending: 'ajans.durumInceleniyor',
+    under_review: 'ajans.durumInceleniyor',
+    approved: 'ajans.durumOnaylandi',
+    rejected: 'ajans.durumReddedildi',
+    active: 'ajans.durumAktif',
+  };
+  const key = map[status];
+  return key ? t(key) : status;
+}
+
+function formDogrula(f: FormState, t: CevirFn): string | null {
+  if (f.name.trim().length < 3) return t('ajans.dogrulamaAd');
+  if (f.country.trim().length < 2) return t('ajans.dogrulamaUlke');
   if (!f.email.trim().includes('@') || f.email.trim().length < 5) {
-    return 'Geçerli bir e-posta gir.';
+    return t('ajans.dogrulamaEposta');
   }
   if (f.phone.trim().replace(/\s/g, '').length < 7) {
-    return 'Telefon zorunlu (en az 7 karakter).';
+    return t('ajans.dogrulamaTelefon');
   }
   const hosts = Number(f.expectedHosts);
   if (!Number.isFinite(hosts) || hosts < 1) {
-    return 'Beklenen host sayısı en az 1 olmalı.';
+    return t('ajans.dogrulamaHost');
   }
   if (f.description.trim().length < 20) {
-    return 'Ajans açıklaması en az 20 karakter olmalı.';
+    return t('ajans.dogrulamaAciklama');
   }
   return null;
 }
 
 export default function AjansEkrani() {
+  const { t } = useCeviri();
   const { user, isGuest, refreshProfile, refreshWallet } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
   const {
@@ -138,9 +144,9 @@ export default function AjansEkrani() {
 
   const basvur = () => {
     islemiDene('ajans_olustur', async () => {
-      const hata = formDogrula(form);
+      const hata = formDogrula(form, t);
       if (hata) {
-        Alert.alert('Başvuru', hata);
+        Alert.alert(t('ajans.alertBasvuru'), hata);
         return;
       }
       setLoading(true);
@@ -155,15 +161,12 @@ export default function AjansEkrani() {
       });
       setLoading(false);
       if (!sonuc.ok) {
-        Alert.alert('Başvuru', sonuc.hata);
+        Alert.alert(t('ajans.alertBasvuru'), sonuc.hata);
         return;
       }
       setForm(BOS_FORM);
       setBasvuruAcik(false);
-      Alert.alert(
-        'Başvuru alındı',
-        'Ajans başvurun yetkili adminlere iletildi. Onay sonrası ajansın aktif olur.',
-      );
+      Alert.alert(t('ajans.alertAlindiBaslik'), t('ajans.alertAlindiBody'));
       await load();
     });
   };
@@ -178,8 +181,8 @@ export default function AjansEkrani() {
       <Screen edges={['top']}>
         <ModulHataSiniri modulAdi="ajanslar">
           <EkranBasligi
-            title="Ajanslar"
-            subtitle="Yönlendiriliyor…"
+            title={t('ajans.ajanslar')}
+            subtitle={t('ajans.yonlendiriliyor')}
             fallbackHref={"/(tabs)" as any}
           />
           <ActivityIndicator
@@ -195,8 +198,8 @@ export default function AjansEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="ajanslar">
         <EkranBasligi
-          title="Ajanslar"
-          subtitle="Keşfet · profil · başvuru"
+          title={t('ajans.ajanslar')}
+          subtitle={t('ajans.altKesfet')}
           fallbackHref={"/(tabs)" as any}
         />
         <KlavyeGuvenliAlan style={{ flex: 1 }}>
@@ -220,63 +223,63 @@ export default function AjansEkrani() {
                   onPress={() => setBasvuruAcik((v) => !v)}
                 >
                   <Text style={styles.basvuruToggleYazi}>
-                    {basvuruAcik ? 'Başvuruyu gizle' : 'Ajans kur / başvur'}
+                    {basvuruAcik ? t('ajans.basvuruGizle') : t('ajans.basvuruAc')}
                   </Text>
                 </Pressable>
 
                 {basvuruAcik ? (
                   <View style={styles.formCard}>
-                    <Text style={styles.formBaslik}>Ajans başvurusu</Text>
+                    <Text style={styles.formBaslik}>{t('ajans.formBaslik')}</Text>
                     <TextField
-                      label="Ajans adı *"
+                      label={t('ajans.labelAd')}
                       value={form.name}
-                      onChangeText={(t) => setAlan('name', t)}
-                      placeholder="Örn. Nova Agency"
+                      onChangeText={(v) => setAlan('name', v)}
+                      placeholder={t('ajans.phAd')}
                     />
                     <TextField
-                      label="Ülke / bölge *"
+                      label={t('ajans.labelUlke')}
                       value={form.country}
-                      onChangeText={(t) => setAlan('country', t)}
-                      placeholder="TR"
+                      onChangeText={(v) => setAlan('country', v)}
+                      placeholder={t('ajans.phUlke')}
                       autoCapitalize="characters"
                     />
                     <TextField
-                      label="E-posta *"
+                      label={t('ajans.labelEposta')}
                       value={form.email}
-                      onChangeText={(t) => setAlan('email', t)}
-                      placeholder="ajans@ornek.com"
+                      onChangeText={(v) => setAlan('email', v)}
+                      placeholder={t('ajans.phEposta')}
                       keyboardType="email-address"
                       autoCapitalize="none"
                     />
                     <TextField
-                      label="Telefon *"
+                      label={t('ajans.labelTelefon')}
                       value={form.phone}
-                      onChangeText={(t) => setAlan('phone', t)}
-                      placeholder="+90…"
+                      onChangeText={(v) => setAlan('phone', v)}
+                      placeholder={t('ajans.phTelefon')}
                       keyboardType="phone-pad"
                     />
                     <TextField
-                      label="Beklenen host *"
+                      label={t('ajans.labelHost')}
                       value={form.expectedHosts}
-                      onChangeText={(t) => setAlan('expectedHosts', t)}
-                      placeholder="10"
+                      onChangeText={(v) => setAlan('expectedHosts', v)}
+                      placeholder={t('ajans.phHost')}
                       keyboardType="number-pad"
                     />
                     <TextField
-                      label="Deneyim"
+                      label={t('ajans.labelDeneyim')}
                       value={form.experience}
-                      onChangeText={(t) => setAlan('experience', t)}
-                      placeholder="Önceki ajans / yayıncılık deneyimin"
+                      onChangeText={(v) => setAlan('experience', v)}
+                      placeholder={t('ajans.phDeneyim')}
                     />
                     <TextField
-                      label="Ajans açıklaması *"
+                      label={t('ajans.labelAciklama')}
                       value={form.description}
-                      onChangeText={(t) => setAlan('description', t)}
-                      placeholder="Ajansını kısaca anlat…"
+                      onChangeText={(v) => setAlan('description', v)}
+                      placeholder={t('ajans.phAciklama')}
                       multiline
                     />
                     <GradientButton
-                      title="Başvuruyu gönder"
+                      title={t('ajans.gonder')}
                       onPress={basvur}
                       loading={loading}
                       disabled={bekleyenVar}
@@ -286,7 +289,7 @@ export default function AjansEkrani() {
 
                 {apps.length > 0 ? (
                   <>
-                    <Text style={styles.section}>Başvurularım</Text>
+                    <Text style={styles.section}>{t('ajans.basvurularim')}</Text>
                     <View style={styles.appsCard}>
                       {apps.map((a, i) => (
                         <View
@@ -303,7 +306,7 @@ export default function AjansEkrani() {
                             ) : null}
                           </View>
                           <Text style={styles.appStatus}>
-                            {durumEtiketi(a.status)}
+                            {durumEtiketi(a.status, t)}
                           </Text>
                         </View>
                       ))}
@@ -311,7 +314,7 @@ export default function AjansEkrani() {
                   </>
                 ) : null}
 
-                <Text style={styles.section}>Popüler ajanslar</Text>
+                <Text style={styles.section}>{t('ajans.populer')}</Text>
                 {yukleniyor && liste.length === 0 ? (
                   <ActivityIndicator
                     color={RenkTokenlari.primarySoft}
@@ -324,8 +327,8 @@ export default function AjansEkrani() {
               yukleniyor ? null : (
                 <BosDurum
                   icon="business-outline"
-                  title="Ajans bulunamadı"
-                  body="Aktif ajanslar burada listelenir."
+                  title={t('ajans.bosBaslik')}
+                  body={t('ajans.bosBody')}
                 />
               )
             }

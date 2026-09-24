@@ -10,6 +10,8 @@ import {
 import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
+import type { CeviriAnahtari } from '../../src/i18n/useCeviri';
 import { BosDurum } from '../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
@@ -24,17 +26,22 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-function durumEtiketi(status: string) {
-  const map: Record<string, string> = {
-    live: 'Canlı',
-    scheduled: 'Planlandı',
-    finished: 'Bitti',
-    cancelled: 'İptal',
+function durumEtiketi(
+  status: string,
+  t: (key: CeviriAnahtari) => string,
+) {
+  const map: Record<string, CeviriAnahtari> = {
+    live: 'sehir.durumCanli',
+    scheduled: 'sehir.durumPlanlandi',
+    finished: 'sehir.durumBitti',
+    cancelled: 'sehir.durumIptal',
   };
-  return map[status] ?? status;
+  const key = map[status];
+  return key ? t(key) : status;
 }
 
 export default function SehirSavasEkrani() {
+  const { t } = useCeviri();
   const [battles, setBattles] = useState<SehirSavasi[]>([]);
   const [anaCityId, setAnaCityId] = useState<string | null>(null);
   const [yukleniyor, setYukleniyor] = useState(false);
@@ -65,8 +72,8 @@ export default function SehirSavasEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="sehir-savaslari">
         <EkranBasligi
-          title="Şehir Savaşları"
-          subtitle="Hediye = skor · ana şehrin için savaş"
+          title={t('sehir.savas')}
+          subtitle={t('sehir.savasAlt')}
           fallbackHref="/sehir"
         />
         <FlatList
@@ -78,19 +85,17 @@ export default function SehirSavasEkrani() {
           }
           ListHeaderComponent={
             <View style={styles.info}>
-              <Text style={styles.infoTitle}>Nasıl katılırım?</Text>
+              <Text style={styles.infoTitle}>{t('sehir.nasilKatilirim')}</Text>
               <Text style={styles.infoBody}>
-                {anaCityId
-                  ? 'Ana şehrin bir savaştaysa, herhangi bir odada hediye gönder — skor otomatik eklenir.'
-                  : 'Önce bir ana şehir seç. Şehrin canlı savaşa girince hediyelerin skora yazılır.'}
+                {anaCityId ? t('sehir.savasIpucuVar') : t('sehir.savasIpucuYok')}
               </Text>
               {!anaCityId ? (
                 <Pressable onPress={() => router.push('/sehir' as any)}>
-                  <Text style={styles.link}>Şehir seç →</Text>
+                  <Text style={styles.link}>{t('sehir.sehirSecLink')}</Text>
                 </Pressable>
               ) : (
                 <Pressable onPress={() => router.push('/(tabs)/rooms' as any)}>
-                  <Text style={styles.link}>Odaya git · hediye gönder →</Text>
+                  <Text style={styles.link}>{t('sehir.odayaGit')}</Text>
                 </Pressable>
               )}
             </View>
@@ -98,8 +103,8 @@ export default function SehirSavasEkrani() {
           ListEmptyComponent={
             <BosDurum
               icon="shield-outline"
-              title="Aktif savaş yok"
-              body="Admin veya sezon ritmiyle yeni şehir savaşları açıldığında burada görünür."
+              title={t('sehir.savasBosBaslik')}
+              body={t('sehir.savasBosBody')}
             />
           }
           renderItem={({ item }) => {
@@ -107,32 +112,37 @@ export default function SehirSavasEkrani() {
               !!anaCityId &&
               (item.city_a_id === anaCityId || item.city_b_id === anaCityId);
             const live = item.status === 'live';
+            const nameA = item.city_a?.name ?? 'A';
+            const nameB = item.city_b?.name ?? 'B';
             return (
               <View style={[styles.card, live && styles.cardLive, benim && styles.cardMine]}>
                 <View style={styles.cardTop}>
                   <Text style={[styles.status, live && styles.statusLive]}>
-                    {durumEtiketi(item.status)}
+                    {durumEtiketi(item.status, t)}
                   </Text>
                   {benim ? (
                     <View style={styles.benimPill}>
-                      <Text style={styles.benimText}>ŞEHRİN VAR</Text>
+                      <Text style={styles.benimText}>{t('sehir.sehrinVar')}</Text>
                     </View>
                   ) : null}
                 </View>
                 <Text style={styles.match}>
-                  {item.city_a?.name ?? 'A'} {item.score_a} — {item.score_b}{' '}
-                  {item.city_b?.name ?? 'B'}
+                  {nameA} {item.score_a} — {item.score_b} {nameB}
                 </Text>
                 <View style={styles.aksiyonlar}>
                   <Pressable
                     onPress={() => router.push(`/sehir/${item.city_a_id}` as any)}
                   >
-                    <Text style={styles.link}>{item.city_a?.name ?? 'A'} detay</Text>
+                    <Text style={styles.link}>
+                      {t('sehir.sehirDetayLink', { name: nameA })}
+                    </Text>
                   </Pressable>
                   <Pressable
                     onPress={() => router.push(`/sehir/${item.city_b_id}` as any)}
                   >
-                    <Text style={styles.link}>{item.city_b?.name ?? 'B'} detay</Text>
+                    <Text style={styles.link}>
+                      {t('sehir.sehirDetayLink', { name: nameB })}
+                    </Text>
                   </Pressable>
                 </View>
               </View>

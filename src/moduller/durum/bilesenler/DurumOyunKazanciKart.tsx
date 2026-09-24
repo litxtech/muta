@@ -4,6 +4,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import type { DurumOyunKazanciPayload } from '../islemler/DurumIslemleri';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { DilNormalizeEt, DIL_LOCALE_MAP } from '../../../i18n/diller';
+import i18n from '../../../i18n';
 
 const TIER_GRADIENTS: Record<string, readonly [string, string, string]> = {
   STORM: ['#1B2A4A', '#2C4A7A', '#4DA3FF'],
@@ -22,7 +25,8 @@ const TIER_LABELS: Record<string, string> = {
 function formatCoin(n: number): string {
   const v = Number(n);
   if (!Number.isFinite(v)) return '0';
-  return Math.floor(v).toLocaleString('tr-TR');
+  const dil = DilNormalizeEt(i18n.language);
+  return Math.floor(v).toLocaleString(DIL_LOCALE_MAP[dil] ?? dil);
 }
 
 type Props = {
@@ -33,6 +37,7 @@ type Props = {
 };
 
 export function DurumOyunKazanciKart({ payload, compact, style }: Props) {
+  const { t } = useCeviri();
   const tier = (payload.win_tier || 'STORM').toUpperCase();
   const gradient = TIER_GRADIENTS[tier] ?? TIER_GRADIENTS.STORM;
   const tierLabel = TIER_LABELS[tier] ?? 'WIN';
@@ -78,7 +83,7 @@ export function DurumOyunKazanciKart({ payload, compact, style }: Props) {
         </Text>
       ) : null}
       <Text style={styles.amount}>{formatCoin(payload.total_win)}</Text>
-      <Text style={styles.coinHint}>coin kazandı</Text>
+      <Text style={styles.coinHint}>{t('durumX.coinKazandi')}</Text>
     </LinearGradient>
   );
 }

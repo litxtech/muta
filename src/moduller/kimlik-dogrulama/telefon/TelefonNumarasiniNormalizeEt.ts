@@ -1,3 +1,5 @@
+import i18n from '../../../i18n';
+
 /**
  * TR odaklı telefon → E.164 (+90…).
  * Örn: 05xx xxx xx xx → +905xxxxxxxxx
@@ -22,12 +24,12 @@ export function TelefonNumarasiniNormalizeEt(
   }
 
   if (rakamlar.length < 10 || rakamlar.length > 15) {
-    return { ok: false, hata: 'Geçerli bir telefon numarası gir.' };
+    return { ok: false, hata: i18n.t('auth.telefonGecersiz') };
   }
 
   // TR cep: 905xxxxxxxxx (12 hane)
   if (rakamlar.startsWith('90') && rakamlar.length !== 12) {
-    return { ok: false, hata: 'Türkiye cep numarası 10 haneli olmalı (5xx…).' };
+    return { ok: false, hata: i18n.t('auth.telefonTrUzunluk') };
   }
 
   return { ok: true, e164: `+${rakamlar}`, rakamlar };

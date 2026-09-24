@@ -30,9 +30,11 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 /** Kullanıcı istediği push bildirimlerini açıp kapatır */
 export default function BildirimAyarlariEkrani() {
+  const { t } = useCeviri();
   const [prefs, setPrefs] = useState<PushTercihleri>(VarsayilanPushTercihleri());
   const [yukleniyor, setYukleniyor] = useState(true);
   const [busyKey, setBusyKey] = useState<PushTercihAnahtari | null>(null);
@@ -65,8 +67,8 @@ export default function BildirimAyarlariEkrani() {
     } catch (e) {
       setPrefs(onceki);
       Alert.alert(
-        'Bildirim',
-        e instanceof Error ? e.message : 'Kaydedilemedi. Migration 022 uygulandı mı?',
+        t('ayarlar.bildirimler'),
+        e instanceof Error ? e.message : t('ortak.kaydedilemedi'),
       );
     } finally {
       setBusyKey(null);
@@ -77,8 +79,8 @@ export default function BildirimAyarlariEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="bildirim-ayarlari">
         <EkranBasligi
-          title="Bildirim ayarları"
-          subtitle="İstediğini aç · kapat"
+          title={t('ayarlar.bildirimAyarlari')}
+          subtitle={t('ayarlar.bildirimAyarAlt')}
         />
         {yukleniyor ? (
           <ActivityIndicator
@@ -91,8 +93,7 @@ export default function BildirimAyarlariEkrani() {
             showsVerticalScrollIndicator={false}
           >
             <Text style={styles.aciklama}>
-              Mesaj, hediye, canlı yayın ve diğer push’ları buradan yönet.
-              Kapalı kategori için bildirim oluşturulmaz.
+              {t('ayarlar.bildirimAyarAciklama')}
             </Text>
 
             <View style={styles.liste}>

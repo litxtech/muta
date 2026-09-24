@@ -23,7 +23,7 @@ export function buildFeedBannerRows<T extends { id: string }>(
     if (pair.length === 0) return;
     rows.push({
       kind: 'pair',
-      key: `pair-${pair.map((p) => p.id).join('-')}`,
+      key: `pair-${rows.length}-${pair.map((p) => p.id).join('-')}`,
       items: pair.length === 1 ? [pair[0]] : [pair[0], pair[1]],
     });
     pair = [];

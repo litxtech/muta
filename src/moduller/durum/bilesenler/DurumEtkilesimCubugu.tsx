@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   commentCount: number;
@@ -38,6 +39,7 @@ export const DurumEtkilesimCubugu = memo(function DurumEtkilesimCubugu({
   onHediye,
   onPaylas,
 }: Props) {
+  const { t } = useCeviri();
   return (
     <View style={styles.aksiyonlar}>
       <Pressable
@@ -49,7 +51,9 @@ export const DurumEtkilesimCubugu = memo(function DurumEtkilesimCubugu({
         hitSlop={12}
         accessibilityRole="button"
         accessibilityLabel={
-          commentCount > 0 ? `Yorum yap, ${commentCount} yorum` : 'Yorum yap'
+          commentCount > 0
+            ? t('durumX.yorumYapSayi', { count: commentCount })
+            : t('durumX.yorumYap')
         }
       >
         <Ionicons name="chatbubble-outline" size={18} color={RenkTokenlari.textMuted} />
@@ -66,7 +70,9 @@ export const DurumEtkilesimCubugu = memo(function DurumEtkilesimCubugu({
         }}
         hitSlop={12}
         accessibilityRole="button"
-        accessibilityLabel={likedByMe ? 'Beğeniyi kaldır' : 'Beğen'}
+        accessibilityLabel={
+          likedByMe ? t('durumX.begeniyiKaldir') : t('durumX.begen')
+        }
         accessibilityState={{ selected: likedByMe }}
       >
         <Ionicons
@@ -95,7 +101,7 @@ export const DurumEtkilesimCubugu = memo(function DurumEtkilesimCubugu({
         hitSlop={12}
         accessibilityRole="button"
         accessibilityLabel={
-          giftCount > 0 ? `Hediye gönder, ${giftCount} hediye` : 'Hediye gönder'
+          giftCount > 0 ? t('durumX.hediyeGonderSayi', { count: giftCount }) : t('durumX.hediyeGonder')
         }
       >
         <Ionicons name="gift-outline" size={18} color={RenkTokenlari.textMuted} />
@@ -107,7 +113,7 @@ export const DurumEtkilesimCubugu = memo(function DurumEtkilesimCubugu({
       {viewCount > 0 ? (
         <View
           style={styles.aksiyon}
-          accessibilityLabel={`${viewCount} görüntülenme`}
+          accessibilityLabel={t('durumX.goruntulenme', { count: viewCount })}
         >
           <Ionicons name="eye-outline" size={18} color={RenkTokenlari.textMuted} />
           <Text style={styles.aksiyonSayi}>{formatSayi(viewCount)}</Text>
@@ -123,7 +129,7 @@ export const DurumEtkilesimCubugu = memo(function DurumEtkilesimCubugu({
           }}
           hitSlop={12}
           accessibilityRole="button"
-          accessibilityLabel="Paylaş"
+          accessibilityLabel={t('durumX.paylas')}
         >
           <Ionicons
             name="paper-plane-outline"

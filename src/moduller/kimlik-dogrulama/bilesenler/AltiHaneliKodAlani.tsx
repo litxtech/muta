@@ -14,6 +14,7 @@ import {
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   value: string;
@@ -30,6 +31,7 @@ export function AltiHaneliKodAlani({
   autoFocus = true,
   hataMi = false,
 }: Props) {
+  const { t } = useCeviri();
   const refs = useRef<Array<TextInput | null>>([]);
   const digits = value.replace(/\D/g, '').slice(0, HANE).split('');
   while (digits.length < HANE) digits.push('');
@@ -95,6 +97,7 @@ export function AltiHaneliKodAlani({
             autoFocus={autoFocus && i === 0}
             selectTextOnFocus
             caretHidden
+            accessibilityLabel={t('auth.kodHanesi', { n: i + 1 })}
           />
         </Pressable>
       ))}
@@ -104,6 +107,7 @@ export function AltiHaneliKodAlani({
 
 const styles = StyleSheet.create({
   row: {
+    direction: 'ltr',
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 8,

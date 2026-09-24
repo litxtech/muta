@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import i18n from '../../../i18n';
 
 export type LedgerSatiri = {
   id: string;
@@ -11,56 +12,56 @@ export type LedgerSatiri = {
   created_at: string;
 };
 
-const SEBEP_ETIKET: Record<string, string> = {
-  gift_send: 'Hediye gönderimi',
-  gift_receive: 'Hediye geliri',
-  gift_sent: 'Hediye gönderimi',
-  gift_received: 'Hediye geliri',
-  purchase: 'Coin yükleme',
-  coin_purchase: 'Coin yükleme',
-  iap: 'Mağaza yüklemesi',
-  stripe: 'Kart ile yükleme',
-  withdraw: 'Elmas çekimi',
-  withdrawal: 'Elmas çekimi',
-  withdrawal_hold: 'Çekim blokesi',
-  withdrawal_refund: 'Çekim iadesi',
-  agency_commission: 'Ajans komisyonu',
-  agency_distribution: 'Ajans coin yükleme',
-  host_earning: 'Ev sahibi ödülü',
-  refund: 'İade',
-  bonus: 'Bonus',
-  admin_adjust: 'Yönetim düzeltmesi',
-  admin_topup: 'Yönetim coin yükleme',
-  admin_deduct: 'Yönetim coin eksiltme',
-  admin_penalty: 'Yönetim coin cezası',
-  game_entry: 'Oyun katılımı',
-  game_reward: 'Oyun ödülü',
-  game_refund: 'Oyun iadesi',
-  kaskad_bet: 'Kozmik Kaskad — katılım',
-  kaskad_win: 'Kozmik Kaskad — ödül',
-  kaskad_refund: 'Kozmik Kaskad — iade',
-  zeus_bet: 'ZEUS — katılım',
-  zeus_win: 'ZEUS — ödül',
-  live_gift: 'Canlı yayın hediyesi',
-  status_gift: 'Durum hediyesi',
+const SEBEP_ANAHTAR: Record<string, string> = {
+  gift_send: 'cuzdan.ledgerGiftSend',
+  gift_receive: 'cuzdan.ledgerGiftReceive',
+  gift_sent: 'cuzdan.ledgerGiftSend',
+  gift_received: 'cuzdan.ledgerGiftReceive',
+  purchase: 'cuzdan.ledgerPurchase',
+  coin_purchase: 'cuzdan.ledgerPurchase',
+  iap: 'cuzdan.ledgerIap',
+  stripe: 'cuzdan.ledgerStripe',
+  withdraw: 'cuzdan.ledgerWithdraw',
+  withdrawal: 'cuzdan.ledgerWithdraw',
+  withdrawal_hold: 'cuzdan.ledgerWithdrawalHold',
+  withdrawal_refund: 'cuzdan.ledgerWithdrawalRefund',
+  agency_commission: 'cuzdan.ledgerAgencyCommission',
+  agency_distribution: 'cuzdan.ledgerAgencyDistribution',
+  host_earning: 'cuzdan.ledgerHostEarning',
+  refund: 'cuzdan.ledgerRefund',
+  bonus: 'cuzdan.ledgerBonus',
+  admin_adjust: 'cuzdan.ledgerAdminAdjust',
+  admin_topup: 'cuzdan.ledgerAdminTopup',
+  admin_deduct: 'cuzdan.ledgerAdminDeduct',
+  admin_penalty: 'cuzdan.ledgerAdminPenalty',
+  game_entry: 'cuzdan.ledgerGameEntry',
+  game_reward: 'cuzdan.ledgerGameReward',
+  game_refund: 'cuzdan.ledgerGameRefund',
+  kaskad_bet: 'cuzdan.ledgerKaskadBet',
+  kaskad_win: 'cuzdan.ledgerKaskadWin',
+  kaskad_refund: 'cuzdan.ledgerKaskadRefund',
+  zeus_bet: 'cuzdan.ledgerZeusBet',
+  zeus_win: 'cuzdan.ledgerZeusWin',
+  live_gift: 'cuzdan.ledgerLiveGift',
+  status_gift: 'cuzdan.ledgerStatusGift',
 };
 
-const REF_ETIKET: Record<string, string> = {
-  gift: 'Hediye işlemi',
-  purchase: 'Yükleme',
-  coin_purchase: 'Coin yükleme',
-  iap: 'Uygulama mağazası',
-  stripe: 'Kart ödemesi',
-  withdrawal: 'Çekim talebi',
-  withdraw: 'Çekim talebi',
-  game_session: 'Oyun oturumu',
-  kaskad_round: 'Kozmik Kaskad turu',
-  admin: 'Yönetim',
-  agency: 'Ajans',
-  agency_transfer: 'Ajans transferi',
-  host: 'Ev sahibi',
-  live: 'Canlı yayın',
-  room: 'Oda',
+const REF_ANAHTAR: Record<string, string> = {
+  gift: 'cuzdan.refGift',
+  purchase: 'cuzdan.refPurchase',
+  coin_purchase: 'cuzdan.refCoinPurchase',
+  iap: 'cuzdan.refIap',
+  stripe: 'cuzdan.refStripe',
+  withdrawal: 'cuzdan.refWithdrawal',
+  withdraw: 'cuzdan.refWithdrawal',
+  game_session: 'cuzdan.refGameSession',
+  kaskad_round: 'cuzdan.refKaskadRound',
+  admin: 'cuzdan.refAdmin',
+  agency: 'cuzdan.refAgency',
+  agency_transfer: 'cuzdan.refAgencyTransfer',
+  host: 'cuzdan.refHost',
+  live: 'cuzdan.refLive',
+  room: 'cuzdan.refRoom',
 };
 
 function sebepKok(reason: string): string {
@@ -70,7 +71,8 @@ function sebepKok(reason: string): string {
 
 export function LedgerSebepEtiketi(reason: string): string {
   const kok = sebepKok(reason);
-  const etiket = SEBEP_ETIKET[kok] ?? SEBEP_ETIKET[reason];
+  const key = SEBEP_ANAHTAR[kok] ?? SEBEP_ANAHTAR[reason];
+  const etiket = key ? (i18n.t(key) as string) : undefined;
   if (etiket) {
     const not =
       reason.includes(':') ? reason.slice(reason.indexOf(':') + 1).trim() : '';
@@ -80,29 +82,43 @@ export function LedgerSebepEtiketi(reason: string): string {
 }
 
 export function LedgerRefEtiketi(refType: string | null | undefined): string {
-  if (!refType) return '—';
-  return REF_ETIKET[refType] ?? refType.replace(/_/g, ' ');
+  if (!refType) return i18n.t('cuzdan.tire') as string;
+  const key = REF_ANAHTAR[refType];
+  return key ? (i18n.t(key) as string) : refType.replace(/_/g, ' ');
 }
 
 export function LedgerBirimEtiketi(currency: string): string {
-  if (currency === 'diamonds' || currency === 'diamond') return 'elmas';
-  if (currency === 'coins' || currency === 'coin') return 'coin';
+  if (currency === 'diamonds' || currency === 'diamond') {
+    return i18n.t('cuzdan.birimElmas') as string;
+  }
+  if (currency === 'coins' || currency === 'coin') {
+    return i18n.t('cuzdan.birimCoin') as string;
+  }
   return currency;
 }
 
-/** Satırın kullanıcıya gösterilecek kısa Türkçe özeti */
+/** Satırın kullanıcıya gösterilecek kısa özeti */
 export function LedgerAnlasilirOzet(row: LedgerSatiri): string {
   const sebep = LedgerSebepEtiketi(row.reason);
   const kok = sebepKok(row.reason);
   if (kok === 'agency_distribution') return sebep;
   const ref = LedgerRefEtiketi(row.ref_type);
-  if (!row.ref_type || ref === '—' || sebep.includes(ref)) return sebep;
+  if (!row.ref_type || ref === (i18n.t('cuzdan.tire') as string) || sebep.includes(ref)) {
+    return sebep;
+  }
   return `${sebep} · ${ref}`;
 }
 
 export function LedgerTutarYazi(row: LedgerSatiri): string {
   const isaret = row.delta >= 0 ? '+' : '';
-  return `${isaret}${row.delta.toLocaleString('tr-TR')} ${LedgerBirimEtiketi(row.currency)}`;
+  const dil = i18n.language?.startsWith('en')
+    ? 'en-US'
+    : i18n.language?.startsWith('es')
+      ? 'es-ES'
+      : i18n.language?.startsWith('ar')
+        ? 'ar'
+        : 'tr-TR';
+  return `${isaret}${row.delta.toLocaleString(dil)} ${LedgerBirimEtiketi(row.currency)}`;
 }
 
 export async function CuzdanLedgeriniGetir(limit = 50): Promise<LedgerSatiri[]> {

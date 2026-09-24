@@ -11,6 +11,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   /** Toplam canlı (yayın + ses) — tek kompakt chip */
@@ -26,6 +27,7 @@ export function AnaSayfaFeedBasligi({
   sagAksiyon,
 }: Props) {
   useTemayaAboneOl();
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
 
   return (
@@ -49,12 +51,12 @@ export function AnaSayfaFeedBasligi({
             {canliSayisi > 0 ? (
               <View style={styles.canliCip}>
                 <AnaSayfaCanliNokta boyut={6} nabiz={false} />
-                <Text style={styles.canliYazi}>{canliSayisi} CANLI</Text>
+                <Text style={styles.canliYazi}>{t('anaSayfa.canliSayac', { adet: canliSayisi })}</Text>
               </View>
             ) : (
               <View style={[styles.canliCip, styles.canliCipSessiz]}>
                 <AnaSayfaCanliNokta boyut={5} nabiz={false} />
-                <Text style={[styles.canliYazi, styles.canliYaziSessiz]}>SAHNE</Text>
+                <Text style={[styles.canliYazi, styles.canliYaziSessiz]}>{t('anaSayfa.sahneRozet')}</Text>
               </View>
             )}
           </View>
@@ -118,8 +120,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingRight: 8,
-    paddingLeft: 4,
+    paddingEnd: 8,
+    paddingStart: 4,
     paddingVertical: 4,
     borderRadius: YaricapTokenlari.pill,
     backgroundColor: 'rgba(232, 64, 145, 0.14)',

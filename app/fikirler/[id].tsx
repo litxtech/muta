@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { FikirDurumRozeti } from '../../src/moduller/fikir-geri-bildirim/bilesenler/FikirDurumRozeti';
 import { FikirZamanCizelgesi } from '../../src/moduller/fikir-geri-bildirim/bilesenler/FikirZamanCizelgesi';
@@ -30,6 +31,7 @@ import {
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export default function FikirDetayEkrani() {
+  const { t } = useCeviri();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [fikir, setFikir] = useState<FikirDetay | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -81,7 +83,7 @@ export default function FikirDetayEkrani() {
     <Screen>
       <ModulHataSiniri modulAdi="fikir-detay">
         <EkranBasligi
-          title="Fikir detayı"
+          title={t('fikirler.detay')}
           subtitle="Durum · ekip cevabı"
           onBack={() => router.back()}
         />

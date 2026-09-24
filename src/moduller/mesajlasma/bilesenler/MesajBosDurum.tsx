@@ -8,6 +8,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   misafir: boolean;
@@ -16,17 +17,18 @@ type Props = {
 };
 
 export function MesajBosDurum({ misafir, kapali, onAksiyon }: Props) {
+  const { t } = useCeviri();
   const baslik = kapali
-    ? 'Mesajlaşma kapalı'
+    ? t('mesajlar.bosKapaliBaslik')
     : misafir
-      ? 'Hesabını tamamla'
-      : 'Henüz sohbet yok';
+      ? t('mesajlar.bosMisafirBaslik')
+      : t('mesajlar.bosSohbetBaslik');
   const govde = kapali
-    ? 'Mesajlar şu an platformda kapalı. Birazdan tekrar dene.'
+    ? t('mesajlar.bosKapaliBody')
     : misafir
-      ? 'Misafir hesapla mesaj gönderemezsin. Birkaç adımda profilini aç.'
-      : 'Yeni bir sohbet başlat — ses, hediye ve bağ burada devam eder.';
-  const cta = misafir ? 'Hesabı tamamla' : 'Yeni sohbet';
+      ? t('mesajlar.bosMisafirBody')
+      : t('mesajlar.bosSohbetBody');
+  const cta = misafir ? t('ortak.hesabiTamamla') : t('mesajlar.yeniSohbet');
 
   return (
     <View style={styles.wrap}>

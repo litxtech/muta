@@ -3,6 +3,8 @@ import { Alert, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
+import type { CeviriAnahtari } from '../../src/i18n/useCeviri';
 import { BosDurum } from '../../src/components/BosDurum';
 import { TextField } from '../../src/components/TextField';
 import { GradientButton } from '../../src/components/GradientButton';
@@ -28,27 +30,42 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-const HOST_DURUM: Record<string, string> = {
-  pending: 'İncelemede',
-  active: 'Aktif',
-  suspended: 'Askıda',
-  rejected: 'Reddedildi',
-};
+type CevirFn = (key: CeviriAnahtari, opts?: Record<string, unknown>) => string;
 
-const BASVURU_YOL: Record<string, string> = {
-  independent: 'Bağımsız',
-  join_agency: 'Ajansa katılım',
-};
+function hostDurum(status: string, t: CevirFn) {
+  const map: Record<string, CeviriAnahtari> = {
+    pending: 'host.durumIncelemede',
+    active: 'host.durumAktif',
+    suspended: 'host.durumAskida',
+    rejected: 'host.durumReddedildi',
+  };
+  const key = map[status];
+  return key ? t(key) : status;
+}
 
-const BASVURU_DURUM: Record<string, string> = {
-  pending: 'Beklemede',
-  agency_review: 'Ajans incelemesi',
-  platform_review: 'Platform incelemesi',
-  approved: 'Onaylandı',
-  rejected: 'Reddedildi',
-};
+function basvuruYol(path: string, t: CevirFn) {
+  const map: Record<string, CeviriAnahtari> = {
+    independent: 'host.yolBagimsiz',
+    join_agency: 'host.yolAjans',
+  };
+  const key = map[path];
+  return key ? t(key) : path;
+}
+
+function basvuruDurum(status: string, t: CevirFn) {
+  const map: Record<string, CeviriAnahtari> = {
+    pending: 'host.appBeklemede',
+    agency_review: 'host.appAjans',
+    platform_review: 'host.appPlatform',
+    approved: 'host.appOnaylandi',
+    rejected: 'host.appReddedildi',
+  };
+  const key = map[status];
+  return key ? t(key) : status;
+}
 
 export default function HostEkrani() {
+  const { t } = useCeviri();
   const { isGuest, refreshProfile, refreshWallet, profile } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
   const [invite, setInvite] = useState('');
@@ -78,21 +95,18 @@ export default function HostEkrani() {
       const a = await HostBasvurusuOlustur({ path: 'independent' });
       if (!a.ok) {
         setLoading(false);
-        Alert.alert('Başvuru', a.hata);
+        Alert.alert(t('host.alertBasvuru'), a.hata);
         return;
       }
       const b = await HostBagimsizAktifEt();
       setLoading(false);
       if (!b.ok) {
-        Alert.alert(
-          'Onay',
-          `${b.hata}\n\nProd'da platform review gerekir. Dev için host_bagimsiz_aktif_et.`,
-        );
+        Alert.alert(t('host.alertOnay'), b.hata);
         await load();
         return;
       }
       await refreshProfile();
-      Alert.alert('Ev sahibi aktif', 'Bağımsız ev sahibi olarak işaretlendin.');
+      Alert.alert(t('host.alertAktifBaslik'), t('host.alertAktifBody'));
       await load();
     });
   };
@@ -100,7 +114,7 @@ export default function HostEkrani() {
   const ajansaKatil = () => {
     islemiDene('canli_ac', async () => {
       if (!invite.trim()) {
-        Alert.alert('Davet kodu gerekli');
+        Alert.alert(t('host.alertDavetGerekli'));
         return;
       }
       setLoading(true);
@@ -110,51 +124,46 @@ export default function HostEkrani() {
       });
       setLoading(false);
       if (!sonuc.ok) {
-        Alert.alert('Başvuru', sonuc.hata);
+        Alert.alert(t('host.alertBasvuru'), sonuc.hata);
         return;
       }
-      Alert.alert(
-        'Başvuru gönderildi',
-        'Ajans onaylayınca profilinde ajansın görünür ve üye panelin açılır.',
-        [
-          {
-            text: 'Panele git',
-            onPress: () => router.push('/ajans/uye' as any),
-          },
-        ],
-      );
+      Alert.alert(t('host.alertGonderildiBaslik'), t('host.alertGonderildiBody'), [
+        {
+          text: t('host.paneleGit'),
+          onPress: () => router.push('/ajans/uye' as any),
+        },
+      ]);
       await load();
     });
   };
 
   const hostMu = Boolean(profile?.is_host);
   const durumMetni = host
-    ? HOST_DURUM[host.status] ?? host.status
+    ? hostDurum(host.status, t)
     : hostMu
-      ? 'Aktif'
-      : 'Henüz ev sahibi değilsin';
+      ? t('host.durumAktif')
+      : t('host.henuzDegil');
 
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="hostlar">
-        <EkranBasligi
-          title="Ev sahibi ol"
-          subtitle="Bağımsız veya ajans yoluyla başvur"
-        />
+        <EkranBasligi title={t('host.baslik')} subtitle={t('host.alt')} />
         <KlavyeScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
         >
           <KlavyeKapatan style={styles.formWrap}>
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Durumun</Text>
+            <Text style={styles.cardTitle}>{t('host.durumun')}</Text>
             <Text style={styles.statusLine}>
-              {hostMu ? 'Ev sahibi hesabı aktif' : 'Ev sahibi hesabı yok'}
+              {hostMu ? t('host.hesapAktif') : t('host.hesapYok')}
             </Text>
-            <Text style={styles.cardMeta}>Profil: {durumMetni}</Text>
+            <Text style={styles.cardMeta}>
+              {t('host.profilDurum', { durum: durumMetni })}
+            </Text>
             {host?.agency_id ? (
               <GradientButton
-                title="Ajans paneli"
+                title={t('host.ajansPaneli')}
                 variant="ghost"
                 onPress={() => router.push('/ajans/uye' as any)}
               />
@@ -165,51 +174,51 @@ export default function HostEkrani() {
                   <Text style={styles.statValue}>
                     {Math.floor(host.total_live_seconds / 3600)}
                   </Text>
-                  <Text style={styles.statLabel}>Saat canlı</Text>
+                  <Text style={styles.statLabel}>{t('host.saatCanli')}</Text>
                 </View>
                 <View style={styles.stat}>
                   <Text style={styles.statValue}>{host.gift_income_diamonds}</Text>
-                  <Text style={styles.statLabel}>Elmas</Text>
+                  <Text style={styles.statLabel}>{t('host.elmas')}</Text>
                 </View>
                 <View style={styles.stat}>
                   <Text style={styles.statValue}>{host.pk_wins}</Text>
-                  <Text style={styles.statLabel}>PK galibiyeti</Text>
+                  <Text style={styles.statLabel}>{t('host.pkGalibiyet')}</Text>
                 </View>
               </View>
             ) : null}
           </View>
 
           <GradientButton
-            title="Bağımsız host ol"
+            title={t('host.bagimsizOl')}
             onPress={bagimsiz}
             loading={loading}
           />
 
           <TextField
-            label="Ajans davet kodu"
+            label={t('host.davetKodu')}
             value={invite}
             onChangeText={setInvite}
             autoCapitalize="characters"
-            placeholder="ABCD1234"
+            placeholder={t('host.phDavet')}
           />
-          <GradientButton title="Ajansa katıl" variant="ghost" onPress={ajansaKatil} />
+          <GradientButton
+            title={t('host.ajansaKatil')}
+            variant="ghost"
+            onPress={ajansaKatil}
+          />
 
-          <Text style={styles.section}>Başvurular</Text>
+          <Text style={styles.section}>{t('host.basvurular')}</Text>
           {apps.length === 0 ? (
             <BosDurum
               icon="document-text-outline"
-              title="Başvuru yok"
-              body="Yeni bir başvuru oluşturduğunda burada görünür."
+              title={t('host.bosBaslik')}
+              body={t('host.bosBody')}
             />
           ) : (
             apps.map((a) => (
               <View key={a.id} style={styles.appCard}>
-                <Text style={styles.appTitle}>
-                  {BASVURU_YOL[a.path] ?? a.path}
-                </Text>
-                <Text style={styles.appMeta}>
-                  {BASVURU_DURUM[a.status] ?? a.status}
-                </Text>
+                <Text style={styles.appTitle}>{basvuruYol(a.path, t)}</Text>
+                <Text style={styles.appMeta}>{basvuruDurum(a.status, t)}</Text>
               </View>
             ))
           )}

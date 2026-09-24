@@ -21,6 +21,7 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { SayiKisaBicim } from '../../../tasarim-sistemi/premium/SeviyeXpHesap';
 import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
+import { useCeviri, type CeviriAnahtari } from '../../../i18n/useCeviri';
 
 type Props = {
   ogeler: FeedOggesi[];
@@ -31,35 +32,32 @@ type Props = {
 const KART_W = 148;
 const KART_H = 210;
 
-function ModeEtiket(mode?: string | null): string | null {
-  if (!mode) return null;
-  const map: Record<string, string> = {
-    party: 'Parti',
-    dating: 'Flört',
-    karaoke: 'Karaoke',
-    game: 'Oyun',
-    private: 'Özel',
-    solo: 'Tekli',
-    pk: 'PK',
-  };
-  return map[mode] ?? null;
-}
+const MODE_KEY: Record<string, CeviriAnahtari> = {
+  party: 'modlar.parti',
+  dating: 'modlar.flort',
+  karaoke: 'modlar.karaoke',
+  game: 'modlar.oyun',
+  private: 'modlar.ozel',
+  solo: 'modlar.tekli',
+  pk: 'pk.baslik',
+};
 
 /** Yatay portrait canlı yayın carousel */
 export function AnaSayfaCanliYayinSeridi({ ogeler, onPress, onTumunuGor }: Props) {
   useTemayaAboneOl();
+  const { t } = useCeviri();
 
   if (ogeler.length === 0) {
     return (
       <View style={styles.wrap}>
         <AnaSayfaPremiumBolumBasligi
-          baslik="Canlı Yayınlar"
+          baslik={t('anaSayfa.canliYayinlar')}
           emoji="🔥"
           onTumunuGor={onTumunuGor}
         />
         <View style={styles.bos}>
-          <Text style={styles.bosBaslik}>Şu an sahne sessiz.</Text>
-          <Text style={styles.bosAlt}>İlk yayını keşfet veya kendi sahneni aç.</Text>
+          <Text style={styles.bosBaslik}>{t('anaSayfa.canliBosBaslik')}</Text>
+          <Text style={styles.bosAlt}>{t('anaSayfa.canliBosAlt')}</Text>
         </View>
       </View>
     );
@@ -68,7 +66,7 @@ export function AnaSayfaCanliYayinSeridi({ ogeler, onPress, onTumunuGor }: Props
   return (
     <View style={styles.wrap}>
       <AnaSayfaPremiumBolumBasligi
-        baslik="Canlı Yayınlar"
+        baslik={t('anaSayfa.canliYayinlar')}
         emoji="🔥"
         onTumunuGor={onTumunuGor}
       />
@@ -78,20 +76,21 @@ export function AnaSayfaCanliYayinSeridi({ ogeler, onPress, onTumunuGor }: Props
         contentContainerStyle={styles.serit}
         decelerationRate="fast"
       >
-        {ogeler.map((oge) => {
+        {ogeler.map((oge, i) => {
           const kapak = MedyaUriGuvenli(oge.cover_url);
           const hostAd =
             oge.host?.display_name ??
-            (oge.host?.username ? `@${oge.host.username}` : 'Yayıncı');
-          const mod = ModeEtiket(oge.mode);
+            (oge.host?.username ? `@${oge.host.username}` : t('anaSayfa.yayinci'));
+          const modKey = oge.mode ? MODE_KEY[oge.mode] : null;
+          const mod = modKey ? t(modKey) : null;
 
           return (
             <Pressable
-              key={oge.id}
+              key={`${oge.id}-${i}`}
               onPress={() => onPress(oge)}
               style={({ pressed }) => [styles.kartPress, pressed && styles.pressed]}
               accessibilityRole="button"
-              accessibilityLabel={`${oge.title}, canlı yayın`}
+              accessibilityLabel={t('anaSayfa.canliA11y', { baslik: oge.title })}
             >
               <View style={styles.kart}>
                 {kapak ? (
@@ -118,7 +117,7 @@ export function AnaSayfaCanliYayinSeridi({ ogeler, onPress, onTumunuGor }: Props
                     style={styles.canliBadge}
                   >
                     <AnaSayfaCanliNokta boyut={5} renk="#fff" nabiz={false} />
-                    <Text style={styles.canliBadgeYazi}>CANLI</Text>
+                    <Text style={styles.canliBadgeYazi}>{t('anaSayfa.canliRozet')}</Text>
                   </LinearGradient>
                   {oge.listener_count > 0 ? (
                     <View style={styles.viewer}>

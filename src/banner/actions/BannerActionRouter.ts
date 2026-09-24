@@ -7,6 +7,7 @@ import { handleWhatsApp } from './BannerWhatsAppHandler';
 import { handleInstagram } from './BannerInstagramHandler';
 import { handleExternalApp } from './BannerExternalAppHandler';
 import type { ActionContext } from './BannerActionContext';
+import i18n from '../../i18n';
 
 export type { ActionContext } from './BannerActionContext';
 export { openInAppWebView } from './BannerActionContext';
@@ -40,7 +41,7 @@ export async function routeBannerAction(
 
       case 'INTERNAL_SCREEN': {
         const raw = (action.target ?? '').trim();
-        if (!raw) return { ok: false, error: 'Hedef ekran yok' };
+        if (!raw) return { ok: false, error: i18n.t('banner.hedefEkranYok') };
         // `/oyun/zeus` gibi absolute path'ler doğrudan
         if (raw.startsWith('/')) {
           router.push(raw as never);
@@ -48,7 +49,7 @@ export async function routeBannerAction(
         }
         const key = raw.toLowerCase();
         const path = INTERNAL_SCREEN_MAP[key];
-        if (!path) return { ok: false, error: 'Hedef ekran yok' };
+        if (!path) return { ok: false, error: i18n.t('banner.hedefEkranYok') };
         router.push(path as never);
         return { ok: true };
       }
@@ -75,13 +76,16 @@ export async function routeBannerAction(
 
       case 'CUSTOM_DEEP_LINK': {
         const url = action.url ?? action.target;
-        if (!url) return { ok: false, error: 'Deep link yok' };
+        if (!url) return { ok: false, error: i18n.t('banner.derinBagYok') };
         if (url.startsWith('tamuso://') || url.startsWith('muta://')) {
           return handleInternalLink('CUSTOM_DEEP_LINK', url);
         }
         const can = await Linking.canOpenURL(url);
         if (!can) {
-          Alert.alert('Açılamadı', 'Bu bağlantı desteklenmiyor.');
+          Alert.alert(
+            i18n.t('banner.acilamadiBaslik'),
+            i18n.t('banner.desteklenmiyor'),
+          );
           return { ok: false, error: 'cannot_open' };
         }
         await Linking.openURL(url);
@@ -89,12 +93,13 @@ export async function routeBannerAction(
       }
 
       default:
-        return { ok: false, error: 'Bilinmeyen action' };
+        return { ok: false, error: i18n.t('banner.bilinmeyenAction') };
     }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Action hatası';
+    const msg =
+      e instanceof Error ? e.message : i18n.t('banner.actionHatasi');
     if (Platform.OS !== 'web') {
-      Alert.alert('Hata', msg);
+      Alert.alert(i18n.t('ortak.hata'), msg);
     }
     return { ok: false, error: msg };
   }

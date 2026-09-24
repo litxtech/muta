@@ -11,6 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { colors } from '../../../theme/colors';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   aktif: boolean;
@@ -21,6 +22,7 @@ type Props = {
  * Ses odası sahnesinin sağ altındaki oyun kısayolu — ekran dışına taşmaz.
  */
 export function OdaOyunDockButonu({ aktif, onPress }: Props) {
+  const { t } = useCeviri();
   const pulse = useSharedValue(1);
 
   useEffect(() => {
@@ -53,7 +55,7 @@ export function OdaOyunDockButonu({ aktif, onPress }: Props) {
       <Pressable
         onPress={onPress}
         style={[styles.btn, aktif && styles.btnAktif]}
-        accessibilityLabel="Oyunlar"
+        accessibilityLabel={t('oyun.baslik')}
       >
         <LinearGradient colors={gradient} style={styles.inner}>
           <Ionicons name="game-controller" size={iconSize} color="#fff" />

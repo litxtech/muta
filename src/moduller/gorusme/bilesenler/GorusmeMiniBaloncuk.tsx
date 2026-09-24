@@ -32,6 +32,7 @@ import {
   GorusmeOturumSunumAyarla,
   type GorusmeOturumDurum,
 } from '../oturum/GorusmeOturumYoneticisi';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 const BUBBLE = 56;
 const EDGE_PAD = 10;
@@ -42,6 +43,7 @@ type Props = {
 };
 
 export function GorusmeMiniBaloncuk({ oturum }: Props) {
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
   const { width: W, height: H } = useWindowDimensions();
   const tabAlt = yuzenTabBarToplamYukseklik(insets.bottom);
@@ -130,7 +132,7 @@ export function GorusmeMiniBaloncuk({ oturum }: Props) {
   const ad =
     oturum.peer?.display_name?.trim() ||
     oturum.peer?.username?.trim() ||
-    'Görüşme';
+    t('gorusme.gorusme');
   const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
   const avatar = MedyaUriGuvenli(oturum.peer?.avatar_url);
   const video = oturum.call.call_type === 'video';

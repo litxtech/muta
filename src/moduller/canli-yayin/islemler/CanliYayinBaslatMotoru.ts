@@ -3,6 +3,7 @@
  * UI countdown ile bağlantı hazırlığını paralel yürütür; "CANLI" yalnız gerçek publish sonrası.
  */
 
+import i18n from '../../../i18n';
 import { MedyaOdasiBaglan, MedyaOdasiKes } from '../../livekit/MedyaBaglantisi';
 import { MedyaIzinleriniIste } from '../../livekit/izin/MedyaIzinleriniIste';
 import {
@@ -129,7 +130,7 @@ export async function CanliYayinBaslatMotoru(input: {
   countdownSn?: number;
 }): Promise<CanliBaslatSonuc> {
   if (kilit) {
-    return { ok: false, hata: 'Yayın zaten başlatılıyor.' };
+    return { ok: false, hata: i18n.t('canliYayin.zatenBaslatiliyor') };
   }
   kilit = true;
   const t0 = Date.now();
@@ -146,7 +147,7 @@ export async function CanliYayinBaslatMotoru(input: {
   };
 
   try {
-    progress({ durum: 'preparing', asama: 'permissions', mesaj: 'Hazırlanıyor…' });
+    progress({ durum: 'preparing', asama: 'permissions', mesaj: i18n.t('canliYayin.hazirlaniyor') });
     log('permissions_ready');
 
     // Önceki yarım bağlantıyı temizle
@@ -161,7 +162,7 @@ export async function CanliYayinBaslatMotoru(input: {
       progress({ durum: 'failed', mesaj: izin.hata });
       return {
         ok: false,
-        hata: izin.hata ?? 'Kamera/mikrofon izni gerekli',
+        hata: izin.hata ?? i18n.t('canliYayin.kameraMikrofonIzni'),
         stage: 'permissions',
         metrik,
       };
@@ -201,7 +202,7 @@ export async function CanliYayinBaslatMotoru(input: {
       progress({ durum: 'failed', asama: 'server_active' });
       return {
         ok: false,
-        hata: e instanceof Error ? e.message : 'Yayın oluşturulamadı',
+        hata: e instanceof Error ? e.message : i18n.t('canliYayin.yayinOlusturulamadi'),
         stage: 'server_active',
         metrik,
       };
@@ -213,7 +214,7 @@ export async function CanliYayinBaslatMotoru(input: {
     progress({
       durum: 'connecting',
       asama: 'room_connect',
-      mesaj: 'Bağlanıyor…',
+      mesaj: i18n.t('canliYayin.baglaniyor'),
     });
 
     const roomName = session.livekit_room_name ?? `live_${session.id}`;
@@ -221,7 +222,7 @@ export async function CanliYayinBaslatMotoru(input: {
     log('room_connect_started', { roomName });
 
     let medya: Awaited<ReturnType<typeof MedyaOdasiBaglan>> | null = null;
-    let lastErr = 'Bağlantı kurulamadı';
+    let lastErr = i18n.t('canliYayin.baglantiKurulamadi');
 
     for (let attempt = 1; attempt <= MAX_RETRY; attempt++) {
       try {
@@ -230,8 +231,8 @@ export async function CanliYayinBaslatMotoru(input: {
           asama: 'room_connect',
           mesaj:
             attempt === 1
-              ? 'Bağlanıyor…'
-              : `Bağlantı kurulamadı. Tekrar deneniyor… (${attempt}/${MAX_RETRY})`,
+              ? i18n.t('canliYayin.baglaniyor')
+              : i18n.t('canliYayin.baglantiRetry', { attempt, max: MAX_RETRY }),
         });
         await MedyaOdasiKes().catch(() => undefined);
         medya = await withTimeout(
@@ -248,7 +249,7 @@ export async function CanliYayinBaslatMotoru(input: {
         lastErr = medya.hata;
         logErr('room_connect', medya.hata, { attempt });
       } catch (e) {
-        lastErr = e instanceof Error ? e.message : 'Bağlantı hatası';
+        lastErr = e instanceof Error ? e.message : i18n.t('canliYayin.baglantiHatasi');
         logErr('room_connect', e, { attempt });
       }
       if (attempt < MAX_RETRY) {
@@ -277,7 +278,7 @@ export async function CanliYayinBaslatMotoru(input: {
     progress({
       durum: 'publishing',
       asama: 'publish',
-      mesaj: 'Yayın açılıyor…',
+      mesaj: i18n.t('canliYayin.yayinAciliyor'),
     });
     log('camera_published');
     log('microphone_published');
@@ -321,11 +322,11 @@ export async function CanliYayinBaslatMotoru(input: {
     await MedyaOdasiKes().catch(() => undefined);
     progress({
       durum: 'failed',
-      mesaj: e instanceof Error ? e.message : 'Başlatılamadı',
+      mesaj: e instanceof Error ? e.message : i18n.t('canliYayin.baslatilamadi'),
     });
     return {
       ok: false,
-      hata: e instanceof Error ? e.message : 'Başlatılamadı',
+      hata: e instanceof Error ? e.message : i18n.t('canliYayin.baslatilamadi'),
       metrik,
     };
   } finally {

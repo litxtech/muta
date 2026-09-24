@@ -1,9 +1,32 @@
 /**
  * Oda müzik oynatıcı — ayrı MUSIC bus (LiveKit voice'tan bağımsız).
  * Position: server started_at + clock. Drift > 1.5s ise yumuşak seek.
+ *
+ * iOS: setAudioModeAsync ÇAĞIRMA — LiveKit AVAudioSession'ı bozar, konuşmalar
+ * birbirine gitmez. keepAudioSessionActive + LiveKit mixWithOthers yeterli.
+ * Oynatma sonrası MedyaSesOturumunuYenile ile voice oturumu toparlanır.
  */
+import { Platform } from 'react-native';
 import { createAudioPlayer } from 'expo-audio';
 import type { MusicRuntimeConfig, RoomMusicSession } from '../islemler/OdaMuzikApi';
+
+const PLAYER_OPTS = {
+  keepAudioSessionActive: true,
+  updateInterval: 500,
+} as const;
+
+function livekitSesToparla() {
+  if (Platform.OS !== 'ios') return;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { MedyaSesOturumunuYenile } = require('../../livekit/MedyaBaglantisi') as {
+      MedyaSesOturumunuYenile: (zorla?: boolean) => void;
+    };
+    MedyaSesOturumunuYenile(true);
+  } catch {
+    /* ignore */
+  }
+}
 
 type PlayerLike = {
   volume: number;
@@ -105,7 +128,7 @@ export async function OdaMuzikSessionUygula(session: RoomMusicSession | null) {
     await OdaMuzikDurdur(false);
     if (gen !== generation) return;
     try {
-      player = createAudioPlayer({ uri: url }, { updateInterval: 500 }) as PlayerLike;
+      player = createAudioPlayer({ uri: url }, PLAYER_OPTS) as PlayerLike;
       currentUrl = url;
       player.loop = session.repeat_mode === 'one';
       uygulaVolume();
@@ -132,6 +155,20 @@ export async function OdaMuzikSessionUygula(session: RoomMusicSession | null) {
       player.play();
     } catch {
       /* noop */
+    }
+    // LiveKit voice oturumunu koru (müzik play session'ı çalmasın)
+    livekitSesToparla();
+    if (Platform.OS === 'ios') {
+      setTimeout(() => {
+        if (gen !== generation || !player) return;
+        try {
+          if (!player.playing) player.play();
+          uygulaVolume();
+        } catch {
+          /* noop */
+        }
+        livekitSesToparla();
+      }, 400);
     }
   } else if (session.state === 'PAUSED') {
     try {
@@ -167,6 +204,7 @@ export async function OdaMuzikDurdur(bumpGen = true) {
   } catch {
     /* noop */
   }
+  livekitSesToparla();
 }
 
 export function OdaMuzikPozisyonMs(): number {

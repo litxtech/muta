@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { BosDurum } from '../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useAuth } from '../../src/contexts/AuthContext';
@@ -45,13 +46,8 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-const ADIMLAR = [
-  '1. Şehrini seç (ana şehir)',
-  '2. Odada hediye gönder → güç şehrine yazılır',
-  '3. Ligde yüksel · savaşta skor ekle · seçimde lider ol',
-];
-
 export default function SehirHubEkrani() {
+  const { t } = useCeviri();
   const { isGuest, refreshProfile, refreshWallet } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
   const leagueOn = OzellikBayragiAktifMi('city_league_enabled');
@@ -82,7 +78,7 @@ export default function SehirHubEkrani() {
       setSupportedIds(new Set(s.map((x) => x.city_id)));
       setAnaSehir(ana);
       setRoomCount(r.length);
-      setSeasonTitle(season?.title ?? 'Aktif sezon yok');
+      setSeasonTitle(season?.title ?? t('sehir.aktifSezonYok'));
       setLiveBattleCount(battles.filter((b) => b.status === 'live').length);
       setGorevler(gorev);
     } catch {
@@ -90,7 +86,7 @@ export default function SehirHubEkrani() {
     } finally {
       setYukleniyor(false);
     }
-  }, []);
+  }, [t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -112,20 +108,17 @@ export default function SehirHubEkrani() {
   const destekle = (cityId: string) => {
     islemiDene('oy_kullan', async () => {
       if (!leagueOn) {
-        Alert.alert('Kapalı', 'Şehir ligi özelliği şu an kapalı.');
+        Alert.alert(t('sehir.alertKapali'), t('sehir.alertLigKapali'));
         return;
       }
       setBusyCityId(cityId);
       const sonuc = await SehirDestekle({ cityId, isPrimary: true });
       setBusyCityId(null);
       if (!sonuc.ok) {
-        Alert.alert('Destek', sonuc.hata);
+        Alert.alert(t('sehir.alertDestek'), sonuc.hata);
         return;
       }
-      Alert.alert(
-        'Şehrin seçildi',
-        'Artık gönderdiğin hediyeler bu şehrin gücüne yazılır. Odaya girip hediye göndererek lige katkı yap.',
-      );
+      Alert.alert(t('sehir.alertSecildi'), t('sehir.alertSecildiBody'));
       await load();
     });
   };
@@ -134,8 +127,8 @@ export default function SehirHubEkrani() {
     <View style={styles.headerBlock}>
       <View style={styles.headerBleed}>
         <EkranBasligi
-          title="Şehirler"
-          subtitle="Seç · güç topla · ligde yüksel"
+          title={t('sehir.sehirler')}
+          subtitle={t('sehir.altHub')}
         />
       </View>
 
@@ -145,9 +138,9 @@ export default function SehirHubEkrani() {
         end={{ x: 1, y: 1 }}
         style={styles.hero}
       >
-        <Text style={styles.heroEyebrow}>Nasıl çalışır?</Text>
-        <Text style={styles.heroTitle}>Şehrin = senin takımın</Text>
-        {ADIMLAR.map((a) => (
+        <Text style={styles.heroEyebrow}>{t('sehir.nasilCalisir')}</Text>
+        <Text style={styles.heroTitle}>{t('sehir.heroTitle')}</Text>
+        {[t('sehir.adim1'), t('sehir.adim2'), t('sehir.adim3')].map((a) => (
           <Text key={a} style={styles.heroAdim}>
             {a}
           </Text>
@@ -157,17 +150,17 @@ export default function SehirHubEkrani() {
       <View style={styles.kpiRow}>
         <View style={styles.kpi}>
           <Text style={styles.kpiN}>{roomCount}</Text>
-          <Text style={styles.kpiL}>Resmi oda</Text>
+          <Text style={styles.kpiL}>{t('sehir.kpiOda')}</Text>
         </View>
         <View style={styles.kpi}>
           <Text style={styles.kpiN}>{liveBattleCount}</Text>
-          <Text style={styles.kpiL}>Canlı savaş</Text>
+          <Text style={styles.kpiL}>{t('sehir.kpiSavas')}</Text>
         </View>
         <View style={styles.kpi}>
           <Text style={[styles.kpiN, { fontSize: 13 }]} numberOfLines={2}>
             {seasonTitle}
           </Text>
-          <Text style={styles.kpiL}>Sezon</Text>
+          <Text style={styles.kpiL}>{t('sehir.kpiSezon')}</Text>
         </View>
       </View>
 
@@ -181,26 +174,24 @@ export default function SehirHubEkrani() {
               <Ionicons name="home" size={16} color={RenkTokenlari.mint} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.anaEyebrow}>Senin şehrin</Text>
+              <Text style={styles.anaEyebrow}>{t('sehir.seninSehir')}</Text>
               <Text style={styles.anaTitle}>{anaSehir.city.name}</Text>
               <Text style={styles.anaMeta}>
-                Güç {anaSehir.city.power_score} · {anaSehir.city.supporter_count}{' '}
-                destekçi
+                {t('sehir.gucDestekci', {
+                  guc: anaSehir.city.power_score,
+                  count: anaSehir.city.supporter_count,
+                })}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={RenkTokenlari.textDim} />
           </View>
-          <Text style={styles.anaHint}>
-            Odada hediye gönder → güç buraya yazılır. Detay için dokun.
-          </Text>
+          <Text style={styles.anaHint}>{t('sehir.anaHint')}</Text>
         </Pressable>
       ) : (
         <View style={styles.anaKartBos}>
           <Ionicons name="location-outline" size={22} color={RenkTokenlari.accent} />
-          <Text style={styles.anaBosTitle}>Henüz şehrin yok</Text>
-          <Text style={styles.anaBosBody}>
-            Aşağıdan bir şehir seç. Destekledikten sonra hediyelerin o şehre güç katar.
-          </Text>
+          <Text style={styles.anaBosTitle}>{t('sehir.henuzSehirYok')}</Text>
+          <Text style={styles.anaBosBody}>{t('sehir.henuzSehirBody')}</Text>
         </View>
       )}
 
@@ -208,22 +199,22 @@ export default function SehirHubEkrani() {
         {(
           [
             {
-              label: 'Lig',
-              alt: 'Sıralama',
+              label: t('sehir.navLig'),
+              alt: t('sehir.navLigAlt'),
               icon: 'trophy-outline' as const,
               href: '/sehir/lig',
               tint: RenkTokenlari.accent,
             },
             {
-              label: 'Savaş',
-              alt: 'Canlı skor',
+              label: t('sehir.navSavas'),
+              alt: t('sehir.navSavasAlt'),
               icon: 'flash-outline' as const,
               href: '/sehir/savas',
               tint: RenkTokenlari.danger,
             },
             {
-              label: 'Seçim',
-              alt: 'Liderlik',
+              label: t('sehir.navSecim'),
+              alt: t('sehir.navSecimAlt'),
               icon: 'checkbox-outline' as const,
               href: '/sehir/secim',
               tint: RenkTokenlari.mint,
@@ -246,7 +237,7 @@ export default function SehirHubEkrani() {
 
       {gorevler.length > 0 ? (
         <View style={{ gap: 8 }}>
-          <Text style={SehirStil.section}>Haftalık görevler</Text>
+          <Text style={SehirStil.section}>{t('sehir.haftalikGorevler')}</Text>
           {gorevler.map((g) => {
             const hedef = Math.max(1, Number(g.goal_target) || 1);
             const cur = Number(g.progress) || 0;
@@ -269,19 +260,26 @@ export default function SehirHubEkrani() {
                     onPress={() => {
                       islemiDene('oy_kullan', async () => {
                         const r = await SehirGorevOdulAl(g.id);
-                        if (!r.ok) Alert.alert('Görev', r.hata ?? 'Alınamadı');
+                        if (!r.ok)
+                          Alert.alert(
+                            t('sehir.alertGorev'),
+                            r.hata ?? t('sehir.alertAlinamadi'),
+                          );
                         else {
                           await refreshWallet();
-                          Alert.alert('Ödül', `+${r.reward_coins ?? 0} coin`);
+                          Alert.alert(
+                            t('sehir.alertOdul'),
+                            t('sehir.odulCoin', { count: r.reward_coins ?? 0 }),
+                          );
                           await load();
                         }
                       });
                     }}
                   >
-                    <Text style={SehirStil.btnSecondaryText}>Ödülü al</Text>
+                    <Text style={SehirStil.btnSecondaryText}>{t('sehir.oduluAl')}</Text>
                   </Pressable>
                 ) : claimed ? (
-                  <Text style={SehirStil.link}>Tamamlandı</Text>
+                  <Text style={SehirStil.link}>{t('sehir.tamamlandi')}</Text>
                 ) : null}
               </View>
             );
@@ -289,10 +287,8 @@ export default function SehirHubEkrani() {
         </View>
       ) : null}
 
-      <Text style={styles.section}>Şehir seç / değiştir</Text>
-      <Text style={styles.sectionHint}>
-        Destekle = ana şehrin olur. Kartın tamamına basarak detaya git.
-      </Text>
+      <Text style={styles.section}>{t('sehir.sehirSec')}</Text>
+      <Text style={styles.sectionHint}>{t('sehir.sehirSecHint')}</Text>
     </View>
   );
 
@@ -311,8 +307,8 @@ export default function SehirHubEkrani() {
           ListEmptyComponent={
             <BosDurum
               icon="location-outline"
-              title="Şehir yok"
-              body="Şehir listesi henüz hazır değil."
+              title={t('sehir.bosBaslik')}
+              body={t('sehir.bosBody')}
             />
           }
           renderItem={({ item }) => {
@@ -331,28 +327,30 @@ export default function SehirHubEkrani() {
                   <View style={styles.cardCopy}>
                     <Text style={styles.cardTitle}>{item.name}</Text>
                     <Text style={styles.cardMeta}>
-                      {item.plate_code ? `Plaka ${item.plate_code}` : item.country_code} ·{' '}
-                      {item.supporter_count} destekçi
+                      {item.plate_code
+                        ? t('sehir.plaka', { kod: item.plate_code })
+                        : item.country_code}{' '}
+                      · {t('sehir.destekci', { count: item.supporter_count })}
                     </Text>
                   </View>
                   {anaMi ? (
                     <View style={styles.pillAna}>
-                      <Text style={styles.pillAnaText}>ANA</Text>
+                      <Text style={styles.pillAnaText}>{t('sehir.pillAna')}</Text>
                     </View>
                   ) : destekli ? (
                     <View style={styles.pillDestek}>
-                      <Text style={styles.pillDestekText}>DESTEK</Text>
+                      <Text style={styles.pillDestekText}>{t('sehir.pillDestek')}</Text>
                     </View>
                   ) : null}
                 </View>
                 <View style={styles.statsRow}>
                   <View style={styles.statChip}>
                     <Text style={styles.statVal}>{item.power_score}</Text>
-                    <Text style={styles.statLbl}>güç</Text>
+                    <Text style={styles.statLbl}>{t('sehir.gucLbl')}</Text>
                   </View>
                   <View style={styles.statChip}>
                     <Text style={styles.statVal}>{item.supporter_count}</Text>
-                    <Text style={styles.statLbl}>destekçi</Text>
+                    <Text style={styles.statLbl}>{t('sehir.destekciLbl')}</Text>
                   </View>
                 </View>
                 <Pressable
@@ -371,10 +369,10 @@ export default function SehirHubEkrani() {
                     {buBusy
                       ? '…'
                       : anaMi
-                        ? 'Şehir detayı'
+                        ? t('sehir.sehirDetay')
                         : destekli
-                          ? 'Ana şehir yap'
-                          : 'Destekle (ana şehir)'}
+                          ? t('sehir.anaSehirYap')
+                          : t('sehir.destekleAna')}
                   </Text>
                 </Pressable>
               </Pressable>

@@ -1,0 +1,99 @@
+{
+  "politika": {
+    "baslik": "السياسات",
+    "altBaslik": "المستندات القانونية"
+  },
+  "ajans": {
+    "baslik": "الوكالة",
+    "uyeler": "الأعضاء",
+    "basvurular": "الطلبات",
+    "davetler": "الدعوات",
+    "ajanslar": "الوكالات",
+    "ajanslarim": "وكالاتي",
+    "ajansim": "وكالتي",
+    "teklifler": "العروض"
+  },
+  "sehir": {
+    "baslik": "المدينة",
+    "sehirler": "المدن",
+    "lig": "الدوري",
+    "savas": "المعركة",
+    "secim": "الانتخاب"
+  },
+  "oyun": {
+    "baslik": "الألعاب",
+    "kaskad": "Cascade",
+    "zeus": "Zeus",
+    "nox": "Nox",
+    "davetEyebrow": "دعوة لعبة",
+    "varsayilanAd": "لعبة Tamuso",
+    "davetBody": "بدأ {{host}} لعبة. هل تريد الانضمام؟",
+    "birOyuncu": "لاعب",
+    "davetMeta": "{{sn}} ث · {{joined}}/{{max}} لاعبين",
+    "katil": "انضمام",
+    "izle": "مشاهدة",
+    "simdiDegil": "ليس الآن",
+    "odaAcikKalir": "تبقى الغرفة أعلاه مفتوحة. البطاقة فوق الشريط؛ المقاعد كما هي.",
+    "acikOyunYok": "لا ألعاب مفتوحة الآن",
+    "acikOyunYokBody": "أُغلقت الألعاب من لوحة الإدارة. حاول لاحقًا.",
+    "oyna": "العب",
+    "soloSunucu": "فردي · نتيجة الخادم",
+    "noxBody": "5×3 خطوط · وايلد · مكافأة سكاتر · نتيجة الخادم",
+    "zeusBody": "6×5 تتالي · 4 زيوس = 15 لفة مجانية · مضاعفات",
+    "kaskadBody": "6×5 تتالي · بوابة سكاتر · مضاعفات · جولات مكافأة"
+  },
+  "aiMuzik": {
+    "baslik": "موسيقى الذكاء الاصطناعي",
+    "kutuphane": "المكتبة",
+    "islemler": "النشاط",
+    "parca": "مقطع",
+    "parcaDetay": "تفاصيل المقطع",
+    "pasaport": "جواز السفر"
+  },
+  "fikirler": {
+    "baslik": "الأفكار",
+    "olustur": "إنشاء فكرة",
+    "benim": "أفكاري",
+    "detay": "تفاصيل الفكرة"
+  },
+  "kyc": {
+    "baslik": "التحقق من الهوية"
+  },
+  "host": {
+    "baslik": "المضيف"
+  },
+  "siralamalar": {
+    "baslik": "التصنيفات"
+  },
+  "bildir": {
+    "baslik": "إبلاغ"
+  },
+  "raporlarim": {
+    "baslik": "بلاغاتي"
+  },
+  "duyuru": {
+    "baslik": "إعلان"
+  },
+  "pk": {
+    "baslik": "PK"
+  },
+  "paylasim": {
+    "baslik": "المشاركة"
+  },
+  "sertifikasyon": {
+    "baslik": "الشهادة"
+  },
+  "platform": {
+    "baslik": "المنصة"
+  },
+  "takas": {
+    "baslik": "التبادل"
+  },
+  "islemHacmi": {
+    "baslik": "حجم المعاملات"
+  },
+  "genel": {
+    "yakinda": "قريباً",
+    "gelistiriliyor": "هذا القسم قيد التطوير"
+  }
+}

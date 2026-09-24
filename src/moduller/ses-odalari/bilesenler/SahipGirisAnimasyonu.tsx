@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CamArkaplan } from '../../../bilesenler/yuzey/CamArkaplan';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   gorunur: boolean;
@@ -165,6 +166,7 @@ export function SahipGirisAnimasyonu({
   avatarUrl,
   onBitti,
 }: Props) {
+  const { t } = useCeviri();
   const progress = useSharedValue(0);
   const orbit = useSharedValue(0);
   const pulse = useSharedValue(0);
@@ -450,7 +452,7 @@ export function SahipGirisAnimasyonu({
               style={styles.badgeIc}
             >
               <Ionicons name="diamond" size={14} color="#1A1224" />
-              <Text style={styles.badgeYazi}>ODA SAHİBİ</Text>
+              <Text style={styles.badgeYazi}>{t('sesOda.odaSahibiRozet')}</Text>
               <Ionicons name="diamond" size={14} color="#1A1224" />
             </LinearGradient>
           </Animated.View>

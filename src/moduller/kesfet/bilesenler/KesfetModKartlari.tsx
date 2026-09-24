@@ -10,11 +10,12 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { RoomMode } from '../../../types/models';
 import { KesfetBolumBasligi } from './KesfetBolumBasligi';
+import { useCeviri, type CeviriAnahtari } from '../../../i18n/useCeviri';
 
 export type KesfetModOgesi = {
   mode: RoomMode;
-  baslik: string;
-  alt: string;
+  baslik: CeviriAnahtari;
+  alt: CeviriAnahtari;
   icon: keyof typeof Ionicons.glyphMap;
   tint: string;
 };
@@ -22,29 +23,29 @@ export type KesfetModOgesi = {
 export const KESFET_MODLARI: KesfetModOgesi[] = [
   {
     mode: 'party',
-    baslik: 'Parti',
-    alt: 'Enerji · sohbet',
+    baslik: 'modlar.parti',
+    alt: 'modlar.partiAlt',
     icon: 'sparkles',
     tint: RenkTokenlari.primarySoft,
   },
   {
     mode: 'karaoke',
-    baslik: 'Karaoke',
-    alt: 'Mikrofon sahnesi',
+    baslik: 'modlar.karaoke',
+    alt: 'modlar.karaokeAlt',
     icon: 'mic',
     tint: RenkTokenlari.magenta,
   },
   {
     mode: 'game',
-    baslik: 'Oyun',
-    alt: 'Takım · eğlence',
+    baslik: 'modlar.oyun',
+    alt: 'modlar.oyunAlt',
     icon: 'game-controller',
     tint: RenkTokenlari.mint,
   },
   {
     mode: 'dating',
-    baslik: 'Flört',
-    alt: 'Tanış · bağlan',
+    baslik: 'modlar.flort',
+    alt: 'modlar.flortAlt',
     icon: 'heart',
     tint: RenkTokenlari.violet,
   },
@@ -58,11 +59,12 @@ type Props = {
 
 /** Keşfet — sahne modları ızgarası */
 export function KesfetModKartlari({ aktifMode, onSec, sayaclar }: Props) {
+  const { t } = useCeviri();
   return (
     <View style={styles.wrap}>
       <KesfetBolumBasligi
-        baslik="Sahne modları"
-        alt={aktifMode ? 'Tekrar dokununca filtre kalkar' : 'Moda göre gez'}
+        baslik={t('kesfet.sahneModlari')}
+        alt={aktifMode ? t('kesfet.modFiltreKaldir') : t('kesfet.modaGoreGez')}
       />
       <View style={styles.izgara}>
         {KESFET_MODLARI.map((mod) => {
@@ -75,7 +77,7 @@ export function KesfetModKartlari({ aktifMode, onSec, sayaclar }: Props) {
                 style={[styles.kart, aktif && styles.kartAktif]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: aktif }}
-                accessibilityLabel={`${mod.baslik} modu`}
+                accessibilityLabel={t(mod.baslik)}
               >
                 <LinearGradient
                   colors={
@@ -104,9 +106,9 @@ export function KesfetModKartlari({ aktifMode, onSec, sayaclar }: Props) {
                       <Text style={[styles.sayi, { color: mod.tint }]}>{sayi}</Text>
                     ) : null}
                   </View>
-                  <Text style={styles.baslik}>{mod.baslik}</Text>
+                  <Text style={styles.baslik}>{t(mod.baslik)}</Text>
                   <Text style={styles.alt} numberOfLines={1}>
-                    {mod.alt}
+                    {t(mod.alt)}
                   </Text>
                 </LinearGradient>
               </Pressable>

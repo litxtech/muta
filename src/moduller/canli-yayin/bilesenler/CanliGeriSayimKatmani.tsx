@@ -8,6 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   /** 3,2,1 veya 0 = CANLI; -1 = bağlanıyor */
@@ -18,6 +19,7 @@ type Props = {
 
 /** Kamera arka planda kalır — hafif UI-thread countdown */
 export function CanliGeriSayimKatmani({ sayi, visible, mesaj }: Props) {
+  const { t } = useCeviri();
   const scale = useSharedValue(0.8);
   const opacity = useSharedValue(0);
 
@@ -47,8 +49,8 @@ export function CanliGeriSayimKatmani({ sayi, visible, mesaj }: Props) {
     sayi > 0
       ? String(sayi)
       : sayi === 0
-        ? '● CANLI'
-        : mesaj?.trim() || 'Bağlanıyor…';
+        ? t('canliYayin.canliNokta')
+        : mesaj?.trim() || t('canliYayin.baglaniyor');
 
   return (
     <View style={styles.wrap} pointerEvents="none">

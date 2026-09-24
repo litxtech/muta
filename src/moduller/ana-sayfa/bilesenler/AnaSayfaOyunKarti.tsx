@@ -27,6 +27,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 export const FEED_KART_ORANI = 0.76;
 
@@ -87,6 +88,7 @@ function YuzenSembol({ kaynak, stil, gecikmeMs, aktif, donusDerece = 6 }: YuzenP
 }
 
 export function AnaSayfaOyunKarti({ oyun, onPress, index = 0, aktif = true }: Props) {
+  const { t } = useCeviri();
   const zoom = useSharedValue(1);
   const supurme = useSharedValue(-1);
   const ctaNabiz = useSharedValue(0);
@@ -175,7 +177,7 @@ export function AnaSayfaOyunKarti({ oyun, onPress, index = 0, aktif = true }: Pr
             basili.value = withSpring(0, { damping: 14, stiffness: 260 });
           }}
           accessibilityRole="button"
-          accessibilityLabel={`${oyun.baslik} oyununu aç`}
+          accessibilityLabel={t('anaSayfa.oyunAcA11y', { baslik: oyun.baslik })}
           style={styles.kart}
         >
           <Animated.Image
@@ -241,7 +243,7 @@ export function AnaSayfaOyunKarti({ oyun, onPress, index = 0, aktif = true }: Pr
           <View style={styles.ust}>
             <View style={[styles.rozet, { borderColor: `${oyun.aura[0]}88` }]}>
               <Ionicons name="game-controller" size={10} color={oyun.aura[0]} />
-              <Text style={[styles.rozetYazi, { color: oyun.aura[0] }]}>OYUN</Text>
+              <Text style={[styles.rozetYazi, { color: oyun.aura[0] }]}>{t('anaSayfa.oyunRozet')}</Text>
               {aktif ? <AnaSayfaSesCubuklari yukseklik={9} renk={oyun.aura[1]} /> : null}
             </View>
             <Text style={[styles.eyebrow, { color: oyun.aura[1] }]} numberOfLines={1}>
@@ -264,7 +266,7 @@ export function AnaSayfaOyunKarti({ oyun, onPress, index = 0, aktif = true }: Pr
                 style={styles.ctaIc}
               >
                 <Ionicons name="play" size={12} color="#FFFFFF" />
-                <Text style={styles.ctaYazi}>OYNA</Text>
+                <Text style={styles.ctaYazi}>{t('anaSayfa.oyna')}</Text>
               </LinearGradient>
             </Animated.View>
           </View>

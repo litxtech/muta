@@ -4,16 +4,20 @@
  * GPS gereken özellik eklenirse bu modül üzerinden foreground izin istenir.
  */
 import { Alert, Linking, Platform } from 'react-native';
+import i18n from '../../i18n';
+import { UygulamaKimligi } from '../../yapilandirma/UygulamaKimligi';
 
 export async function UygulamaAyarlariniAc(): Promise<void> {
   try {
     await Linking.openSettings();
   } catch {
     Alert.alert(
-      'Ayarlar',
+      i18n.t('konumIzin.ayarlar') as string,
       Platform.OS === 'ios'
-        ? 'Ayarlar → Tamuso yolundan izinleri yönetebilirsin.'
-        : 'Uygulama ayarlarından izinleri yönetebilirsin.',
+        ? (i18n.t('konumIzin.ayarlarYolIos', {
+            app: UygulamaKimligi.APP_NAME,
+          }) as string)
+        : (i18n.t('konumIzin.ayarlarYolAndroid') as string),
     );
   }
 }
@@ -27,15 +31,20 @@ export function KonumIzniReddedildiUyari(opts?: {
   onManuelSehir?: () => void;
 }): void {
   Alert.alert(
-    'Konum kullanılamıyor',
-    'Konuma dayalı özellik için izin gerekli. İstersen şehrini manuel seçebilirsin.',
+    i18n.t('konumIzin.reddedildiBaslik') as string,
+    i18n.t('konumIzin.reddedildiBody') as string,
     [
-      { text: 'Tamam', style: 'cancel' },
+      { text: i18n.t('ortak.tamam') as string, style: 'cancel' },
       ...(opts?.onManuelSehir
-        ? [{ text: 'Şehir seç', onPress: opts.onManuelSehir }]
+        ? [
+            {
+              text: i18n.t('konumIzin.sehirSec') as string,
+              onPress: opts.onManuelSehir,
+            },
+          ]
         : []),
       {
-        text: 'Ayarları Aç',
+        text: i18n.t('konumIzin.ayarlariAc') as string,
         onPress: () => {
           void UygulamaAyarlariniAc();
         },

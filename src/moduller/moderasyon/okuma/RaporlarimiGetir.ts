@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import i18n from '../../../i18n';
 
 export type KullaniciRaporOzeti = {
   id: string;
@@ -40,13 +41,13 @@ export async function RaporumuGetir(
 export function RaporDurumEtiketiKullanici(status: string): string {
   switch (status) {
     case 'open':
-      return 'Alındı';
+      return i18n.t('raporlarim.durumAlindi') as string;
     case 'reviewing':
-      return 'İnceleniyor';
+      return i18n.t('raporlarim.durumInceleniyor') as string;
     case 'resolved':
-      return 'Sonuçlandı';
+      return i18n.t('raporlarim.durumSonuclandi') as string;
     case 'dismissed':
-      return 'Kapatıldı';
+      return i18n.t('raporlarim.durumKapatildi') as string;
     default:
       return status;
   }

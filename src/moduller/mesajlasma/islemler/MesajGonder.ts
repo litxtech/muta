@@ -1,5 +1,7 @@
 import { supabase } from '../../../lib/supabase';
+import i18n from '../../../i18n';
 import { OzellikBayragiAktifMiSunucu } from '../../ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
+import { PushWorkerTetikle } from '../../bildirimler/kayit/PushWorkerTetikle';
 import type { DirektMesaj } from '../okuma/MesajlariGetir';
 
 const UUID_RE =
@@ -16,7 +18,7 @@ export async function MesajGonder(input: {
   | { ok: false; hata: string }
 > {
   if (!(await OzellikBayragiAktifMiSunucu('messages_enabled'))) {
-    return { ok: false, hata: 'Mesajlaşma kapalı.' };
+    return { ok: false, hata: i18n.t('durumX.mesajlasmaKapali') };
   }
 
   const clientId =
@@ -31,6 +33,7 @@ export async function MesajGonder(input: {
   });
 
   if (error) return { ok: false, hata: error.message };
+  PushWorkerTetikle(30);
   return { ok: true, mesaj: data as DirektMesaj };
 }
 

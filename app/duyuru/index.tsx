@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { GradientButton } from '../../src/components/GradientButton';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { BosDurum } from '../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
@@ -19,6 +20,7 @@ import {
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export default function DuyuruEkrani() {
+  const { t } = useCeviri();
   const [items, setItems] = useState<Duyuru[]>([]);
 
   const load = useCallback(async () => {
@@ -45,7 +47,7 @@ export default function DuyuruEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="duyurular">
         <EkranBasligi
-          title="Duyurular"
+          title={t('duyuru.baslik')}
           subtitle="Platform bildirimleri"
         />
         <FlatList

@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -9,7 +8,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +22,11 @@ import {
 } from '../../src/moduller/kullanici-profili/istatistik/ProfilIstatistikleriniGetir';
 import { ProfilMedyaBuyutucu } from '../../src/moduller/kullanici-profili/bilesenler/ProfilMedyaBuyutucu';
 import {
+  ProfilXBaslik,
+  ProfilXGonderiSekme,
+  profilXOverlayBtnStyle,
+} from '../../src/moduller/kullanici-profili/bilesenler/ProfilXBaslik';
+import {
   OyunOyuncuIstatistikGetir,
   type OyunOyuncuIstatistik,
 } from '../../src/moduller/oyunlar/ortak/servisler/OyunIstatistikServisi';
@@ -31,9 +34,13 @@ import { useGorunurOyunKodlari } from '../../src/moduller/oyunlar/ortak/hooks/us
 import { KillSwitchAktifMi, OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import { PrestigeRozetSatiri } from '../../src/moduller/vip/bilesenler/PrestigeRozetSatiri';
 import { HesapDegeriRozeti } from '../../src/moduller/kullanici-profili/bilesenler/HesapDegeriRozeti';
+import { IslemHacmiKart } from '../../src/moduller/islem-hacmi/bilesenler/IslemHacmiKart';
+import { IslemHacmiGorunurlukSheet } from '../../src/moduller/islem-hacmi/bilesenler/IslemHacmiGorunurlukSheet';
+import { useIslemHacmi } from '../../src/moduller/islem-hacmi/kancalar/useIslemHacmi';
+import { IslemHacmiAyarlariniKaydet } from '../../src/moduller/islem-hacmi/islemler/IslemHacmiApi';
+import type { IslemHacmiGorunurluk } from '../../src/moduller/islem-hacmi/tipler';
 import { useAjansUyeligi } from '../../src/moduller/ajanslar/kancalar/useAjansUyeligi';
 import { AjansProfilRozeti } from '../../src/moduller/ajanslar/bilesenler/AjansProfilRozeti';
-import { ProfilAvatarCerceve } from '../../src/moduller/kullanici-profili/bilesenler/ProfilAvatarCerceve';
 import {
   GizlilikAyarlariniGetir,
   type GizlilikAyarlari,
@@ -51,10 +58,7 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { TamusoBanner } from '../../src/banner';
-import { TakipSayaciniFormatla } from '../../src/moduller/takip/TakipSayacFormat';
-
-const COVER_H = 152;
-const AVATAR = 92;
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 const EMPTY_PRIVACY: GizlilikAyarlari = {
   hide_recharge_rank: false,
@@ -77,14 +81,14 @@ const EMPTY_PRIVACY: GizlilikAyarlari = {
   is_private: false,
 };
 
-/** Profil — tek ayarlar, tek düzenle; butonlar üst üste binmez */
+/** Profil — X tarzı hibrit header + Tamuso rozetleri */
 export default function ProfileScreen() {
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
   const { profile, wallet, user, isGuest, refreshProfile, refreshWallet } = useAuth();
   const { uyelik: ajansUyelik, yukleniyor: ajansYukleniyor } = useAjansUyeligi(!isGuest);
   const [upgradeAcik, setUpgradeAcik] = useState(false);
   const [oyunKartAcik, setOyunKartAcik] = useState(false);
-  const coverH = COVER_H + insets.top;
   const [stats, setStats] = useState<KullaniciProfilIstatistikleri | null>(null);
   const [privacy, setPrivacy] = useState<GizlilikAyarlari>(EMPTY_PRIVACY);
   const [oyunStats, setOyunStats] = useState<OyunOyuncuIstatistik | null>(null);
@@ -94,12 +98,36 @@ export default function ProfileScreen() {
   } | null>(null);
   const [durumlar, setDurumlar] = useState<DurumOggesi[]>([]);
   const [durumYukleniyor, setDurumYukleniyor] = useState(true);
+  const [hacimGorunurlukAcik, setHacimGorunurlukAcik] = useState(false);
+  const islemHacmi = useIslemHacmi({
+    mode: 'own',
+    userId: user?.id,
+    aktif: !isGuest && !!user?.id,
+  });
   const oyunPlatformAcik =
     OzellikBayragiAktifMi('games_enabled') && !KillSwitchAktifMi('kill_games');
   const { anyVisible: oyunGorunur } = useGorunurOyunKodlari({
     enabled: oyunPlatformAcik,
   });
   const oyunProfiliAcik = oyunPlatformAcik && oyunGorunur;
+
+  const hacimGorunurlukSec = (v: IslemHacmiGorunurluk) => {
+    setHacimGorunurlukAcik(false);
+    const b = islemHacmi.benim;
+    if (!b || v === b.visibility) return;
+    void IslemHacmiAyarlariniKaydet({
+      visibility: v,
+      show_badge: b.show_badge,
+      show_frame: b.show_frame,
+      show_effect: b.show_effect,
+      show_in_leaderboard: b.show_in_leaderboard !== false,
+    }).then((r) => {
+      if (!r.ok) {
+        Alert.alert(t('islemHacmi.baslik'), r.hata ?? t('ortak.kaydedilemedi'));
+      }
+      islemHacmi.yenile();
+    });
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -157,13 +185,12 @@ export default function ProfileScreen() {
   };
 
   const displayName =
-    profile?.display_name ?? (isGuest ? 'Misafir' : 'Kullanıcı');
-  const username = profile?.username ?? 'misafir';
+    profile?.display_name ??
+    (isGuest ? t('ortak.misafir') : t('ortak.kullanici'));
+  const username = profile?.username ?? t('profilTab.misafirUsername');
   const bio =
     profile?.bio?.trim() ||
-    (isGuest
-      ? 'Misafir hesabın — tam profil için hesabını tamamla.'
-      : 'Tamuso’da ses, hediye ve canlı yayın.');
+    (isGuest ? t('profilTab.misafirBio') : t('profilTab.varsayilanBio'));
   const coverUri =
     typeof profile?.cover_url === 'string' &&
     /^https?:\/\//i.test(profile.cover_url.trim())
@@ -175,6 +202,10 @@ export default function ProfileScreen() {
       ? profile.avatar_url.trim()
       : null;
 
+  const paylas = isGuest
+    ? () => setUpgradeAcik(true)
+    : () => router.push('/durum/olustur' as any);
+
   return (
     <Screen edges={[]} tabSayfaKaydir>
       <ModulHataSiniri modulAdi="kullanici-profili">
@@ -184,357 +215,283 @@ export default function ProfileScreen() {
           scrollEventThrottle={16}
           contentContainerStyle={styles.scroll}
         >
-          {/* Kapak — tıkla büyüt; yükleme profil düzenlemede */}
-          <View style={[styles.coverWrap, { height: coverH }]}>
-            <Pressable
-              onPress={() => medyaTikla('cover')}
-              style={styles.coverPress}
-              accessibilityLabel="Kapak fotoğrafı"
-              disabled={!coverUri}
-            >
-              {coverUri ? (
-                <Image
-                  source={{ uri: coverUri }}
-                  style={[styles.cover, { height: coverH }]}
-                />
-              ) : (
-                <LinearGradient
-                  colors={[...RenkTokenlari.gradientPlaceholder]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={[styles.cover, { height: coverH }]}
-                />
-              )}
-              <LinearGradient
-                colors={['transparent', 'rgba(18,16,24,0.75)']}
-                style={styles.coverFade}
-              />
-            </Pressable>
-
-            <View
-              style={[
-                styles.ustAksiyonlar,
-                { top: insets.top + BoslukTokenlari.sm },
-              ]}
-            >
+          <ProfilXBaslik
+            coverUri={coverUri}
+            avatarUri={avatarUri}
+            displayName={displayName}
+            username={username}
+            bio={bio}
+            verified={!!profile?.is_verified}
+            createdAt={profile?.created_at}
+            country={profile?.country}
+            publicUserId={profile?.public_user_id}
+            guestBadge={isGuest}
+            followingCount={stats?.following_count ?? 0}
+            followersCount={stats?.followers_count ?? 0}
+            postsCount={stats?.posts_count ?? 0}
+            pendingFollowRequests={stats?.pending_follow_requests_count ?? 0}
+            gosterTakip={!privacy.hide_following}
+            gosterTakipci={!privacy.hide_followers}
+            gosterGonderi
+            level={Number(profile?.level) || 1}
+            tacGizli={privacy.hide_crown}
+            coverHExtra={insets.top}
+            onTakipPress={() =>
+              user?.id &&
+              router.push(`/takip/takip-edilenler?userId=${user.id}` as any)
+            }
+            onTakipciPress={() =>
+              user?.id &&
+              router.push(`/takip/takipciler?userId=${user.id}` as any)
+            }
+            onIstekPress={() => router.push('/takip/istekler' as any)}
+            onCoverPress={() => medyaTikla('cover')}
+            onAvatarPress={() => medyaTikla('avatar')}
+            ustSag={
               <Pressable
-                style={styles.ustBtn}
-                onPress={profilDuzenle}
-                hitSlop={8}
-                accessibilityLabel="Profili düzenle"
-              >
-                <Ionicons name="create-outline" size={18} color={RenkTokenlari.text} />
-              </Pressable>
-              <Pressable
-                style={styles.ustBtn}
+                style={profilXOverlayBtnStyle}
                 onPress={() => router.push('/profil-ayarlar' as any)}
                 hitSlop={8}
-                accessibilityLabel="Ayarlar"
+                accessibilityLabel={t('profil.ayarlar')}
               >
-                <Ionicons name="settings-outline" size={20} color={RenkTokenlari.text} />
+                <Ionicons
+                  name="settings-outline"
+                  size={20}
+                  color={RenkTokenlari.text}
+                />
               </Pressable>
-            </View>
-          </View>
-
-          {/* Avatar — taç çökerse düz avatar yedek */}
-          <View style={styles.avatarBand}>
-            <ModulHataSiniri
-              modulAdi="profil-avatar"
-              varyant="kart"
-              yedek={
-                <View style={styles.avatarHit}>
-                  <Pressable
-                    onPress={() => medyaTikla('avatar')}
-                    style={styles.avatarWrap}
-                    disabled={!avatarUri}
-                  >
-                    {avatarUri ? (
-                      <Image source={{ uri: avatarUri }} style={styles.avatar} />
-                    ) : (
-                      <LinearGradient
-                        colors={[...RenkTokenlari.gradientPrimary]}
-                        style={styles.avatar}
-                      >
-                        <Ionicons name="person" size={40} color="#12040C" />
-                      </LinearGradient>
-                    )}
-                  </Pressable>
+            }
+            aksiyonSlot={
+              <Pressable
+                style={styles.duzenleBtn}
+                onPress={profilDuzenle}
+                accessibilityRole="button"
+                accessibilityLabel={t('profil.duzenle')}
+              >
+                <Text style={styles.duzenleYazi}>{t('profil.duzenle')}</Text>
+              </Pressable>
+            }
+          >
+            <View style={styles.rozetBlok}>
+              {(stats && !privacy.hide_account_value) || islemHacmi.gorunur ? (
+                <View style={styles.rozetSatir}>
+                  {stats && !privacy.hide_account_value ? (
+                    <View style={styles.rozetHucre}>
+                      <HesapDegeriRozeti
+                        value={Number(stats.account_value) || 0}
+                        label={stats.account_value_label}
+                        kompakt={islemHacmi.gorunur}
+                      />
+                    </View>
+                  ) : null}
+                  {islemHacmi.gorunur ? (
+                    <View style={styles.rozetHucre}>
+                      <IslemHacmiKart
+                        mode="own"
+                        data={islemHacmi.benim}
+                        kompakt={!!(stats && !privacy.hide_account_value)}
+                        onPress={() => router.push('/islem-hacmi' as any)}
+                        onMenu={() => setHacimGorunurlukAcik(true)}
+                      />
+                    </View>
+                  ) : null}
                 </View>
-              }
-            >
-              <View style={styles.avatarHit}>
-                <ProfilAvatarCerceve
-                  size={AVATAR}
-                  level={Number(profile?.level) || 1}
-                  gizli={privacy.hide_crown}
-                >
-                  <Pressable
-                    onPress={() => medyaTikla('avatar')}
-                    style={styles.avatarWrap}
-                    accessibilityLabel="Profil fotoğrafı"
-                    disabled={!avatarUri}
-                  >
-                    {avatarUri ? (
-                      <Image source={{ uri: avatarUri }} style={styles.avatar} />
-                    ) : (
-                      <LinearGradient
-                        colors={[...RenkTokenlari.gradientPrimary]}
-                        style={styles.avatar}
-                      >
-                        <Ionicons name="person" size={40} color="#12040C" />
-                      </LinearGradient>
-                    )}
-                  </Pressable>
-                </ProfilAvatarCerceve>
-              </View>
-            </ModulHataSiniri>
-          </View>
-
-          <TamusoBanner placement="PROFILE_TOP" screen="PROFILE" compact />
-
-          {/* Kimlik — ortalı */}
-          <View style={styles.identity}>
-            <View style={styles.nameRow}>
-              <Text style={styles.name} numberOfLines={1}>
-                {displayName}
-              </Text>
-              {profile?.is_verified ? (
-                <Ionicons name="checkmark-circle" size={18} color={RenkTokenlari.mint} />
+              ) : null}
+              {stats && !privacy.hide_prestige ? (
+                <PrestigeRozetSatiri
+                  vipLevel={Number(stats.vip_level) || 0}
+                  gifterLevel={stats.gifter_rank}
+                  charmLevel={Number(stats.charm_level) || 0}
+                  rechargeLevel={stats.recharge_rank}
+                />
               ) : null}
             </View>
-            <Text style={styles.username}>@{username}</Text>
 
-            {(stats?.pending_follow_requests_count ?? 0) > 0 ? (
-              <Pressable
-                onPress={() => router.push('/takip/istekler' as any)}
-                style={({ pressed }) => [
-                  styles.followRow,
-                  styles.followRowIstek,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={styles.followN}>{stats?.pending_follow_requests_count}</Text>
-                <Text style={styles.followL}>Takip isteği</Text>
-              </Pressable>
-            ) : null}
-            <View style={styles.followRow}>
-              <Pressable
-                style={styles.followItem}
-                onPress={() =>
-                  user?.id &&
-                  router.push(`/takip/takip-edilenler?userId=${user.id}` as any)
-                }
-                accessibilityRole="button"
-                accessibilityLabel="Takip edilenler"
-              >
-                <Text style={styles.followN}>
-                  {TakipSayaciniFormatla(stats?.following_count ?? 0)}
-                </Text>
-                <Text style={styles.followL}>Takip</Text>
-              </Pressable>
-              <View style={styles.followDivider} />
-              <Pressable
-                style={styles.followItem}
-                onPress={() =>
-                  user?.id &&
-                  router.push(`/takip/takipciler?userId=${user.id}` as any)
-                }
-                accessibilityRole="button"
-                accessibilityLabel="Takipçiler"
-              >
-                <Text style={styles.followN}>
-                  {TakipSayaciniFormatla(stats?.followers_count ?? 0)}
-                </Text>
-                <Text style={styles.followL}>Takipçi</Text>
-              </Pressable>
-              <View style={styles.followDivider} />
-              <View style={styles.followItem}>
-                <Text style={styles.followN}>
-                  {TakipSayaciniFormatla(stats?.posts_count ?? 0)}
-                </Text>
-                <Text style={styles.followL}>Gönderi</Text>
-              </View>
+            <TamusoBanner placement="PROFILE_TOP" screen="PROFILE" compact />
+
+            <View style={styles.aksiyonlar}>
+              {!isGuest && !ajansYukleniyor && ajansUyelik.role === 'pending' ? (
+                <AjansProfilRozeti
+                  varyant="beklemede"
+                  ajans={ajansUyelik.agency}
+                  tamGenislik
+                  onPress={() => router.push('/ajans/uye' as any)}
+                />
+              ) : !isGuest && !ajansYukleniyor && ajansUyelik.agency ? (
+                <AjansProfilRozeti
+                  varyant="uye"
+                  ajans={ajansUyelik.agency}
+                  tamGenislik
+                  onPress={() =>
+                    router.push(`/ajans/profil/${ajansUyelik.agency!.id}` as any)
+                  }
+                />
+              ) : !isGuest && !ajansYukleniyor ? (
+                <AjansProfilRozeti
+                  varyant="basvur"
+                  tamGenislik
+                  onPress={() => router.push('/ajans' as any)}
+                />
+              ) : null}
             </View>
 
-            {profile?.public_user_id ? (
-              <Text style={styles.publicId}>ID {profile.public_user_id}</Text>
-            ) : null}
-            {isGuest ? (
-              <View style={styles.guestBadge}>
-                <Text style={styles.guestBadgeText}>MİSAFİR</Text>
-              </View>
-            ) : null}
-            <Text style={styles.bio}>{bio}</Text>
-            {stats && !privacy.hide_account_value ? (
-              <HesapDegeriRozeti
-                value={Number(stats.account_value) || 0}
-                label={stats.account_value_label}
-              />
-            ) : null}
-            {stats && !privacy.hide_prestige ? (
-              <PrestigeRozetSatiri
-                vipLevel={Number(stats.vip_level) || 0}
-                gifterLevel={stats.gifter_rank}
-                charmLevel={Number(stats.charm_level) || 0}
-                rechargeLevel={stats.recharge_rank}
-              />
-            ) : null}
-          </View>
+            <TamusoBanner placement="PROFILE_MIDDLE" screen="PROFILE" compact />
 
-          {/* Premium aksiyonlar — ortalı; ajans burada */}
-          <View style={styles.aksiyonlar}>
-            {!isGuest && !ajansYukleniyor && ajansUyelik.role === 'pending' ? (
-              <AjansProfilRozeti
-                varyant="beklemede"
-                ajans={ajansUyelik.agency}
-                tamGenislik
-                onPress={() => router.push('/ajans/uye' as any)}
-              />
-            ) : !isGuest && !ajansYukleniyor && ajansUyelik.agency ? (
-              <AjansProfilRozeti
-                varyant="uye"
-                ajans={ajansUyelik.agency}
-                tamGenislik
-                onPress={() =>
-                  router.push(`/ajans/profil/${ajansUyelik.agency!.id}` as any)
-                }
-              />
-            ) : !isGuest && !ajansYukleniyor ? (
-              <AjansProfilRozeti
-                varyant="basvur"
-                tamGenislik
-                onPress={() => router.push('/ajans' as any)}
-              />
-            ) : null}
-          </View>
-
-          <TamusoBanner placement="PROFILE_MIDDLE" screen="PROFILE" compact />
-
-          {/* Cüzdan — yan yana düz bakiye kutuları */}
-          <Pressable
-            onPress={cuzdanaGit}
-            style={({ pressed }) => [styles.walletPress, pressed && styles.pressed]}
-            accessibilityRole="button"
-            accessibilityLabel="Cüzdan"
-          >
-            <View style={styles.walletUst}>
-              <View style={styles.walletSol}>
-                <Text style={styles.walletBaslik}>Cüzdan</Text>
-                <Text style={styles.walletAlt}>Coin ve elmas bakiyen</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={RenkTokenlari.textDim} />
-            </View>
-            <View style={styles.walletBakiyeRow}>
-              <View style={styles.walletBakiyeKart}>
-                <View style={[styles.walletDot, { backgroundColor: RenkTokenlari.accent }]} />
-                <View style={styles.walletBakiyeCopy}>
-                  <Text style={styles.walletBakiyeEtiket}>Coin</Text>
-                  <Text style={styles.walletBakiyeDeger} numberOfLines={1}>
-                    {formatSayi(wallet?.coins ?? 0)}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.walletBakiyeKart}>
-                <View style={[styles.walletDot, { backgroundColor: RenkTokenlari.violet }]} />
-                <View style={styles.walletBakiyeCopy}>
-                  <Text style={styles.walletBakiyeEtiket}>Elmas</Text>
-                  <Text style={styles.walletBakiyeDeger} numberOfLines={1}>
-                    {formatSayi(wallet?.diamonds ?? 0)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </Pressable>
-
-          {/* Oyun — cüzdan kartı düzeni; tıkla detay kartı */}
-          {oyunProfiliAcik && !privacy.hide_game_stats ? (
             <Pressable
-              onPress={() => setOyunKartAcik(true)}
+              onPress={cuzdanaGit}
               style={({ pressed }) => [styles.walletPress, pressed && styles.pressed]}
               accessibilityRole="button"
-              accessibilityLabel="Oyun profili"
+              accessibilityLabel={t('cuzdan.baslik')}
             >
               <View style={styles.walletUst}>
                 <View style={styles.walletSol}>
-                  <Text style={styles.walletBaslik}>Oyun</Text>
-                  <Text style={styles.walletAlt}>
-                    {oyunStats?.leagueLabel ?? 'Lig'} · profil kartın
-                  </Text>
+                  <Text style={styles.walletBaslik}>{t('cuzdan.baslik')}</Text>
+                  <Text style={styles.walletAlt}>{t('profilTab.cuzdanAlt')}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={RenkTokenlari.textDim} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={RenkTokenlari.textDim}
+                />
               </View>
               <View style={styles.walletBakiyeRow}>
                 <View style={styles.walletBakiyeKart}>
-                  <View style={[styles.walletDot, { backgroundColor: RenkTokenlari.accent }]} />
+                  <View
+                    style={[
+                      styles.walletDot,
+                      { backgroundColor: RenkTokenlari.accent },
+                    ]}
+                  />
                   <View style={styles.walletBakiyeCopy}>
-                    <Text style={styles.walletBakiyeEtiket}>Kupa</Text>
+                    <Text style={styles.walletBakiyeEtiket}>{t('cuzdan.coin')}</Text>
                     <Text style={styles.walletBakiyeDeger} numberOfLines={1}>
-                      {formatSayi(oyunStats?.trophies ?? 0)}
+                      {formatSayi(wallet?.coins ?? 0)}
                     </Text>
                   </View>
                 </View>
                 <View style={styles.walletBakiyeKart}>
-                  <View style={[styles.walletDot, { backgroundColor: RenkTokenlari.mint }]} />
+                  <View
+                    style={[
+                      styles.walletDot,
+                      { backgroundColor: RenkTokenlari.violet },
+                    ]}
+                  />
                   <View style={styles.walletBakiyeCopy}>
-                    <Text style={styles.walletBakiyeEtiket}>Galibiyet</Text>
+                    <Text style={styles.walletBakiyeEtiket}>{t('cuzdan.elmas')}</Text>
                     <Text style={styles.walletBakiyeDeger} numberOfLines={1}>
-                      {oyunStats?.wins ?? 0}
+                      {formatSayi(wallet?.diamonds ?? 0)}
                     </Text>
                   </View>
                 </View>
               </View>
             </Pressable>
-          ) : null}
 
-          {/* Metrikler */}
-          <View style={styles.metrics}>
-            <Metric
-              label="Gönderilen"
-              value={String(stats?.total_gifts_sent ?? 0)}
-              tint={RenkTokenlari.danger}
-            />
-            <Metric
-              label="Alınan"
-              value={String(stats?.total_gifts_received ?? 0)}
-              tint={RenkTokenlari.mint}
-            />
-            <Metric
-              label="Seviye"
-              value={String(profile?.level ?? 1)}
-              tint={RenkTokenlari.violet}
-            />
-            <Metric
-              label="Tecrübe"
-              value={formatSayi(profile?.xp ?? 0)}
-              tint={RenkTokenlari.accent}
-            />
-          </View>
+            {oyunProfiliAcik && !privacy.hide_game_stats ? (
+              <Pressable
+                onPress={() => setOyunKartAcik(true)}
+                style={({ pressed }) => [
+                  styles.walletPress,
+                  pressed && styles.pressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={t('profilTab.oyunProfili')}
+              >
+                <View style={styles.walletUst}>
+                  <View style={styles.walletSol}>
+                    <Text style={styles.walletBaslik}>{t('profilTab.oyun')}</Text>
+                    <Text style={styles.walletAlt}>
+                      {t('profilTab.oyunAlt', {
+                        lig: oyunStats?.leagueLabel ?? t('sehir.lig'),
+                      })}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color={RenkTokenlari.textDim}
+                  />
+                </View>
+                <View style={styles.walletBakiyeRow}>
+                  <View style={styles.walletBakiyeKart}>
+                    <View
+                      style={[
+                        styles.walletDot,
+                        { backgroundColor: RenkTokenlari.accent },
+                      ]}
+                    />
+                    <View style={styles.walletBakiyeCopy}>
+                      <Text style={styles.walletBakiyeEtiket}>
+                        {t('profilTab.kupa')}
+                      </Text>
+                      <Text style={styles.walletBakiyeDeger} numberOfLines={1}>
+                        {formatSayi(oyunStats?.trophies ?? 0)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.walletBakiyeKart}>
+                    <View
+                      style={[
+                        styles.walletDot,
+                        { backgroundColor: RenkTokenlari.mint },
+                      ]}
+                    />
+                    <View style={styles.walletBakiyeCopy}>
+                      <Text style={styles.walletBakiyeEtiket}>{t('profil.galibiyet')}</Text>
+                      <Text style={styles.walletBakiyeDeger} numberOfLines={1}>
+                        {oyunStats?.wins ?? 0}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </Pressable>
+            ) : null}
 
-          {isGuest ? (
-            <View style={styles.guestCta}>
-              <GradientButton
-                title="Hesabı tamamla"
-                onPress={() => setUpgradeAcik(true)}
+            <View style={styles.metrics}>
+              <Metric
+                label={t('profil.gonderilen')}
+                value={String(stats?.total_gifts_sent ?? 0)}
+                tint={RenkTokenlari.danger}
+              />
+              <Metric
+                label={t('profil.alinan')}
+                value={String(stats?.total_gifts_received ?? 0)}
+                tint={RenkTokenlari.mint}
+              />
+              <Metric
+                label={t('profil.seviye')}
+                value={String(profile?.level ?? 1)}
+                tint={RenkTokenlari.violet}
+              />
+              <Metric
+                label={t('profil.tecrube')}
+                value={formatSayi(profile?.xp ?? 0)}
+                tint={RenkTokenlari.accent}
               />
             </View>
-          ) : null}
 
+            {isGuest ? (
+              <View style={styles.guestCta}>
+                <GradientButton
+                  title={t('ortak.hesabiTamamla')}
+                  onPress={() => setUpgradeAcik(true)}
+                />
+              </View>
+            ) : null}
+          </ProfilXBaslik>
+
+          <ProfilXGonderiSekme onPaylas={paylas} />
           <ModulHataSiniri modulAdi="profil-gonderiler" varyant="kart">
             <DurumProfilIzgarasi
               items={durumlar}
               yukleniyor={durumYukleniyor}
-              baslik="Gönderilerim"
+              baslikGizle
+              yatayPadding
               bosMetin={
                 isGuest
-                  ? 'Paylaşım için hesabını tamamla.'
-                  : 'Henüz paylaşımın yok — ilk durumunu ekle.'
+                  ? t('profilTab.misafirPaylasimBos')
+                  : t('profilTab.paylasimBos')
               }
               onPress={(oge) => router.push(`/durum/${oge.id}` as any)}
-              onPaylas={
-                isGuest
-                  ? () => setUpgradeAcik(true)
-                  : () => router.push('/durum/olustur' as any)
-              }
             />
           </ModulHataSiniri>
         </ScrollView>
@@ -545,7 +502,7 @@ export default function ProfileScreen() {
           onCompleted={() => {
             void refreshProfile();
             void refreshWallet();
-            Alert.alert('Tamam', 'Hesabın güncellendi.');
+            Alert.alert(t('ortak.tamam'), t('profilTab.hesapGuncellendi'));
           }}
         />
 
@@ -559,6 +516,14 @@ export default function ProfileScreen() {
           uri={buyut?.uri ?? null}
           tur={buyut?.tur}
           onKapat={() => setBuyut(null)}
+        />
+        <IslemHacmiGorunurlukSheet
+          visible={hacimGorunurlukAcik}
+          secili={
+            (islemHacmi.benim?.visibility ?? 'TIER_ONLY') as IslemHacmiGorunurluk
+          }
+          onSec={hacimGorunurlukSec}
+          onKapat={() => setHacimGorunurlukAcik(false)}
         />
       </ModulHataSiniri>
     </Screen>
@@ -599,18 +564,40 @@ function OyunProfilKartModal({
   stats: OyunOyuncuIstatistik | null;
   onKapat: () => void;
 }) {
+  const { t } = useCeviri();
   const hucreler = [
-    { etiket: 'Kupa', deger: formatSayi(stats?.trophies ?? 0), tint: RenkTokenlari.accent },
-    { etiket: 'Oyun XP', deger: formatSayi(stats?.xp ?? 0), tint: RenkTokenlari.violet },
-    { etiket: 'Maç', deger: String(stats?.totalGames ?? 0), tint: RenkTokenlari.text },
-    { etiket: 'Galibiyet', deger: String(stats?.wins ?? 0), tint: RenkTokenlari.mint },
     {
-      etiket: 'En yüksek',
+      id: 'kupa',
+      etiket: t('profilTab.kupa'),
+      deger: formatSayi(stats?.trophies ?? 0),
+      tint: RenkTokenlari.accent,
+    },
+    {
+      id: 'oyun_xp',
+      etiket: t('profilTab.oyunXp'),
+      deger: formatSayi(stats?.xp ?? 0),
+      tint: RenkTokenlari.violet,
+    },
+    {
+      id: 'mac',
+      etiket: t('profilTab.mac'),
+      deger: String(stats?.totalGames ?? 0),
+      tint: RenkTokenlari.text,
+    },
+    {
+      id: 'galibiyet',
+      etiket: t('profil.galibiyet'),
+      deger: String(stats?.wins ?? 0),
+      tint: RenkTokenlari.mint,
+    },
+    {
+      id: 'en_yuksek',
+      etiket: t('profilTab.enYuksek'),
       deger: formatSayi(stats?.highestScore ?? 0),
       tint: RenkTokenlari.accent,
     },
     {
-      etiket: 'Combo',
+      etiket: t('profilTab.combo'),
       deger: `×${stats?.highestCombo ?? 0}`,
       tint: RenkTokenlari.violet,
     },
@@ -628,19 +615,19 @@ function OyunProfilKartModal({
         <Pressable
           style={styles.oyunModalKart}
           onPress={(e) => e.stopPropagation()}
-          accessibilityLabel="Oyun profil kartı"
+          accessibilityLabel={t('profilTab.oyunProfili')}
         >
           <View style={styles.walletUst}>
             <View style={styles.walletSol}>
-              <Text style={styles.walletBaslik}>Oyun profili</Text>
+              <Text style={styles.walletBaslik}>{t('profilTab.oyunProfili')}</Text>
               <Text style={[styles.walletAlt, { color: RenkTokenlari.accent }]}>
-                {stats?.leagueLabel ?? 'Lig'}
+                {stats?.leagueLabel ?? t('sehir.lig')}
               </Text>
             </View>
             <Pressable
               onPress={onKapat}
               hitSlop={10}
-              accessibilityLabel="Kapat"
+              accessibilityLabel={t('ortak.kapat')}
               style={styles.oyunModalKapat}
             >
               <Ionicons name="close" size={18} color={RenkTokenlari.textMuted} />
@@ -649,7 +636,7 @@ function OyunProfilKartModal({
 
           <View style={styles.oyunModalGrid}>
             {hucreler.map((h) => (
-              <View key={h.etiket} style={[styles.walletBakiyeKart, styles.oyunModalHucre]}>
+              <View key={h.id} style={[styles.walletBakiyeKart, styles.oyunModalHucre]}>
                 <View style={[styles.walletDot, { backgroundColor: h.tint }]} />
                 <View style={styles.walletBakiyeCopy}>
                   <Text style={styles.walletBakiyeEtiket}>{h.etiket}</Text>
@@ -663,8 +650,8 @@ function OyunProfilKartModal({
 
           <Text style={styles.oyunModalAlt}>
             {(stats?.totalGames ?? 0) > 0
-              ? `Galibiyet oranı %${stats?.winRate ?? 0}`
-              : 'Ses odasında oyun oyna — XP ve kupa kazan.'}
+              ? t('profilTab.galibiyetOrani', { oran: stats?.winRate ?? 0 })
+              : t('profilTab.oyunIpucu')}
           </Text>
         </Pressable>
       </Pressable>
@@ -676,165 +663,46 @@ const styles = StyleSheet.create({
   scroll: {
     paddingBottom: YUZEN_TAB_ICERIK_BOSLUGU,
   },
-  coverWrap: {
-    position: 'relative',
-  },
-  coverPress: {
-    ...StyleSheet.absoluteFill,
-  },
-  cover: {
-    width: '100%',
-  },
-  coverFade: {
-    ...StyleSheet.absoluteFill,
-  },
-  gearBtn: {
-    position: 'absolute',
-    right: BoslukTokenlari.lg,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: RenkTokenlari.chipFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-    zIndex: 2,
-  },
-  ustAksiyonlar: {
-    position: 'absolute',
-    right: BoslukTokenlari.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    zIndex: 2,
-  },
-  ustBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: RenkTokenlari.chipFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
-  },
-  avatarBand: {
-    alignItems: 'center',
-    marginTop: -(AVATAR / 2 + 8),
-    marginBottom: BoslukTokenlari.sm,
-    zIndex: 2,
-  },
-  avatarHit: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarWrap: {
-    width: AVATAR,
-    height: AVATAR,
-    borderRadius: AVATAR / 2,
-    overflow: 'hidden',
-    backgroundColor: RenkTokenlari.surface,
-  },
-  avatar: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  identity: {
-    paddingHorizontal: BoslukTokenlari.xl,
-    gap: 4,
-    alignItems: 'center',
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    maxWidth: '100%',
-  },
-  name: {
-    ...TipografiTokenlari.title,
-    color: RenkTokenlari.text,
-    fontSize: 26,
-    lineHeight: 32,
-    letterSpacing: -0.4,
-    flexShrink: 1,
-    textAlign: 'center',
-  },
-  username: {
-    ...TipografiTokenlari.body,
-    color: RenkTokenlari.textMuted,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  publicId: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.accent,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  guestBadge: {
-    marginTop: 4,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.accent,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+  duzenleBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: BoslukTokenlari.md,
     borderRadius: YaricapTokenlari.pill,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    backgroundColor: RenkTokenlari.bgCard,
   },
-  guestBadgeText: { ...TipografiTokenlari.micro, color: RenkTokenlari.accent },
-  bio: {
-    ...TipografiTokenlari.body,
+  duzenleYazi: {
+    ...TipografiTokenlari.caption,
     color: RenkTokenlari.text,
-    marginTop: BoslukTokenlari.sm,
-    lineHeight: 21,
-    textAlign: 'center',
+    fontWeight: '700',
+  },
+  rozetBlok: {
+    paddingHorizontal: BoslukTokenlari.lg,
+    gap: BoslukTokenlari.sm,
+    alignItems: 'stretch',
+  },
+  rozetSatir: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: BoslukTokenlari.sm,
+    marginTop: 10,
+    width: '100%',
+  },
+  rozetHucre: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 0,
   },
   aksiyonlar: {
-    paddingHorizontal: BoslukTokenlari.xl,
-    paddingTop: BoslukTokenlari.lg,
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingTop: BoslukTokenlari.md,
     gap: BoslukTokenlari.sm,
     alignItems: 'stretch',
   },
   pressed: { opacity: 0.9 },
-  followRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'stretch',
-    marginTop: BoslukTokenlari.sm,
-    paddingVertical: BoslukTokenlari.md,
-    borderRadius: YaricapTokenlari.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.28)',
-    backgroundColor: RenkTokenlari.bgCard,
-  },
-  followRowIstek: {
-    marginBottom: 0,
-    justifyContent: 'center',
-    gap: 6,
-  },
-  followItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 2,
-  },
-  followDivider: {
-    width: StyleSheet.hairlineWidth,
-    height: 28,
-    backgroundColor: RenkTokenlari.border,
-  },
-  followN: {
-    ...TipografiTokenlari.h2,
-    color: RenkTokenlari.text,
-  },
-  followL: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
-  },
   walletPress: {
-    marginHorizontal: BoslukTokenlari.xl,
+    marginHorizontal: BoslukTokenlari.lg,
     marginTop: BoslukTokenlari.md,
     padding: BoslukTokenlari.md,
     borderRadius: YaricapTokenlari.lg,
@@ -890,7 +758,7 @@ const styles = StyleSheet.create({
   },
   metrics: {
     flexDirection: 'row',
-    marginHorizontal: BoslukTokenlari.xl,
+    marginHorizontal: BoslukTokenlari.lg,
     marginTop: BoslukTokenlari.md,
     borderRadius: YaricapTokenlari.md,
     borderWidth: 1,
@@ -947,7 +815,7 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.textMuted,
   },
   guestCta: {
-    paddingHorizontal: BoslukTokenlari.xl,
+    paddingHorizontal: BoslukTokenlari.lg,
     paddingTop: BoslukTokenlari.lg,
   },
 });

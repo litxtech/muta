@@ -17,6 +17,7 @@ import { GradientButton } from '../../src/components/GradientButton';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { AltiHaneliKodAlani } from '../../src/moduller/kimlik-dogrulama/bilesenler/AltiHaneliKodAlani';
 import { KayitBekleyenAvatarAlVeTemizle } from '../../src/moduller/kimlik-dogrulama/depolama/KayitBekleyenAvatar';
 import type { EmailOtpAmaci } from '../../src/moduller/kimlik-dogrulama/dogrulama/EmailOtpDogrula';
@@ -35,6 +36,7 @@ function amacCoz(ham: string | string[] | undefined): EmailOtpAmaci {
 }
 
 export default function DogrulaKodEkrani() {
+  const { t } = useCeviri();
   const { email: emailParam, amac: amacParam } = useLocalSearchParams<{
     email?: string;
     amac?: string;
@@ -51,29 +53,30 @@ export default function DogrulaKodEkrani() {
 
   useEffect(() => {
     if (geriSayim <= 0) return;
-    const t = setTimeout(() => setGeriSayim((s) => s - 1), 1000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setGeriSayim((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
   }, [geriSayim]);
 
   const baslik =
     amac === 'recovery'
-      ? 'Şifre kodu'
+      ? t('auth.sifreKodu')
       : amac === 'email_change'
-        ? 'E-posta doğrula'
-        : 'Kayıt doğrulama';
+        ? t('auth.epostaDogrula')
+        : t('auth.kayitDogrulama');
 
+  const emailEtiket = email || t('auth.epostana');
   const alt =
     amac === 'recovery'
-      ? `${email || 'E-postana'} gelen 6 haneli kodu yaz, sonra yeni şifreni belirle. Gelen kutusu ve spam klasörünü kontrol et.`
-      : `${email || 'E-postana'} gelen 6 haneli doğrulama kodunu yaz. Gelen kutusu ve spam klasörünü kontrol et.`;
+      ? t('auth.kodAltRecovery', { email: emailEtiket })
+      : t('auth.kodAlt', { email: emailEtiket });
 
   const dogrula = useCallback(async () => {
     if (!email) {
-      Alert.alert('E-posta eksik', 'Doğrulama için e-posta gerekli.');
+      Alert.alert(t('auth.epostaEksik'), t('auth.epostaEksikMesaj'));
       return;
     }
     if (kod.replace(/\D/g, '').length < 6) {
-      setHata('6 haneli kodu eksiksiz gir.');
+      setHata(t('auth.kodEksik'));
       return;
     }
     setHata(null);
@@ -81,7 +84,7 @@ export default function DogrulaKodEkrani() {
     const r = await verifyEmailOtp(email, kod, amac);
     if (!r.ok) {
       setLoading(false);
-      setHata(r.hata ?? 'Doğrulama başarısız');
+      setHata(r.hata ?? t('auth.dogrulamaBasarisiz'));
       return;
     }
     if (amac === 'signup') {
@@ -105,7 +108,15 @@ export default function DogrulaKodEkrani() {
       await MisafirCihazUpgradeOnayla();
     }
     router.replace('/(tabs)');
-  }, [amac, email, kod, misafirBayraginiKaldir, refreshProfile, verifyEmailOtp]);
+  }, [
+    amac,
+    email,
+    kod,
+    misafirBayraginiKaldir,
+    refreshProfile,
+    t,
+    verifyEmailOtp,
+  ]);
 
   useEffect(() => {
     if (kod.replace(/\D/g, '').length === 6 && !loading) {
@@ -121,12 +132,15 @@ export default function DogrulaKodEkrani() {
     const r = await resendEmailOtp(email, amac);
     setLoading(false);
     if (!r.ok) {
-      Alert.alert('Kod gönderilemedi', r.hata ?? 'Tekrar dene');
+      Alert.alert(
+        t('auth.kodGonderilemedi'),
+        r.hata ?? t('ortak.tekrarDene'),
+      );
       return;
     }
     setGeriSayim(60);
     setKod('');
-    Alert.alert('Kod gönderildi', 'Yeni 6 haneli kod e-postana iletildi.');
+    Alert.alert(t('auth.kodGonderildi'), t('auth.kodGonderildiMesaj'));
   };
 
   return (
@@ -149,7 +163,7 @@ export default function DogrulaKodEkrani() {
           {hata ? <Text style={styles.hata}>{hata}</Text> : null}
 
           <GradientButton
-            title="Doğrula"
+            title={t('auth.dogrula')}
             onPress={() => void dogrula()}
             loading={loading}
           />
@@ -166,8 +180,8 @@ export default function DogrulaKodEkrani() {
               ]}
             >
               {geriSayim > 0
-                ? `Yeniden gönder (${geriSayim}s)`
-                : 'Kodu yeniden gönder'}
+                ? t('auth.yenidenGonderSayac', { saniye: geriSayim })
+                : t('auth.koduYenidenGonder')}
             </Text>
           </Pressable>
         </View>

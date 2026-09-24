@@ -1,6 +1,7 @@
 import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { HataKurtarmaEkrani } from './HataKurtarmaEkrani';
+import i18n from '../../i18n';
 
 type Props = { children: ReactNode };
 type State = { hata: Error | null; anahtar: number };
@@ -29,8 +30,8 @@ export class UygulamaHataSiniri extends Component<Props, State> {
         <View style={styles.dolgu}>
           <HataKurtarmaEkrani
             varyant="ekran"
-            baslik="Bir şeyler ters gitti"
-            aciklama="Uygulama bu ekranda takıldı. Ana sayfaya dönüp devam edebilirsin."
+            baslik={i18n.t('ortak.birHataOlustu')}
+            aciklama={i18n.t('ortak.uygulamaTakildi')}
             detay={__DEV__ ? this.state.hata.message : null}
             onTekrarDene={this.sifirla}
             fallbackHref="/(tabs)"

@@ -15,8 +15,10 @@ import { PolitikalariListele } from '../../src/moduller/politikalar/islemler/Pol
 import type { PolitikaGorunum } from '../../src/moduller/politikalar/tipler/PolitikaTipleri';
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 export default function PolitikaListeEkrani() {
+  const { t } = useCeviri();
   const [liste, setListe] = useState<PolitikaGorunum[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
 
@@ -44,8 +46,8 @@ export default function PolitikaListeEkrani() {
     <Screen edges={['top']} style={styles.screen}>
       <ModulHataSiniri modulAdi="politikalar">
         <EkranBasligi
-          title="Politikalar"
-          subtitle="Yasal metinler"
+          title={t('politika.baslik')}
+          subtitle={t('politika.altBaslik')}
           fallbackHref={'/(tabs)/profile' as any}
         />
         <ScrollView contentContainerStyle={styles.pad}>

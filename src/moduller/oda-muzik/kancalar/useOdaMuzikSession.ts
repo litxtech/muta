@@ -20,6 +20,7 @@ export function useOdaMuzikSession(roomId: string | null | undefined) {
   const [session, setSession] = useState<RoomMusicSession | null>(null);
   const [yukleniyor, setYukleniyor] = useState(false);
   const lastVersion = useRef(0);
+  const yenileRef = useRef<() => Promise<void>>(async () => undefined);
 
   const uygula = useCallback(async (next: RoomMusicSession | null) => {
     if (next && next.version < lastVersion.current) return;
@@ -38,6 +39,8 @@ export function useOdaMuzikSession(roomId: string | null | undefined) {
     }
   }, [roomId, uygula]);
 
+  yenileRef.current = yenile;
+
   useEffect(() => {
     void MusicRuntimeConfigGet()
       .then((c) => OdaMuzikConfigAyarla(c))
@@ -48,10 +51,14 @@ export function useOdaMuzikSession(roomId: string | null | undefined) {
     if (!roomId) {
       void OdaMuzikDurdur();
       setSession(null);
+      lastVersion.current = 0;
       return;
     }
+
     let alive = true;
+    lastVersion.current = 0;
     setYukleniyor(true);
+
     void (async () => {
       try {
         const s = await RoomMusicSessionGet(roomId);
@@ -63,8 +70,10 @@ export function useOdaMuzikSession(roomId: string | null | undefined) {
       }
     })();
 
+    const topic = `room-music:${roomId}:${Date.now()}`;
+
     const ch = supabase
-      .channel(`room-music:${roomId}`)
+      .channel(topic)
       .on(
         'postgres_changes',
         {
@@ -74,7 +83,7 @@ export function useOdaMuzikSession(roomId: string | null | undefined) {
           filter: `room_id=eq.${roomId}`,
         },
         () => {
-          void yenile();
+          void yenileRef.current();
         },
       )
       .on(
@@ -86,13 +95,13 @@ export function useOdaMuzikSession(roomId: string | null | undefined) {
           filter: `room_id=eq.${roomId}`,
         },
         () => {
-          void yenile();
+          void yenileRef.current();
         },
       )
       .subscribe();
 
     const appSub = AppState.addEventListener('change', (st) => {
-      if (st === 'active') void yenile();
+      if (st === 'active') void yenileRef.current();
     });
 
     return () => {
@@ -101,7 +110,8 @@ export function useOdaMuzikSession(roomId: string | null | undefined) {
       void supabase.removeChannel(ch);
       void OdaMuzikDurdur();
     };
-  }, [roomId, uygula, yenile]);
+    // yalnız roomId — yenile ref ile; aksi halde subscribe sonrası .on() yarışı
+  }, [roomId, uygula]);
 
   return { session, yukleniyor, yenile, setSession: uygula };
 }

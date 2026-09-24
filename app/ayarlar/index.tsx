@@ -15,7 +15,6 @@ import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { ListeGrubu, ListeSatiri } from '../../src/components/ListeSatiri';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
-  DilAyariniKaydet,
   KullaniciAyarlariniGetir,
   PushBildirimAyariniKaydet,
 } from '../../src/moduller/ayarlar/islemler/KullaniciAyarlariniYonet';
@@ -29,23 +28,23 @@ import { GorunumSecimKartlari } from '../../src/moduller/gorunum/bilesenler/Goru
 import { useTema } from '../../src/tasarim-sistemi/tema/TemaSaglayici';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
-import {
-  BoslukTokenlari,
-} from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useDil } from '../../src/i18n/DilSaglayici';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 /** Uygulama tercihleri — kısa hub; gizlilik ayrı ekranda */
 export default function AyarlarEkrani() {
   const [push, setPush] = useState(true);
-  const [dil, setDil] = useState('tr');
   const [pipAcik, setPipAcik] = useState(true);
   const { palet } = useTema();
   const androidMu = Platform.OS === 'android';
+  const { dilEtiketi, dilModu } = useDil();
+  const { t } = useCeviri();
 
   useFocusEffect(
     useCallback(() => {
       void KullaniciAyarlariniGetir().then((a) => {
         setPush(a.pushEnabled);
-        setDil(a.dil);
       });
       if (Platform.OS === 'android') {
         void SesOdasiPipAcikMi().then(setPipAcik);
@@ -72,32 +71,15 @@ export default function AyarlarEkrani() {
     if (!v) SesOdasiPipParamsKapat();
   };
 
-  const dilSec = () => {
-    Alert.alert('Dil', 'Arayüz dili', [
-      {
-        text: 'Türkçe',
-        onPress: async () => {
-          setDil('tr');
-          await DilAyariniKaydet('tr');
-        },
-      },
-      {
-        text: 'English',
-        onPress: async () => {
-          setDil('en');
-          await DilAyariniKaydet('en');
-        },
-      },
-      { text: 'İptal', style: 'cancel' },
-    ]);
-  };
+  const dilDegeri =
+    dilModu === 'SYSTEM' ? t('ayarlar.sistemDiliniKullan') : dilEtiketi;
 
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="ayarlar">
         <EkranBasligi
-          title="Tercihler"
-          subtitle="Görünüm · bildirim · dil"
+          title={t('ayarlar.baslik')}
+          subtitle={t('ayarlar.altBaslik')}
           fallbackHref="/profil-ayarlar"
         />
         <ScrollView
@@ -105,16 +87,16 @@ export default function AyarlarEkrani() {
           contentContainerStyle={styles.content}
         >
           <Text style={[styles.sectionLabel, { color: palet.textDim }]}>
-            Görünüm
+            {t('ayarlar.gorunum')}
           </Text>
           <GorunumSecimKartlari />
           <View style={{ height: BoslukTokenlari.lg }} />
 
-          <ListeGrubu title="Bildirimler">
+          <ListeGrubu title={t('ayarlar.bildirimler')}>
             <View style={styles.switchRow}>
               <View style={styles.switchCopy}>
-                <Text style={styles.switchLabel}>Push bildirimleri</Text>
-                <Text style={styles.switchHint}>Ana anahtar</Text>
+                <Text style={styles.switchLabel}>{t('ayarlar.pushBildirimleri')}</Text>
+                <Text style={styles.switchHint}>{t('ayarlar.pushHint')}</Text>
               </View>
               <Switch
                 value={push}
@@ -128,27 +110,25 @@ export default function AyarlarEkrani() {
             </View>
             <ListeSatiri
               icon="notifications-outline"
-              label="Kategori ayarları"
+              label={t('ayarlar.kategoriAyarlari')}
               onPress={() => router.push('/bildirim-ayarlari' as any)}
               last
             />
           </ListeGrubu>
 
-          <ListeGrubu title="Uygulama">
+          <ListeGrubu title={t('ayarlar.uygulama')}>
             <ListeSatiri
               icon="language-outline"
-              label="Dil"
-              value={dil === 'tr' ? 'Türkçe' : 'English'}
-              onPress={dilSec}
+              label={t('ayarlar.dil')}
+              value={dilDegeri}
+              onPress={() => router.push('/ayarlar/dil' as any)}
               last={!androidMu}
             />
             {androidMu ? (
               <View style={[styles.switchRow, styles.switchRowLast]}>
                 <View style={styles.switchCopy}>
-                  <Text style={styles.switchLabel}>Küçük ekran (PiP)</Text>
-                  <Text style={styles.switchHint}>
-                    Ses odasından çıkınca köşe penceresi
-                  </Text>
+                  <Text style={styles.switchLabel}>{t('ayarlar.pip')}</Text>
+                  <Text style={styles.switchHint}>{t('ayarlar.pipHint')}</Text>
                 </View>
                 <Switch
                   value={pipAcik}
@@ -163,52 +143,63 @@ export default function AyarlarEkrani() {
             ) : null}
           </ListeGrubu>
 
-          <ListeGrubu title="Gizlilik ve güvenlik">
+          <ListeGrubu title={t('ayarlar.gizlilikGuvenlik')}>
             <ListeSatiri
               icon="eye-off-outline"
-              label="Gizlilik ayarları"
-              value="Kim ne görür"
+              label={t('ayarlar.gizlilikAyarlari')}
+              value={t('ayarlar.gizlilikDeger')}
               onPress={() => router.push('/ayarlar/gizlilik' as any)}
             />
             <ListeSatiri
+              icon="people-outline"
+              label={t('ayarlar.kisilerAramalar')}
+              value={t('ayarlar.kisilerDeger')}
+              onPress={() => router.push('/ayarlar/kisiler-aramalar' as any)}
+            />
+            <ListeSatiri
               icon="shield-checkmark-outline"
-              label="Güvenlik merkezi"
+              label={t('ayarlar.guvenlikMerkezi')}
               onPress={() => router.push('/guvenlik' as any)}
             />
             <ListeSatiri
               icon="ban-outline"
-              label="Engellenen hesaplar"
+              label={t('ayarlar.engellenenHesaplar')}
               onPress={() => router.push('/engellenen-kullanicilar' as any)}
               last
             />
           </ListeGrubu>
 
-          <ListeGrubu title="Yardım">
+          <ListeGrubu title={t('ayarlar.yardim')}>
+            <ListeSatiri
+              icon="receipt-outline"
+              label={t('ayarlar.satinAlmaGecmisi')}
+              onPress={() => router.push('/ayarlar/satin-alma-gecmisi' as any)}
+            />
             <ListeSatiri
               icon="headset-outline"
-              label="Canlı destek"
+              label={t('ayarlar.canliDestek')}
               onPress={() => router.push('/destek' as any)}
             />
             <ListeSatiri
               icon="mail-outline"
-              label="Bize ulaşın"
+              label={t('ayarlar.bizeUlasin')}
               value={UygulamaKimligi.SUPPORT_EMAIL}
               onPress={() => {
                 void Linking.openURL(
-                  `mailto:${UygulamaKimligi.SUPPORT_EMAIL}?subject=${encodeURIComponent('Tamuso destek')}`,
+                  `mailto:${UygulamaKimligi.SUPPORT_EMAIL}?subject=${encodeURIComponent(t('ayarlar.destekKonu'))}`,
                 ).catch(() =>
-                  Alert.alert('İletişim', UygulamaKimligi.SUPPORT_EMAIL),
+                  Alert.alert(t('ayarlar.iletisim'), UygulamaKimligi.SUPPORT_EMAIL),
                 );
               }}
             />
             <ListeSatiri
               icon="document-text-outline"
-              label="Politikalar"
+              label={t('ayarlar.politikalar')}
               onPress={() => router.push('/politika' as any)}
             />
             <ListeSatiri
               icon="people-outline"
-              label="Topluluk kuralları"
+              label={t('ayarlar.toplulukKurallari')}
               onPress={() => router.push('/politika/community_rules' as any)}
               last
             />

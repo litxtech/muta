@@ -9,6 +9,8 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { ProfilMedyaTuru } from '../islemler/ProfilMedyasiYukle';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { yonluIkon } from '../../../i18n/rtl';
 
 type Props = {
   visible: boolean;
@@ -32,7 +34,9 @@ export function ProfilMedyaSecenekleri({
   onEkleVeyaDegistir,
   onSil,
 }: Props) {
-  const baslik = tur === 'cover' ? 'Kapak fotoğrafı' : 'Profil fotoğrafı';
+  const { t } = useCeviri();
+  const baslik =
+    tur === 'cover' ? t('profil.kapakFotografi') : t('profil.profilFotografi');
 
   return (
     <TamusoModal
@@ -56,19 +60,19 @@ export function ProfilMedyaSecenekleri({
             {varMi ? (
               <Secenek
                 icon="expand-outline"
-                label="Büyüt"
+                label={t('profil.buyut')}
                 onPress={onGoruntule}
               />
             ) : null}
             <Secenek
               icon={varMi ? 'image-outline' : 'add-circle-outline'}
-              label={varMi ? 'Değiştir' : 'Ekle'}
+              label={varMi ? t('ortak.degistir') : t('ortak.ekle')}
               onPress={onEkleVeyaDegistir}
             />
             {varMi ? (
               <Secenek
                 icon="trash-outline"
-                label="Sil"
+                label={t('ortak.sil')}
                 danger
                 onPress={onSil}
               />
@@ -81,7 +85,7 @@ export function ProfilMedyaSecenekleri({
           style={({ pressed }) => [styles.cancel, pressed && styles.pressed]}
           disabled={busy}
         >
-          <Text style={styles.cancelText}>İptal</Text>
+          <Text style={styles.cancelText}>{t('ortak.iptal')}</Text>
         </Pressable>
       </View>
     </TamusoModal>
@@ -112,7 +116,11 @@ function Secenek({
         />
       </View>
       <Text style={[styles.rowLabel, danger && styles.rowDanger]}>{label}</Text>
-      <Ionicons name="chevron-forward" size={16} color={RenkTokenlari.textDim} />
+      <Ionicons
+        name={yonluIkon('chevron-forward')}
+        size={16}
+        color={RenkTokenlari.textDim}
+      />
     </Pressable>
   );
 }

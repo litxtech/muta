@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 /** Paylaşılan durum (shared_post) tipleri — içerik snapshot yok. */
 
 export type PaylasilanDurumAvailability =
@@ -22,6 +23,7 @@ export type PaylasilanDurumOnizleme = {
   username?: string | null;
   avatar_url?: string | null;
   public_user_id?: string | null;
+  is_verified?: boolean;
 };
 
 export type GonderiPaylasAlici = {
@@ -55,13 +57,13 @@ export function PaylasilanDurumMesaji(
   if (fallback && fallback.trim()) return fallback.trim();
   switch (availability) {
     case 'DELETED_BY_OWNER':
-      return 'Bu gönderi sahibi tarafından silindi.';
+      return i18n.t('durumX.sahibiSildi');
     case 'REMOVED_BY_PLATFORM':
-      return 'Bu içerik platform tarafından kaldırıldı.';
+      return i18n.t('durumX.platformKaldirildi');
     case 'PERMISSION_DENIED':
-      return 'Bu gönderiyi görüntüleyemezsiniz.';
+      return i18n.t('durumX.goruntuleyemezsin');
     case 'NOT_AVAILABLE':
     default:
-      return 'Bu gönderiye artık ulaşılamıyor.';
+      return i18n.t('durumX.ulasilamiyor');
   }
 }

@@ -1,5 +1,5 @@
-import { OrtamDegiskenleri } from '../../../yapilandirma/OrtamDegiskenleri';
 import { supabase } from '../../../lib/supabase';
+import { PushWorkerTetikle } from '../../bildirimler/kayit/PushWorkerTetikle';
 import type {
   CallSecurityEvent,
   DirectCall,
@@ -43,25 +43,9 @@ async function aramaSinyaliGonder(call: DirectCall) {
   }
 }
 
-/** Outbox'taki push'u hemen isle (giris JWT ile) */
+/** Outbox'taki push'u hemen isle */
 function pushWorkerTetikle() {
-  const base = OrtamDegiskenleri.supabaseUrl;
-  const anon = OrtamDegiskenleri.supabaseAnonAnahtari;
-  if (!base || !anon) return;
-  void (async () => {
-    const { data } = await supabase.auth.getSession();
-    const jwt = data.session?.access_token;
-    if (!jwt) return;
-    await fetch(`${base}/functions/v1/notification-push`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${jwt}`,
-        apikey: anon,
-      },
-      body: JSON.stringify({ limit: 20 }),
-    });
-  })().catch(() => undefined);
+  PushWorkerTetikle(20);
 }
 
 export async function GorusmeBaslat(

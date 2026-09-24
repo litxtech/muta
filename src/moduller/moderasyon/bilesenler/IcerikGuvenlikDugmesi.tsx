@@ -5,6 +5,7 @@ import {
   IcerikBildirPaneli,
   type IcerikBildirTuru,
 } from './IcerikBildirPaneli';
+import { useCeviri } from '../../../i18n/useCeviri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -21,13 +22,13 @@ type Props = {
   isGuest?: boolean;
   /** Kart üzerinde koyu overlay için */
   koyu?: boolean;
-  /** Küçük sade metin buton (oda içi) */
-  varyant?: 'ucNokta' | 'metin';
+  /** Küçük sade metin buton (oda içi) · ikon: sadece bayrak */
+  varyant?: 'ucNokta' | 'metin' | 'ikon';
   hitSlop?: number;
 };
 
 /**
- * Kart / oda / yayın — ⋮ menü veya sade “Bildir” butonu.
+ * Kart / oda / yayın — ⋮ menü, “Bildir” metni veya küçük bayrak.
  */
 export function IcerikGuvenlikDugmesi({
   tur,
@@ -40,6 +41,7 @@ export function IcerikGuvenlikDugmesi({
   varyant = 'ucNokta',
   hitSlop = 8,
 }: Props) {
+  const { t } = useCeviri();
   const [menuAcik, setMenuAcik] = useState(false);
   const [bildirAcik, setBildirAcik] = useState(false);
 
@@ -57,11 +59,24 @@ export function IcerikGuvenlikDugmesi({
             setBildirAcik(true);
           }}
           hitSlop={hitSlop}
-          accessibilityLabel="Bildir"
+          accessibilityLabel={t('bildir.baslik')}
           accessibilityRole="button"
           style={styles.metinBtn}
         >
-          <Text style={styles.metinYazi}>Bildir</Text>
+          <Text style={styles.metinYazi}>{t('bildir.baslik')}</Text>
+        </Pressable>
+      ) : varyant === 'ikon' ? (
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation?.();
+            setBildirAcik(true);
+          }}
+          hitSlop={hitSlop}
+          accessibilityLabel={t('bildir.baslik')}
+          accessibilityRole="button"
+          style={styles.ikonBtn}
+        >
+          <Ionicons name="flag-outline" size={12} color="rgba(255,255,255,0.7)" />
         </Pressable>
       ) : (
         <Pressable
@@ -70,7 +85,7 @@ export function IcerikGuvenlikDugmesi({
             setMenuAcik(true);
           }}
           hitSlop={hitSlop}
-          accessibilityLabel="Daha fazla"
+          accessibilityLabel={t('ortak.dahaFazla')}
           accessibilityRole="button"
           style={[styles.ucNokta, koyu ? styles.ucNoktaKoyu : styles.ucNoktaAcik]}
         >
@@ -91,7 +106,10 @@ export function IcerikGuvenlikDugmesi({
         <Pressable style={styles.backdrop} onPress={() => setMenuAcik(false)}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.sheetTitle} numberOfLines={1}>
-              {title ?? (tur === 'room' ? 'Ses odası' : 'Canlı yayın')}
+              {title ??
+                (tur === 'room'
+                  ? t('moderasyon.sesOdasi')
+                  : t('moderasyon.canliYayin'))}
             </Text>
             <Pressable style={styles.row} onPress={bildirAc}>
               <Ionicons
@@ -99,10 +117,10 @@ export function IcerikGuvenlikDugmesi({
                 size={18}
                 color={RenkTokenlari.danger}
               />
-              <Text style={[styles.rowText, styles.danger]}>Bildir</Text>
+              <Text style={[styles.rowText, styles.danger]}>{t('bildir.baslik')}</Text>
             </Pressable>
             <Pressable style={styles.row} onPress={() => setMenuAcik(false)}>
-              <Text style={styles.rowMuted}>Vazgeç</Text>
+              <Text style={styles.rowMuted}>{t('ortak.vazgec')}</Text>
             </Pressable>
           </Pressable>
         </Pressable>
@@ -147,6 +165,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: 'rgba(255,255,255,0.88)',
+  },
+  ikonBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   backdrop: {
     flex: 1,

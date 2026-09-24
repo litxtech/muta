@@ -67,6 +67,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 function uuidYerel(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -89,6 +90,7 @@ function rotaParamString(
 }
 
 export default function MesajDetayEkrani() {
+  const { t } = useCeviri();
   const { id: idHam } = useLocalSearchParams<{ id: string | string[] }>();
   const id = rotaParamString(idHam);
   const threadId = id && id !== 'yeni' ? id : undefined;
@@ -251,11 +253,11 @@ export default function MesajDetayEkrani() {
   const ara = async (tur: 'audio' | 'video') => {
     if (!id || id === 'yeni') return;
     if (engelli) {
-      Alert.alert('Engelli', 'Bu kullanıcıyla iletişim engellenmiş.');
+      Alert.alert(t('mesajSohbet.engelliBaslik'), t('mesajSohbet.engelliIletisim'));
       return;
     }
     if (isGuest) {
-      Alert.alert('Misafir', 'Arama için hesabını tamamla.');
+      Alert.alert(t('ortak.misafir'), t('mesajSohbet.misafirArama'));
       return;
     }
     Keyboard.dismiss();
@@ -293,7 +295,7 @@ export default function MesajDetayEkrani() {
           /* ignore */
         }
       }
-      Alert.alert('Arama', r.hata);
+      Alert.alert(t('mesajSohbet.arama'), r.hata);
       return;
     }
     router.push(`/gorusme/${r.call.id}` as any);
@@ -332,7 +334,7 @@ export default function MesajDetayEkrani() {
           m.id === clientId ? { ...m, _localStatus: 'failed' } : m,
         ),
       );
-      Alert.alert('Gönderilemedi', sonuc.hata ?? 'Hata');
+      Alert.alert(t('mesajSohbet.gonderilemedi'), sonuc.hata ?? t('ortak.hata'));
       return;
     }
     mergeMesaj({ ...sonuc.mesaj, _localStatus: 'sent' });
@@ -365,7 +367,7 @@ export default function MesajDetayEkrani() {
             m.id === clientId ? { ...m, _localStatus: 'failed' } : m,
           ),
         );
-        Alert.alert('Gönderilemedi', sonuc.hata ?? 'Hata');
+        Alert.alert(t('mesajSohbet.gonderilemedi'), sonuc.hata ?? t('ortak.hata'));
         return;
       }
       mergeMesaj({ ...sonuc.mesaj, _localStatus: 'sent' });
@@ -377,22 +379,22 @@ export default function MesajDetayEkrani() {
     void (async () => {
       const r = await CuzdanHesabiGarantile();
       if (!r.ok || !r.hesap.wallet_number) {
-        Alert.alert('Cüzdan', r.ok === false ? r.hata : 'Cüzdan no bulunamadı.');
+        Alert.alert(t('cuzdan.baslik'), r.ok === false ? r.hata : t('mesajSohbet.cuzdanNoYok'));
         return;
       }
       const no = r.hesap.wallet_number.replace(/\D/g, '');
       const formatli = no.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
-      await hizliMetinGonder(`MUTA PAY cüzdan no: ${formatli}`);
+      await hizliMetinGonder(t('mesajSohbet.cuzdanNoPaylasMetin', { no: formatli }));
     })();
   }, [hizliMetinGonder]);
 
   const idPaylas = useCallback(() => {
     const pid = profile?.public_user_id;
     if (!pid) {
-      Alert.alert('ID', 'Kullanıcı ID henüz yok.');
+      Alert.alert('ID', t('mesajSohbet.idYok'));
       return;
     }
-    void hizliMetinGonder(`Kullanıcı ID: ${pid}`);
+    void hizliMetinGonder(t('mesajSohbet.idPaylasMetin', { id: pid }));
   }, [hizliMetinGonder, profile?.public_user_id]);
 
   const medyaGonder = async (
@@ -401,12 +403,12 @@ export default function MesajDetayEkrani() {
   ) => {
     if (!id || id === 'yeni' || !user?.id) return;
     if (isGuest) {
-      Alert.alert('Misafir', 'Medya için hesabını tamamla.');
+      Alert.alert(t('ortak.misafir'), t('mesajSohbet.misafirMedya'));
       return;
     }
     const up = await DmMedyasiSecVeYukle(tur, { kaynak });
     if (!up.ok) {
-      if (!up.iptal) Alert.alert('Medya', up.hata);
+      if (!up.iptal) Alert.alert(t('ortak.medya'), up.hata);
       return;
     }
 
@@ -438,7 +440,7 @@ export default function MesajDetayEkrani() {
           m.id === clientId ? { ...m, _localStatus: 'failed' } : m,
         ),
       );
-      Alert.alert('Gönderilemedi', sonuc.hata ?? 'Hata');
+      Alert.alert(t('mesajSohbet.gonderilemedi'), sonuc.hata ?? t('ortak.hata'));
       return;
     }
     mergeMesaj({ ...sonuc.mesaj, _localStatus: 'sent' });
@@ -452,11 +454,11 @@ export default function MesajDetayEkrani() {
       onPress?: () => void;
     }[] = [
       {
-        text: 'Benden sil',
+        text: t('mesajSohbet.bendenSil'),
         onPress: () => {
           void (async () => {
             const r = await MesajSil(item.id, 'me');
-            if (!r.ok) Alert.alert('Sil', r.hata);
+            if (!r.ok) Alert.alert(t('mesajSohbet.sil'), r.hata);
             else setMesajlar((p) => p.filter((m) => m.id !== item.id));
           })();
         },
@@ -464,12 +466,12 @@ export default function MesajDetayEkrani() {
     ];
     if (mine && item._localStatus !== 'sending') {
       opts.push({
-        text: 'Herkesten sil',
+        text: t('mesajSohbet.herkestenSil'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
             const r = await MesajSil(item.id, 'everyone');
-            if (!r.ok) Alert.alert('Sil', r.hata);
+            if (!r.ok) Alert.alert(t('mesajSohbet.sil'), r.hata);
             else setMesajlar((p) => p.filter((m) => m.id !== item.id));
           })();
         },
@@ -477,14 +479,14 @@ export default function MesajDetayEkrani() {
     }
     if (!mine) {
       opts.push({
-        text: 'Bildir',
+        text: t('mesajSohbet.bildir'),
         style: 'destructive',
         onPress: () => {
           setRaporIcerik({
             contentId: item.id,
             preview: item.body || (
               item.message_type === 'shared_post'
-                ? 'Bir gönderi paylaştı'
+                ? t('mesajSohbet.paylasilanGonderi')
                 : `[${item.message_type}]`
             ),
             mediaUrl: item.media_url,
@@ -493,8 +495,8 @@ export default function MesajDetayEkrani() {
         },
       });
     }
-    opts.push({ text: 'Vazgeç', style: 'cancel' });
-    Alert.alert('Mesaj', undefined, opts);
+    opts.push({ text: t('ortak.vazgec'), style: 'cancel' });
+    Alert.alert(t('mesajSohbet.mesajBaslik'), undefined, opts);
   };
 
   const sohbetMenu = () => {
@@ -508,7 +510,7 @@ export default function MesajDetayEkrani() {
         onPress?: () => void;
       }[] = [
         {
-          text: 'Platform hesapları (mavi tik)',
+          text: t('mesajSohbet.platformHesaplari'),
           onPress: () => setPlatformHesapAcik(true),
         },
       ];
@@ -519,16 +521,16 @@ export default function MesajDetayEkrani() {
         );
         for (const h of hedefler) {
           opts.push({
-            text: `Kara · ${h.display_name || h.username || 'taraf'}`,
+            text: t('mesajSohbet.karaTaraf', { ad: h.display_name || h.username || t('mesajSohbet.taraf') }),
             style: 'destructive',
             onPress: () => {
               Alert.alert(
-                'Kara işlem',
-                `${h.display_name || h.username} için kara açılacak.\nHesap askıya alınır / kapatma yolu başlar. Onaylıyor musun?`,
+                t('mesajSohbet.karaIslem'),
+                t('mesajSohbet.karaAcSoru', { ad: h.display_name || h.username }),
                 [
-                  { text: 'Vazgeç', style: 'cancel' },
+                  { text: t('ortak.vazgec'), style: 'cancel' },
                   {
-                    text: 'Kara aç',
+                    text: t('mesajSohbet.karaAc'),
                     style: 'destructive',
                     onPress: () => {
                       void (async () => {
@@ -536,14 +538,11 @@ export default function MesajDetayEkrani() {
                           disputeId: peer.dispute_id!,
                           targetUserId: h.id,
                           reason:
-                            'Mahkeme kararı: usulsüzlük / dolandırıcılık / cevap vermeme',
+                            t('mesajSohbet.karaSebep'),
                         });
-                        if (!r.ok) Alert.alert('Kara', r.hata);
+                        if (!r.ok) Alert.alert(t('mesajSohbet.karaIslem'), r.hata);
                         else {
-                          Alert.alert(
-                            'Kara açıldı',
-                            'Karar mahkeme grubuna bildirildi.',
-                          );
+                          Alert.alert(t('mesajSohbet.karaAcildi'), t('mesajSohbet.karaAcildiBody'));
                           void load();
                         }
                       })();
@@ -555,24 +554,24 @@ export default function MesajDetayEkrani() {
           });
         }
         opts.push({
-          text: 'Mahkemeyi kapat',
+          text: t('mesajSohbet.mahkemeyiKapat'),
           style: 'destructive',
           onPress: () => {
             Alert.alert(
-              'Mahkemeyi kapat',
-              'Grup kapanır; yeni mesaj yazılamaz. Onaylıyor musun?',
+              t('mesajSohbet.mahkemeyiKapat'),
+              t('mesajSohbet.mahkemeyiKapatSoru'),
               [
-                { text: 'Vazgeç', style: 'cancel' },
+                { text: t('ortak.vazgec'), style: 'cancel' },
                 {
-                  text: 'Kapat',
+                  text: t('ortak.kapat'),
                   style: 'destructive',
                   onPress: () => {
                     void (async () => {
                       const r = await TakasMahkemeKapat({
                         disputeId: peer.dispute_id!,
-                        note: 'Mahkeme platform tarafından kapatıldı.',
+                        note: t('mesajSohbet.mahkemeKapatNot'),
                       });
-                      if (!r.ok) Alert.alert('Kapat', r.hata);
+                      if (!r.ok) Alert.alert(t('ortak.kapat'), r.hata);
                       else void load();
                     })();
                   },
@@ -585,47 +584,47 @@ export default function MesajDetayEkrani() {
 
       opts.push(
         {
-          text: 'Arşivle',
+          text: t('mesajlar.arsivle'),
           onPress: () => {
             void (async () => {
               const r = await MesajThreadArsivle(id, true);
-              if (!r.ok) Alert.alert('Arşiv', r.hata);
+              if (!r.ok) Alert.alert(t('mesajSohbet.arsiv'), r.hata);
               else router.back();
             })();
           },
         },
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('ortak.vazgec'), style: 'cancel' },
       );
 
       Alert.alert(
-        peer?.thread_title || peer?.display_name || 'Mahkeme',
+        peer?.thread_title || peer?.display_name || t('mesajSohbet.mahkeme'),
         mahkemeKapali
-          ? 'Bu mahkeme kapalı.'
-          : 'Yargıç paneli · savunmalar bu grupta',
+          ? t('mesajSohbet.mahkemeKapali')
+          : t('mesajSohbet.yargicPanel'),
         opts,
       );
       return;
     }
 
     Alert.alert(
-      peer?.agency_name || peer?.display_name || peer?.username || 'Sohbet',
+      peer?.agency_name || peer?.display_name || peer?.username || t('mesajSohbet.sohbet'),
       undefined,
       [
         peer?.peer_agency_id
           ? {
-              text: 'Ajans profili',
+              text: t('mesajSohbet.ajansProfili'),
               onPress: () =>
                 router.push(`/ajans/profil/${peer.peer_agency_id}` as any),
             }
           : peer?.id
             ? {
-                text: 'Profil',
+                text: t('profil.baslik'),
                 onPress: () => router.push(`/kullanici/${peer.id}` as any),
               }
             : undefined,
         peer?.id && !engelli
           ? {
-              text: 'Hediye gönder',
+              text: t('mesajSohbet.hediyeGonder'),
               onPress: () =>
                 magaza.ac({
                   receiverId: peer.id,
@@ -635,7 +634,7 @@ export default function MesajDetayEkrani() {
                   onBasarili: (gift, adet) => {
                     void MesajGonder({
                       threadId: id,
-                      body: `🎁 ${gift.emoji} ${gift.name}${adet > 1 ? ` ×${adet}` : ''} hediye gönderdi`,
+                      body: t('mesajSohbet.hediyeGonderdi', { emoji: `🎁 ${gift.emoji}`, ad: gift.name, adet: adet > 1 ? ` ×${adet}` : '' }),
                       messageType: 'text',
                       clientId: uuidYerel(),
                     }).then((r) => {
@@ -646,35 +645,35 @@ export default function MesajDetayEkrani() {
             }
           : undefined,
         {
-          text: 'Arşivle',
+          text: t('mesajlar.arsivle'),
           onPress: () => {
             void (async () => {
               const r = await MesajThreadArsivle(id, true);
-              if (!r.ok) Alert.alert('Arşiv', r.hata);
+              if (!r.ok) Alert.alert(t('mesajSohbet.arsiv'), r.hata);
               else {
-                Alert.alert('Arşivlendi', 'Sohbet arşive taşındı.');
+                Alert.alert(t('mesajSohbet.arsivlendi'), t('mesajSohbet.arsivlendiBody'));
                 router.back();
               }
             })();
           },
         },
         {
-          text: 'Sohbeti sil',
+          text: t('mesajSohbet.sohbetiSil'),
           style: 'destructive',
           onPress: () => {
             Alert.alert(
-              'Sohbeti sil',
-              'Bu sohbet senden tamamen silinir. Geçmiş temizlenir; karşı taraf etkilenmez.',
+              t('mesajSohbet.sohbetiSil'),
+              t('mesajSohbet.sohbetiSilBody'),
               [
-                { text: 'Vazgeç', style: 'cancel' },
+                { text: t('ortak.vazgec'), style: 'cancel' },
                 {
-                  text: 'Sil',
+                  text: t('ortak.sil'),
                   style: 'destructive',
                   onPress: () => {
                     void (async () => {
                       const r = await MesajSohbetSil(id);
                       if (!r.ok) {
-                        Alert.alert('Silinemedi', r.hata);
+                        Alert.alert(t('mesajSohbet.silinemedi'), r.hata);
                         return;
                       }
                       router.replace('/(tabs)/messages' as any);
@@ -686,10 +685,10 @@ export default function MesajDetayEkrani() {
           },
         },
         {
-          text: 'Engelle / Bildir',
+          text: t('mesajSohbet.engelleBildir'),
           onPress: () => setGuvenlikAcik(true),
         },
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('ortak.vazgec'), style: 'cancel' },
       ].filter(Boolean) as {
         text: string;
         style?: 'cancel' | 'destructive';
@@ -704,7 +703,7 @@ export default function MesajDetayEkrani() {
     const sonuc = await OzelSohbetAcVeyaGetir(kullanici.id);
     setAciliyor(false);
     if (!sonuc.ok) {
-      Alert.alert('Sohbet açılamadı', sonuc.hata);
+      Alert.alert(t('mesajSohbet.sohbetAcilamadi'), sonuc.hata);
       return;
     }
     router.replace(`/mesaj/${sonuc.threadId}` as any);
@@ -719,8 +718,8 @@ export default function MesajDetayEkrani() {
               <Ionicons name="chevron-back" size={24} color={RenkTokenlari.text} />
             </Pressable>
             <View style={styles.topCopy}>
-              <Text style={styles.topFisilti}>YENİ SOHBET</Text>
-              <Text style={styles.topTitle}>Kullanıcı ara</Text>
+              <Text style={styles.topFisilti}>{t('mesajSohbet.yeniSohbetFisilti')}</Text>
+              <Text style={styles.topTitle}>{t('mesajSohbet.kullaniciAra')}</Text>
             </View>
             <View style={styles.backBtn} />
           </View>
@@ -743,8 +742,8 @@ export default function MesajDetayEkrani() {
               <Ionicons name="chevron-back" size={24} color={RenkTokenlari.text} />
             </Pressable>
             <View style={styles.topCopy}>
-              <Text style={styles.topTitle}>Sohbet bulunamadı</Text>
-              <Text style={styles.topFisilti}>Geri dönüp tekrar dene</Text>
+              <Text style={styles.topTitle}>{t('mesajSohbet.sohbetBulunamadi')}</Text>
+              <Text style={styles.topFisilti}>{t('mesajSohbet.sohbetBulunamadiAlt')}</Text>
             </View>
             <View style={styles.backBtn} />
           </View>
@@ -781,7 +780,7 @@ export default function MesajDetayEkrani() {
                     peer?.thread_title ||
                     peer?.display_name ||
                     peer?.username ||
-                    'Mesaj'}
+                    t('mesajSohbet.mesajBaslik')}
                 </Text>
                 {mahkemeMi || peer?.is_platform_official || peer?.is_platform_yargic ? (
                   <MaviTikRozeti size={16} />
@@ -790,11 +789,11 @@ export default function MesajDetayEkrani() {
               <Text style={styles.topFisilti}>
                 {mahkemeMi
                   ? mahkemeKapali
-                    ? 'mahkeme kapalı · yargıç'
-                    : 'yargıç · mavi tik · dokun'
+                    ? t('mesajSohbet.mahkemeKapaliFisilti')
+                    : t('mesajSohbet.yargicFisilti')
                   : peer?.peer_agency_id
-                    ? 'ajans · dokunarak profil'
-                    : 'çevrimiçi · dokunarak menü'}
+                    ? t('mesajSohbet.ajansFisilti')
+                    : t('mesajSohbet.cevrimiciFisilti')}
               </Text>
             </Pressable>
             <View style={styles.aramaBtnlar}>
@@ -839,9 +838,9 @@ export default function MesajDetayEkrani() {
             ]}
             ListEmptyComponent={
               <View style={styles.emptyChatWrap}>
-                <Text style={styles.emptyChat}>Henüz mesaj yok</Text>
+                <Text style={styles.emptyChat}>{t('mesajSohbet.bosChat')}</Text>
                 <Text style={styles.emptyChatAlt}>
-                  Metin, fotoğraf veya video gönder — anında ulaşır.
+                  {t('mesajSohbet.bosChatAlt')}
                 </Text>
               </View>
             }
@@ -872,8 +871,7 @@ export default function MesajDetayEkrani() {
               ]}
             >
               <Text style={styles.kapaliUyari}>
-                Bu kullanıcıyla iletişim engellenmiş. Mesaj, arama ve hediye
-                kapalı.
+                {t('mesajSohbet.engelliComposer')}
               </Text>
               <Pressable
                 onPress={() =>
@@ -888,9 +886,7 @@ export default function MesajDetayEkrani() {
                     textAlign: 'center',
                     fontWeight: '700',
                   }}
-                >
-                  Engellenenleri yönet
-                </Text>
+                >{t('mesajSohbet.engellenenleriYonet')}</Text>
               </Pressable>
             </View>
           ) : mahkemeKapali ? (
@@ -901,7 +897,7 @@ export default function MesajDetayEkrani() {
               ]}
             >
               <Text style={styles.kapaliUyari}>
-                Bu mahkeme kapatıldı. Yeni mesaj yazılamaz.
+                {t('mesajSohbet.mahkemeKapaliComposer')}
               </Text>
             </View>
           ) : (
@@ -932,7 +928,7 @@ export default function MesajDetayEkrani() {
                   onBasarili: (gift, adet) => {
                     void MesajGonder({
                       threadId,
-                      body: `🎁 ${gift.emoji} ${gift.name}${adet > 1 ? ` ×${adet}` : ''} hediye gönderdi`,
+                      body: t('mesajSohbet.hediyeGonderdi', { emoji: `🎁 ${gift.emoji}`, ad: gift.name, adet: adet > 1 ? ` ×${adet}` : '' }),
                       messageType: 'text',
                       clientId: uuidYerel(),
                     }).then((r) => {
@@ -941,7 +937,7 @@ export default function MesajDetayEkrani() {
                   },
                 });
               }}
-              accessibilityLabel="Hediye gönder"
+              accessibilityLabel={t('mesajSohbet.hediyeA11y')}
             >
               <LinearGradient
                 colors={['rgba(255,180,90,0.28)', 'rgba(255,180,90,0.08)']}
@@ -958,7 +954,7 @@ export default function MesajDetayEkrani() {
                 setMedyaGoruntule(null);
                 setMedyaSecimAcik(true);
               }}
-              accessibilityLabel="Fotoğraf veya video gönder"
+              accessibilityLabel={t('mesajSohbet.medyaGonderA11y')}
             >
               <LinearGradient
                 colors={['rgba(90,220,200,0.28)', 'rgba(140,120,255,0.14)']}
@@ -970,7 +966,7 @@ export default function MesajDetayEkrani() {
             <TextInput
               value={metin}
               onChangeText={setMetin}
-              placeholder="Mesaj yaz..."
+              placeholder={t('mesajSohbet.yazPlaceholder')}
               placeholderTextColor={RenkTokenlari.textDim}
               style={styles.input}
               multiline

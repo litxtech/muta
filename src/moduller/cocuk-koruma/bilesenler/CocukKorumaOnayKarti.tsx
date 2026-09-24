@@ -12,13 +12,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { TamusoModal } from '../../../bilesenler/yuzey/TamusoModal';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useCeviri } from '../../../i18n/useCeviri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
-import { COCUK_KORUMA_KART } from '../icerik/CocukKorumaKartMetni';
 import {
   CocukKorumaOnayDurumuGetir,
   CocukKorumaOnayla,
@@ -30,6 +30,7 @@ import {
  * Backdrop kapatılmaz; onaylanana veya hesap kapanana kadar kalır.
  */
 export function CocukKorumaOnayKarti() {
+  const { t } = useCeviri();
   const { user, profile, refreshProfile } = useAuth();
   const [gerekli, setGerekli] = useState(false);
   const [kontrolEdildi, setKontrolEdildi] = useState(false);
@@ -43,7 +44,6 @@ export function CocukKorumaOnayKarti() {
       setKontrolEdildi(true);
       return;
     }
-    // Profilde zaten onay varsa RPC'ye gitme
     if (profile.child_protection_consent_status === 'approved') {
       setGerekli(false);
       setKontrolEdildi(true);
@@ -93,8 +93,6 @@ export function CocukKorumaOnayKarti() {
 
   if (!kontrolEdildi || !gerekli) return null;
 
-  const M = COCUK_KORUMA_KART;
-
   return (
     <TamusoModal
       visible
@@ -116,8 +114,7 @@ export function CocukKorumaOnayKarti() {
               <Ionicons name="shield-checkmark" size={22} color="#7DFFB3" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.baslikTr}>{M.baslikTr}</Text>
-              <Text style={styles.baslikEn}>{M.baslikEn}</Text>
+              <Text style={styles.baslikTr}>{t('cocukKoruma.baslik')}</Text>
             </View>
           </View>
 
@@ -127,9 +124,7 @@ export function CocukKorumaOnayKarti() {
             showsVerticalScrollIndicator
             bounces
           >
-            <Text style={styles.govde}>{M.govdeTr}</Text>
-            <View style={styles.ayirici} />
-            <Text style={styles.govde}>{M.govdeEn}</Text>
+            <Text style={styles.govde}>{t('cocukKoruma.govde')}</Text>
           </ScrollView>
 
           {hata ? <Text style={styles.hata}>{hata}</Text> : null}
@@ -144,10 +139,7 @@ export function CocukKorumaOnayKarti() {
                 {busy ? (
                   <ActivityIndicator color="#0B1411" />
                 ) : (
-                  <>
-                    <Text style={styles.btnOnayYazi}>{M.btnBuyugumTr}</Text>
-                    <Text style={styles.btnOnayAlt}>{M.btnBuyugumEn}</Text>
-                  </>
+                  <Text style={styles.btnOnayYazi}>{t('cocukKoruma.btnBuyugum')}</Text>
                 )}
               </Pressable>
               <Pressable
@@ -155,14 +147,12 @@ export function CocukKorumaOnayKarti() {
                 disabled={busy}
                 onPress={() => setAltOnay(true)}
               >
-                <Text style={styles.btnRedYazi}>{M.btnDegilimTr}</Text>
-                <Text style={styles.btnRedAlt}>{M.btnDegilimEn}</Text>
+                <Text style={styles.btnRedYazi}>{t('cocukKoruma.btnDegilim')}</Text>
               </Pressable>
             </View>
           ) : (
             <View style={styles.aksiyonlar}>
-              <Text style={styles.uyari}>{M.onayUyariTr}</Text>
-              <Text style={[styles.uyari, styles.uyariEn]}>{M.onayUyariEn}</Text>
+              <Text style={styles.uyari}>{t('cocukKoruma.onayUyari')}</Text>
               <Pressable
                 style={[styles.btn, styles.btnTehlike]}
                 disabled={busy}
@@ -171,10 +161,7 @@ export function CocukKorumaOnayKarti() {
                 {busy ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <>
-                    <Text style={styles.btnTehlikeYazi}>{M.btnOnayKapatTr}</Text>
-                    <Text style={styles.btnTehlikeAlt}>{M.btnOnayKapatEn}</Text>
-                  </>
+                  <Text style={styles.btnTehlikeYazi}>{t('cocukKoruma.btnOnayKapat')}</Text>
                 )}
               </Pressable>
               <Pressable
@@ -182,9 +169,7 @@ export function CocukKorumaOnayKarti() {
                 disabled={busy}
                 onPress={() => setAltOnay(false)}
               >
-                <Text style={styles.btnGhostYazi}>
-                  {M.btnVazgecTr} / {M.btnVazgecEn}
-                </Text>
+                <Text style={styles.btnGhostYazi}>{t('cocukKoruma.btnVazgec')}</Text>
               </Pressable>
             </View>
           )}
@@ -206,20 +191,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(125,255,179,0.22)',
     overflow: 'hidden',
-    maxHeight: '92%',
+    maxHeight: '88%',
   },
   ustSerit: {
     height: 3,
     backgroundColor: '#7DFFB3',
-    opacity: 0.85,
   },
   baslikSatir: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 8,
+    gap: BoslukTokenlari.md,
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingTop: BoslukTokenlari.lg,
+    paddingBottom: BoslukTokenlari.sm,
   },
   ikonKutu: {
     width: 40,
@@ -231,105 +215,59 @@ const styles = StyleSheet.create({
   },
   baslikTr: {
     ...TipografiTokenlari.h2,
-    color: '#F4FFF8',
-    fontWeight: '700',
+    color: RenkTokenlari.text,
   },
-  baslikEn: {
-    ...TipografiTokenlari.caption,
-    color: 'rgba(244,255,248,0.55)',
-    marginTop: 2,
-  },
-  scroll: {
-    maxHeight: 320,
-    marginHorizontal: 18,
-    marginTop: 4,
-  },
+  scroll: { maxHeight: 280 },
   scrollIcerik: {
-    paddingBottom: 8,
-    gap: 12,
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingBottom: BoslukTokenlari.md,
   },
   govde: {
     ...TipografiTokenlari.body,
-    color: 'rgba(244,255,248,0.88)',
+    color: RenkTokenlari.textMuted,
     lineHeight: 22,
-  },
-  ayirici: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(125,255,179,0.25)',
-    marginVertical: 4,
   },
   hata: {
     ...TipografiTokenlari.caption,
-    color: RenkTokenlari.danger,
-    paddingHorizontal: 18,
-    marginTop: 8,
+    color: '#FF6B6B',
+    paddingHorizontal: BoslukTokenlari.lg,
+    marginBottom: BoslukTokenlari.sm,
   },
   aksiyonlar: {
-    padding: 18,
-    gap: 10,
+    padding: BoslukTokenlari.lg,
+    gap: BoslukTokenlari.sm,
   },
   btn: {
-    borderRadius: YaricapTokenlari.lg,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    borderRadius: YaricapTokenlari.md,
+    paddingVertical: BoslukTokenlari.md,
     alignItems: 'center',
   },
-  btnOnay: {
-    backgroundColor: '#7DFFB3',
-  },
+  btnOnay: { backgroundColor: '#7DFFB3' },
   btnOnayYazi: {
-    ...TipografiTokenlari.body,
+    ...TipografiTokenlari.h2,
     color: '#0B1411',
-    fontWeight: '700',
-  },
-  btnOnayAlt: {
-    ...TipografiTokenlari.caption,
-    color: 'rgba(11,20,17,0.65)',
-    marginTop: 2,
   },
   btnRed: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(255,255,255,0.18)',
   },
   btnRedYazi: {
     ...TipografiTokenlari.body,
-    color: 'rgba(244,255,248,0.92)',
-    fontWeight: '600',
-  },
-  btnRedAlt: {
-    ...TipografiTokenlari.caption,
-    color: 'rgba(244,255,248,0.5)',
-    marginTop: 2,
+    color: RenkTokenlari.text,
   },
   uyari: {
     ...TipografiTokenlari.caption,
-    color: 'rgba(255,180,160,0.95)',
-    lineHeight: 18,
-    textAlign: 'center',
+    color: RenkTokenlari.textMuted,
+    marginBottom: BoslukTokenlari.sm,
   },
-  uyariEn: {
-    color: 'rgba(255,180,160,0.7)',
-    marginBottom: 4,
-  },
-  btnTehlike: {
-    backgroundColor: RenkTokenlari.danger,
-  },
+  btnTehlike: { backgroundColor: '#C0392B' },
   btnTehlikeYazi: {
-    ...TipografiTokenlari.body,
+    ...TipografiTokenlari.h2,
     color: '#fff',
-    fontWeight: '700',
   },
-  btnTehlikeAlt: {
-    ...TipografiTokenlari.caption,
-    color: 'rgba(255,255,255,0.75)',
-    marginTop: 2,
-  },
-  btnGhost: {
-    backgroundColor: 'transparent',
-  },
+  btnGhost: { paddingVertical: BoslukTokenlari.sm },
   btnGhostYazi: {
     ...TipografiTokenlari.caption,
-    color: 'rgba(244,255,248,0.55)',
+    color: RenkTokenlari.textMuted,
   },
 });

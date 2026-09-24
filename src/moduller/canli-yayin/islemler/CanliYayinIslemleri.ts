@@ -73,7 +73,23 @@ export async function CanliYayinlariGetir(limit = 20) {
   const { data, error } = await supabase
     .from('live_sessions')
     .select(
-      '*, host:profiles!live_sessions_host_id_fkey(id, display_name, username, public_user_id, level, avatar_url)',
+      [
+        'id',
+        'host_id',
+        'title',
+        'mode',
+        'category',
+        'topic',
+        'viewer_count',
+        'like_count',
+        'gift_count',
+        'total_coins_earned',
+        'score',
+        'started_at',
+        'is_live',
+        'livekit_room_name',
+        'host:profiles!live_sessions_host_id_fkey(id, display_name, username, public_user_id, level, avatar_url)',
+      ].join(', '),
     )
     .eq('is_live', true)
     .order('started_at', { ascending: false })
@@ -91,7 +107,23 @@ export async function CanliYayinlariGetir(limit = 20) {
       const { data: kendi } = await supabase
         .from('live_sessions')
         .select(
-          '*, host:profiles!live_sessions_host_id_fkey(id, display_name, username, public_user_id, level, avatar_url)',
+          [
+            'id',
+            'host_id',
+            'title',
+            'mode',
+            'category',
+            'topic',
+            'viewer_count',
+            'like_count',
+            'gift_count',
+            'total_coins_earned',
+            'score',
+            'started_at',
+            'is_live',
+            'livekit_room_name',
+            'host:profiles!live_sessions_host_id_fkey(id, display_name, username, public_user_id, level, avatar_url)',
+          ].join(', '),
         )
         .eq('is_live', true)
         .eq('host_id', selfId)

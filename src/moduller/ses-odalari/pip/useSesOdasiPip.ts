@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import ExpoPip from 'expo-pip';
+import i18n from '../../../i18n';
 import {
   SesOdasiPipAcikMi,
   SesOdasiPipBellekten,
@@ -15,19 +16,20 @@ import { SesOdasiArkaPlanTamamenCik } from '../arka-plan/SesOdasiArkaPlanServisi
 export const SES_ODASI_PIP_CIK_ACTION = 'ses_odasi_pip_cik';
 
 function pipParams(autoEnterEnabled: boolean, title?: string | null) {
+  const sesOdasi = i18n.t('sesOda.sesOdasi');
   return {
     width: 240,
     height: 320,
-    title: (title || 'Ses odası').trim() || 'Ses odası',
-    subtitle: 'Ses devam ediyor',
+    title: (title || sesOdasi).trim() || sesOdasi,
+    subtitle: i18n.t('sesOda.sesDevamEdiyor'),
     seamlessResizeEnabled: false as const,
     autoEnterEnabled,
     actions: [
       {
         iconName: 'pip_close',
         action: SES_ODASI_PIP_CIK_ACTION,
-        title: 'Çık',
-        description: 'Ses odasından çık',
+        title: i18n.t('sesOda.cik'),
+        description: i18n.t('sesOda.sesOdasindanCik'),
       },
     ],
   };

@@ -66,7 +66,7 @@ export async function SonGezileneKaydet(
     const kayit: SonGezilenKayit = {
       id: input.id,
       tur: input.tur,
-      title: input.title.trim() || (input.tur === 'canli' ? 'Yayın' : 'Oda'),
+      title: input.title.trim(),
       coverUrl: input.coverUrl ?? null,
       hostAd: input.hostAd ?? null,
       hostAvatar: input.hostAvatar ?? null,

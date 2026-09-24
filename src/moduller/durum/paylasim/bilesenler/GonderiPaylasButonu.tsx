@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../../tasarim-sistemi/TipografiTokenlari';
 import { GonderiPaylasSheet } from './GonderiPaylasSheet';
+import { useCeviri } from '../../../../i18n/useCeviri';
 
 type Props = {
   statusId: string;
@@ -27,6 +28,7 @@ export function GonderiPaylasButonu({
   disabled,
   onPressGate,
 }: Props) {
+  const { t } = useCeviri();
   const [acik, setAcik] = useState(false);
 
   const ac = () => {
@@ -49,14 +51,14 @@ export function GonderiPaylasButonu({
         hitSlop={10}
         disabled={disabled}
         accessibilityRole="button"
-        accessibilityLabel="Gönderiyi paylaş"
+        accessibilityLabel={t('durumX.gonderiyiPaylas')}
       >
         <Ionicons
           name="paper-plane-outline"
           size={18}
           color={RenkTokenlari.textDim}
         />
-        {!kompakt ? <Text style={styles.yazi}>Paylaş</Text> : null}
+        {!kompakt ? <Text style={styles.yazi}>{t('durumX.paylas')}</Text> : null}
         {kompakt && shareCount != null && shareCount > 0 ? (
           <Text style={styles.sayi}>{shareCount}</Text>
         ) : null}

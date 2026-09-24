@@ -1,4 +1,5 @@
 import { supabase } from '../../../lib/supabase';
+import i18n from '../../../i18n';
 import { TakipHatadanKod, TakipHataMesaji } from '../TakipHataMesajlari';
 import { TakipCache } from '../onbellek/TakipCache';
 import type {
@@ -26,7 +27,7 @@ function kartNormalize(raw: unknown): TakipKullaniciKarti | null {
   if (!userId) return null;
   return {
     user_id: userId,
-    display_name: String(r.display_name ?? 'Kullanıcı'),
+    display_name: String(r.display_name ?? i18n.t('ortak.kullanici')),
     username: (r.username as string | null) ?? null,
     avatar_url: (r.avatar_url as string | null) ?? null,
     is_verified: !!r.is_verified,
@@ -220,6 +221,21 @@ export const TakipServisi = {
     };
     if (viewerId) TakipCache.ortakYaz(viewerId, targetUserId, row);
     return row;
+  },
+
+  async ortakListe(input: {
+    targetUserId: string;
+    cursor?: TakipListeImleci | null;
+    limit?: number;
+  }): Promise<TakipListeSayfasi> {
+    const { data, error } = await supabase.rpc('ortak_takipcileri_listele', {
+      p_target_id: input.targetUserId,
+      p_limit: input.limit ?? 24,
+      p_cursor_created_at: input.cursor?.created_at ?? null,
+      p_cursor_id: input.cursor?.id ?? null,
+    });
+    if (error) throw error;
+    return listeParse(data);
   },
 
   async oneriler(limit = 12): Promise<TakipOnerisi[]> {

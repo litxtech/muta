@@ -9,6 +9,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   canliSayisi: number;
@@ -17,6 +18,7 @@ type Props = {
 
 /** Keşfet — premium marka başlığı + canlı sayaç */
 export function KesfetMarkaBasligi({ canliSayisi, onGeri }: Props) {
+  const { t } = useCeviri();
   return (
     <View style={styles.wrap}>
       <View style={styles.ust}>
@@ -24,22 +26,22 @@ export function KesfetMarkaBasligi({ canliSayisi, onGeri }: Props) {
           style={styles.geri}
           onPress={onGeri ?? (() => guvenliGeriDon('/(tabs)'))}
           hitSlop={8}
-          accessibilityLabel="Geri"
+          accessibilityLabel={t('ortak.geri')}
         >
           <Ionicons name="chevron-back" size={22} color={RenkTokenlari.text} />
         </Pressable>
 
         <View style={styles.markaBlok}>
-          <Text style={styles.fisilti}>KEŞFET</Text>
-          <Text style={styles.baslik}>Sahneyi bul</Text>
-          <Text style={styles.slogan}>Mod · trend · canlı odalar</Text>
+          <Text style={styles.fisilti}>{t('kesfet.fisilti')}</Text>
+          <Text style={styles.baslik}>{t('kesfet.sahneBul')}</Text>
+          <Text style={styles.slogan}>{t('kesfet.slogan')}</Text>
         </View>
 
         <View style={styles.canliRozet}>
           <AnaSayfaCanliNokta boyut={6} />
           <View style={styles.canliMetin}>
             <Text style={styles.canliSayi}>{canliSayisi}</Text>
-            <Text style={styles.canliEtiket}>canlı</Text>
+            <Text style={styles.canliEtiket}>{t('kesfet.canliEtiket')}</Text>
           </View>
         </View>
       </View>

@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import type { Session, User } from '@supabase/supabase-js';
+import i18n from '../i18n';
 import { supabase } from '../lib/supabase';
 import type { Profile, Wallet } from '../types/models';
 import { EmailIleGirisYap } from '../moduller/kimlik-dogrulama/giris/EmailIleGirisYap';
@@ -137,10 +138,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const { data } = await supabase
       .from('profiles')
-      .select('*')
+      .select(
+        [
+          'id',
+          'public_user_id',
+          'username',
+          'display_name',
+          'bio',
+          'avatar_url',
+          'cover_url',
+          'phone_e164',
+          'gender',
+          'birth_date',
+          'custom_fields',
+          'country',
+          'country_code',
+          'region_id',
+          'language',
+          'is_host',
+          'is_guest',
+          'is_admin',
+          'is_verified',
+          'level',
+          'xp',
+          'primary_city_id',
+          'created_at',
+          'banned_at',
+          'ban_reason',
+          'deleted_at',
+          'deletion_requested_at',
+          'child_protection_consent_status',
+          'child_protection_consent_at',
+        ].join(', '),
+      )
       .eq('id', uid)
       .maybeSingle();
-    let next = (data as Profile) ?? null;
+    let next = (data as unknown as Profile) ?? null;
 
     if (next?.banned_at) {
       setProfile(null);
@@ -190,10 +223,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     const { data } = await supabase
       .from('wallets')
-      .select('*')
+      .select('user_id, coins, diamonds, updated_at')
       .eq('user_id', uid)
       .maybeSingle();
-    setWallet((data as Wallet) ?? null);
+    setWallet((data as unknown as Wallet) ?? null);
   }, []);
 
   const patchWallet = useCallback(
@@ -272,6 +305,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    void import('../moduller/cuzdan/katalog/EkonomiOranlariniGetir')
+      .then((m) => m.EkonomiOranlariniGetir())
+      .catch(() => undefined);
+  }, [session?.user?.id]);
+
+  useEffect(() => {
     let mounted = true;
 
     supabase.auth.getSession().then(({ data }) => {
@@ -336,12 +375,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const oturumEngelMesaji = (kod: string, mesaj?: string) => {
     if (kod === 'deleted') {
-      return 'Bu hesap silinmiş. Apple / e-posta ile yeni hesap açabilirsin.';
+      return i18n.t('auth.hesapSilinmis');
     }
     if (kod === 'banned') {
-      return mesaj ?? 'Hesap askıda';
+      return mesaj ?? i18n.t('auth.hesapAskida');
     }
-    return mesaj ?? 'Hesap kullanılamıyor';
+    return mesaj ?? i18n.t('auth.hesapKullanilamiyor');
   };
 
   const signIn = useCallback(async (kimlik: string, password: string) => {
@@ -386,8 +425,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ));
     } catch {
       return {
-        error:
-          'Spotify girişi için yeni development build gerekli (expo-web-browser).',
+        error: i18n.t('auth.spotifyBuildGerekli'),
       };
     }
     let sonuc: Awaited<ReturnType<typeof SpotifyIleGirisYap>>;
@@ -397,12 +435,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const msg = e instanceof Error ? e.message : '';
       if (msg.includes('ExpoWebBrowser') || msg.includes('native module')) {
         return {
-          error:
-            'Spotify girişi için yeni development build gerekli (expo-web-browser).',
+          error: i18n.t('auth.spotifyBuildGerekli'),
         };
       }
       GuvenlikOlayiKaydet('login_failed', { provider: 'spotify' });
-      return { error: 'Spotify girişi başarısız. Tekrar dene.' };
+      return { error: i18n.t('auth.spotifyBasarisiz') };
     }
     if (!sonuc.ok) {
       if (sonuc.iptal) return { cancelled: true };
@@ -467,7 +504,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
         return {
           ok: false as const,
-          hata: durum.mesaj ?? 'Hesap kullanılamıyor',
+          hata: durum.mesaj ?? i18n.t('auth.hesapKullanilamiyor'),
         };
       }
       return { ok: true as const };
@@ -488,12 +525,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.resetPasswordForEmail(
       email.trim().toLowerCase(),
     );
-    return { error: error?.message };
+    return {
+      error: error ? i18n.t('auth.sifreSifirlamaBasarisiz') : undefined,
+    };
   }, []);
 
   const updatePassword = useCallback(async (password: string) => {
     const { error } = await supabase.auth.updateUser({ password });
-    return { error: error?.message };
+    return { error: error ? i18n.t('auth.sifreGuncellenemedi') : undefined };
   }, []);
 
   const verifyEmailOtp = useCallback(

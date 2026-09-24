@@ -1,3 +1,5 @@
+import i18n from '../../../i18n';
+
 export type PushTercihleri = {
   user_id: string;
   all_enabled: boolean;
@@ -23,47 +25,79 @@ export type PushTercihAnahtari =
 
 export const PUSH_TERCIH_KATALOGU: {
   key: PushTercihAnahtari;
-  baslik: string;
-  alt: string;
+  readonly baslik: string;
+  readonly alt: string;
 }[] = [
   {
     key: 'all_enabled',
-    baslik: 'Tüm bildirimler',
-    alt: 'Kapalıysa hiçbir push gitmez',
+    get baslik() {
+      return i18n.t('bildirimAyar.tumu');
+    },
+    get alt() {
+      return i18n.t('bildirimAyar.tumuAlt');
+    },
   },
   {
     key: 'messages',
-    baslik: 'Mesajlar',
-    alt: 'Özel mesaj geldiğinde',
+    get baslik() {
+      return i18n.t('bildirimAyar.mesajlar');
+    },
+    get alt() {
+      return i18n.t('bildirimAyar.mesajlarAlt');
+    },
   },
   {
     key: 'gifts',
-    baslik: 'Hediyeler',
-    alt: 'Sana hediye gönderildiğinde',
+    get baslik() {
+      return i18n.t('bildirimAyar.hediyeler');
+    },
+    get alt() {
+      return i18n.t('bildirimAyar.hediyelerAlt');
+    },
   },
   {
     key: 'live',
-    baslik: 'Canlı yayınlar',
-    alt: 'Takip ettiğin biri canlıya geçince',
+    get baslik() {
+      return i18n.t('bildirimAyar.canli');
+    },
+    get alt() {
+      return i18n.t('bildirimAyar.canliAlt');
+    },
   },
   {
     key: 'rooms',
-    baslik: 'Odalar',
-    alt: 'Oda daveti ve oda güncellemeleri',
+    get baslik() {
+      return i18n.t('bildirimAyar.odalar');
+    },
+    get alt() {
+      return i18n.t('bildirimAyar.odalarAlt');
+    },
   },
   {
     key: 'social',
-    baslik: 'Sosyal',
-    alt: 'Yeni takipçi ve sosyal olaylar',
+    get baslik() {
+      return i18n.t('bildirimAyar.sosyal');
+    },
+    get alt() {
+      return i18n.t('bildirimAyar.sosyalAlt');
+    },
   },
   {
     key: 'wallet',
-    baslik: 'Cüzdan',
-    alt: 'Yükleme, çekim ve bakiye',
+    get baslik() {
+      return i18n.t('bildirimAyar.cuzdan');
+    },
+    get alt() {
+      return i18n.t('bildirimAyar.cuzdanAlt');
+    },
   },
   {
     key: 'system',
-    baslik: 'Sistem',
-    alt: 'Duyuru ve önemli sistem mesajları',
+    get baslik() {
+      return i18n.t('bildirimAyar.sistem');
+    },
+    get alt() {
+      return i18n.t('bildirimAyar.sistemAlt');
+    },
   },
 ];

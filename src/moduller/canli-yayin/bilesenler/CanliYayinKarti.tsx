@@ -27,16 +27,18 @@ import {
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { IcerikGuvenlikDugmesi } from '../../moderasyon/bilesenler/IcerikGuvenlikDugmesi';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useCeviri } from '../../../i18n/useCeviri';
+import type { CeviriAnahtari } from '../../../i18n/useCeviri';
 
-export const CANLI_KATEGORI_ETIKET: Record<string, string> = {
-  sohbet: 'Sohbet',
-  oyun: 'Oyun',
-  muzik: 'Müzik',
-  dans: 'Dans',
-  eglence: 'Eğlence',
-  egitim: 'Eğitim',
-  flort: 'Flört',
-  pk: 'PK Arena',
+export const CANLI_KATEGORI_ANAHTAR: Record<string, CeviriAnahtari> = {
+  sohbet: 'canliYayin.katSohbet',
+  oyun: 'canliYayin.katOyun',
+  muzik: 'canliYayin.katMuzik',
+  dans: 'canliYayin.katDans',
+  eglence: 'canliYayin.katEglence',
+  egitim: 'canliYayin.katEgitim',
+  flort: 'canliYayin.katFlort',
+  pk: 'canliYayin.katPk',
 };
 
 export type CanliYayinKartVeri = {
@@ -67,22 +69,24 @@ type Props = {
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function CanliYayinKarti({ item, onPress, index = 0 }: Props) {
+  const { t } = useCeviri();
   const { isGuest } = useAuth();
   const olcek = useSharedValue(1);
   const host = item.host;
   const ad =
     host?.display_name?.trim() ||
     host?.username?.trim() ||
-    'Yayıncı';
+    t('canliYayin.yayinci');
   const kapak = MedyaUriGuvenli(host?.avatar_url);
   const viewers = item.viewer_count ?? 0;
   const gifts = item.gift_count ?? 0;
   const coins = item.total_coins_earned ?? item.score ?? 0;
   const likes = item.like_count ?? 0;
+  const katKey = item.category
+    ? CANLI_KATEGORI_ANAHTAR[item.category]
+    : undefined;
   const kategori =
-    (item.category && CANLI_KATEGORI_ETIKET[item.category]) ||
-    item.topic?.trim() ||
-    null;
+    (katKey ? t(katKey) : null) || item.topic?.trim() || null;
 
   const stil = useAnimatedStyle(() => ({
     transform: [{ scale: olcek.value }],
@@ -99,7 +103,7 @@ export function CanliYayinKarti({ item, onPress, index = 0 }: Props) {
       }}
       style={[styles.press, stil]}
       accessibilityRole="button"
-      accessibilityLabel={`${item.title}, canlı yayın`}
+      accessibilityLabel={t('canliYayin.a11yCanliYayin', { baslik: item.title })}
     >
       <View style={styles.card}>
         {kapak ? (
@@ -119,7 +123,7 @@ export function CanliYayinKarti({ item, onPress, index = 0 }: Props) {
         <View style={styles.top}>
           <View style={styles.livePill}>
             <AnaSayfaCanliNokta boyut={5} />
-            <Text style={styles.liveText}>YAYIN</Text>
+            <Text style={styles.liveText}>{t('canliYayin.rozetYayin')}</Text>
             <Ionicons
               name="videocam"
               size={10}

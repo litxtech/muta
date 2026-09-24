@@ -12,6 +12,7 @@ import {
 import type { Room } from '../../../types/models';
 import { KesfetBolumBasligi } from './KesfetBolumBasligi';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   odalar: Room[];
@@ -21,12 +22,13 @@ type Props = {
 
 /** Keşfet — yatay trend / yükselen odalar şeridi */
 export function KesfetTrendSeridi({ odalar, onSec, onHost }: Props) {
+  const { t } = useCeviri();
   if (odalar.length === 0) return null;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.baslikPad}>
-        <KesfetBolumBasligi baslik="Trend şimdi" sayac={odalar.length} />
+        <KesfetBolumBasligi baslik={t('kesfet.trendSimdi')} sayac={odalar.length} />
       </View>
       <ScrollView
         horizontal
@@ -63,7 +65,7 @@ export function KesfetTrendSeridi({ odalar, onSec, onHost }: Props) {
                 </View>
                 <View style={styles.canli}>
                   <AnaSayfaCanliNokta boyut={4} />
-                  <Text style={styles.canliYazi}>CANLI</Text>
+                  <Text style={styles.canliYazi}>{t('kesfet.canliRozet')}</Text>
                 </View>
               </View>
 
@@ -80,7 +82,7 @@ export function KesfetTrendSeridi({ odalar, onSec, onHost }: Props) {
                   style={styles.hostSatir}
                 >
                   <Text style={styles.host} numberOfLines={1}>
-                    {oda.host?.display_name ?? 'Ev sahibi'}
+                    {oda.host?.display_name ?? t('kesfet.evSahibi')}
                   </Text>
                   <View style={styles.dinleyici}>
                     <Ionicons

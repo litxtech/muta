@@ -33,7 +33,7 @@ import {
   DurumSil,
   type DurumOggesi,
 } from '../../src/moduller/durum/islemler/DurumIslemleri';
-import { DURUM_EKRAN_BASLIK } from '../../src/moduller/durum/sabitler/DurumEkranBaslik';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { useDurumAkisRealtime } from '../../src/moduller/durum/gercek-zamanli/useDurumAkisRealtime';
 import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediyeMagaza';
 import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
@@ -80,6 +80,7 @@ function birlestirTekil(
 
 export default function DurumAkisEkrani() {
   useTemayaAboneOl();
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
   const { isGuest } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
@@ -138,7 +139,7 @@ export default function DurumAkisEkrani() {
       } catch (e) {
         if (istekNo !== yukleIstek.current) return;
         const mesaj =
-          e instanceof Error ? e.message : 'Akış yüklenemedi.';
+          e instanceof Error ? e.message : t('durum.akisHatasi');
         setOnbellek((prev) => ({
           ...prev,
           [hedef]: {
@@ -152,7 +153,7 @@ export default function DurumAkisEkrani() {
         if (istekNo === yukleIstek.current) setYenileniyor(false);
       }
     },
-    [],
+    [t],
   );
 
   const dahaFazla = useCallback(async () => {
@@ -264,7 +265,9 @@ export default function DurumAkisEkrani() {
         if (oge?.id) gorunen.push(oge);
       }
       const video = gorunen.find((x) => x.media_type === 'video');
-      setAktifVideoId(video?.id ?? null);
+      const muzik = gorunen.find((x) => x.post_kind === 'music');
+      // Video öncelikli; yoksa görünür müzik kartı (önizleme + scroll’da kapanır)
+      setAktifVideoId(video?.id ?? muzik?.id ?? null);
 
       if (isGuestRef.current) return;
       for (const oge of gorunen) {
@@ -308,7 +311,7 @@ export default function DurumAkisEkrani() {
                 liked_by_me: oncekiLiked,
                 like_count: oncekiCount,
               });
-              Alert.alert('Beğeni', r.hata ?? 'Başarısız');
+              Alert.alert(t('durum.begeni'), r.hata ?? t('durum.basarisiz'));
               return;
             }
             itemGuncelle(oge.id, {
@@ -327,7 +330,7 @@ export default function DurumAkisEkrani() {
         })();
       });
     },
-    [islemiDene, itemGuncelle],
+    [islemiDene, itemGuncelle, t],
   );
 
   const hediyeAc = useCallback(
@@ -350,16 +353,16 @@ export default function DurumAkisEkrani() {
 
   const sil = useCallback(
     (oge: DurumOggesi) => {
-      Alert.alert('Gönderiyi sil', 'Bu paylaşım kaldırılacak. Emin misin?', [
-        { text: 'Vazgeç', style: 'cancel' },
+      Alert.alert(t('durum.gonderiSil'), t('durum.gonderiSilBody'), [
+        { text: t('ortak.vazgec'), style: 'cancel' },
         {
-          text: 'Sil',
+          text: t('ortak.sil'),
           style: 'destructive',
           onPress: () => {
             void (async () => {
               const r = await DurumSil(oge.id);
               if (!r.ok) {
-                Alert.alert('Sil', r.hata ?? 'Silinemedi');
+                Alert.alert(t('ortak.sil'), r.hata ?? t('durum.silinemedi'));
                 return;
               }
               itemKaldir(oge.id);
@@ -368,7 +371,7 @@ export default function DurumAkisEkrani() {
         },
       ]);
     },
-    [itemKaldir],
+    [itemKaldir, t],
   );
 
   const menuAc = useCallback(
@@ -381,41 +384,41 @@ export default function DurumAkisEkrani() {
         }[] = [];
         if (oge.post_kind !== 'game_win') {
           buttons.push({
-            text: 'Düzenle',
+            text: t('ortak.duzenle'),
             onPress: () => router.push(`/durum/duzenle?id=${oge.id}` as any),
           });
         }
         buttons.push(
           {
-            text: 'Paylaş',
+            text: t('ortak.paylas'),
             onPress: () =>
               islemiDene('mesaj_gonder', () => setPaylasStatusId(oge.id)),
           },
           {
-            text: 'Kaldır',
+            text: t('ortak.kaldir'),
             style: 'destructive',
             onPress: () => sil(oge),
           },
-          { text: 'Vazgeç', style: 'cancel' },
+          { text: t('ortak.vazgec'), style: 'cancel' },
         );
-        Alert.alert('Gönderi', undefined, buttons);
+        Alert.alert(t('durum.gonderi'), undefined, buttons);
         return;
       }
-      Alert.alert('Gönderi', undefined, [
+      Alert.alert(t('durum.gonderi'), undefined, [
         {
-          text: 'Paylaş',
+          text: t('ortak.paylas'),
           onPress: () =>
             islemiDene('mesaj_gonder', () => setPaylasStatusId(oge.id)),
         },
         {
-          text: 'Bildir / Engelle',
+          text: t('durum.bildirEngelle'),
           style: 'destructive',
           onPress: () => setBildirOge(oge),
         },
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('ortak.vazgec'), style: 'cancel' },
       ]);
     },
-    [islemiDene, sil],
+    [islemiDene, sil, t],
   );
 
   const listFooter = useMemo(() => {
@@ -432,15 +435,15 @@ export default function DurumAkisEkrani() {
     if (aktif.hata) {
       return (
         <View style={styles.hataKutu}>
-          <Text style={styles.hataBaslik}>Akış yüklenemedi.</Text>
+          <Text style={styles.hataBaslik}>{t('durum.akisHatasi')}</Text>
           <Text style={styles.hataGovde}>{aktif.hata}</Text>
           <Pressable
             style={styles.hataBtn}
             onPress={() => void sekmeYukle(sekme, { yenile: true })}
             accessibilityRole="button"
-            accessibilityLabel="Tekrar dene"
+            accessibilityLabel={t('ortak.tekrarDene')}
           >
-            <Text style={styles.hataBtnYazi}>Tekrar dene</Text>
+            <Text style={styles.hataBtnYazi}>{t('ortak.tekrarDene')}</Text>
           </Pressable>
         </View>
       );
@@ -450,17 +453,17 @@ export default function DurumAkisEkrani() {
         icon="images-outline"
         title={
           sekme === 'takip'
-            ? 'Takip ettiğin kişilerin gönderileri burada görünecek.'
-            : 'Henüz gösterecek gönderi yok.'
+            ? t('durum.bosTakip')
+            : t('durum.bosSana')
         }
         body={
           sekme === 'takip'
-            ? 'Takip ettikçe akışın burada canlanır.'
-            : 'İlk fotoğraf veya videonu paylaş — akış burada canlanır.'
+            ? t('durum.bosTakipBody')
+            : t('durum.bosSanaBody')
         }
       />
     );
-  }, [aktif.hata, sekme, sekmeYukle]);
+  }, [aktif.hata, sekme, sekmeYukle, t]);
 
   const renderItem = useCallback(
     ({ item }: { item: DurumOggesi }) => (
@@ -507,7 +510,7 @@ export default function DurumAkisEkrani() {
     <Screen edges={['top']} tabSayfaKaydir>
       <ModulHataSiniri modulAdi="durum">
         <View style={styles.header}>
-          <Text style={styles.title}>{DURUM_EKRAN_BASLIK}</Text>
+          <Text style={styles.title}>{t('durum.baslik')}</Text>
           <Pressable
             style={styles.paylasBtn}
             onPress={() =>
@@ -516,7 +519,7 @@ export default function DurumAkisEkrani() {
               )
             }
             accessibilityRole="button"
-            accessibilityLabel="Gönderi oluştur"
+            accessibilityLabel={t('durum.gonderiOlustur')}
           >
             <Ionicons
               name="create-outline"
@@ -530,20 +533,20 @@ export default function DurumAkisEkrani() {
             onPress={() => sekmeDegistir('sana')}
             style={[styles.sekme, sekme === 'sana' && styles.sekmeOn]}
             accessibilityRole="button"
-            accessibilityLabel="Sana özel"
+            accessibilityLabel={t('durum.sanaOzel')}
             accessibilityState={{ selected: sekme === 'sana' }}
           >
             <Text
               style={[styles.sekmeYazi, sekme === 'sana' && styles.sekmeYaziOn]}
             >
-              Sana Özel
+              {t('durum.sanaOzel')}
             </Text>
           </Pressable>
           <Pressable
             onPress={() => sekmeDegistir('takip')}
             style={[styles.sekme, sekme === 'takip' && styles.sekmeOn]}
             accessibilityRole="button"
-            accessibilityLabel="Takip"
+            accessibilityLabel={t('durum.takipSekme')}
             accessibilityState={{ selected: sekme === 'takip' }}
           >
             <Text
@@ -552,7 +555,7 @@ export default function DurumAkisEkrani() {
                 sekme === 'takip' && styles.sekmeYaziOn,
               ]}
             >
-              Takip
+              {t('durum.takipSekme')}
             </Text>
           </Pressable>
         </View>
@@ -604,10 +607,10 @@ export default function DurumAkisEkrani() {
                 ustteMiRef.current = true;
               }}
               accessibilityRole="button"
-              accessibilityLabel="Yeni gönderiler"
+              accessibilityLabel={t('durum.yeniGonderiler')}
             >
               <Ionicons name="arrow-up" size={14} color="#fff" />
-              <Text style={styles.yeniPillYazi}>Yeni gönderiler</Text>
+              <Text style={styles.yeniPillYazi}>{t('durum.yeniGonderiler')}</Text>
             </Pressable>
           </View>
         ) : null}

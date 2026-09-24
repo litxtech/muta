@@ -2,6 +2,7 @@ import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { Href } from 'expo-router';
 import { HataKurtarmaEkrani } from './HataKurtarmaEkrani';
+import i18n from '../../i18n';
 
 type Props = {
   modulAdi: string;
@@ -42,8 +43,8 @@ export class ModulHataSiniri extends Component<Props, State> {
       const ekran = (
         <HataKurtarmaEkrani
           varyant={varyant}
-          baslik="Bu bölüm geçici olarak kullanılamıyor"
-          aciklama="Geri dönüp uygulamayı kullanmaya devam edebilirsin."
+          baslik={i18n.t('ortak.bolumKullanilamiyor')}
+          aciklama={i18n.t('ortak.bolumKullanilamiyorAltKisa')}
           detay={__DEV__ ? `${this.props.modulAdi}: ${this.state.hata.message}` : null}
           onTekrarDene={this.sifirla}
           fallbackHref={this.props.fallbackHref ?? '/(tabs)'}

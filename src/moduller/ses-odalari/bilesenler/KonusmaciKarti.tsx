@@ -8,6 +8,7 @@ import { KoltukTahti } from './KoltukTahti';
 import { SeviyeTaci } from './SeviyeTaci';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import type { RoomSeat } from '../../../types/models';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   seat: RoomSeat;
@@ -17,6 +18,7 @@ type Props = {
 };
 
 function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
+  const { t } = useCeviri();
   const dolu = !!seat.user_id;
   const hostMu = !!seat.user_id && !!hostId && seat.user_id === hostId;
   const yardimciMu = !hostMu && !!seat.is_cohost;
@@ -146,7 +148,7 @@ function KonusmaciKartiIc({ seat, hostId, tahtMi = false, onPress }: Props) {
       {hostMu ? (
         <View style={styles.hostRozet}>
           <Ionicons name="ribbon" size={8} color={RenkTokenlari.accent} />
-          <Text style={styles.hostYazi}>SAHİP</Text>
+          <Text style={styles.hostYazi}>{t('sesOda.sahipRozet')}</Text>
         </View>
       ) : yardimciMu ? (
         <View style={styles.cohostRozet}>

@@ -11,6 +11,7 @@ import { useKullanimSuresi } from '../../src/moduller/kullanim-suresi/baglam/Kul
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 /** Profil menüsü — hesap hub; tercihler / gizlilik ayrı sayfalarda */
 export default function ProfilAyarlarEkrani() {
@@ -21,6 +22,7 @@ export default function ProfilAyarlarEkrani() {
     refreshProfile,
     refreshWallet,
   } = useAuth();
+  const { t } = useCeviri();
   const isAdmin = AdminYetkisiVarMi(profile);
   const { formatli: kullanimFormatli, yenile: kullanimYenile } =
     useKullanimSuresi();
@@ -42,10 +44,10 @@ export default function ProfilAyarlarEkrani() {
   };
 
   const onSignOut = () => {
-    Alert.alert('Çıkış', 'Bu cihazdan çıkış yapılsın mı?', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(t('auth.cikisBaslik'), t('auth.cikisSoru'), [
+      { text: t('ortak.vazgec'), style: 'cancel' },
       {
-        text: 'Çıkış yap',
+        text: t('auth.cikisYap'),
         style: 'destructive',
         onPress: async () => {
           await signOut();
@@ -58,85 +60,95 @@ export default function ProfilAyarlarEkrani() {
   return (
     <Screen edges={['top']}>
       <EkranBasligi
-        title="Ayarlar"
-        subtitle="Hesap · gizlilik · uygulama"
+        title={t('profil.ayarlar')}
+        subtitle={t('profil.ayarlarAlt')}
         fallbackHref="/(tabs)/profile"
       />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
-        <ListeGrubu title="Hesap">
+        <ListeGrubu title={t('profil.hesap')}>
           <ListeSatiri
             icon="phone-portrait-outline"
-            label="Aktif cihazlar"
+            label={t('profil.aktifCihazlar')}
             onPress={() => router.navigate('/(tabs)/cihazlar')}
             last
           />
         </ListeGrubu>
 
-        <ListeGrubu title="Gizlilik">
+        <ListeGrubu title={t('profil.gizlilikBolum')}>
           <ListeSatiri
             icon="eye-off-outline"
-            label="Gizlilik ayarları"
-            value="Kim ne görür"
+            label={t('ayarlar.gizlilikAyarlari')}
+            value={t('ayarlar.gizlilikDeger')}
             onPress={() =>
               misafirEngelle(() => router.push('/ayarlar/gizlilik' as any))
             }
           />
           <ListeSatiri
             icon="ban-outline"
-            label="Engellenen hesaplar"
+            label={t('ayarlar.engellenenHesaplar')}
             onPress={() => router.push('/engellenen-kullanicilar' as any)}
             last
           />
         </ListeGrubu>
 
-        <ListeGrubu title="Uygulama">
+        <ListeGrubu title={t('profil.uygulamaBolum')}>
           <ListeSatiri
             icon="color-palette-outline"
-            label="Tercihler"
-            value="Tema · dil · bildirim"
+            label={t('ayarlar.baslik')}
+            value={t('ayarlar.tercihlerDeger')}
             onPress={() => router.push('/ayarlar' as any)}
           />
           <ListeSatiri
+            icon="receipt-outline"
+            label={t('ayarlar.satinAlmaGecmisi')}
+            value={t('ayarlar.satinAlmaDeger')}
+            onPress={() =>
+              misafirEngelle(() =>
+                router.push('/ayarlar/satin-alma-gecmisi' as any),
+              )
+            }
+          />
+          <ListeSatiri
             icon="notifications-outline"
-            label="Bildirim ayarları"
+            label={t('ayarlar.bildirimAyarlari')}
             onPress={() => router.push('/bildirim-ayarlari' as any)}
           />
           <ListeSatiri
             icon="shield-checkmark-outline"
-            label="Güvenlik"
+            label={t('guvenlik.baslik')}
             onPress={() => router.push('/guvenlik' as any)}
           />
           <ListeSatiri
             icon="time-outline"
-            label="Kullanım süresi"
+            label={t('profil.kullanimSuresi')}
             value={kullanimFormatli}
             showChevron={false}
             last
           />
         </ListeGrubu>
 
-        <ListeGrubu title="Yardım">
+        <ListeGrubu title={t('ayarlar.yardim')}>
           <ListeSatiri
             icon="headset-outline"
-            label="Canlı destek"
+            label={t('ayarlar.canliDestek')}
             onPress={() => router.push('/destek' as any)}
           />
           <ListeSatiri
             icon="document-text-outline"
-            label="Politikalar"
+            label={t('ayarlar.politikalar')}
             onPress={() => router.push('/politika' as any)}
             last
           />
         </ListeGrubu>
 
         {isAdmin ? (
-          <ListeGrubu title="Yönetim">
+          <ListeGrubu title={t('profil.yonetim')}>
             <ListeSatiri
               icon="construct-outline"
-              label="Admin paneli"
+              label={t('profil.adminPaneli')}
               onPress={() => router.push('/admin' as any)}
               last
             />
@@ -144,7 +156,7 @@ export default function ProfilAyarlarEkrani() {
         ) : null}
 
         <Pressable onPress={onSignOut} style={styles.logout}>
-          <Text style={styles.logoutText}>Çıkış yap</Text>
+          <Text style={styles.logoutText}>{t('auth.cikisYap')}</Text>
         </Pressable>
 
         {!isGuest ? (
@@ -152,7 +164,7 @@ export default function ProfilAyarlarEkrani() {
             onPress={() => router.push('/hesap-sil' as any)}
             style={styles.deleteAccount}
           >
-            <Text style={styles.deleteAccountText}>Hesabı sil</Text>
+            <Text style={styles.deleteAccountText}>{t('hesapSil.baslik')}</Text>
           </Pressable>
         ) : null}
       </ScrollView>

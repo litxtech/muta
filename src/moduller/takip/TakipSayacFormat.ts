@@ -1,3 +1,5 @@
+import i18n from '../../i18n';
+
 /** Database integer tutar; UI locale kisa formata cevirir. */
 export function TakipSayaciniFormatla(
   n: number | null | undefined,
@@ -20,8 +22,9 @@ export function TakipIliskiEtiketi(input: {
   followsYou?: boolean;
   isMutual?: boolean;
 }): string | null {
-  if (input.state === 'MUTUAL' || input.isMutual) return 'Karşılıklı takip';
-  if (input.state === 'FOLLOWS_YOU' || input.followsYou) return 'Seni takip ediyor';
-  if (input.state === 'INCOMING_REQUEST') return 'Takip isteği gönderdi';
+  if (input.state === 'MUTUAL' || input.isMutual) return i18n.t('takip.karsilikli');
+  if (input.state === 'FOLLOWS_YOU' || input.followsYou)
+    return i18n.t('takip.seniTakipEdiyor');
+  if (input.state === 'INCOMING_REQUEST') return i18n.t('takip.istekGonderdi');
   return null;
 }

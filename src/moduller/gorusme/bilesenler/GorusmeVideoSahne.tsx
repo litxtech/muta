@@ -5,6 +5,7 @@ import { LiveKitBaglantiYoneticisi } from '../../livekit/baglanti/LiveKitBaglant
 import { LiveKitVideoViewAl } from '../../livekit/bilesenler/LiveKitVideoViewAl';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   video: boolean;
@@ -25,6 +26,7 @@ export function GorusmeVideoSahne({
   peerAvatar,
   peerName,
 }: Props) {
+  const { t } = useCeviri();
   const VideoViewComp = LiveKitVideoViewAl();
   const [localVideo, setLocalVideo] = useState<LocalVideoTrack | null>(null);
   const [remoteVideo, setRemoteVideo] = useState<RemoteVideoTrack | null>(null);
@@ -82,11 +84,11 @@ export function GorusmeVideoSahne({
           <Text style={styles.uzakHint}>
             {video
               ? remoteIds.length > 0
-                ? 'Kamera bağlanıyor…'
+                ? t('gorusme.kameraBaglaniyor')
                 : mock
-                  ? 'Demo görüntü'
-                  : 'Karşı taraf bekleniyor…'
-              : 'Sesli arama'}
+                  ? t('gorusme.demoGoruntu')
+                  : t('gorusme.karsiBekleniyor')
+              : t('gorusme.sesliArama')}
           </Text>
         </View>
       )}
@@ -104,7 +106,11 @@ export function GorusmeVideoSahne({
           ) : (
             <View style={styles.pipKapali}>
               <Text style={styles.pipYazi}>
-                {cameraOn ? (mock ? 'Sen' : 'Kamera') : 'Kapalı'}
+                {cameraOn
+                  ? mock
+                    ? t('gorusme.sen')
+                    : t('gorusme.kamera')
+                  : t('gorusme.kapali')}
               </Text>
             </View>
           )}

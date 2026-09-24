@@ -4,6 +4,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../../src/components/Screen';
 import { EkranBasligi } from '../../../src/components/EkranBasligi';
+import { useCeviri } from '../../../src/i18n/useCeviri';
+import type { CeviriAnahtari } from '../../../src/i18n/useCeviri';
 import { BosDurum } from '../../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
@@ -17,14 +19,18 @@ import {
   YaricapTokenlari,
 } from '../../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-function durumEtiketi(status: string) {
-  const map: Record<string, string> = {
-    nominating: 'Adaylık',
-    voting: 'Oylama',
-    tallied: 'Sonuçlandı',
-    cancelled: 'İptal',
+function durumEtiketi(
+  status: string,
+  t: (key: CeviriAnahtari) => string,
+) {
+  const map: Record<string, CeviriAnahtari> = {
+    nominating: 'sehir.durumAdaylik',
+    voting: 'sehir.durumOylama',
+    tallied: 'sehir.durumSonuclandi',
+    cancelled: 'sehir.durumIptal',
   };
-  return map[status] ?? status;
+  const key = map[status];
+  return key ? t(key) : status;
 }
 
 function durumRenk(status: string) {
@@ -35,6 +41,7 @@ function durumRenk(status: string) {
 }
 
 export default function SehirSecimEkrani() {
+  const { t } = useCeviri();
   const [elections, setElections] = useState<SehirSecimi[]>([]);
 
   const load = useCallback(async () => {
@@ -55,8 +62,8 @@ export default function SehirSecimEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="sehir-secimleri">
         <EkranBasligi
-          title="Şehir Seçimleri"
-          subtitle="Oy kullan · canlı gidişat"
+          title={t('sehir.secim')}
+          subtitle={t('sehir.secimAlt')}
           onBack={() => router.back()}
         />
         <FlatList
@@ -66,8 +73,8 @@ export default function SehirSecimEkrani() {
           ListEmptyComponent={
             <BosDurum
               icon="checkbox-outline"
-              title="Aktif seçim yok"
-              body="Admin bir şehirde seçim başlattığında burada görünür."
+              title={t('sehir.secimBosBaslik')}
+              body={t('sehir.secimBosBody')}
             />
           }
           renderItem={({ item }) => (
@@ -84,7 +91,10 @@ export default function SehirSecimEkrani() {
                     {item.title}
                   </Text>
                   <Text style={styles.meta}>
-                    {item.city?.name ?? 'Şehir'} · {item.role_target === 'leader' ? 'Lider' : 'Yardımcı'}
+                    {item.city?.name ?? t('sehir.sehirVarsayilan')} ·{' '}
+                    {item.role_target === 'leader'
+                      ? t('sehir.lider')
+                      : t('sehir.yardimci')}
                   </Text>
                 </View>
                 <View
@@ -94,15 +104,15 @@ export default function SehirSecimEkrani() {
                   ]}
                 >
                   <Text style={[styles.pillText, { color: durumRenk(item.status) }]}>
-                    {durumEtiketi(item.status)}
+                    {durumEtiketi(item.status, t)}
                   </Text>
                 </View>
               </View>
               <View style={styles.footer}>
                 <Text style={styles.footerText}>
                   {(item.total_votes ?? 0) > 0
-                    ? `${item.total_votes} oy`
-                    : 'Detay & oy'}
+                    ? t('sehir.oySayisi', { count: item.total_votes })
+                    : t('sehir.detayOy')}
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color={RenkTokenlari.textDim} />
               </View>

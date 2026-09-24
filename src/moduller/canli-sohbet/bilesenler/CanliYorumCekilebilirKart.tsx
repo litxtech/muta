@@ -21,6 +21,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   children: ReactNode;
@@ -50,9 +51,11 @@ export function CanliYorumCekilebilirKart({
   children,
   klavyeAcik = false,
   onClose,
-  baslik = 'Yorumlar',
+  baslik,
   birlesik = false,
 }: Props) {
+  const { t } = useCeviri();
+  const baslikYazi = baslik ?? t('canliYayin.yorumlar');
   const [genis, setGenis] = useState(false);
   const heightSv = useSharedValue(COLLAPSED);
   const dragStartH = useSharedValue(COLLAPSED);
@@ -147,10 +150,12 @@ export function CanliYorumCekilebilirKart({
               style={styles.baslikHit}
               accessibilityRole="button"
               accessibilityLabel={
-                genis ? 'Yorumları küçült' : 'Yorumları büyüt'
+                genis
+                  ? t('canliYayin.a11yYorumlariKucult')
+                  : t('canliYayin.a11yYorumlariBuyut')
               }
             >
-              <Text style={styles.baslik}>{baslik}</Text>
+              <Text style={styles.baslik}>{baslikYazi}</Text>
               <Ionicons
                 name={genis ? 'chevron-down' : 'chevron-up'}
                 size={12}
@@ -162,7 +167,7 @@ export function CanliYorumCekilebilirKart({
                 onPress={onClose}
                 hitSlop={12}
                 style={styles.close}
-                accessibilityLabel="Yorumları gizle"
+                accessibilityLabel={t('canliYayin.a11yYorumlariGizle')}
               >
                 <Ionicons
                   name="close"

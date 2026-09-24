@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { DIL_LOCALE_MAP } from '../../../i18n/diller';
 import { useMisafirIslemKapisi } from '../../misafir-hesabi/islemler/useMisafirIslemKapisi';
 import { CoinPaketiSatinAl } from '../../iap/islemler/CoinPaketiSatinAl';
 import { KillSwitchAktifMiSunucu } from '../../ozellik-bayraklari/okuma/KillSwitchAktifMiSunucu';
@@ -35,6 +37,8 @@ function ayniCoinPaketKanaliniTemizle() {
  * Wallet sekmesindeki satın alma akışını paylaşır.
  */
 export function useCoinYuklePaneli() {
+  const { t, dil } = useCeviri();
+  const loc = DIL_LOCALE_MAP[dil];
   const { adjustWallet, refreshWallet, isGuest } = useAuth();
   const { upgradeAcik, upgradeKapat, upgradeAc, islemiDene } =
     useMisafirIslemKapisi(isGuest);
@@ -120,7 +124,10 @@ export function useCoinYuklePaneli() {
     (pkg: CoinPackage) => {
       islemiDene('coin_satinal', () => {
         if (purchaseLocked) {
-          Alert.alert('Kapalı', 'Coin satın alma geçici olarak durduruldu.');
+          Alert.alert(
+            t('cuzdanX.kapali'),
+            t('cuzdanX.satinAlmaDurduruldu'),
+          );
           return;
         }
         const toplam = pkg.coins + pkg.bonus_coins;
@@ -130,23 +137,32 @@ export function useCoinYuklePaneli() {
             ? 'App Store'
             : Platform.OS === 'android'
               ? 'Google Play'
-              : 'Stripe';
-        const bonusSatir =
+              : t('cuzdanX.kanalStripe');
+        const bonus =
           pkg.bonus_coins > 0
-            ? `\n${pkg.coins.toLocaleString('tr-TR')} + ${pkg.bonus_coins.toLocaleString('tr-TR')} bonus`
+            ? t('cuzdanX.bonusSatir', {
+                taban: pkg.coins.toLocaleString(loc),
+                bonus: pkg.bonus_coins.toLocaleString(loc),
+              })
             : '';
         Alert.alert(
-          'Coin yükle',
-          `${pkg.title}${bonusSatir}\nToplam ${toplam.toLocaleString('tr-TR')} coin\n${fiyatYazi}\nÖdeme: ${kanal}`,
+          t('cuzdanX.coinYukle'),
+          t('cuzdanX.satinAlOnay', {
+            baslik: pkg.title,
+            bonus,
+            toplam: toplam.toLocaleString(loc),
+            fiyat: fiyatYazi,
+            kanal,
+          }),
           [
-            { text: 'İptal', style: 'cancel' },
+            { text: t('ortak.iptal'), style: 'cancel' },
             {
-              text: 'Satın al',
+              text: t('cuzdan.satinAl'),
               onPress: async () => {
                 try {
                   const sonuc = await CoinPaketiSatinAl(pkg);
                   if (!sonuc.ok) {
-                    Alert.alert('Satın alma', sonuc.hata);
+                    Alert.alert(t('cuzdanX.satinAlma'), sonuc.hata);
                     return;
                   }
                   if (sonuc.method === 'stripe' && sonuc.url) {
@@ -163,16 +179,18 @@ export function useCoinYuklePaneli() {
                     /* bakiye alert’te yine gösterilir */
                   }
                   Alert.alert(
-                    'Başarılı',
+                    t('ortak.basarili'),
                     sonuc.coinsAdded != null
-                      ? `+${sonuc.coinsAdded} coin`
-                      : 'Ödeme tamam',
+                      ? t('cuzdanX.coinEklendi', { adet: sonuc.coinsAdded })
+                      : t('cuzdanX.odemeTamam'),
                   );
                   setAcik(false);
                 } catch (e) {
                   Alert.alert(
-                    'Satın alma',
-                    e instanceof Error ? e.message : 'Beklenmeyen hata',
+                    t('cuzdanX.satinAlma'),
+                    e instanceof Error
+                      ? e.message
+                      : t('cuzdanX.beklenmeyenHata'),
                   );
                 }
               },
@@ -181,7 +199,7 @@ export function useCoinYuklePaneli() {
         );
       });
     },
-    [adjustWallet, islemiDene, purchaseLocked, refreshWallet],
+    [adjustWallet, islemiDene, loc, purchaseLocked, refreshWallet, t],
   );
 
   return {

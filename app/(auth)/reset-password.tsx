@@ -6,9 +6,11 @@ import { TextField } from '../../src/components/TextField';
 import { GradientButton } from '../../src/components/GradientButton';
 import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { colors, typography } from '../../src/theme/colors';
 
 export default function ResetPasswordScreen() {
+  const { t } = useCeviri();
   const { updatePassword } = useAuth();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -16,22 +18,22 @@ export default function ResetPasswordScreen() {
 
   const onSubmit = async () => {
     if (password.length < 6) {
-      Alert.alert('Şifre en az 6 karakter olmalı');
+      Alert.alert(t('auth.sifreMinKarakter'));
       return;
     }
     if (password !== confirm) {
-      Alert.alert('Şifreler eşleşmiyor');
+      Alert.alert(t('auth.sifrelerEslesmiyor'));
       return;
     }
     setLoading(true);
     const { error } = await updatePassword(password);
     setLoading(false);
     if (error) {
-      Alert.alert('Hata', error);
+      Alert.alert(t('ortak.hata'), error);
       return;
     }
-    Alert.alert('Şifre güncellendi', 'Yeni şifrenle giriş yapabilirsin.', [
-      { text: 'Tamam', onPress: () => router.replace('/(tabs)') },
+    Alert.alert(t('auth.sifreGuncellendi'), t('auth.sifreGuncellendiMesaj'), [
+      { text: t('ortak.tamam'), onPress: () => router.replace('/(tabs)') },
     ]);
   };
 
@@ -39,24 +41,22 @@ export default function ResetPasswordScreen() {
     <Screen>
       <KlavyeGuvenliAlan style={styles.flex}>
         <View style={styles.content}>
-          <Text style={styles.title}>Yeni şifre</Text>
-          <Text style={styles.sub}>
-            Kod doğrulandı. Yeni şifreni belirle.
-          </Text>
+          <Text style={styles.title}>{t('auth.yeniSifre')}</Text>
+          <Text style={styles.sub}>{t('auth.yeniSifreAlt')}</Text>
           <TextField
-            label="Yeni şifre"
+            label={t('auth.yeniSifre')}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
           />
           <TextField
-            label="Şifre tekrar"
+            label={t('auth.sifreTekrar')}
             secureTextEntry
             value={confirm}
             onChangeText={setConfirm}
           />
           <GradientButton
-            title="Şifreyi güncelle"
+            title={t('auth.sifreyiGuncelle')}
             onPress={onSubmit}
             loading={loading}
           />

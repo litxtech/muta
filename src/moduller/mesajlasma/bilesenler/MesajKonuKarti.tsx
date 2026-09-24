@@ -21,6 +21,7 @@ import {
   ProfilGorunenAd,
   ProfilSilinmisMi,
 } from '../../kullanici-profili/yardimcilar/ProfilSilinmis';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   konu: MesajKonusu;
@@ -28,7 +29,7 @@ type Props = {
   onLongPress?: () => void;
 };
 
-function formatZaman(iso: string | null): string {
+function formatZaman(iso: string | null, dunEtiketi: string): string {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
@@ -47,13 +48,14 @@ function formatZaman(iso: string | null): string {
     d.getMonth() === yesterday.getMonth() &&
     d.getDate() === yesterday.getDate()
   ) {
-    return 'Dün';
+    return dunEtiketi;
   }
   return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
 }
 
 /** Inbox — Telegram tarzi: avatar + isim + onizleme + okunmamis */
 export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
+  const { t } = useCeviri();
   const mahkeme = konu.thread_kind === 'mahkeme';
   const hamAd =
     (mahkeme ? konu.thread_title || konu.peer_display_name : null)?.trim() ||
@@ -62,13 +64,13 @@ export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
     null;
   const silinmis = !mahkeme && ProfilSilinmisMi({ display_name: hamAd });
   const ad = mahkeme
-    ? hamAd || 'Kullanıcı'
+    ? hamAd || t('ortak.kullanici')
     : ProfilGorunenAd({
         display_name: konu.peer_display_name,
         username: konu.peer_username,
       });
-  const onizleme = konu.last_message_preview?.trim() || 'Yeni sohbet';
-  const zaman = formatZaman(konu.last_message_at);
+  const onizleme = konu.last_message_preview?.trim() || t('mesajlar.yeniSohbet');
+  const zaman = formatZaman(konu.last_message_at, t('mesajlar.dun'));
   const unread = konu.unread_count ?? 0;
   const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
   const maviTik =
@@ -108,7 +110,7 @@ export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
               </Text>
               {maviTik ? <MaviTikRozeti size={15} /> : null}
               {konu.closed_at ? (
-                <Text style={styles.kapali}>Kapalı</Text>
+                <Text style={styles.kapali}>{t('mesajlar.kapaliEtiket')}</Text>
               ) : null}
             </View>
             {zaman ? (

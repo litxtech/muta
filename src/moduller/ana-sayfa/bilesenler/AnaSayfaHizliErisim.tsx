@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   },
   satir: {
     gap: BoslukTokenlari.sm,
-    paddingRight: BoslukTokenlari.lg,
+    paddingEnd: BoslukTokenlari.lg,
   },
   chip: {
     flexDirection: 'row',
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 6,
     paddingHorizontal: 10,
-    paddingLeft: 6,
+    paddingStart: 6,
     borderRadius: YaricapTokenlari.pill,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,

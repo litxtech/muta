@@ -27,6 +27,7 @@ import {
 import { CanliYayinModerasyon } from '../islemler/CanliYayinIslemleri';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 const VARSAYILAN_MAX = 80;
 
@@ -64,6 +65,7 @@ function CanliYorumAkisiInner({
   floatMod = false,
   onProfil,
 }: Props) {
+  const { t } = useCeviri();
   const [messages, setMessages] = useState<CanliSohbetMesajGorunum[]>([]);
   const [hedef, setHedef] = useState<CanliSohbetMesajGorunum | null>(null);
   const listRef = useRef<FlatList<CanliSohbetMesajGorunum>>(null);
@@ -155,15 +157,15 @@ function CanliYorumAkisiInner({
   }, [messages.length]);
 
   const yorumSil = (item: CanliSohbetMesajGorunum) => {
-    Alert.alert('Yorumu sil', 'Bu yorum kaldırılsın mı?', [
-      { text: 'Vazgeç', style: 'cancel' },
+    Alert.alert(t('canliYayin.yorumSilBaslik'), t('canliYayin.yorumSilBody'), [
+      { text: t('ortak.vazgec'), style: 'cancel' },
       {
-        text: 'Sil',
+        text: t('ortak.sil'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
             const r = await CanliYayinSohbetMesajiSil(item.id);
-            if (!r.ok) Alert.alert('Yorum', r.hata);
+            if (!r.ok) Alert.alert(t('canliYayin.yorum'), r.hata);
             else void load();
           })();
         },
@@ -182,14 +184,14 @@ function CanliYorumAkisiInner({
       setHedef(item);
       return;
     }
-    Alert.alert(item.display_name || item.username || 'Kullanıcı', 'Moderasyon', [
+    Alert.alert(item.display_name || item.username || t('ortak.kullanici'), t('canliYayin.moderasyon'), [
       {
-        text: 'Yorumu sil',
+        text: t('canliYayin.yorumSilBaslik'),
         style: 'destructive',
         onPress: () => yorumSil(item),
       },
       {
-        text: 'Yayından at',
+        text: t('canliYayin.yayindanAt'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
@@ -198,13 +200,13 @@ function CanliYorumAkisiInner({
               targetUserId: item.user_id,
               action: 'kick',
             });
-            if (!r.ok) Alert.alert('Atma', r.hata);
-            else Alert.alert('Atıldı', 'Kullanıcı yayından çıkarıldı.');
+            if (!r.ok) Alert.alert(t('canliYayin.atma'), r.hata);
+            else Alert.alert(t('canliYayin.atildi'), t('canliYayin.atildiMesaj'));
           })();
         },
       },
       {
-        text: 'Engelle',
+        text: t('canliYayin.engelle'),
         style: 'destructive',
         onPress: () => {
           void (async () => {
@@ -213,13 +215,13 @@ function CanliYorumAkisiInner({
               targetUserId: item.user_id,
               action: 'ban',
             });
-            if (!r.ok) Alert.alert('Engelle', r.hata);
-            else Alert.alert('Engellendi', 'Bu yayına tekrar giremez.');
+            if (!r.ok) Alert.alert(t('canliYayin.engelle'), r.hata);
+            else Alert.alert(t('canliYayin.engellendi'), t('canliYayin.engellendiMesaj'));
           })();
         },
       },
-      { text: 'Bildir / engelle…', onPress: () => setHedef(item) },
-      { text: 'Vazgeç', style: 'cancel' },
+      { text: t('canliYayin.bildirEngelle'), onPress: () => setHedef(item) },
+      { text: t('ortak.vazgec'), style: 'cancel' },
     ]);
   };
 
@@ -227,13 +229,13 @@ function CanliYorumAkisiInner({
     <View style={[styles.root, floatMod && styles.rootFloat]} pointerEvents="box-none">
       {!baslikGizle ? (
         <View style={styles.header} pointerEvents="box-none">
-          <Text style={styles.title}>Yorumlar</Text>
+          <Text style={styles.title}>{t('canliYayin.yorumlar')}</Text>
           {onClose ? (
             <Pressable
               onPress={onClose}
               hitSlop={12}
               style={styles.close}
-              accessibilityLabel="Yorumları gizle"
+              accessibilityLabel={t('canliYayin.a11yYorumlariGizle')}
             >
               <Ionicons name="chevron-down" size={16} color={RenkTokenlari.textMuted} />
             </Pressable>
@@ -259,7 +261,7 @@ function CanliYorumAkisiInner({
           maxToRenderPerBatch={8}
           windowSize={7}
           ListEmptyComponent={
-            <Text style={styles.empty}>İlk yorumu yaz — herkes görsün.</Text>
+            <Text style={styles.empty}>{t('canliYayin.yorumBos')}</Text>
           }
           renderItem={({ item }) => (
             <CanliSohbetMesajKarti

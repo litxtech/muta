@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   avatarlar: readonly (string | null | undefined)[];
@@ -21,13 +22,14 @@ export function OdaUyeAvatarYigini({
   overlap = 8,
   borderColor,
 }: Props) {
+  const { t } = useCeviri();
   const liste = avatarlar.slice(0, max);
   if (liste.length === 0) return null;
 
   const kenar = borderColor ?? RenkTokenlari.bgElevated;
 
   return (
-    <View style={styles.yigin} accessibilityLabel={`${liste.length} katılımcı`}>
+    <View style={styles.yigin} accessibilityLabel={t('anaSayfa.katilimciA11y', { adet: liste.length })}>
       {liste.map((uriHam, i) => {
         const uri = MedyaUriGuvenli(uriHam);
         return (

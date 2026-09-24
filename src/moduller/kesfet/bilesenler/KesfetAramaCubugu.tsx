@@ -8,6 +8,7 @@ import {
   BoslukTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   deger: string;
@@ -19,8 +20,10 @@ type Props = {
 export function KesfetAramaCubugu({
   deger,
   onDegisti,
-  placeholder = 'Oda, konu veya yayıncı ara',
+  placeholder,
 }: Props) {
+  const { t } = useCeviri();
+  const placeholderYazi = placeholder ?? t('kesfet.aramaPlaceholder');
   return (
     <View style={styles.dis}>
       <LinearGradient
@@ -35,18 +38,18 @@ export function KesfetAramaCubugu({
         <TextInput
           value={deger}
           onChangeText={onDegisti}
-          placeholder={placeholder}
+          placeholder={placeholderYazi}
           placeholderTextColor={RenkTokenlari.textDim}
           style={styles.input}
           returnKeyType="search"
           autoCorrect={false}
-          accessibilityLabel="Keşfet araması"
+          accessibilityLabel={t('kesfetX.aramaA11y')}
         />
         {deger.length > 0 ? (
           <Pressable
             onPress={() => onDegisti('')}
             hitSlop={8}
-            accessibilityLabel="Aramayı temizle"
+            accessibilityLabel={t('kesfetX.aramaTemizle')}
           >
             <Ionicons name="close-circle" size={18} color={RenkTokenlari.textMuted} />
           </Pressable>

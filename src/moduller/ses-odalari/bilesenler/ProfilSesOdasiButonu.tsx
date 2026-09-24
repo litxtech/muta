@@ -28,6 +28,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { KullaniciAktifOda } from '../okuma/KullaniciAktifOdasiniGetir';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   oda: KullaniciAktifOda;
@@ -38,6 +39,7 @@ const GOLD = ['#FFF6C8', '#F0C14A', '#C9891A', '#FFE08A'] as const;
 const DEEP = ['#2A1208', '#1A0C18', '#120810'] as const;
 
 export function ProfilSesOdasiButonu({ oda, onPress }: Props) {
+  const { t } = useCeviri();
   const pulse = useSharedValue(0);
   const shine = useSharedValue(0);
 
@@ -87,9 +89,9 @@ export function ProfilSesOdasiButonu({ oda, onPress }: Props) {
     oda.role === 'host'
       ? 'Lider'
       : oda.role === 'cohost'
-        ? 'Yardımcı'
+        ? t('sesOda.yardimci')
         : oda.role === 'speaker'
-          ? 'Konuşmacı'
+          ? t('sesOda.konusmaci')
           : 'Dinleyici';
 
   return (
@@ -97,7 +99,7 @@ export function ProfilSesOdasiButonu({ oda, onPress }: Props) {
       onPress={onPress}
       style={({ pressed }) => [styles.hit, pressed && styles.pressed]}
       accessibilityRole="button"
-      accessibilityLabel={`${oda.title} ses odasına git`}
+      accessibilityLabel={t('sesOda.odayaGitA11y', { baslik: oda.title })}
     >
       <Animated.View style={[styles.aura, auraStil]} pointerEvents="none" />
 

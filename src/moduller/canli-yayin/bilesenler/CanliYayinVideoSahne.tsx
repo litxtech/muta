@@ -7,6 +7,7 @@ import { LiveKitBaglantiYoneticisi } from '../../livekit/baglanti/LiveKitBaglant
 import { LiveKitVideoViewAl } from '../../livekit/bilesenler/LiveKitVideoViewAl';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   /** host: yerel kamera; izleyici: uzak yayinci */
@@ -24,6 +25,7 @@ export const CanliYayinVideoSahne = React.memo(function CanliYayinVideoSahne({
   mock,
   durumYazi,
 }: Props) {
+  const { t } = useCeviri();
   const VideoViewComp = LiveKitVideoViewAl();
   const [localVideo, setLocalVideo] = useState<LocalVideoTrack | null>(null);
   const [remoteVideo, setRemoteVideo] = useState<RemoteVideoTrack | null>(null);
@@ -48,17 +50,17 @@ export const CanliYayinVideoSahne = React.memo(function CanliYayinVideoSahne({
   const mirrorLocal = rol === 'host' && kameraFacing === 'user';
 
   const baslik = mock
-    ? 'Demo yayın'
+    ? t('canliYayin.demoYayin')
     : track
-      ? 'Görüntü bağlanıyor…'
-      : 'Görüntü yok';
+      ? t('canliYayin.goruntuBaglaniyor')
+      : t('canliYayin.goruntuYok');
   const alt =
     durumYazi ||
     (mock
-      ? 'Ses/görüntü simülasyonu — native build ile gerçek kamera açılır'
+      ? t('canliYayin.demoAlt')
       : rol === 'host'
-        ? 'Kamera henüz bağlanmadı'
-        : 'Yayıncı görüntüsü bekleniyor');
+        ? t('canliYayin.kameraBaglanmadi')
+        : t('canliYayin.yayinciBekleniyor'));
 
   return (
     <View style={styles.root}>

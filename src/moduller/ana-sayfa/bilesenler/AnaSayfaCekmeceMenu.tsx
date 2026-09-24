@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import {
+  I18nManager,
   Image,
   Platform,
   StyleSheet,
@@ -47,6 +48,12 @@ import {
   type AnaSayfaMenuOgesi,
 } from './HamburgerMenuGrubu';
 import { HamburgerIletisimAlt } from './HamburgerIletisimAlt';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { useDil } from '../../../i18n/DilSaglayici';
+import {
+  tabBarOverlayAc,
+  tabBarOverlayKapat,
+} from '../../../components/tab-navigasyon/TabBarOverlay';
 
 export type { AnaSayfaMenuOgesi };
 export type AnaSayfaMenuProfil = HamburgerProfilVeri;
@@ -80,9 +87,11 @@ const PAN_FAIL_Y = 28;
 const HIZ_ESIK = 480;
 const ACILIS_ESIK = 0.38;
 
-/** ~%72 drawer, max 360 — sağda feed örtüşmesi için içerik paddingRight ayrı */
-function drawerGenislikHesapla(ekranW: number): number {
-  return Math.min(Math.round(ekranW * 0.72), 360);
+/** Arapça için daha geniş drawer — uzun glyph’ler kesilmesin */
+function drawerGenislikHesapla(ekranW: number, rtl: boolean): number {
+  const oran = rtl ? 0.82 : 0.72;
+  const max = rtl ? 420 : 360;
+  return Math.min(Math.round(ekranW * oran), max);
 }
 
 /**
@@ -103,13 +112,28 @@ export function AnaSayfaCekmeceMenu({
 }: Props) {
   useTemayaAboneOl();
   const insets = useSafeAreaInsets();
+  const { t } = useCeviri();
+  const { rtl: dilRtl } = useDil();
   const { width: ekranW } = useWindowDimensions();
-  const menuW = useMemo(() => drawerGenislikHesapla(ekranW), [ekranW]);
+  /** Dil intent + native — reload öncesi dil kaynağı öncelikli */
+  const rtl = dilRtl || I18nManager.isRTL;
+  const rtlSv = useSharedValue(rtl ? 1 : 0);
+  const menuW = useMemo(() => drawerGenislikHesapla(ekranW, rtl), [ekranW, rtl]);
   const menuWSv = useSharedValue(menuW);
   const { wallet } = useAuth();
   const rozetSayisi = useHamburgerRozetSayisi(acik);
   const { oda: camOda, ajans: camAjans } = useHamburgerCamBaglantilar(acik);
-  const menuGruplari = useMemo(() => menuGruplarinaBol(ogeler), [ogeler]);
+  const menuGruplari = useMemo(
+    () =>
+      menuGruplarinaBol(ogeler, {
+        yardim: t('anaSayfa.grupYardim'),
+        yayin: t('anaSayfa.grupYayin'),
+        hesap: t('anaSayfa.grupHesap'),
+        kesfet: t('anaSayfa.grupKesfet'),
+        yonetim: t('anaSayfa.grupYonetim'),
+      }),
+    [ogeler, t],
+  );
   const acikSv = useSharedValue(0);
   const surukleBaslangic = useSharedValue(0);
   const jesttenGeliyor = useRef(false);
@@ -122,6 +146,19 @@ export function AnaSayfaCekmeceMenu({
   useEffect(() => {
     menuWSv.value = menuW;
   }, [menuW, menuWSv]);
+
+  useEffect(() => {
+    rtlSv.value = rtl ? 1 : 0;
+  }, [rtl, rtlSv]);
+
+  /** Drawer açıkken root tab bar’ı gizle (zIndex 200 çakışması) */
+  useEffect(() => {
+    if (acik) {
+      tabBarOverlayAc();
+      return () => tabBarOverlayKapat();
+    }
+    return undefined;
+  }, [acik]);
 
   useEffect(() => {
     if (jesttenGeliyor.current) {
@@ -144,22 +181,25 @@ export function AnaSayfaCekmeceMenu({
     onAcikDegisti(false);
   }, [onAcikDegisti]);
 
+  /** LTR: sağa kaydır aç · RTL: sola kaydır aç (kenardan içeri) */
   const kenarPan = useMemo(
     () =>
       Gesture.Pan()
         .enabled(!acik)
-        .activeOffsetX(PAN_ACTIVE_X)
+        .activeOffsetX(rtl ? -PAN_ACTIVE_X : PAN_ACTIVE_X)
         .failOffsetY([-PAN_FAIL_Y, PAN_FAIL_Y])
         .onBegin(() => {
           surukleBaslangic.value = acikSv.value;
         })
         .onUpdate((e) => {
           const w = menuWSv.value;
-          const delta = e.translationX / w;
+          const isRtl = rtlSv.value === 1;
+          const delta = (isRtl ? -e.translationX : e.translationX) / w;
           acikSv.value = Math.min(1, Math.max(0, surukleBaslangic.value + delta));
         })
         .onEnd((e) => {
-          const hiz = e.velocityX;
+          const isRtl = rtlSv.value === 1;
+          const hiz = isRtl ? -e.velocityX : e.velocityX;
           const sonraki =
             hiz > HIZ_ESIK
               ? true
@@ -168,25 +208,27 @@ export function AnaSayfaCekmeceMenu({
                 : acikSv.value > ACILIS_ESIK;
           runOnJS(jestBitir)(sonraki);
         }),
-    [acik, acikSv, jestBitir, menuWSv, surukleBaslangic],
+    [acik, acikSv, jestBitir, menuWSv, rtl, rtlSv, surukleBaslangic],
   );
 
   const ekranKapatPan = useMemo(
     () =>
       Gesture.Pan()
         .enabled(acik)
-        .activeOffsetX(-PAN_ACTIVE_X)
+        .activeOffsetX(rtl ? PAN_ACTIVE_X : -PAN_ACTIVE_X)
         .failOffsetY([-PAN_FAIL_Y, PAN_FAIL_Y])
         .onBegin(() => {
           surukleBaslangic.value = acikSv.value;
         })
         .onUpdate((e) => {
           const w = menuWSv.value;
-          const delta = e.translationX / w;
+          const isRtl = rtlSv.value === 1;
+          const delta = (isRtl ? -e.translationX : e.translationX) / w;
           acikSv.value = Math.min(1, Math.max(0, surukleBaslangic.value + delta));
         })
         .onEnd((e) => {
-          const hiz = e.velocityX;
+          const isRtl = rtlSv.value === 1;
+          const hiz = isRtl ? -e.velocityX : e.velocityX;
           const sonraki =
             hiz > HIZ_ESIK
               ? true
@@ -195,16 +237,25 @@ export function AnaSayfaCekmeceMenu({
                 : acikSv.value > ACILIS_ESIK;
           runOnJS(jestBitir)(sonraki);
         }),
-    [acik, acikSv, jestBitir, menuWSv, surukleBaslangic],
+    [acik, acikSv, jestBitir, menuWSv, rtl, rtlSv, surukleBaslangic],
   );
 
+  /**
+   * RN / I18nManager RTL’de translateX’i aynalar.
+   * Bu yüzden kapalı→açık her zaman [-w, 0] / [0, w-8] yazılır;
+   * kenar (left/right) rtl ile seçilir — ikinci kez işaret çevirme.
+   */
   const panelStyle = useAnimatedStyle(() => {
     const w = menuWSv.value;
+    const acikOran = acikSv.value;
     return {
+      zIndex: acikOran > 0.02 ? 60 : 1,
+      elevation: acikOran > 0.02 ? 24 : 0,
+      opacity: acikOran < 0.01 ? 0 : 1,
       transform: [
         {
           translateX: interpolate(
-            acikSv.value,
+            acikOran,
             [0, 1],
             [-w, 0],
             Extrapolation.CLAMP,
@@ -214,9 +265,10 @@ export function AnaSayfaCekmeceMenu({
     };
   });
 
-  /** İçerik: yatay it + açıkken sol kenarı yuvarlat / gölgelendir */
+  /** İçerik: yatay it + açıkken drawer kenarını yuvarlat / gölgelendir */
   const icerikStyle = useAnimatedStyle(() => {
     const w = menuWSv.value;
+    const isRtl = rtlSv.value === 1;
     const r = interpolate(acikSv.value, [0, 1], [0, 22], Extrapolation.CLAMP);
     const golge = interpolate(acikSv.value, [0, 1], [0, 0.32], Extrapolation.CLAMP);
     return {
@@ -230,10 +282,12 @@ export function AnaSayfaCekmeceMenu({
           ),
         },
       ],
-      borderTopLeftRadius: r,
-      borderBottomLeftRadius: r,
+      borderTopLeftRadius: isRtl ? 0 : r,
+      borderBottomLeftRadius: isRtl ? 0 : r,
+      borderTopRightRadius: isRtl ? r : 0,
+      borderBottomRightRadius: isRtl ? r : 0,
       shadowColor: '#000',
-      shadowOffset: { width: -8, height: 0 },
+      shadowOffset: { width: isRtl ? 8 : -8, height: 0 },
       shadowOpacity: golge,
       shadowRadius: interpolate(acikSv.value, [0, 1], [0, 20], Extrapolation.CLAMP),
       elevation: interpolate(acikSv.value, [0, 1], [0, 14], Extrapolation.CLAMP),
@@ -284,22 +338,35 @@ export function AnaSayfaCekmeceMenu({
       />
 
       <Animated.View
-        style={[styles.panel, { width: menuW }, panelStyle]}
+        style={[
+          styles.panel,
+          {
+            width: menuW,
+            /** İçerik LTR kilit — satır flex aynalanmasın */
+            direction: 'ltr',
+          },
+          rtl ? styles.panelRtl : styles.panelLtr,
+          panelStyle,
+        ]}
         pointerEvents={acik ? 'auto' : 'none'}
       >
-        <ScrollView
-          style={styles.listeScroll}
-          contentContainerStyle={[
-            styles.liste,
-            { paddingTop: ustPad, paddingBottom: altBosluk },
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bounces
-          overScrollMode="never"
-          decelerationRate="fast"
-          nestedScrollEnabled
-        >
+        <View style={[styles.panelIc, { width: menuW }]} collapsable={false}>
+          <ScrollView
+            style={styles.listeScroll}
+            contentContainerStyle={[
+              styles.liste,
+              {
+                paddingTop: ustPad,
+                paddingBottom: altBosluk,
+              },
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces
+            overScrollMode="never"
+            decelerationRate="fast"
+            nestedScrollEnabled
+          >
           <HamburgerProfilKarti
             profil={profil}
             onPress={() => {
@@ -336,7 +403,7 @@ export function AnaSayfaCekmeceMenu({
 
           {menuGruplari.map((grup) => (
             <HamburgerMenuGrubu
-              key={grup.baslik}
+              key={grup.id}
               grup={grup}
               onOgeSec={ogeSecVeKapat}
             />
@@ -357,7 +424,8 @@ export function AnaSayfaCekmeceMenu({
               }}
             />
           ) : null}
-        </ScrollView>
+          </ScrollView>
+        </View>
       </Animated.View>
 
       <Animated.View
@@ -368,7 +436,11 @@ export function AnaSayfaCekmeceMenu({
         {children}
 
         <Animated.View
-          style={[styles.kenarYumusatma, kenarYumusatmaStyle]}
+          style={[
+            styles.kenarYumusatma,
+            rtl ? styles.kenarYumusatmaRtl : styles.kenarYumusatmaLtr,
+            kenarYumusatmaStyle,
+          ]}
           pointerEvents="none"
         >
           <LinearGradient
@@ -378,8 +450,8 @@ export function AnaSayfaCekmeceMenu({
               'rgba(0,0,0,0)',
             ]}
             locations={[0, 0.45, 1]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+            start={rtl ? { x: 1, y: 0 } : { x: 0, y: 0 }}
+            end={rtl ? { x: 0, y: 0 } : { x: 1, y: 0 }}
             style={StyleSheet.absoluteFill}
           />
         </Animated.View>
@@ -389,6 +461,7 @@ export function AnaSayfaCekmeceMenu({
             <View
               style={[
                 styles.kenarHit,
+                rtl ? styles.kenarHitRtl : styles.kenarHitLtr,
                 { top: insets.top + KENAR_UST_BOSLUK },
               ]}
               collapsable={false}
@@ -413,7 +486,7 @@ export function AnaSayfaCekmeceMenu({
             <Pressable
               style={StyleSheet.absoluteFill}
               onPress={kapat}
-              accessibilityLabel="Menüyü kapat"
+              accessibilityLabel={t('anaSayfa.menuKapat')}
             />
           </GestureDetector>
         </Animated.View>
@@ -423,11 +496,12 @@ export function AnaSayfaCekmeceMenu({
 }
 
 export function AnaSayfaHamburgerDugmesi({ onPress }: { onPress: () => void }) {
+  const { t } = useCeviri();
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.hamBtn, pressed && { opacity: 0.88 }]}
-      accessibilityLabel="Menü"
+      accessibilityLabel={t('anaSayfa.menu')}
       accessibilityRole="button"
       hitSlop={12}
     >
@@ -448,17 +522,22 @@ export function AnaSayfaProfilMenuDugmesi({
   avatarUrl?: string | null;
   harf?: string;
 }) {
+  const { t } = useCeviri();
   const uri = typeof avatarUrl === 'string' && avatarUrl.trim() ? avatarUrl.trim() : null;
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.profilBtn, pressed && { opacity: 0.88 }]}
-      accessibilityLabel="Menü"
+      accessibilityLabel={t('anaSayfa.menu')}
       accessibilityRole="button"
       hitSlop={12}
     >
       {uri ? (
-        <Image source={{ uri }} style={styles.profilAvatar} />
+        <Image
+          source={{ uri }}
+          style={styles.profilAvatar}
+          resizeMode="cover"
+        />
       ) : (
         <LinearGradient
           colors={[...RenkTokenlari.gradientPrimary]}
@@ -489,29 +568,31 @@ const styles = StyleSheet.create({
   kokParlama: {
     position: 'absolute',
     top: 0,
-    left: 0,
+    start: 0,
     width: '70%',
     height: '55%',
     opacity: 0.7,
   },
   panel: {
     position: 'absolute',
-    left: 0,
     top: 0,
     bottom: 0,
-    zIndex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: RenkTokenlari.bg,
     overflow: 'hidden',
   },
-  listeScroll: { flex: 1, width: '100%', overflow: 'hidden' },
+  panelLtr: { left: 0 },
+  panelRtl: { right: 0 },
+  panelIc: {
+    flex: 1,
+    overflow: 'hidden',
+    maxWidth: '100%',
+  },
+  listeScroll: { flex: 1, overflow: 'hidden' },
   liste: {
     flexGrow: 0,
-    width: '100%',
-    maxWidth: '100%',
     gap: 8,
-    /** Sağ: feed panel overlap (w-16) metni kesmesin */
-    paddingLeft: 10,
-    paddingRight: 22,
+    paddingStart: 14,
+    paddingEnd: 14,
   },
   icerik: {
     flex: 1,
@@ -521,19 +602,21 @@ const styles = StyleSheet.create({
   },
   kenarYumusatma: {
     position: 'absolute',
-    left: 0,
     top: 0,
     bottom: 0,
     width: 28,
     zIndex: 25,
   },
+  kenarYumusatmaLtr: { left: 0 },
+  kenarYumusatmaRtl: { right: 0 },
   kenarHit: {
     position: 'absolute',
-    left: 0,
     bottom: 0,
     width: EDGE,
     zIndex: 30,
   },
+  kenarHitLtr: { left: 0 },
+  kenarHitRtl: { right: 0 },
   perde: {
     position: 'absolute',
     top: 0,
@@ -577,9 +660,11 @@ const styles = StyleSheet.create({
     borderColor: RenkTokenlari.primary,
     backgroundColor: RenkTokenlari.bgCard,
   },
+  // Android: % boyut + Image borderRadius kırpmaz — sabit px + cover
   profilAvatar: {
-    width: '100%',
-    height: '100%',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 import { supabase } from '../../../lib/supabase';
 import { OzellikBayragiAktifMiSunucu } from '../../ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
 import type { GonderiPaylasSonuc } from './tipler';
@@ -31,7 +32,7 @@ export async function GonderiPaylasServisi(input: {
   note?: string | null;
 }): Promise<GonderiPaylasSonuc> {
   if (!(await OzellikBayragiAktifMiSunucu('messages_enabled'))) {
-    return { ok: false, sent_count: 0, fail_count: 0, hata: 'Mesajlaşma kapalı.' };
+    return { ok: false, sent_count: 0, fail_count: 0, hata: i18n.t('durumX.mesajlasmaKapali') };
   }
 
   const unique = Array.from(
@@ -43,10 +44,10 @@ export async function GonderiPaylasServisi(input: {
   );
 
   if (!UUID_RE.test(input.statusId)) {
-    return { ok: false, sent_count: 0, fail_count: 0, hata: 'Geçersiz gönderi.' };
+    return { ok: false, sent_count: 0, fail_count: 0, hata: i18n.t('durumX.gecersizGonderi') };
   }
   if (unique.length === 0) {
-    return { ok: false, sent_count: 0, fail_count: 0, hata: 'Alıcı seçilmedi.' };
+    return { ok: false, sent_count: 0, fail_count: 0, hata: i18n.t('durumX.aliciYok') };
   }
 
   const clientIds = unique.map(() => yeniClientId());
@@ -79,9 +80,9 @@ export async function GonderiPaylasServisi(input: {
       : [],
     hata:
       sent === 0
-        ? 'Gönderilemedi.'
+        ? i18n.t('durumX.gonderilemedi')
         : fail > 0
-          ? `${sent} kişiye gönderildi, ${fail} başarısız.`
+          ? i18n.t('durumX.kismiGonderildi', { sent, fail })
           : undefined,
   };
 }

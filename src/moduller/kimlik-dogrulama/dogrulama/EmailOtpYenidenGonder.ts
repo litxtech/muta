@@ -2,6 +2,7 @@
  * E-posta OTP yeniden gönder (kayıt / şifre sıfırlama).
  */
 
+import i18n from '../../../i18n';
 import { supabase } from '../../../lib/supabase';
 import type { EmailOtpAmaci } from './EmailOtpDogrula';
 
@@ -11,7 +12,7 @@ export async function EmailOtpYenidenGonder(input: {
 }): Promise<{ ok: boolean; hata?: string }> {
   const email = input.email.trim().toLowerCase();
   if (!email.includes('@')) {
-    return { ok: false, hata: 'Geçerli e-posta gerekli.' };
+    return { ok: false, hata: i18n.t('auth.gecerliEposta') };
   }
 
   if (input.amac === 'signup' || input.amac === 'email_change') {
@@ -37,10 +38,10 @@ function emailGonderimHatasi(message: string): string {
     m.includes('after') ||
     m.includes('429')
   ) {
-    return 'Çok sık kod istendi. 60 saniye bekleyip tekrar dene. Spam klasörünü de kontrol et.';
+    return i18n.t('auth.kodCokSik');
   }
   if (m.includes('smtp') || m.includes('error sending')) {
-    return 'E-posta sunucusu kodu iletemedi. Biraz sonra tekrar dene veya destek ile iletişime geç.';
+    return i18n.t('auth.epostaSunucu');
   }
-  return message;
+  return i18n.t('auth.kodGonderilemedi');
 }

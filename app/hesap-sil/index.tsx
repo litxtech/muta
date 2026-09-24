@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri, type CeviriAnahtari } from '../../src/i18n/useCeviri';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
@@ -21,49 +22,57 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-const SEBEPLER = [
-  'Uygulamayı artık kullanmıyorum',
-  'Gizlilik endişesi',
-  'Başka hesap kullanacağım',
-  'Spam / rahatsız edici içerik',
-  'Diğer',
-] as const;
+const SEBEPLER: { id: string; key: CeviriAnahtari }[] = [
+  { id: 'kullanmiyorum', key: 'hesapSil.sebepKullanmiyorum' },
+  { id: 'gizlilik', key: 'hesapSil.sebepGizlilik' },
+  { id: 'baska', key: 'hesapSil.sebepBaskaHesap' },
+  { id: 'spam', key: 'hesapSil.sebepSpam' },
+  { id: 'diger', key: 'hesapSil.sebepDiger' },
+];
 
-const ONAY_KELIME = 'SİL';
+const MADDELER: CeviriAnahtari[] = [
+  'hesapSil.madde1',
+  'hesapSil.madde2',
+  'hesapSil.madde3',
+  'hesapSil.madde4',
+  'hesapSil.madde5',
+  'hesapSil.madde6',
+  'hesapSil.madde7',
+  'hesapSil.madde8',
+];
 
 /**
  * Apple / Google uyumlu hesap silme ekrani
  * Soft delete + mumkunse auth hard delete
  */
 export default function HesapSilEkrani() {
+  const { t, dil } = useCeviri();
   const { isGuest, user, deleteAccount } = useAuth();
-  const [sebep, setSebep] = useState<string | null>(null);
+  const [sebepId, setSebepId] = useState<string | null>(null);
   const [onay, setOnay] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const onayHazir = useMemo(
-    () => onay.trim().toLocaleUpperCase('tr-TR') === ONAY_KELIME,
-    [onay],
-  );
+  const onayKelime = t('hesapSil.onayKelime');
+  const onayHazir = useMemo(() => {
+    const locale = dil === 'tr' ? 'tr-TR' : undefined;
+    return onay.trim().toLocaleUpperCase(locale) === onayKelime.toLocaleUpperCase(locale);
+  }, [onay, onayKelime, dil]);
 
   if (isGuest) {
     return (
       <Screen edges={['top']}>
         <EkranBasligi
-          title="Hesabı sil"
-          subtitle="Misafir oturumu"
+          title={t('hesapSil.baslik')}
+          subtitle={t('hesapSil.misafirAlt')}
           fallbackHref={'/profil-ayarlar' as any}
         />
         <View style={styles.pad}>
-          <Text style={styles.body}>
-            Misafir hesapta silinecek kalıcı veri yok. Önce hesabını tamamla veya
-            çıkış yap.
-          </Text>
+          <Text style={styles.body}>{t('hesapSil.misafirBody')}</Text>
           <Pressable
             style={styles.secondary}
             onPress={() => router.replace('/(auth)/login')}
           >
-            <Text style={styles.secondaryText}>Giriş ekranına dön</Text>
+            <Text style={styles.secondaryText}>{t('hesapSil.girisEkraninaDon')}</Text>
           </Pressable>
         </View>
       </Screen>
@@ -71,54 +80,52 @@ export default function HesapSilEkrani() {
   }
 
   const sil = () => {
-    if (!sebep) {
-      Alert.alert('Sebep', 'Lütfen bir sebep seç.');
+    if (!sebepId) {
+      Alert.alert(t('hesapSil.sebepBaslik'), t('hesapSil.sebepSec'));
       return;
     }
     if (!onayHazir) {
-      Alert.alert('Onay', `Devam etmek için ${ONAY_KELIME} yaz.`);
+      Alert.alert(
+        t('hesapSil.onayBaslik'),
+        t('hesapSil.onayYaz', { kelime: onayKelime }),
+      );
       return;
     }
 
-    Alert.alert(
-      'Son onay',
-      'Hesabın kapatılacak. Profil, içerik ve oturumlar temizlenecek. Bu işlem geri alınamaz.',
-      [
-        { text: 'Vazgeç', style: 'cancel' },
-        {
-          text: 'Hesabımı sil',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              setBusy(true);
-              const r = await deleteAccount(sebep);
-              setBusy(false);
-              if (r.error) {
-                Alert.alert('Hesap silinemedi', r.error);
-                return;
-              }
-              Alert.alert(
-                'Hesap silindi',
-                'Hesabın kapatıldı. Profilin “Hesap silindi” olarak görünür. Apple veya e-posta ile yeni hesap açabilirsin.',
-                [
-                  {
-                    text: 'Tamam',
-                    onPress: () => router.replace('/(auth)/login'),
-                  },
-                ],
-              );
-            })();
-          },
+    const sebepLabel =
+      t(SEBEPLER.find((s) => s.id === sebepId)!.key);
+
+    Alert.alert(t('hesapSil.sonOnay'), t('hesapSil.sonOnayMesaj'), [
+      { text: t('ortak.vazgec'), style: 'cancel' },
+      {
+        text: t('hesapSil.hesabimiSil'),
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            setBusy(true);
+            const r = await deleteAccount(sebepLabel);
+            setBusy(false);
+            if (r.error) {
+              Alert.alert(t('hesapSil.silinemedi'), r.error);
+              return;
+            }
+            Alert.alert(t('hesapSil.silindi'), t('hesapSil.silindiMesaj'), [
+              {
+                text: t('ortak.tamam'),
+                onPress: () => router.replace('/(auth)/login'),
+              },
+            ]);
+          })();
         },
-      ],
-    );
+      },
+    ]);
   };
 
   return (
     <Screen edges={['top', 'bottom']}>
       <EkranBasligi
-        title="Hesabı sil"
-        subtitle="Kalıcı hesap kapatma"
+        title={t('hesapSil.baslik')}
+        subtitle={t('hesapSil.altBaslik')}
         fallbackHref={'/profil-ayarlar' as any}
       />
       <ScrollView
@@ -127,47 +134,42 @@ export default function HesapSilEkrani() {
       >
         <View style={styles.warn}>
           <Ionicons name="warning" size={22} color={RenkTokenlari.danger} />
-          <Text style={styles.warnText}>
-            Bu işlem hesabını kalıcı kapatır. Profilin “Hesap silindi” olarak
-            görünür; durumların, odaların ve ajansın kaldırılır. Ses odasındaysan
-            otomatik çıkarsın. Apple ile tekrar giriş yeni boş hesap açar; eski
-            hesaba dönülmez.
-          </Text>
+          <Text style={styles.warnText}>{t('hesapSil.uyariKalici')}</Text>
         </View>
 
         <View style={[styles.warn, styles.warnIade]}>
           <Ionicons name="card-outline" size={22} color={RenkTokenlari.danger} />
-          <Text style={styles.warnText}>
-            Mağaza iadesi, chargeback veya sahte dekont durumunda açık takas
-            anlaşmaları iptal edilir, bakiye geri alınır ve hesap askıya
-            alınabilir / kapatılabilir. İade geçmişi olan hesaplarda takas
-            kapalıdır.
-          </Text>
+          <Text style={styles.warnText}>{t('hesapSil.uyariIade')}</Text>
         </View>
 
-        <Text style={styles.label}>Hesap</Text>
-        <Text style={styles.meta}>{user?.email ?? 'Kayıtlı hesap'}</Text>
+        <Text style={styles.label}>{t('hesapSil.hesapEtiket')}</Text>
+        <Text style={styles.meta}>{user?.email ?? t('hesapSil.kayitliHesap')}</Text>
 
-        <Text style={styles.label}>Neden siliyorsun?</Text>
-        {SEBEPLER.map((s) => (
-          <Pressable
-            key={s}
-            style={[styles.chip, sebep === s && styles.chipAktif]}
-            onPress={() => setSebep(s)}
-          >
-            <Text style={[styles.chipText, sebep === s && styles.chipTextAktif]}>
-              {s}
-            </Text>
-          </Pressable>
-        ))}
+        <Text style={styles.label}>{t('hesapSil.nedenSiliyorsun')}</Text>
+        {SEBEPLER.map((s) => {
+          const label = t(s.key);
+          return (
+            <Pressable
+              key={s.id}
+              style={[styles.chip, sebepId === s.id && styles.chipAktif]}
+              onPress={() => setSebepId(s.id)}
+            >
+              <Text
+                style={[styles.chipText, sebepId === s.id && styles.chipTextAktif]}
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
 
         <Text style={styles.label}>
-          Onaylamak için {ONAY_KELIME} yaz
+          {t('hesapSil.onaylamakIcin', { kelime: onayKelime })}
         </Text>
         <TextInput
           value={onay}
           onChangeText={setOnay}
-          placeholder={ONAY_KELIME}
+          placeholder={onayKelime}
           placeholderTextColor={RenkTokenlari.textDim}
           autoCapitalize="characters"
           autoCorrect={false}
@@ -176,23 +178,14 @@ export default function HesapSilEkrani() {
         />
 
         <View style={styles.liste}>
-          {[
-            'Profil “Silinmiş hesap” olur; ad, foto, bio, telefon, doğum tarihi silinir',
-            'Durum paylaşımların ve yorumların gizlenir',
-            'Oda / canlı yayın yorumların kaldırılır',
-            'Açık odalar ve yayınlar kapatılır; oturumlar sonlanır',
-            'Push bildirimleri ve banka bilgilerin temizlenir',
-            'Mümkünse giriş kimliği de silinir (Apple/Google gereksinimi)',
-            'Açık takas anlaşmaları iptal edilebilir; iade/chargeback riski hesap kapatma sebebidir',
-            'Bu işlem geri alınamaz',
-          ].map((t) => (
-            <View key={t} style={styles.listeSatir}>
+          {MADDELER.map((key) => (
+            <View key={key} style={styles.listeSatir}>
               <Ionicons
                 name="checkmark-circle"
                 size={16}
                 color={RenkTokenlari.textMuted}
               />
-              <Text style={styles.listeText}>{t}</Text>
+              <Text style={styles.listeText}>{t(key)}</Text>
             </View>
           ))}
         </View>
@@ -200,15 +193,15 @@ export default function HesapSilEkrani() {
         <Pressable
           style={[
             styles.dangerBtn,
-            (!onayHazir || !sebep || busy) && styles.dangerDisabled,
+            (!onayHazir || !sebepId || busy) && styles.dangerDisabled,
           ]}
-          disabled={!onayHazir || !sebep || busy}
+          disabled={!onayHazir || !sebepId || busy}
           onPress={sil}
         >
           {busy ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.dangerBtnText}>Hesabımı kalıcı olarak sil</Text>
+            <Text style={styles.dangerBtnText}>{t('hesapSil.kaliciSil')}</Text>
           )}
         </Pressable>
 
@@ -217,7 +210,7 @@ export default function HesapSilEkrani() {
           onPress={() => router.back()}
           disabled={busy}
         >
-          <Text style={styles.secondaryText}>Vazgeç</Text>
+          <Text style={styles.secondaryText}>{t('ortak.vazgec')}</Text>
         </Pressable>
       </ScrollView>
     </Screen>

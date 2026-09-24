@@ -14,6 +14,7 @@ import { Screen } from '../../../src/components/Screen';
 import { GradientButton } from '../../../src/components/GradientButton';
 import { TextField } from '../../../src/components/TextField';
 import { EkranBasligi } from '../../../src/components/EkranBasligi';
+import { useCeviri } from '../../../src/i18n/useCeviri';
 import { BosDurum } from '../../../src/components/BosDurum';
 import { KlavyeGuvenliAlan } from '../../../src/bilesenler/klavye/KlavyeGuvenliAlan';
 import { ModulHataSiniri } from '../../../src/ortak/hata-sinirlari/ModulHataSiniri';
@@ -57,6 +58,7 @@ function kalanSure(endsAt: string): string {
 }
 
 export default function SehirSecimDetayEkrani() {
+  const { t } = useCeviri();
   const { id } = useLocalSearchParams<{ id: string }>();
   const electionId = Array.isArray(id) ? id[0] : id;
   const { isGuest, refreshProfile } = useAuth();
@@ -184,7 +186,7 @@ export default function SehirSecimDetayEkrani() {
       <ModulHataSiniri modulAdi="sehir-secim-detay">
         <KlavyeGuvenliAlan style={{ flex: 1 }}>
         <EkranBasligi
-          title={data?.election.title ?? 'Seçim'}
+          title={data?.election.title ?? t('sehir.secim')}
           subtitle={
             data
               ? `${data.city?.name ?? ''} · ${headerMeta}`

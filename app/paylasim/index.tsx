@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { GradientButton } from '../../src/components/GradientButton';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
@@ -32,8 +33,16 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
+const LOCALE_MAP: Record<string, string> = {
+  tr: 'tr-TR',
+  en: 'en-US',
+  es: 'es-ES',
+  ar: 'ar',
+};
+
 /** Kullanıcı: kişisel davet linki oluştur / kopyala / paylaş */
 export default function PaylasimEkrani() {
+  const { t, dil } = useCeviri();
   const { isGuest } = useAuth();
   const [upgradeAcik, setUpgradeAcik] = useState(false);
   const [davet, setDavet] = useState<KullaniciDavetKodu | null>(null);
@@ -61,7 +70,7 @@ export default function PaylasimEkrani() {
     try {
       const Clipboard = await import('expo-clipboard');
       await Clipboard.setStringAsync(metin);
-      Alert.alert('Kopyalandı', 'Link panoya alındı.');
+      Alert.alert(t('paylasim.kopyalandiBaslik'), t('paylasim.kopyalandiBody'));
       return;
     } catch {
       // Native modul yoksa sistem paylasim paneli
@@ -69,7 +78,7 @@ export default function PaylasimEkrani() {
     try {
       await Share.share({ message: metin });
     } catch {
-      Alert.alert('Kopyala', 'Panoya yazılamadı. Yeni build gerekir.');
+      Alert.alert(t('ortak.kopyala'), t('paylasim.kopyalaBasarisiz'));
     }
   };
 
@@ -81,7 +90,7 @@ export default function PaylasimEkrani() {
     setBusy(true);
     const r = await UygulamayiPaylas();
     setBusy(false);
-    if (!r.ok) Alert.alert('Paylaşım', r.hata);
+    if (!r.ok) Alert.alert(t('paylasim.paylasimHata'), r.hata);
     else {
       const guncel = await BenimDavetKodumuAl().catch(() => null);
       if (guncel) setDavet(guncel);
@@ -91,21 +100,18 @@ export default function PaylasimEkrani() {
   return (
     <Screen edges={['top']}>
       <EkranBasligi
-        title="Uygulamayı paylaş"
-        subtitle="Link ile indir · davet kodu"
+        title={t('paylasim.baslik')}
+        subtitle={t('paylasim.altBaslik')}
       />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <LinearGradient colors={[...RenkTokenlari.gradientCard]} style={styles.kart}>
-          <Text style={styles.fisilti}>DAVET</Text>
+          <Text style={styles.fisilti}>{t('paylasim.davet')}</Text>
           <Text style={styles.baslik}>{OrtamDegiskenleri.uygulamaAdi}</Text>
-          <Text style={styles.alt}>
-            Arkadaşların linke tıklayınca App Store / Play indirme sayfasına
-            yönlendirilir. Store URL’lerini admin panelinden yönetirsin.
-          </Text>
+          <Text style={styles.alt}>{t('paylasim.aciklama')}</Text>
 
           {isGuest ? (
             <GradientButton
-              title="Paylaşmak için hesabı tamamla"
+              title={t('paylasim.hesabiTamamla')}
               onPress={() => setUpgradeAcik(true)}
             />
           ) : yukleniyor ? (
@@ -113,15 +119,19 @@ export default function PaylasimEkrani() {
           ) : davet ? (
             <>
               <View style={styles.kodKutu}>
-                <Text style={styles.kodEtiket}>Davet kodun</Text>
+                <Text style={styles.kodEtiket}>{t('paylasim.davetKodun')}</Text>
                 <Text style={styles.kod}>{davet.code}</Text>
                 <Text style={styles.istatistik}>
-                  {davet.click_count.toLocaleString('tr-TR')} tıklama
+                  {t('paylasim.tiklama', {
+                    count: davet.click_count.toLocaleString(
+                      LOCALE_MAP[dil] ?? dil,
+                    ),
+                  })}
                 </Text>
               </View>
 
               <View style={styles.linkKutu}>
-                <Text style={styles.linkEtiket}>Paylaşım linki</Text>
+                <Text style={styles.linkEtiket}>{t('paylasim.paylasimLinki')}</Text>
                 <Text style={styles.link} selectable>
                   {httpsUrl}
                 </Text>
@@ -130,12 +140,14 @@ export default function PaylasimEkrani() {
                   onPress={() => void kopyala(httpsUrl)}
                 >
                   <Ionicons name="copy-outline" size={16} color={RenkTokenlari.primarySoft} />
-                  <Text style={styles.kopyaYazi}>Kopyala</Text>
+                  <Text style={styles.kopyaYazi}>{t('ortak.kopyala')}</Text>
                 </Pressable>
               </View>
 
               <GradientButton
-                title={busy ? 'Açılıyor…' : 'WhatsApp / paylaş'}
+                title={
+                  busy ? t('paylasim.aciliyor') : t('paylasim.whatsappPaylas')
+                }
                 onPress={() => void paylas()}
               />
 
@@ -143,13 +155,11 @@ export default function PaylasimEkrani() {
                 style={styles.deep}
                 onPress={() => void kopyala(deepUrl)}
               >
-                <Text style={styles.deepYazi}>Uygulama içi linki kopyala</Text>
+                <Text style={styles.deepYazi}>{t('paylasim.derinLinkKopyala')}</Text>
               </Pressable>
             </>
           ) : (
-            <Text style={styles.hata}>
-              Davet kodu alınamadı. Migration 020 uygulandı mı?
-            </Text>
+            <Text style={styles.hata}>{t('paylasim.kodAlinamadi')}</Text>
           )}
         </LinearGradient>
       </ScrollView>

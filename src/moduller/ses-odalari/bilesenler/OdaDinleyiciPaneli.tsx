@@ -22,6 +22,7 @@ import {
 } from '../okuma/OdaDinleyicileriniGetir';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { DogrulanmisTik } from '../../kullanici-profili/bilesenler/DogrulanmisTik';
 import {
   BoslukTokenlari,
   YaricapTokenlari,
@@ -32,6 +33,7 @@ import {
   ODA_UST_BTN,
   ODA_UST_ICON,
 } from './OdaButonOlculeri';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   roomId: string;
@@ -124,6 +126,7 @@ export function OdaDinleyiciPaneli({
   acikDis,
   onAcikChange,
 }: Props) {
+  const { t } = useCeviri();
   const insets = useSafeAreaInsets();
   const btnPx = boyut === 'ust' ? ODA_UST_BTN : ODA_DOCK_BTN;
   const iconPx = boyut === 'ust' ? ODA_UST_ICON : ODA_DOCK_ICON;
@@ -227,11 +230,11 @@ export function OdaDinleyiciPaneli({
           acik && styles.butonAcik,
         ]}
         accessibilityRole="button"
-        accessibilityLabel="Dinleyenler"
+        accessibilityLabel={t('sesOda.dinleyenler')}
         accessibilityHint={
           sayi > 0
-            ? `${sayi} kişi koltukta oturmadan dinliyor`
-            : 'Koltukta oturmayan dinleyen yok'
+            ? t('sesOda.dinliyor', { sayi })
+            : t('sesOda.koltuktaOlmayanYok')
         }
       >
         <Ionicons
@@ -267,7 +270,7 @@ export function OdaDinleyiciPaneli({
                 size={18}
                 color={RenkTokenlari.primarySoft}
               />
-              <Text style={styles.baslik}>Dinleyenler</Text>
+              <Text style={styles.baslik}>{t('sesOda.dinleyenler')}</Text>
             </View>
             <View style={styles.baslikSag}>
               <Text style={styles.sayiEtiket}>{sayi}</Text>
@@ -276,14 +279,14 @@ export function OdaDinleyiciPaneli({
                 style={styles.kapatBtn}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel="Kapat"
+                accessibilityLabel={t('ortak.kapat')}
               >
                 <Ionicons name="close" size={18} color={RenkTokenlari.textMuted} />
               </Pressable>
             </View>
           </View>
           <Text style={styles.altBaslik}>
-            Odada koltukta oturmadan konuşmacıları dinleyen profiller
+            {t('sesOda.dinleyenAciklama')}
           </Text>
 
           {yukleniyor && sayi === 0 ? (
@@ -298,9 +301,9 @@ export function OdaDinleyiciPaneli({
                 size={28}
                 color={RenkTokenlari.textDim}
               />
-              <Text style={styles.bos}>Şu an dinleyen yok</Text>
+              <Text style={styles.bos}>{t('sesOda.koltuktaOlmayanYok')}</Text>
               <Text style={styles.bosAlt}>
-                Koltukta olmayan herkes burada görünür
+                {t('sesOda.dinleyenAlt')}
               </Text>
             </View>
           ) : (
@@ -324,7 +327,7 @@ export function OdaDinleyiciPaneli({
                     }}
                     style={styles.profilKart}
                     accessibilityRole="button"
-                    accessibilityLabel={`${ad} profili`}
+                    accessibilityLabel={t('kisilerX.profilA11y', { isim: ad })}
                   >
                     <View style={styles.avatarKutu}>
                       <SeviyeTaci
@@ -341,11 +344,7 @@ export function OdaDinleyiciPaneli({
                       </SeviyeTaci>
                       {item.profile?.is_verified ? (
                         <View style={styles.onayRozeti} pointerEvents="none">
-                          <Ionicons
-                            name="checkmark-circle"
-                            size={14}
-                            color={RenkTokenlari.mint}
-                          />
+                          <DogrulanmisTik size={14} />
                         </View>
                       ) : null}
                     </View>

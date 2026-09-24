@@ -1,3 +1,4 @@
+import i18n from '../../../i18n';
 import { supabase } from '../../../lib/supabase';
 import {
   TelefonAuthEmaili,
@@ -27,9 +28,9 @@ export async function EmailIleKayitOl(input: {
       'telefon_kayit_musait_mi',
       { p_telefon: tel.e164 },
     );
-    if (musaitErr) return { error: musaitErr.message };
+    if (musaitErr) return { error: i18n.t('auth.kayitSunucuHatasi') };
     if (musait === false) {
-      return { error: 'Bu telefon numarası zaten kayıtlı.' };
+      return { error: i18n.t('auth.telefonKayitli') };
     }
     e164 = tel.e164;
   }
@@ -39,7 +40,7 @@ export async function EmailIleKayitOl(input: {
 
   if (!e164 && !gercekEmail) {
     return {
-      error: 'Telefon veya geçerli bir e-posta gerekli.',
+      error: i18n.t('auth.telefonVeyaEpostaGerekli'),
     };
   }
 
@@ -67,9 +68,9 @@ export async function EmailIleKayitOl(input: {
   if (error) {
     const m = error.message.toLowerCase();
     if (m.includes('already') || m.includes('registered')) {
-      return { error: 'Bu e-posta veya telefon zaten kayıtlı.' };
+      return { error: i18n.t('auth.epostaVeyaTelefonKayitli') };
     }
-    return { error: error.message };
+    return { error: i18n.t('auth.kayitSunucuHatasi') };
   }
 
   if (data.user?.id && e164) {
@@ -88,8 +89,7 @@ export async function EmailIleKayitOl(input: {
     });
     if (girisErr) {
       return {
-        error:
-          'Telefon kaydı oluşturuldu ancak oturum açılamadı. E-posta doğrulama açıksa kapatın veya destek ile iletişime geçin.',
+        error: i18n.t('auth.telefonOturumAcilamadi'),
       };
     }
     return {};

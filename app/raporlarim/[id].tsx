@@ -11,13 +11,14 @@ import {
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
   RaporDurumEtiketiKullanici,
   RaporumuGetir,
   type KullaniciRaporOzeti,
 } from '../../src/moduller/moderasyon/okuma/RaporlarimiGetir';
-import { RAPOR_DURUM_KART_NOTU_ACIK } from '../../src/moduller/moderasyon/islemler/ModerasyonIslemleri';
+import { RaporDurumKartNotuAcik } from '../../src/moduller/moderasyon/islemler/ModerasyonIslemleri';
 import { ProfilAvatarKucuk } from '../../src/moduller/canli-sohbet/bilesenler/ProfilAvatarKucuk';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
@@ -26,7 +27,15 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
+const LOCALE_MAP: Record<string, string> = {
+  tr: 'tr-TR',
+  en: 'en-US',
+  es: 'es-ES',
+  ar: 'ar',
+};
+
 export default function RaporDetayEkrani() {
+  const { t, dil } = useCeviri();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [rapor, setRapor] = useState<KullaniciRaporOzeti | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -39,12 +48,12 @@ export default function RaporDetayEkrani() {
       setRapor(await RaporumuGetir(id));
       setHata(null);
     } catch (e) {
-      setHata(e instanceof Error ? e.message : 'Yüklenemedi');
+      setHata(e instanceof Error ? e.message : t('raporlarim.yuklenemedi'));
       setRapor(null);
     } finally {
       setYukleniyor(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -52,16 +61,26 @@ export default function RaporDetayEkrani() {
     }, [load]),
   );
 
+  const locale = LOCALE_MAP[dil] ?? dil;
   const ad =
     rapor?.target?.display_name?.trim() ||
-    (rapor?.target?.username ? `@${rapor.target.username}` : 'Kullanıcı');
+    (rapor?.target?.username ? `@${rapor.target.username}` : t('ortak.kullanici'));
+
+  const ekipNotu = (() => {
+    if (!rapor) return '';
+    if (rapor.reporter_note?.trim()) return rapor.reporter_note.trim();
+    if (rapor.status === 'open') return RaporDurumKartNotuAcik();
+    if (rapor.status === 'reviewing') return t('raporlarim.notInceleniyor');
+    if (rapor.status === 'resolved') return t('raporlarim.notSonuclandi');
+    return t('raporlarim.notKapatildi');
+  })();
 
   return (
     <Screen>
       <ModulHataSiniri modulAdi="rapor-detay">
         <EkranBasligi
-          title="Rapor detayı"
-          subtitle="Bildirimin · ekip notu"
+          title={t('raporlarim.detayBaslik')}
+          subtitle={t('raporlarim.detayAlt')}
           onBack={() => router.back()}
         />
         {yukleniyor && !rapor ? (
@@ -94,7 +113,7 @@ export default function RaporDetayEkrani() {
                     <View style={{ flex: 1 }}>
                       <Text style={styles.baslik}>{ad}</Text>
                       <Text style={styles.alt}>
-                        {new Date(rapor.created_at).toLocaleString('tr-TR')}
+                        {new Date(rapor.created_at).toLocaleString(locale)}
                       </Text>
                     </View>
                     <View style={styles.durumChip}>
@@ -105,36 +124,28 @@ export default function RaporDetayEkrani() {
                   </View>
                 </View>
 
-                <Text style={styles.etiket}>Sebep</Text>
+                <Text style={styles.etiket}>{t('raporlarim.sebep')}</Text>
                 <View style={styles.kart}>
                   <Text style={styles.metin}>{rapor.reason}</Text>
                 </View>
 
                 {rapor.details ? (
                   <>
-                    <Text style={styles.etiket}>Senin açıklaman</Text>
+                    <Text style={styles.etiket}>{t('raporlarim.seninAciklama')}</Text>
                     <View style={styles.kart}>
                       <Text style={styles.metin}>{rapor.details}</Text>
                     </View>
                   </>
                 ) : null}
 
-                <Text style={styles.etiket}>Ekip notu / durum</Text>
+                <Text style={styles.etiket}>{t('raporlarim.ekipNotu')}</Text>
                 <View style={styles.kart}>
-                  <Text style={styles.metin}>
-                    {rapor.reporter_note?.trim() ||
-                      (rapor.status === 'open'
-                        ? RAPOR_DURUM_KART_NOTU_ACIK
-                        : rapor.status === 'reviewing'
-                          ? 'Moderasyon ekibi inceliyor; 24 saat içinde işlem yapılacaktır.'
-                          : rapor.status === 'resolved'
-                            ? 'İşlem tamamlandı.'
-                            : 'Rapor kapatıldı.')}
-                  </Text>
+                  <Text style={styles.metin}>{ekipNotu}</Text>
                   {rapor.resolved_at ? (
                     <Text style={styles.alt}>
-                      Güncelleme:{' '}
-                      {new Date(rapor.resolved_at).toLocaleString('tr-TR')}
+                      {t('raporlarim.guncelleme', {
+                        tarih: new Date(rapor.resolved_at).toLocaleString(locale),
+                      })}
                     </Text>
                   ) : null}
                 </View>
@@ -146,7 +157,7 @@ export default function RaporDetayEkrani() {
                       router.push(`/kullanici/${rapor.target!.id}` as any)
                     }
                   >
-                    <Text style={styles.linkYazi}>Profili gör</Text>
+                    <Text style={styles.linkYazi}>{t('raporlarim.profiliGor')}</Text>
                   </Pressable>
                 ) : null}
               </>

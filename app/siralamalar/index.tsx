@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { BosDurum } from '../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import {
@@ -29,20 +30,12 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-const BOARDS: { id: SiralamaBoard; label: string }[] = [
-  { id: 'top_recharge', label: 'Yükleme' },
-  { id: 'gifter', label: 'Hediye' },
-  { id: 'host', label: 'Ev sahibi' },
-  { id: 'room', label: 'Oda' },
-];
-
-const BOARD_IDS = new Set(BOARDS.map((b) => b.id));
-
-const PERIODS: { id: SiralamaPeriod; label: string }[] = [
-  { id: 'weekly', label: 'Haftalık' },
-  { id: 'daily', label: 'Günlük' },
-  { id: 'all_time', label: 'Tümü' },
-];
+const BOARD_IDS = new Set<SiralamaBoard>([
+  'top_recharge',
+  'gifter',
+  'host',
+  'room',
+]);
 
 function boardParam(raw: string | string[] | undefined): SiralamaBoard {
   const v = Array.isArray(raw) ? raw[0] : raw;
@@ -53,6 +46,18 @@ function boardParam(raw: string | string[] | undefined): SiralamaBoard {
 
 /** Top Recharge ≠ Top Gifter — haftalik yukleme on planda */
 export default function SiralamalarEkrani() {
+  const { t } = useCeviri();
+  const boards = [
+    { id: 'top_recharge' as const, label: t('siralamalar.boardYukleme') },
+    { id: 'gifter' as const, label: t('siralamalar.boardHediye') },
+    { id: 'host' as const, label: t('siralamalar.boardHost') },
+    { id: 'room' as const, label: t('siralamalar.boardOda') },
+  ];
+  const periods = [
+    { id: 'weekly' as const, label: t('siralamalar.periodHaftalik') },
+    { id: 'daily' as const, label: t('siralamalar.periodGunluk') },
+    { id: 'all_time' as const, label: t('siralamalar.periodTumu') },
+  ];
   const params = useLocalSearchParams<{ board?: string }>();
   const [board, setBoard] = useState<SiralamaBoard>(() =>
     boardParam(params.board),
@@ -90,17 +95,15 @@ export default function SiralamalarEkrani() {
   const altBaslik = useMemo(() => {
     if (board === 'top_recharge') {
       return period === 'weekly'
-        ? 'Bu hafta en çok coin yükleyenler'
+        ? t('siralamalar.altYuklemeHaftalik')
         : period === 'daily'
-          ? 'Bugün en çok yükleyenler'
-          : 'Tüm zamanlar yükleme';
+          ? t('siralamalar.altYuklemeGunluk')
+          : t('siralamalar.altYuklemeTumu');
     }
-    if (board === 'gifter') return 'Hediye gönderenler';
-    if (board === 'room') {
-      return 'Bu hafta odada harcanan hediye + oyun coin · Pazartesi sıfırlanır';
-    }
-    return 'Hediye alan ev sahipleri';
-  }, [board, period]);
+    if (board === 'gifter') return t('siralamalar.altHediye');
+    if (board === 'room') return t('siralamalar.altOda');
+    return t('siralamalar.altHost');
+  }, [board, period, t]);
 
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
@@ -108,10 +111,10 @@ export default function SiralamalarEkrani() {
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="liderlik-siralamalari">
-        <EkranBasligi title="Sıralamalar" subtitle={altBaslik} />
+        <EkranBasligi title={t('siralamalar.baslik')} subtitle={altBaslik} />
 
         <View style={styles.tabs}>
-          {BOARDS.map((b) => (
+          {boards.map((b) => (
             <Pressable
               key={b.id}
               onPress={() => setBoard(b.id)}
@@ -128,7 +131,7 @@ export default function SiralamalarEkrani() {
 
         {board !== 'host' && board !== 'room' ? (
           <View style={styles.periods}>
-            {PERIODS.map((p) => (
+            {periods.map((p) => (
               <Pressable
                 key={p.id}
                 onPress={() => setPeriod(p.id)}
@@ -167,10 +170,10 @@ export default function SiralamalarEkrani() {
                 />
                 <Text style={styles.podiumTitle}>
                   {board === 'room'
-                    ? 'Haftanın odaları'
+                    ? t('siralamalar.podiumOdalar')
                     : board === 'top_recharge'
-                      ? 'Haftanın zirvesi'
-                      : 'Zirve'}
+                      ? t('siralamalar.podiumYukleme')
+                      : t('siralamalar.podiumZirve')}
                 </Text>
                 {top3.map((item) =>
                   board === 'room' ? (
@@ -190,13 +193,13 @@ export default function SiralamalarEkrani() {
             !loading && rows.length === 0 ? (
               <BosDurum
                 icon="trophy-outline"
-                title="Sıralama boş"
+                title={t('siralamalar.bosBaslik')}
                 body={
                   board === 'top_recharge'
-                    ? 'Bu dönemde henüz coin yüklemesi yok. Profil → Ayarlar’dan sıralamayı gizleyebilirsin.'
+                    ? t('siralamalar.bosYukleme')
                     : board === 'room'
-                      ? 'Bu hafta henüz odada hediye veya oyun coin harcaması yok. Pazartesi sıralama sıfırlanır.'
-                      : 'Bu dönem için kayıt yok.'
+                      ? t('siralamalar.bosOda')
+                      : t('siralamalar.bosGenel')
                 }
               />
             ) : null

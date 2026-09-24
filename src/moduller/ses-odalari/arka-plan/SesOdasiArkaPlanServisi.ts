@@ -7,6 +7,7 @@
 import { AppState, type AppStateStatus, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
+import i18n from '../../../i18n';
 import { supabase } from '../../../lib/supabase';
 import { leaveRoom } from '../../../services/api';
 import {
@@ -44,7 +45,7 @@ async function androidKanalHazirla() {
     await Notifications.requestPermissionsAsync().catch(() => undefined);
   }
   await Notifications.setNotificationChannelAsync(ANDROID_KANAL, {
-    name: 'Ses odası',
+    name: i18n.t('sesOda.sesOdasi'),
     importance: Notifications.AndroidImportance.LOW,
     bypassDnd: false,
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
@@ -174,8 +175,9 @@ export async function SesOdasiArkaPlanBaslat(girdi: BaslatGirdi): Promise<void> 
   // Aynı oda için zaten gösteriliyor → tekrar bildirim yok
   if (gosteriliyor && gosterilenOdaId === girdi.roomId) return;
 
-  const baslik = (girdi.title || 'Ses odası').trim() || 'Ses odası';
-  const mesaj = 'Ses devam ediyor · Odaya dönmek için dokun';
+  const sesOdasi = i18n.t('sesOda.sesOdasi');
+  const baslik = (girdi.title || sesOdasi).trim() || sesOdasi;
+  const mesaj = i18n.t('sesOda.sesDevamOdayaDon');
 
   if (Platform.OS === 'android') {
     await androidKanalHazirla();
@@ -193,10 +195,10 @@ export async function SesOdasiArkaPlanBaslat(girdi: BaslatGirdi): Promise<void> 
         icon: 'ic_launcher',
         largeIcon: 'ic_launcher',
         button: true,
-        buttonText: 'Odaya dön',
+        buttonText: i18n.t('sesOda.odayaDon'),
         buttonOnPress: 'mainOnPress',
         button2: true,
-        button2Text: 'Çık',
+        button2Text: i18n.t('sesOda.cik'),
         button2OnPress: 'button2OnPress',
         mainOnPress: 'mainOnPress',
         color: '#E84091',

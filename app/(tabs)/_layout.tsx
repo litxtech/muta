@@ -8,6 +8,7 @@ import {
   TabsBirKezMountMu,
   TabsMountIsaretle,
 } from '../../src/components/tab-navigasyon/TabBarGuvenlik';
+import { useCeviri } from '../../src/i18n/useCeviri';
 
 /**
  * Sekme ekranları — tab BAR burada YOK.
@@ -15,6 +16,7 @@ import {
  */
 export default function TabsLayout() {
   const { session, loading } = useAuth();
+  const { t } = useCeviri();
 
   useEffect(() => {
     if (session) TabsMountIsaretle();
@@ -28,7 +30,6 @@ export default function TabsLayout() {
   const tabsKoruma = TabsBirKezMountMu() || !!session;
 
   if (!tabsKoruma) {
-    // Oturum yokken boş View gösterme — login yönlendirmesi gelene kadar spinner
     return (
       <View
         style={{
@@ -70,20 +71,39 @@ export default function TabsLayout() {
       >
         <Tabs.Screen
           name="index"
-          options={{ title: 'Ana Sayfa', lazy: false, freezeOnBlur: false }}
+          options={{
+            title: t('sekmeler.anaSayfa'),
+            lazy: false,
+            freezeOnBlur: false,
+          }}
         />
-        <Tabs.Screen name="durum" options={{ title: 'Durum', lazy: true }} />
-        <Tabs.Screen name="create" options={{ title: 'Oluştur', lazy: true }} />
+        <Tabs.Screen
+          name="durum"
+          options={{ title: t('sekmeler.durum'), lazy: true }}
+        />
+        <Tabs.Screen
+          name="create"
+          options={{ title: t('sekmeler.olustur'), lazy: true }}
+        />
         <Tabs.Screen
           name="messages"
-          options={{ title: 'Mesajlar', lazy: true }}
+          options={{ title: t('sekmeler.mesajlar'), lazy: true }}
         />
-        <Tabs.Screen name="profile" options={{ title: 'Profil', lazy: true }} />
-        <Tabs.Screen name="rooms" options={{ href: null, title: 'Odalar' }} />
-        <Tabs.Screen name="wallet" options={{ href: null, title: 'Cüzdan' }} />
+        <Tabs.Screen
+          name="profile"
+          options={{ title: t('sekmeler.profil'), lazy: true }}
+        />
+        <Tabs.Screen
+          name="rooms"
+          options={{ href: null, title: t('sekmeler.odalar') }}
+        />
+        <Tabs.Screen
+          name="wallet"
+          options={{ href: null, title: t('sekmeler.cuzdan') }}
+        />
         <Tabs.Screen
           name="cihazlar"
-          options={{ href: null, title: 'Cihazlar' }}
+          options={{ href: null, title: t('sekmeler.cihazlar') }}
         />
       </Tabs>
     </ModulHataSiniri>

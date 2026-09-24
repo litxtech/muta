@@ -12,6 +12,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../../src/components/Screen';
 import { EkranBasligi } from '../../../src/components/EkranBasligi';
+import { useCeviri } from '../../../src/i18n/useCeviri';
 import { BosDurum } from '../../../src/components/BosDurum';
 import { ModulHataSiniri } from '../../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { AjansAtmosfer } from '../../../src/moduller/ajanslar/bilesenler/AjansAtmosfer';
@@ -34,6 +35,7 @@ function seviyeEtiket(code: string | null | undefined) {
 
 /** Ajans yetkisi olan kullanıcı — yönetim hub */
 export default function AjansYonetimHubEkrani() {
+  const { t } = useCeviri();
   useTemayaAboneOl();
   const [liste, setListe] = useState<AjansYonetimOzet[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -96,8 +98,8 @@ export default function AjansYonetimHubEkrani() {
         <View style={styles.root}>
           <AjansAtmosfer />
           <EkranBasligi
-            title="Ajanslarım"
-            subtitle="Komuta merkezi"
+            title={t('ajans.ajanslarim')}
+            subtitle={t('ajans.komutaMerkezi')}
             fallbackHref={'/(tabs)/profile' as any}
           />
           {yukleniyor ? (
@@ -108,14 +110,14 @@ export default function AjansYonetimHubEkrani() {
           ) : liste.length === 0 ? (
             <View style={styles.bosWrap}>
               <BosDurum
-                title="Ajansın yok"
-                body="Başvuru gönder; admin onayından sonra buradan yönetirsin."
+                title={t('ajans.bosYonetimBaslik')}
+                body={t('ajans.bosYonetimBody')}
               />
               <Pressable
                 style={styles.bosBtn}
                 onPress={() => router.push('/ajans' as any)}
               >
-                <Text style={styles.bosBtnYazi}>Ajans kur</Text>
+                <Text style={styles.bosBtnYazi}>{t('ajans.ajansKur')}</Text>
               </Pressable>
             </View>
           ) : (
@@ -142,7 +144,8 @@ export default function AjansYonetimHubEkrani() {
                         {item.name}
                       </Text>
                       <Text style={styles.alt} numberOfLines={1}>
-                        {item.agency_public_id} · {item.host_count} üye
+                        {item.agency_public_id} ·{' '}
+                        {t('ajans.uyeSayisi', { count: item.host_count })}
                       </Text>
                       <View style={styles.chipSatir}>
                         <View style={styles.chip}>

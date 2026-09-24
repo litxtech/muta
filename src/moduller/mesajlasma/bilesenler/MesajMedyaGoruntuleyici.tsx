@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { ModulHataSiniri } from '../../../ortak/hata-sinirlari/ModulHataSiniri';
 import { MedyaUriGuvenli } from '../yardimcilar/MedyaUriGecerliMi';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   uri: string | null;
@@ -72,6 +73,7 @@ function MesajVideoOynatici({ uri }: { uri: string }) {
 
 /** DM resim / video — tek örnek; geçersiz URI'de modal açılmaz (Image/video crash yok) */
 export function MesajMedyaGoruntuleyici({ uri, tur, onKapat }: Props) {
+  const { t } = useCeviri();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const safeUri = MedyaUriGuvenli(uri);
@@ -92,7 +94,7 @@ export function MesajMedyaGoruntuleyici({ uri, tur, onKapat }: Props) {
           style={styles.backdrop}
           onPress={onKapat}
           accessibilityRole="button"
-          accessibilityLabel="Kapat"
+          accessibilityLabel={t('ortak.kapat')}
         />
 
         {safeUri && tur === 'image' ? (
@@ -104,7 +106,7 @@ export function MesajMedyaGoruntuleyici({ uri, tur, onKapat }: Props) {
                 height: Math.max(120, height - insets.top - insets.bottom),
               }}
               resizeMode="contain"
-              accessibilityLabel="Mesaj fotoğrafı"
+              accessibilityLabel={t('mesajlar.mesajFotografi')}
             />
           </View>
         ) : null}
@@ -127,7 +129,7 @@ export function MesajMedyaGoruntuleyici({ uri, tur, onKapat }: Props) {
               yedek={
                 <View style={styles.videoHata}>
                   <Ionicons name="videocam-off" size={40} color="#fff" />
-                  <Text style={styles.videoHataYazi}>Video açılamadı</Text>
+                  <Text style={styles.videoHataYazi}>{t('mesajlar.videoAcilamadi')}</Text>
                 </View>
               }
             >
@@ -140,15 +142,13 @@ export function MesajMedyaGoruntuleyici({ uri, tur, onKapat }: Props) {
           style={[styles.kapatBtn, { top: Math.max(12, insets.top + 8) }]}
           onPress={onKapat}
           hitSlop={12}
-          accessibilityLabel="Kapat"
+          accessibilityLabel={t('ortak.kapat')}
         >
           <Ionicons name="close" size={22} color="#fff" />
         </Pressable>
 
         <Text style={[styles.ipucu, { bottom: Math.max(16, insets.bottom + 12) }]}>
-          {tur === 'video'
-            ? 'Kontrollerle oynat · boşluğa dokunarak kapat'
-            : 'Boşluğa dokunarak kapat'}
+          {tur === 'video' ? t('mesajlar.videoIpucu') : t('mesajlar.dokunKapat')}
         </Text>
       </View>
     </Modal>

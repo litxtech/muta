@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
@@ -35,22 +36,21 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
-function rolAdi(role: string) {
-  if (role === 'leader') return 'Lider';
-  if (role === 'vice_leader') return 'Yardımcı';
-  return role;
-}
-
-function secimDurum(status: string) {
-  const map: Record<string, string> = {
-    nominating: 'Adaylık açık',
-    voting: 'Oylama sürüyor',
-    tallied: 'Sonuçlandı',
-  };
-  return map[status] ?? status;
-}
-
 export default function SehirDetayEkrani() {
+  const { t } = useCeviri();
+  const rolAdi = (role: string) => {
+    if (role === 'leader') return t('sehir.lider');
+    if (role === 'vice_leader') return t('sehir.yardimci');
+    return role;
+  };
+  const secimDurum = (status: string) => {
+    const map: Record<string, string> = {
+      nominating: t('sehir.adaylikAcik'),
+      voting: t('sehir.oylamaSuruyor'),
+      tallied: t('sehir.durumSonuclandi'),
+    };
+    return map[status] ?? status;
+  };
   const { id } = useLocalSearchParams<{ id: string }>();
   const { isGuest, refreshProfile, refreshWallet } = useAuth();
   const { upgradeAcik, upgradeKapat, islemiDene } = useMisafirIslemKapisi(isGuest);
@@ -68,7 +68,7 @@ export default function SehirDetayEkrani() {
     try {
       setDetay(await SehirDetayGetir(id));
     } catch (e) {
-      Alert.alert('Şehir', e instanceof Error ? e.message : 'Yüklenemedi');
+      Alert.alert(t('sehir.baslik'), e instanceof Error ? e.message : t('takip.yuklenemedi'));
       setDetay(null);
     } finally {
       setYukleniyor(false);
@@ -85,15 +85,15 @@ export default function SehirDetayEkrani() {
     if (!id) return;
     islemiDene('oy_kullan', async () => {
       if (!leagueOn) {
-        Alert.alert('Kapalı', 'Şehir ligi özelliği şu an kapalı.');
+        Alert.alert(t('sehir.alertKapali'), t('sehir.alertLigKapali'));
         return;
       }
       setBusy(true);
       const r = await SehirDestekle({ cityId: id, isPrimary: true });
       setBusy(false);
-      if (!r.ok) Alert.alert('Destek', r.hata);
+      if (!r.ok) Alert.alert(t('sehir.alertDestek'), r.hata);
       else {
-        Alert.alert('Tamam', 'Bu şehir artık ana şehrin. Hediyelerin buraya güç yazar.');
+        Alert.alert(t('ortak.tamam'), t('sehir.anaSehirOldu'));
         await load();
       }
     });
@@ -102,17 +102,17 @@ export default function SehirDetayEkrani() {
   const geriCek = () => {
     if (!id) return;
     islemiDene('oy_kullan', () => {
-      Alert.alert('Destek geri çek', 'Bu şehir desteğini kaldırmak istiyor musun?', [
-        { text: 'Vazgeç', style: 'cancel' },
+      Alert.alert(t('sehir.destekGeriCekBaslik'), t('sehir.destekGeriCekSoru'), [
+        { text: t('ortak.vazgec'), style: 'cancel' },
         {
-          text: 'Geri çek',
+          text: t('sehir.geriCek'),
           style: 'destructive',
           onPress: () => {
             void (async () => {
               setBusy(true);
               const r = await SehirDestekGeriCek({ cityId: id });
               setBusy(false);
-              if (!r.ok) Alert.alert('Destek', r.hata);
+              if (!r.ok) Alert.alert(t('sehir.alertDestek'), r.hata);
               else await load();
             })();
           },
@@ -127,8 +127,8 @@ export default function SehirDetayEkrani() {
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="sehirler">
         <EkranBasligi
-          title={city?.name ?? 'Şehir'}
-          subtitle="Detay · oda · lig · savaş"
+          title={city?.name ?? t('sehir.baslik')}
+          subtitle={t('sehir.detayAlt')}
           fallbackHref="/sehir"
         />
         <KlavyeScrollView
@@ -149,33 +149,33 @@ export default function SehirDetayEkrani() {
               >
                 <Text style={styles.heroEyebrow}>
                   {detay.is_primary
-                    ? 'Senin ana şehrin'
+                    ? t('sehir.anaSehrin')
                     : detay.supported
-                      ? 'Destekliyorsun'
-                      : 'Henüz desteklemiyorsun'}
+                      ? t('sehir.destekliyorsun')
+                      : t('sehir.henuzDesteklemiyorsun')}
                 </Text>
                 <Text style={styles.heroTitle}>{city.name}</Text>
                 <Text style={styles.heroAlt}>
-                  Güç, lig puanı ve savaş skoru buradan akar. Odada hediye göndererek katkı yap.
+                  {t('sehir.heroAltDetay')}
                 </Text>
                 <View style={styles.kpiRow}>
                   <View style={styles.kpi}>
                     <Text style={styles.kpiN}>{city.power_score}</Text>
-                    <Text style={styles.kpiL}>Güç</Text>
+                    <Text style={styles.kpiL}>{t('sehir.kpiGuc')}</Text>
                   </View>
                   <View style={styles.kpi}>
                     <Text style={styles.kpiN}>{city.supporter_count}</Text>
-                    <Text style={styles.kpiL}>Destekçi</Text>
+                    <Text style={styles.kpiL}>{t('sehir.kpiDestekci')}</Text>
                   </View>
                   <View style={styles.kpi}>
                     <Text style={styles.kpiN}>
                       {detay.standing?.rank != null ? `#${detay.standing.rank}` : '—'}
                     </Text>
-                    <Text style={styles.kpiL}>Lig sırası</Text>
+                    <Text style={styles.kpiL}>{t('sehir.kpiLigSirasi')}</Text>
                   </View>
                   <View style={styles.kpi}>
                     <Text style={styles.kpiN}>{detay.today_power ?? 0}</Text>
-                    <Text style={styles.kpiL}>Bugün kattığın</Text>
+                    <Text style={styles.kpiL}>{t('sehir.kpiBugunKattigin')}</Text>
                   </View>
                 </View>
               </LinearGradient>
@@ -188,7 +188,7 @@ export default function SehirDetayEkrani() {
                     onPress={destekle}
                   >
                     <Text style={styles.btnPrimaryText}>
-                      {detay.supported ? 'Ana şehir yap' : 'Destekle (ana şehir)'}
+                      {detay.supported ? t('sehir.anaSehirYap') : t('sehir.destekleAna')}
                     </Text>
                   </Pressable>
                 ) : (
@@ -196,7 +196,7 @@ export default function SehirDetayEkrani() {
                     style={styles.btnSecondary}
                     onPress={() => router.push('/(tabs)/rooms' as any)}
                   >
-                    <Text style={styles.btnSecondaryText}>Odaya git · hediye gönder</Text>
+                    <Text style={styles.btnSecondaryText}>{t('sehir.odayaGitHediye')}</Text>
                   </Pressable>
                 )}
                 {detay.supported ? (
@@ -205,12 +205,12 @@ export default function SehirDetayEkrani() {
                     disabled={busy}
                     onPress={geriCek}
                   >
-                    <Text style={styles.btnGhostText}>Desteği geri çek</Text>
+                    <Text style={styles.btnGhostText}>{t('sehir.destegiGeriCek')}</Text>
                   </Pressable>
                 ) : null}
               </View>
 
-              <Text style={styles.section}>Nasıl güç kazanılır?</Text>
+              <Text style={styles.section}>{t('sehir.nasilGuc')}</Text>
               <View style={styles.kart}>
                 {(detay.how_it_works ?? []).map((adim, i) => (
                   <Text key={i} style={styles.adim}>
@@ -219,14 +219,14 @@ export default function SehirDetayEkrani() {
                 ))}
               </View>
 
-              <Text style={styles.section}>Duyurular</Text>
+              <Text style={styles.section}>{t('sehir.duyurular')}</Text>
               <View style={styles.kart}>
                 {(detay.announcements ?? []).length === 0 ? (
                   <Text style={styles.meta}>
-                    Henüz duyuru yok.
+                    {t('sehir.duyuruYok')}
                     {detay.is_leader
-                      ? ' Lider olarak aşağıdan yayınlayabilirsin.'
-                      : ' Lider yayınladığında burada görünür.'}
+                      ? t('sehir.duyuruYokLider')
+                      : t('sehir.duyuruYokUye')}
                   </Text>
                 ) : (
                   (detay.announcements ?? []).map((a) => (
@@ -235,13 +235,13 @@ export default function SehirDetayEkrani() {
                         <Text style={styles.kartBaslik}>{a.title}</Text>
                         {a.is_pinned ? (
                           <View style={SehirStil.pill}>
-                            <Text style={SehirStil.pillText}>SABİT</Text>
+                            <Text style={SehirStil.pillText}>{t('sehir.sabit')}</Text>
                           </View>
                         ) : null}
                       </View>
                       <Text style={styles.meta}>{a.body}</Text>
                       <Text style={styles.meta}>
-                        {a.author_name ?? 'Lider'}
+                        {a.author_name ?? t('sehir.lider')}
                       </Text>
                     </View>
                   ))
@@ -250,19 +250,19 @@ export default function SehirDetayEkrani() {
 
               {detay.is_leader ? (
                 <>
-                  <Text style={styles.section}>Lider duyurusu</Text>
+                  <Text style={styles.section}>{t('sehir.liderDuyurusu')}</Text>
                   <View style={styles.kart}>
                     <TextField
-                      label="Başlık"
+                      label={t('sehir.labelBaslik')}
                       value={duyuruBaslik}
                       onChangeText={setDuyuruBaslik}
-                      placeholder="Örn: Bu hafta savaş var"
+                      placeholder={t('sehir.phDuyuruBaslik')}
                     />
                     <TextField
-                      label="Mesaj"
+                      label={t('sehir.labelMesaj')}
                       value={duyuruMetin}
                       onChangeText={setDuyuruMetin}
-                      placeholder="Destekçilere kısa mesaj…"
+                      placeholder={t('sehir.phDuyuruMesaj')}
                     />
                     <Pressable
                       style={[SehirStil.btnPrimary, busy && { opacity: 0.5 }]}
@@ -277,17 +277,17 @@ export default function SehirDetayEkrani() {
                             pinned: true,
                           });
                           setBusy(false);
-                          if (!r.ok) Alert.alert('Duyuru', r.hata);
+                          if (!r.ok) Alert.alert(t('sehir.alertDuyuru'), r.hata);
                           else {
                             setDuyuruBaslik('');
                             setDuyuruMetin('');
-                            Alert.alert('Yayınlandı', 'Şehir duyurusu göründü.');
+                            Alert.alert(t('sehir.yayinlandi'), t('sehir.duyuruGorundu'));
                             await load();
                           }
                         });
                       }}
                     >
-                      <Text style={SehirStil.btnPrimaryText}>Duyuru yayınla</Text>
+                      <Text style={SehirStil.btnPrimaryText}>{t('sehir.duyuruYayinla')}</Text>
                     </Pressable>
                   </View>
                 </>
@@ -295,13 +295,13 @@ export default function SehirDetayEkrani() {
 
               {detay.standing ? (
                 <>
-                  <Text style={styles.section}>Bu sezon</Text>
+                  <Text style={styles.section}>{t('sehir.buSezon')}</Text>
                   <View style={styles.kart}>
-                    <Satir e="Puan" d={String(detay.standing.points)} />
-                    <Satir e="Hediye skoru" d={String(detay.standing.gifts_score)} />
-                    <Satir e="Savaş galibiyeti" d={String(detay.standing.battle_wins)} />
+                    <Satir e={t('sehir.puan')} d={String(detay.standing.points)} />
+                    <Satir e={t('sehir.hediyeSkoru')} d={String(detay.standing.gifts_score)} />
+                    <Satir e={t('sehir.savasGalibiyeti')} d={String(detay.standing.battle_wins)} />
                     <Pressable onPress={() => router.push('/sehir/lig' as any)}>
-                      <Text style={styles.link}>Lig sıralamasına git →</Text>
+                      <Text style={styles.link}>{t('sehir.ligeGit')}</Text>
                     </Pressable>
                   </View>
                 </>
@@ -309,20 +309,20 @@ export default function SehirDetayEkrani() {
 
               {detay.battle ? (
                 <>
-                  <Text style={styles.section}>Savaş</Text>
+                  <Text style={styles.section}>{t('sehir.savas')}</Text>
                   <Pressable
                     style={styles.savasKart}
                     onPress={() => router.push('/sehir/savas' as any)}
                   >
                     <Text style={styles.savasDurum}>
-                      {detay.battle.status === 'live' ? 'CANLI' : 'Planlandı'}
+                      {detay.battle.status === 'live' ? t('sehir.durumCanliBuyuk') : t('sehir.durumPlanlandi')}
                     </Text>
                     <Text style={styles.savasSkor}>
                       {detay.battle.city_a_name} {detay.battle.score_a} —{' '}
                       {detay.battle.score_b} {detay.battle.city_b_name}
                     </Text>
                     <Text style={styles.savasHint}>
-                      Ana şehrinse hediye göndererek skora katkı yaparsın.
+                      {t('sehir.savasHintDetay')}
                     </Text>
                   </Pressable>
                 </>
@@ -330,7 +330,7 @@ export default function SehirDetayEkrani() {
 
               {detay.election ? (
                 <>
-                  <Text style={styles.section}>Seçim</Text>
+                  <Text style={styles.section}>{t('sehir.secim')}</Text>
                   <Pressable
                     style={styles.kart}
                     onPress={() =>
@@ -340,18 +340,18 @@ export default function SehirDetayEkrani() {
                     <Text style={styles.kartBaslik}>{detay.election.title}</Text>
                     <Text style={styles.meta}>
                       {secimDurum(detay.election.status)} ·{' '}
-                      {detay.election.role_target === 'leader' ? 'Lider' : 'Yardımcı'}
+                      {detay.election.role_target === 'leader' ? t('sehir.lider') : t('sehir.yardimci')}
                     </Text>
-                    <Text style={styles.link}>Seçime git →</Text>
+                    <Text style={styles.link}>{t('sehir.secimeGit')}</Text>
                   </Pressable>
                 </>
               ) : null}
 
-              <Text style={styles.section}>Liderlik</Text>
+              <Text style={styles.section}>{t('sehir.liderlikBolum')}</Text>
               <View style={styles.kart}>
                 {detay.roles.length === 0 ? (
                   <Text style={styles.meta}>
-                    Aktif lider yok. Seçim açılınca aday olabilir / oy kullanabilirsin.
+                    {t('sehir.liderYok')}
                   </Text>
                 ) : (
                   detay.roles.map((r) => (
@@ -365,12 +365,11 @@ export default function SehirDetayEkrani() {
                 )}
               </View>
 
-              <Text style={styles.section}>Resmi odalar</Text>
+              <Text style={styles.section}>{t('sehir.resmiOdalar')}</Text>
               <View style={styles.kart}>
                 {detay.rooms.length === 0 ? (
                   <Text style={styles.meta}>
-                    Bu şehre bağlı resmi oda henüz yok. Genel odalardan hediye göndersen de
-                    gücün ana şehrine yazılır.
+                    {t('sehir.resmiOdaYok')}
                   </Text>
                 ) : (
                   detay.rooms.map((o) => (
@@ -379,7 +378,7 @@ export default function SehirDetayEkrani() {
                       style={styles.odaSatir}
                       onPress={() => {
                         if (!o.room_id) {
-                          Alert.alert('Oda', 'Bu resmi oda henüz bir ses odasına bağlı değil.');
+                          Alert.alert(t('sehir.alertOda'), t('sehir.odaBagliDegil'));
                           return;
                         }
                         router.push(`/lobi/${o.room_id}` as any);
@@ -388,7 +387,7 @@ export default function SehirDetayEkrani() {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.odaBaslik}>{o.title}</Text>
                         <Text style={styles.meta}>
-                          {o.is_live ? 'Canlı' : 'Kapalı'} · {o.listener_count} dinleyici
+                          {o.is_live ? t('sehir.durumCanli') : t('sehir.odaKapali')} · {t('sehir.dinleyici', { count: o.listener_count })}
                         </Text>
                       </View>
                       <Ionicons

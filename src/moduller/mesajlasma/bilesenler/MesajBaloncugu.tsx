@@ -20,6 +20,8 @@ import type { PaylasilanDurumOnizleme } from '../../durum/paylasim/tipler';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { fizikselHiza } from '../../../i18n/rtl';
 
 type Props = {
   item: DirektMesaj;
@@ -63,6 +65,17 @@ export function MesajBaloncugu({
   sharedPostOnizleme,
   sharedPostYukleniyor,
 }: Props) {
+  const { t } = useCeviri();
+  /**
+   * Baloncuk tarafı GÖNDEREN semantiği — UI dili değil.
+   * mine her zaman fiziksel SAĞ, theirs fiziksel SOL.
+   * RTL'de flex-end sola kaydığı için render-time fizikselHiza şart.
+   */
+  const hiza = fizikselHiza(mine ? 'end' : 'start');
+  /** sharedWrap içi (kart + meta) aynı fiziksel kenara yaslansın */
+  const icHiza = {
+    alignItems: hiza.alignSelf === 'flex-end' ? ('flex-end' as const) : ('flex-start' as const),
+  };
   const sending = item._localStatus === 'sending';
   const failed = item._localStatus === 'failed';
   const safeMediaUri = MedyaUriGuvenli(item.media_url);
@@ -82,15 +95,15 @@ export function MesajBaloncugu({
   const davetiKabulEt = () => {
     if (!davet || mine || davetBusy || davetGonderildi) return;
     const baslik = davet.ajansAdi
-      ? `${davet.ajansAdi} ajansına katıl`
-      : 'Ajans davetini kabul et';
+      ? t('mesajlar.ajansaKatil', { ad: davet.ajansAdi })
+      : t('mesajlar.ajansDavetKabul');
     Alert.alert(
       baslik,
-      `Davet kodu ile ajansa katılım başvurusu gönderilsin mi?\nKod: ${davet.kod}`,
+      t('mesajlar.davetOnaySoru', { kod: davet.kod }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('ortak.vazgec'), style: 'cancel' },
         {
-          text: 'Kabul et',
+          text: t('mesajlar.kabulEt'),
           onPress: () => {
             void (async () => {
               setDavetBusy(true);
@@ -100,16 +113,16 @@ export function MesajBaloncugu({
               });
               setDavetBusy(false);
               if (!r.ok) {
-                Alert.alert('Davet', r.hata ?? 'Başvuru gönderilemedi.');
+                Alert.alert(t('mesajlar.davet'), r.hata ?? t('mesajlar.basvuruGonderilemedi'));
                 return;
               }
               setDavetGonderildi(true);
               Alert.alert(
-                'Başvuru gönderildi',
-                'Ajans onaylayınca profilinde ajansın görünür ve üye panelin açılır.',
+                t('mesajlar.basvuruGonderildi'),
+                t('mesajlar.basvuruGonderildiBody'),
                 [
                   {
-                    text: 'Panele git',
+                    text: t('mesajlar.panelGit'),
                     onPress: () => router.push('/ajans/uye' as any),
                   },
                 ],
@@ -131,7 +144,7 @@ export function MesajBaloncugu({
 
   if (isSharedPost) {
     return (
-      <View style={[styles.sharedWrap, mine ? styles.sharedMine : styles.sharedTheirs, sending && styles.sending]}>
+      <View style={[styles.sharedWrap, hiza, icHiza, sending && styles.sending]}>
         <PaylasilanGonderiKarti
           onizleme={sharedPostOnizleme}
           note={item.body}
@@ -219,11 +232,12 @@ export function MesajBaloncugu({
         style={[
           styles.medyaKart,
           mine ? styles.medyaMine : styles.medyaTheirs,
+          hiza,
           styles.videoFull,
         ]}
       >
         <Ionicons name="image-outline" size={36} color="rgba(255,255,255,0.55)" />
-        <Text style={styles.videoHint}>Medya yok</Text>
+        <Text style={styles.videoHint}>{t('mesajlar.medyaYok')}</Text>
       </Pressable>
     );
   }
@@ -236,6 +250,7 @@ export function MesajBaloncugu({
         style={[
           styles.medyaKart,
           mine ? styles.medyaMine : styles.medyaTheirs,
+          hiza,
           sending && styles.sending,
         ]}
       >
@@ -244,7 +259,7 @@ export function MesajBaloncugu({
             <Pressable
               onPress={() => onMedyaAc?.(safeMediaUri, 'image')}
               accessibilityRole="button"
-              accessibilityLabel="Fotoğrafı aç"
+              accessibilityLabel={t('mesajlar.fotoAc')}
             >
               <Image
                 source={{ uri: safeMediaUri }}
@@ -257,7 +272,7 @@ export function MesajBaloncugu({
               style={styles.videoFull}
               onPress={() => onMedyaAc?.(safeMediaUri, 'video')}
               accessibilityRole="button"
-              accessibilityLabel="Videoyu aç"
+              accessibilityLabel={t('mesajlar.videoAc')}
             >
               <DurumVideoOnizleme
                 uri={safeMediaUri}
@@ -297,12 +312,12 @@ export function MesajBaloncugu({
               numberOfLines={2}
             >
               {davet.ajansAdi
-                ? `${davet.ajansAdi} ajans daveti`
-                : 'Ajans daveti'}
+                ? t('mesajlar.ajansDavetiAdli', { ad: davet.ajansAdi })
+                : t('mesajlar.ajansDaveti')}
             </Text>
           </View>
           <Text style={mine ? styles.davetKodMine : styles.davetKod}>
-            Kod: {davet.kod}
+            {t('mesajlar.kodEtiket', { kod: davet.kod })}
           </Text>
           {!mine ? (
             <Pressable
@@ -313,18 +328,18 @@ export function MesajBaloncugu({
                 (davetBusy || davetGonderildi) && styles.davetCtaDisabled,
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Daveti kabul et"
+              accessibilityLabel={t('mesajlar.davetiKabulEt')}
             >
               <Text style={styles.davetCtaYazi}>
                 {davetGonderildi
-                  ? 'Başvuru gönderildi'
+                  ? t('mesajlar.basvuruGonderildi')
                   : davetBusy
-                    ? 'Gönderiliyor…'
-                    : 'Daveti kabul et'}
+                    ? t('mesajlar.gonderiliyor')
+                    : t('mesajlar.davetiKabulEt')}
               </Text>
             </Pressable>
           ) : (
-            <Text style={styles.davetMineHint}>Davet gönderildi</Text>
+            <Text style={styles.davetMineHint}>{t('mesajlar.davetGonderildi')}</Text>
           )}
         </View>
       ) : item.body ? (
@@ -341,7 +356,7 @@ export function MesajBaloncugu({
           colors={[...RenkTokenlari.gradientPrimary]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.bubble, styles.mine, sending && styles.sending]}
+          style={[styles.bubble, styles.mine, hiza, sending && styles.sending]}
         >
           {icerik}
         </LinearGradient>
@@ -353,7 +368,7 @@ export function MesajBaloncugu({
     <Pressable
       onLongPress={onLongPress}
       delayLongPress={300}
-      style={[styles.bubble, styles.theirs]}
+      style={[styles.bubble, styles.theirs, hiza]}
     >
       {icerik}
     </Pressable>
@@ -365,8 +380,7 @@ const styles = StyleSheet.create({
     maxWidth: '86%',
     gap: 4,
   },
-  sharedMine: { alignSelf: 'flex-end', alignItems: 'flex-end' },
-  sharedTheirs: { alignSelf: 'flex-start', alignItems: 'flex-start' },
+  /** shared taraf hizası render-time fizikselHiza ile — statik alignSelf YOK */
   sharedMeta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -380,12 +394,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 4,
   },
+  /** Taraf hizası render-time fizikselHiza — köşe yarıçapı FİZİKSEL kalır */
   mine: {
-    alignSelf: 'flex-end',
     borderBottomRightRadius: 4,
   },
   theirs: {
-    alignSelf: 'flex-start',
     backgroundColor: RenkTokenlari.bgCard,
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
@@ -400,11 +413,9 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   medyaMine: {
-    alignSelf: 'flex-end',
     borderBottomRightRadius: 4,
   },
   medyaTheirs: {
-    alignSelf: 'flex-start',
     borderBottomLeftRadius: 4,
   },
   medyaGovde: {

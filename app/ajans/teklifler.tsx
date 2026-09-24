@@ -17,6 +17,8 @@ import { Stack, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
+import { DIL_LOCALE_MAP } from '../../src/i18n/diller';
 import { KlavyeScrollView } from '../../src/bilesenler/klavye/KlavyeScrollView';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { supabase } from '../../src/lib/supabase';
@@ -41,6 +43,7 @@ import {
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export default function AjansTekliflerEkrani() {
+  const { t, dil } = useCeviri();
   const insets = useSafeAreaInsets();
   const { user, refreshWallet } = useAuth();
   const [liste, setListe] = useState<CoinTradeOffer[]>([]);
@@ -51,12 +54,13 @@ export default function AjansTekliflerEkrani() {
   const [odemeKaynak, setOdemeKaynak] = useState('');
   const [buyutUri, setBuyutUri] = useState<string | null>(null);
 
+  const localeTag = DIL_LOCALE_MAP[dil];
+
   const yukle = useCallback(async () => {
     setYukleniyor(true);
     try {
       const all = await TakasTekliflerimiGetir();
-      // Ajans alıcısı olduğu teklifler
-      setListe(all.filter((t) => t.buyer_type === 'agency' && t.buyer_agency_id));
+      setListe(all.filter((o) => o.buyer_type === 'agency' && o.buyer_agency_id));
     } catch {
       setListe([]);
     } finally {
@@ -70,27 +74,27 @@ export default function AjansTekliflerEkrani() {
     }, [yukle]),
   );
 
-  const yanitla = (t: CoinTradeOffer, accept: boolean) => {
+  const yanitla = (offer: CoinTradeOffer, accept: boolean) => {
     Alert.alert(
-      accept ? 'Teklifi kabul et' : 'Teklifi reddet',
-      `${Number(t.coins).toLocaleString('tr-TR')} coin`,
+      accept ? t('ajans.teklifKabulEt') : t('ajans.teklifReddet'),
+      `${Number(offer.coins).toLocaleString(localeTag)} coin`,
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('ajans.vazgec'), style: 'cancel' },
         {
-          text: accept ? 'Kabul' : 'Red',
+          text: accept ? t('ajans.kabul') : t('ajans.red'),
           style: accept ? 'default' : 'destructive',
           onPress: () => {
             void (async () => {
-              setBusyId(t.id);
-              const r = await TakasAliciYanit(t.id, accept);
+              setBusyId(offer.id);
+              const r = await TakasAliciYanit(offer.id, accept);
               setBusyId(null);
               if (!r.ok) {
-                Alert.alert('Hata', r.hata);
+                Alert.alert(t('ajans.hata'), r.hata);
                 return;
               }
               if (accept) {
-                setFormTeklif({ ...t, status: 'pending_payment_info' });
-                setSatinAlinan(String(t.coins));
+                setFormTeklif({ ...offer, status: 'pending_payment_info' });
+                setSatinAlinan(String(offer.coins));
                 setOdemeKaynak('');
               } else {
                 void refreshWallet();
@@ -107,11 +111,11 @@ export default function AjansTekliflerEkrani() {
     if (!formTeklif) return;
     const n = Math.floor(Number(satinAlinan));
     if (!Number.isFinite(n) || n <= 0) {
-      Alert.alert('Form', 'Satın alınan coin miktarını gir.');
+      Alert.alert(t('ajans.form'), t('ajans.formCoinGerekli'));
       return;
     }
     if (odemeKaynak.trim().length < 3) {
-      Alert.alert('Form', 'Parayı nereden göndereceğinizi yazın.');
+      Alert.alert(t('ajans.form'), t('ajans.formKaynakGerekli'));
       return;
     }
     setBusyId(formTeklif.id);
@@ -122,23 +126,20 @@ export default function AjansTekliflerEkrani() {
     });
     setBusyId(null);
     if (!r.ok) {
-      Alert.alert('Form', r.hata);
+      Alert.alert(t('ajans.form'), r.hata);
       return;
     }
-    Alert.alert(
-      'Kaydedildi',
-      '1 gün içinde ödeme dekontunu sisteme yükleyin. Yüklenmezse ajansa ciddi uyarı gider ve işlem admin paneline düşer.',
-    );
+    Alert.alert(t('ajans.kaydedildi'), t('ajans.kaydedildiBody'));
     setFormTeklif(null);
     await yukle();
   };
 
-  const dekontYukle = async (t: CoinTradeOffer) => {
+  const dekontYukle = async (offer: CoinTradeOffer) => {
     const uid = user?.id;
     if (!uid) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('İzin', 'Dekont için galeri izni gerekli.');
+      Alert.alert(t('ajans.izin'), t('ajans.dekontIzin'));
       return;
     }
     const pick = await ImagePicker.launchImageLibraryAsync({
@@ -147,9 +148,9 @@ export default function AjansTekliflerEkrani() {
     });
     if (pick.canceled || !pick.assets[0]?.uri) return;
 
-    setBusyId(t.id);
+    setBusyId(offer.id);
     try {
-      const path = `${uid}/receipt-${t.id}-${Date.now()}.jpg`;
+      const path = `${uid}/receipt-${offer.id}-${Date.now()}.jpg`;
       const up = await DepoyaMedyaYukle(supabase, {
         bucket: 'trade-receipts',
         path,
@@ -158,15 +159,15 @@ export default function AjansTekliflerEkrani() {
         tur: 'image',
       });
       if (!up.ok) {
-        Alert.alert('Dekont', up.hata ?? 'Yüklenemedi');
+        Alert.alert(t('ajans.dekont'), up.hata ?? t('ajans.yuklenemedi'));
         return;
       }
-      const r = await TakasDekontYukle({ offerId: t.id, receiptPath: path });
+      const r = await TakasDekontYukle({ offerId: offer.id, receiptPath: path });
       if (!r.ok) {
-        Alert.alert('Dekont', r.hata);
+        Alert.alert(t('ajans.dekont'), r.hata);
         return;
       }
-      Alert.alert('Tamam', 'Dekont yüklendi — platform onayına gönderildi.');
+      Alert.alert(t('ajans.tamam'), t('ajans.dekontYuklendi'));
       await yukle();
     } finally {
       setBusyId(null);
@@ -176,7 +177,7 @@ export default function AjansTekliflerEkrani() {
   const dekontGor = async (path: string) => {
     const url = await TakasDekontUrl(path);
     if (!url) {
-      Alert.alert('Dekont', 'Açılamadı');
+      Alert.alert(t('ajans.dekont'), t('ajans.acilamadi'));
       return;
     }
     setBuyutUri(url);
@@ -186,8 +187,8 @@ export default function AjansTekliflerEkrani() {
     <Screen>
       <Stack.Screen options={{ headerShown: false }} />
       <EkranBasligi
-        title="Ajans coin teklifleri"
-        subtitle="Kabul · ödeme formu · dekont (1 gün)"
+        title={t('ajans.teklifler')}
+        subtitle={t('ajans.teklifAlt')}
         fallbackHref="/ajans"
       />
       <KlavyeScrollView
@@ -207,103 +208,104 @@ export default function AjansTekliflerEkrani() {
         {yukleniyor && !liste.length ? (
           <ActivityIndicator color={RenkTokenlari.primarySoft} />
         ) : !liste.length ? (
-          <Text style={styles.bos}>Ajansa gelen teklif yok</Text>
+          <Text style={styles.bos}>{t('ajans.teklifBos')}</Text>
         ) : (
-          liste.map((t) => {
-            const deadline = t.receipt_deadline_at
-              ? new Date(t.receipt_deadline_at)
+          liste.map((offer) => {
+            const deadline = offer.receipt_deadline_at
+              ? new Date(offer.receipt_deadline_at)
               : null;
             const kalanSaat =
-              deadline && t.status === 'pending_receipt'
+              deadline && offer.status === 'pending_receipt'
                 ? Math.max(
                     0,
                     Math.round((deadline.getTime() - Date.now()) / 3600000),
                   )
                 : null;
             return (
-              <View key={t.id} style={styles.kart}>
+              <View key={offer.id} style={styles.kart}>
                 <Text style={styles.baslik}>
-                  {Number(t.coins).toLocaleString('tr-TR')} coin
+                  {Number(offer.coins).toLocaleString(localeTag)} coin
                 </Text>
                 <Text style={styles.meta}>
-                  {TAKAS_DURUM_ETIKET[t.status] ?? t.status}
+                  {TAKAS_DURUM_ETIKET[offer.status] ?? offer.status}
                 </Text>
-                {t.note ? (
-                  <Text style={styles.teklifNot}>{t.note}</Text>
+                {offer.note ? (
+                  <Text style={styles.teklifNot}>{offer.note}</Text>
                 ) : null}
-                {t.payment_source ? (
+                {offer.payment_source ? (
                   <Text style={styles.meta}>
-                    Satın alınan: {t.payment_coins_bought ?? '—'} · Kaynak:{' '}
-                    {t.payment_source}
+                    {t('ajans.satinAlinan', {
+                      coins: offer.payment_coins_bought ?? '—',
+                      kaynak: offer.payment_source,
+                    })}
                   </Text>
                 ) : null}
                 {kalanSaat != null ? (
                   <Text style={[styles.meta, { color: RenkTokenlari.accent }]}>
-                    Dekont için kalan ~{kalanSaat} saat
+                    {t('ajans.dekontKalan', { saat: kalanSaat })}
                   </Text>
                 ) : null}
-                {t.status === 'receipt_overdue' ? (
+                {offer.status === 'receipt_overdue' ? (
                   <Text style={[styles.meta, { color: RenkTokenlari.danger }]}>
-                    Ciddi uyarı: dekont süresi aşıldı — kapatılma riski. Hemen
-                    dekont yükleyin.
+                    {t('ajans.dekontSureAsildi')}
                   </Text>
                 ) : null}
 
-                {t.status === 'pending_buyer' ? (
+                {offer.status === 'pending_buyer' ? (
                   <View style={styles.aksiyon}>
                     <Pressable
-                      disabled={busyId === t.id}
-                      onPress={() => yanitla(t, true)}
+                      disabled={busyId === offer.id}
+                      onPress={() => yanitla(offer, true)}
                     >
                       <Text style={[styles.link, { color: RenkTokenlari.mint }]}>
-                        Kabul
+                        {t('ajans.kabul')}
                       </Text>
                     </Pressable>
                     <Pressable
-                      disabled={busyId === t.id}
-                      onPress={() => yanitla(t, false)}
+                      disabled={busyId === offer.id}
+                      onPress={() => yanitla(offer, false)}
                     >
                       <Text
                         style={[styles.link, { color: RenkTokenlari.danger }]}
                       >
-                        Red
+                        {t('ajans.red')}
                       </Text>
                     </Pressable>
                   </View>
                 ) : null}
 
-                {t.status === 'pending_payment_info' ? (
+                {offer.status === 'pending_payment_info' ? (
                   <Pressable
                     style={styles.btn}
                     onPress={() => {
-                      setFormTeklif(t);
-                      setSatinAlinan(String(t.coins));
-                      setOdemeKaynak(t.payment_source ?? '');
+                      setFormTeklif(offer);
+                      setSatinAlinan(String(offer.coins));
+                      setOdemeKaynak(offer.payment_source ?? '');
                     }}
                   >
-                    <Text style={styles.btnYazi}>Ödeme formunu doldur</Text>
+                    <Text style={styles.btnYazi}>{t('ajans.odemeFormuDoldur')}</Text>
                   </Pressable>
                 ) : null}
 
-                {t.status === 'pending_receipt' ||
-                t.status === 'receipt_overdue' ? (
+                {offer.status === 'pending_receipt' ||
+                offer.status === 'receipt_overdue' ? (
                   <Pressable
                     style={styles.btn}
-                    disabled={busyId === t.id}
-                    onPress={() => void dekontYukle(t)}
+                    disabled={busyId === offer.id}
+                    onPress={() => void dekontYukle(offer)}
                   >
-                    <Text style={styles.btnYazi}>Dekont yükle</Text>
+                    <Text style={styles.btnYazi}>{t('ajans.dekontYukle')}</Text>
                   </Pressable>
                 ) : null}
 
-                {t.receipt_path ? (
-                  <Pressable onPress={() => void dekontGor(t.receipt_path!)}>
-                    <Text style={styles.link}>Dekontu gör</Text>
+                {offer.receipt_path ? (
+                  <Pressable onPress={() => void dekontGor(offer.receipt_path!)}>
+                    <Text style={styles.link}>{t('ajans.dekontuGor')}</Text>
                   </Pressable>
                 ) : null}
 
                 <Text style={styles.tarih}>
-                  {new Date(t.created_at).toLocaleString('tr-TR')}
+                  {new Date(offer.created_at).toLocaleString(localeTag)}
                 </Text>
               </View>
             );
@@ -323,17 +325,18 @@ export default function AjansTekliflerEkrani() {
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.modalKart}>
-              <Text style={styles.baslik}>Ödeme bilgisi</Text>
+              <Text style={styles.baslik}>{t('ajans.odemeBilgisi')}</Text>
               <Text style={styles.meta}>
-                Teklif: {Number(formTeklif?.coins ?? 0).toLocaleString('tr-TR')}{' '}
-                coin
+                {t('ajans.teklifCoin', {
+                  coins: Number(formTeklif?.coins ?? 0).toLocaleString(localeTag),
+                })}
               </Text>
               <TextInput
                 style={styles.input}
                 value={satinAlinan}
                 onChangeText={setSatinAlinan}
                 keyboardType="number-pad"
-                placeholder="Kaç coin satın aldınız?"
+                placeholder={t('ajans.phCoinAdet')}
                 placeholderTextColor={RenkTokenlari.textDim}
               />
               <TextInput
@@ -341,23 +344,18 @@ export default function AjansTekliflerEkrani() {
                 value={odemeKaynak}
                 onChangeText={setOdemeKaynak}
                 multiline
-                placeholder="Parayı nereden göndereceksiniz? (banka / hesap / yöntem)"
+                placeholder={t('ajans.phOdemeKaynak')}
                 placeholderTextColor={RenkTokenlari.textDim}
               />
-              <Text style={styles.uyari}>
-                Formdan sonra 1 gün içinde dekont yüklemelisiniz. Yoksa ajansa
-                ciddi uyarı gider ve işlem admin paneline düşer.
-              </Text>
+              <Text style={styles.uyari}>{t('ajans.odemeUyari')}</Text>
               <Pressable style={styles.btn} onPress={() => void odemeKaydet()}>
-                <Text style={styles.btnYazi}>
-                  Kaydet · 1 gün dekont süresi başlar
-                </Text>
+                <Text style={styles.btnYazi}>{t('ajans.kaydetDekont')}</Text>
               </Pressable>
               <Pressable onPress={() => setFormTeklif(null)}>
                 <Text
                   style={[styles.link, { textAlign: 'center', marginTop: 8 }]}
                 >
-                  Vazgeç
+                  {t('ajans.vazgec')}
                 </Text>
               </Pressable>
             </View>

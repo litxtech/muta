@@ -11,6 +11,7 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { Room } from '../../../types/models';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   room: Room;
@@ -19,6 +20,7 @@ type Props = {
 
 /** Keşfet — listenin en üstünde geniş "öne çıkan" oda kartı */
 export function KesfetOneCikanKart({ room, onPress }: Props) {
+  const { t } = useCeviri();
   const kapak = MedyaUriGuvenli(room.cover_url ?? room.host?.avatar_url);
 
   return (
@@ -26,7 +28,7 @@ export function KesfetOneCikanKart({ room, onPress }: Props) {
       onPress={onPress}
       style={styles.press}
       accessibilityRole="button"
-      accessibilityLabel={`Öne çıkan oda: ${room.title}`}
+      accessibilityLabel={t('kesfetX.oneCikanOda', { baslik: room.title })}
     >
       <View style={styles.kart}>
         {kapak ? (
@@ -47,11 +49,11 @@ export function KesfetOneCikanKart({ room, onPress }: Props) {
         <View style={styles.ust}>
           <View style={styles.eyebrow}>
             <Ionicons name="flame" size={12} color={RenkTokenlari.accent} />
-            <Text style={styles.eyebrowYazi}>ÖNE ÇIKAN</Text>
+            <Text style={styles.eyebrowYazi}>{t('kesfet.oneCikanRozet')}</Text>
           </View>
           <View style={styles.canliPill}>
             <AnaSayfaCanliNokta boyut={5} />
-            <Text style={styles.canliYazi}>CANLI</Text>
+            <Text style={styles.canliYazi}>{t('kesfet.canliRozet')}</Text>
           </View>
         </View>
 
@@ -61,7 +63,7 @@ export function KesfetOneCikanKart({ room, onPress }: Props) {
           </Text>
           <View style={styles.metaSatir}>
             <Text style={styles.host} numberOfLines={1}>
-              {room.host?.display_name ?? 'Ev sahibi'}
+              {room.host?.display_name ?? t('kesfet.evSahibi')}
             </Text>
             <View style={styles.dinleyici}>
               <Ionicons name="headset" size={12} color={RenkTokenlari.primarySoft} />

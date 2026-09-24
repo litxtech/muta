@@ -26,21 +26,21 @@ export function PrestigeRozetSatiri({
   charmLevel,
   rechargeLevel,
 }: Props) {
-  const chips: Array<{ label: string; hot?: boolean }> = [];
+  const chips: Array<{ id: string; label: string; hot?: boolean }> = [];
   const vip = chipMetin('VIP', vipLevel);
-  if (vip) chips.push({ label: vip, hot: true });
+  if (vip) chips.push({ id: 'vip', label: vip, hot: true });
   const hediye = chipMetin('Hediye', gifterLevel);
-  if (hediye) chips.push({ label: hediye });
+  if (hediye) chips.push({ id: 'gifter', label: hediye });
   const cekicilik = chipMetin('Çekicilik', charmLevel);
-  if (cekicilik) chips.push({ label: cekicilik });
+  if (cekicilik) chips.push({ id: 'charm', label: cekicilik });
   const yukleme = chipMetin('Yükleme', rechargeLevel);
-  if (yukleme) chips.push({ label: yukleme });
+  if (yukleme) chips.push({ id: 'recharge', label: yukleme });
   if (chips.length === 0) return null;
 
   return (
     <View style={styles.row}>
       {chips.map((c) => (
-        <Chip key={c.label} label={c.label} hot={c.hot} />
+        <Chip key={c.id} label={c.label} hot={c.hot} />
       ))}
     </View>
   );

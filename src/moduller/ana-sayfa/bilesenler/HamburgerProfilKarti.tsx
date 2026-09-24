@@ -9,6 +9,9 @@ import {
   SeviyeXpOzetiHesapla,
 } from '../../../tasarim-sistemi/premium/SeviyeXpHesap';
 import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { useDil } from '../../../i18n/DilSaglayici';
+import { ilerlemeDolguStili, rtlMetinStili, ltrAlanStili } from '../../../i18n/rtl';
 
 export type HamburgerProfilVeri = {
   displayName: string;
@@ -26,59 +29,88 @@ type Props = {
 /** X tarzı profil — kart yok; avatar + ad + seviye çubuğu */
 export function HamburgerProfilKarti({ profil, onPress }: Props) {
   useTemayaAboneOl();
-  const ad = profil?.displayName?.trim() || 'Kullanıcı';
+  const { t } = useCeviri();
+  const { rtl } = useDil();
+  const metinRtl = rtlMetinStili(rtl, true);
+  const ad = profil?.displayName?.trim() || t('ortak.kullanici');
   const harf = (ad[0] ?? 'K').toUpperCase();
   const avatar = MedyaUriGuvenli(profil?.avatarUrl);
   const ozet = SeviyeXpOzetiHesapla(profil?.level, profil?.xp);
   const barPct = Math.min(100, Math.max(2, Math.round(ozet.oran * 100)));
 
+  const avatarBlok = (
+    <LinearGradient
+      colors={[...RenkTokenlari.gradientPrimary]}
+      style={styles.avatarRing}
+    >
+      <View
+        style={[styles.avatarIc, { backgroundColor: RenkTokenlari.bgElevated }]}
+      >
+        {avatar ? (
+          <Image
+            source={{ uri: avatar }}
+            style={styles.avatar}
+            resizeMode="cover"
+          />
+        ) : (
+          <LinearGradient
+            colors={[...RenkTokenlari.gradientPrimary]}
+            style={styles.avatar}
+          >
+            <Text style={styles.avatarHarf}>{harf}</Text>
+          </LinearGradient>
+        )}
+      </View>
+    </LinearGradient>
+  );
+
+  const copyBlok = (
+    <View style={styles.copy}>
+      <Text style={[styles.ad, metinRtl]} numberOfLines={1} ellipsizeMode="tail">
+        {ad}
+      </Text>
+      {profil?.username ? (
+        <Text
+          style={[styles.user, ltrAlanStili()]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          @{profil.username}
+        </Text>
+      ) : (
+        <Text style={[styles.user, metinRtl]} numberOfLines={1} ellipsizeMode="tail">
+          {t('anaSayfa.profiliGoruntule')}
+        </Text>
+      )}
+    </View>
+  );
+
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.profil, pressed && styles.pressed]}
-      accessibilityLabel="Profilime git"
+      accessibilityLabel={t('anaSayfa.profilimeGit')}
       accessibilityRole="button"
     >
       <View style={styles.ust}>
-        <LinearGradient
-          colors={[...RenkTokenlari.gradientPrimary]}
-          style={styles.avatarRing}
-        >
-          <View
-            style={[styles.avatarIc, { backgroundColor: RenkTokenlari.bgElevated }]}
-          >
-            {avatar ? (
-              <Image source={{ uri: avatar }} style={styles.avatar} />
-            ) : (
-              <LinearGradient
-                colors={[...RenkTokenlari.gradientPrimary]}
-                style={styles.avatar}
-              >
-                <Text style={styles.avatarHarf}>{harf}</Text>
-              </LinearGradient>
-            )}
-          </View>
-        </LinearGradient>
-
-        <View style={styles.copy}>
-          <Text style={styles.ad} numberOfLines={1} ellipsizeMode="tail">
-            {ad}
-          </Text>
-          {profil?.username ? (
-            <Text style={styles.user} numberOfLines={1} ellipsizeMode="tail">
-              @{profil.username}
-            </Text>
-          ) : (
-            <Text style={styles.user} numberOfLines={1} ellipsizeMode="tail">
-              Profili görüntüle
-            </Text>
-          )}
-        </View>
+        {rtl ? (
+          <>
+            {copyBlok}
+            {avatarBlok}
+          </>
+        ) : (
+          <>
+            {avatarBlok}
+            {copyBlok}
+          </>
+        )}
       </View>
 
       <View style={styles.seviyeBlok}>
         <View style={styles.seviyeBaslik}>
-          <Text style={styles.seviyeEtiket}>Lv. {ozet.level}</Text>
+          <Text style={[styles.seviyeEtiket, metinRtl]}>
+            {t('profil.seviyeKisalt', { n: ozet.level })}
+          </Text>
           <Text style={styles.xpYazi}>
             {SayiKisaBicim(ozet.xp)} / {SayiKisaBicim(ozet.sonrakiEsik)}
           </Text>
@@ -86,9 +118,9 @@ export function HamburgerProfilKarti({ profil, onPress }: Props) {
         <View style={styles.barDis}>
           <LinearGradient
             colors={[...RenkTokenlari.gradientPrimary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={[styles.barIc, { width: `${barPct}%` }]}
+            start={rtl ? { x: 1, y: 0 } : { x: 0, y: 0 }}
+            end={rtl ? { x: 0, y: 0 } : { x: 1, y: 0 }}
+            style={[styles.barIc, ilerlemeDolguStili(barPct, rtl)]}
           />
         </View>
       </View>
@@ -114,29 +146,48 @@ export function HamburgerIstatistikler({
   onRozetPress,
 }: IstatistikProps) {
   useTemayaAboneOl();
+  const { t } = useCeviri();
+  const { rtl } = useDil();
+  const metinRtl = rtlMetinStili(rtl, true);
+
+  const coinOge = (
+    <Pressable
+      onPress={onCoinPress}
+      style={({ pressed }) => [styles.istatOge, pressed && styles.pressed]}
+      accessibilityLabel={`${coin} ${t('anaSayfa.istatCoin')}`}
+      accessibilityRole="button"
+      hitSlop={8}
+    >
+      <Text style={styles.istatRakam}>{SayiKisaBicim(coin)}</Text>
+      <Text style={[styles.istatEtiket, metinRtl]}>{t('anaSayfa.istatCoin')}</Text>
+    </Pressable>
+  );
+  const rozetOge = (
+    <Pressable
+      onPress={onRozetPress}
+      style={({ pressed }) => [styles.istatOge, pressed && styles.pressed]}
+      accessibilityLabel={`${rozet} ${t('anaSayfa.istatRozet')}`}
+      accessibilityRole="button"
+      hitSlop={8}
+    >
+      <Text style={styles.istatRakam}>{SayiKisaBicim(rozet)}</Text>
+      <Text style={[styles.istatEtiket, metinRtl]}>{t('anaSayfa.istatRozet')}</Text>
+    </Pressable>
+  );
 
   return (
     <View style={styles.istatSatir}>
-      <Pressable
-        onPress={onCoinPress}
-        style={({ pressed }) => [styles.istatOge, pressed && styles.pressed]}
-        accessibilityLabel={`${coin} coin`}
-        accessibilityRole="button"
-        hitSlop={8}
-      >
-        <Text style={styles.istatRakam}>{SayiKisaBicim(coin)}</Text>
-        <Text style={styles.istatEtiket}>Coin</Text>
-      </Pressable>
-      <Pressable
-        onPress={onRozetPress}
-        style={({ pressed }) => [styles.istatOge, pressed && styles.pressed]}
-        accessibilityLabel={`${rozet} rozet`}
-        accessibilityRole="button"
-        hitSlop={8}
-      >
-        <Text style={styles.istatRakam}>{SayiKisaBicim(rozet)}</Text>
-        <Text style={styles.istatEtiket}>Rozet</Text>
-      </Pressable>
+      {rtl ? (
+        <>
+          {rozetOge}
+          {coinOge}
+        </>
+      ) : (
+        <>
+          {coinOge}
+          {rozetOge}
+        </>
+      )}
     </View>
   );
 }
@@ -178,6 +229,7 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.75 },
   ust: {
+    direction: 'ltr',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -189,15 +241,19 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 2,
     flexShrink: 0,
+    overflow: 'hidden',
   },
   avatarIc: {
-    flex: 1,
+    width: 52,
+    height: 52,
     borderRadius: 26,
     overflow: 'hidden',
   },
+  // Android: Image için sabit ölçü + borderRadius (yüzde kırpma güvenilmez)
   avatar: {
-    width: '100%',
-    height: '100%',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -212,7 +268,6 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.text,
     fontSize: 18,
     fontWeight: '800',
-    letterSpacing: -0.3,
   },
   user: {
     ...TipografiTokenlari.micro,
@@ -224,8 +279,10 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'stretch',
     paddingHorizontal: 10,
+    direction: 'ltr',
   },
   seviyeBaslik: {
+    direction: 'ltr',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -255,9 +312,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     flexShrink: 0,
+    writingDirection: 'ltr',
   },
   /** Profil altında yatay — Following / Followers gibi */
   istatSatir: {
+    direction: 'ltr',
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'stretch',
@@ -277,6 +336,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: RenkTokenlari.text,
+    writingDirection: 'ltr',
   },
   istatEtiket: {
     fontSize: 14,

@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import i18n from '../../../i18n';
 import { supabase } from '../../../lib/supabase';
 import { GenelGirisHatasiMesaji } from './GenelGirisHatasiMesaji';
 import { OAuthProfiliniTamamla } from './OAuthProfiliniTamamla';
@@ -14,12 +15,12 @@ export type AppleGirisSonuc =
  */
 export async function AppleIleGirisYap(): Promise<AppleGirisSonuc> {
   if (Platform.OS !== 'ios') {
-    return { ok: false, hata: 'Apple ile giriş yalnızca iOS’ta desteklenir.' };
+    return { ok: false, hata: i18n.t('auth.appleYalnizcaIos') };
   }
 
   const available = await AppleAuthentication.isAvailableAsync();
   if (!available) {
-    return { ok: false, hata: 'Bu cihazda Sign in with Apple yok.' };
+    return { ok: false, hata: i18n.t('auth.appleBuCihazdaYok') };
   }
 
   try {
@@ -31,7 +32,7 @@ export async function AppleIleGirisYap(): Promise<AppleGirisSonuc> {
     });
 
     if (!credential.identityToken) {
-      return { ok: false, hata: 'Apple identity token alınamadı.' };
+      return { ok: false, hata: i18n.t('auth.appleTokenAlinamadi') };
     }
 
     const { error } = await supabase.auth.signInWithIdToken({
@@ -86,11 +87,11 @@ export async function AppleIleGirisYap(): Promise<AppleGirisSonuc> {
   } catch (e: unknown) {
     const err = e as { code?: string; message?: string };
     if (err.code === 'ERR_REQUEST_CANCELED') {
-      return { ok: false, hata: 'İptal edildi', iptal: true };
+      return { ok: false, hata: i18n.t('auth.iptalEdildi'), iptal: true };
     }
     return {
       ok: false,
-      hata: GenelGirisHatasiMesaji(err.message ?? 'Apple girişi başarısız'),
+      hata: GenelGirisHatasiMesaji(err.message ?? i18n.t('auth.appleBasarisiz')),
     };
   }
 }

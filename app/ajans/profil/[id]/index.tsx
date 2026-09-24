@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../../../../src/components/Screen';
 import { ModulHataSiniri } from '../../../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { MedyaUriGuvenli } from '../../../../src/moduller/mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { DogrulanmisTik } from '../../../../src/moduller/kullanici-profili/bilesenler/DogrulanmisTik';
 import { useAuth } from '../../../../src/contexts/AuthContext';
 import { HesabiTamamlaKarti } from '../../../../src/moduller/misafir-hesabi/bilesenler/HesabiTamamlaKarti';
 import { useMisafirIslemKapisi } from '../../../../src/moduller/misafir-hesabi/islemler/useMisafirIslemKapisi';
@@ -309,7 +310,7 @@ export default function AjansProfilEkrani() {
                   {a.name}
                 </Text>
                 {a.is_verified ? (
-                  <Ionicons name="checkmark-circle" size={20} color={RenkTokenlari.mint} />
+                  <DogrulanmisTik size={20} />
                 ) : null}
               </View>
               {handle ? (

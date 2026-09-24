@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import { OrtamDegiskenleri } from '../../../yapilandirma/OrtamDegiskenleri';
+import i18n, { AktifDil } from '../../../i18n';
 import { CihazKimliginiGetir } from '../../kimlik-dogrulama/oturum/CihazKimliginiGetir';
 import {
   MisafirCihazOturumuKaydet,
@@ -94,7 +95,7 @@ export async function MisafirOlarakDevamEt(): Promise<{
   if (OrtamDegiskenleri.ortam === 'production') {
     return {
       ok: false,
-      hata: 'Misafir girişi kapalı. Kayıt ol veya giriş yap.',
+      hata: i18n.t('auth.misafirKapali'),
     };
   }
 
@@ -105,7 +106,7 @@ export async function MisafirOlarakDevamEt(): Promise<{
     { p_device_id: deviceId },
   );
   if (durumErr) {
-    return { ok: false, hata: durumErr.message };
+    return { ok: false, hata: i18n.t('auth.baglantiKontrol') };
   }
 
   const durum = (durumHam ?? {}) as CihazDurum;
@@ -115,7 +116,7 @@ export async function MisafirOlarakDevamEt(): Promise<{
     return {
       ok: false,
       hata:
-        'Bu cihazdan misafir hesabı açılamaz. Hesap askıya alınmış veya engellenmiş olabilir.',
+        i18n.t('auth.misafirCihazEngel'),
     };
   }
 
@@ -127,7 +128,7 @@ export async function MisafirOlarakDevamEt(): Promise<{
     return {
       ok: false,
       hata:
-        'Mevcut misafir oturumu açılamadı. İnternet bağlantını kontrol edip tekrar dene.',
+        i18n.t('auth.misafirOturumAcilamadi'),
     };
   }
 
@@ -136,8 +137,8 @@ export async function MisafirOlarakDevamEt(): Promise<{
     options: {
       data: {
         is_guest: true,
-        display_name: 'Misafir',
-        language: 'tr',
+        display_name: i18n.t('auth.misafirAd'),
+        language: AktifDil(),
       },
     },
   });
@@ -148,13 +149,13 @@ export async function MisafirOlarakDevamEt(): Promise<{
       hata:
         error.message.includes('Anonymous') ||
         error.message.includes('anonymous')
-          ? 'Misafir girişi için Supabase Anonymous provider açılmalı.'
-          : error.message,
+          ? i18n.t('auth.misafirKullanilamiyor')
+          : i18n.t('auth.misafirOlusturulamadi'),
     };
   }
 
   if (!data.session) {
-    return { ok: false, hata: 'Misafir oturumu oluşturulamadı.' };
+    return { ok: false, hata: i18n.t('auth.misafirOlusturulamadi') };
   }
 
   const { data: bagla, error: baglaErr } = await supabase.rpc(
@@ -164,7 +165,7 @@ export async function MisafirOlarakDevamEt(): Promise<{
   if (baglaErr) {
     await supabase.auth.signOut({ scope: 'local' });
     await MisafirCihazOturumuTemizle();
-    return { ok: false, hata: baglaErr.message };
+    return { ok: false, hata: i18n.t('auth.baglantiKontrol') };
   }
 
   const bag = (bagla ?? {}) as { ok?: boolean; hata?: string; reason?: string };
@@ -186,7 +187,7 @@ export async function MisafirOlarakDevamEt(): Promise<{
     }
     return {
       ok: false,
-      hata: bag.hata ?? 'Bu cihazdan misafir hesabı açılamadı.',
+      hata: i18n.t('auth.misafirCihazAcilamadi'),
     };
   }
 

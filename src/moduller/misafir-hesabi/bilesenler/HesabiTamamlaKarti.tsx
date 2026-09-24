@@ -16,6 +16,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 import { MisafirHesabiTamamla, EmailiTemizle } from '../islemler/MisafirHesabiTamamla';
 
 type Props = {
@@ -28,6 +29,7 @@ type Props = {
  * Guest state-changing islemde gosterilen modern hesap tamamlama karti.
  */
 export function HesabiTamamlaKarti({ visible, onClose, onCompleted }: Props) {
+  const { t } = useCeviri();
   const { misafirBayraginiKaldir, refreshProfile, refreshWallet } = useAuth();
   const [ad, setAd] = useState('');
   const [soyad, setSoyad] = useState('');
@@ -39,18 +41,18 @@ export function HesabiTamamlaKarti({ visible, onClose, onCompleted }: Props) {
   const kaydet = async () => {
     setHata(null);
     if (!ad.trim() || !soyad.trim()) {
-      setHata('Ad ve soyad gerekli.');
+      setHata(t('auth.adSoyadGerekli'));
       return;
     }
     if (password.length < 6) {
-      setHata('Şifre en az 6 karakter olmalı.');
+      setHata(t('auth.sifreMinKarakter'));
       return;
     }
     setLoading(true);
     const sonuc = await MisafirHesabiTamamla({ ad, soyad, email, password });
     if (!sonuc.ok) {
       setLoading(false);
-      setHata(sonuc.hata ?? 'Tamamlama başarısız');
+      setHata(sonuc.hata ?? t('auth.tamamlamaBasarisiz'));
       return;
     }
 
@@ -92,20 +94,22 @@ export function HesabiTamamlaKarti({ visible, onClose, onCompleted }: Props) {
         >
           <KlavyeKapatan>
             <View style={styles.card}>
-              <Text style={styles.title}>Hesabını tamamla</Text>
-              <Text style={styles.sub}>
-                Mesaj, hediye ve mikrofon için e-posta doğrulamalı hesap gerekir.
-                Kimliğin korunur.
-              </Text>
-              <TextField label="Ad" value={ad} onChangeText={setAd} placeholder="Ad" />
+              <Text style={styles.title}>{t('auth.hesabiniTamamla')}</Text>
+              <Text style={styles.sub}>{t('auth.hesabiniTamamlaAlt')}</Text>
               <TextField
-                label="Soyad"
-                value={soyad}
-                onChangeText={setSoyad}
-                placeholder="Soyad"
+                label={t('auth.ad')}
+                value={ad}
+                onChangeText={setAd}
+                placeholder={t('auth.ad')}
               />
               <TextField
-                label="E-posta"
+                label={t('auth.soyad')}
+                value={soyad}
+                onChangeText={setSoyad}
+                placeholder={t('auth.soyad')}
+              />
+              <TextField
+                label={t('auth.eposta')}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
@@ -113,19 +117,27 @@ export function HesabiTamamlaKarti({ visible, onClose, onCompleted }: Props) {
                 autoComplete="email"
                 value={email}
                 onChangeText={setEmail}
-                placeholder="isim@gmail.com"
+                placeholder={t('auth.epostaPlaceholder')}
               />
               <TextField
-                label="Şifre"
+                label={t('auth.sifre')}
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
-                placeholder="En az 6 karakter"
+                placeholder={t('auth.sifreEnAz')}
                 blurOnSubmit
               />
               {hata ? <Text style={styles.error}>{hata}</Text> : null}
-              <GradientButton title="Hesabı oluştur" onPress={kaydet} loading={loading} />
-              <GradientButton title="Şimdi değil" variant="ghost" onPress={onClose} />
+              <GradientButton
+                title={t('auth.hesabiOlustur')}
+                onPress={kaydet}
+                loading={loading}
+              />
+              <GradientButton
+                title={t('auth.simdiDegil')}
+                variant="ghost"
+                onPress={onClose}
+              />
             </View>
           </KlavyeKapatan>
         </ScrollView>

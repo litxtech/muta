@@ -1,3 +1,5 @@
+import i18n from '../../../i18n';
+import type { CeviriAnahtari } from '../../../i18n/useCeviri';
 import { supabase } from '../../../lib/supabase';
 
 export type GizlilikAyarlari = {
@@ -77,7 +79,7 @@ export async function GizlilikAyariKaydet(
 ): Promise<{ ok: boolean; hata?: string }> {
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
-  if (!uid) return { ok: false, hata: 'Oturum yok' };
+  if (!uid) return { ok: false, hata: i18n.t('ortak.oturumYok') as string };
 
   if (alan === 'is_private') {
     const { data, error } = await supabase.rpc('gizli_hesap_ayarla', {
@@ -100,88 +102,133 @@ export async function GizlilikAyariKaydet(
   return { ok: true };
 }
 
-/** Genel gizlilik (liderlik, oda, hesap) */
-export const GIZLILIK_ALAN_ETIKETLERI: {
+type GizlilikAnahtar = {
   key: keyof GizlilikAyarlari;
-  label: string;
-  aciklama?: string;
-}[] = [
+  labelKey: CeviriAnahtari;
+  aciklamaKey?: CeviriAnahtari;
+};
+
+/** Genel gizlilik (liderlik, oda, hesap) — anahtarlar; etiket için GizlilikAlanEtiketleri() */
+export const GIZLILIK_ALAN_ANAHTARLARI: GizlilikAnahtar[] = [
   {
     key: 'hide_recharge_rank',
-    label: 'Yükleme sıralamamı gizle',
-    aciklama: 'Haftalık / günlük coin yükleme liderliğinde görünmezsin',
+    labelKey: 'gizlilik.hideRechargeRank',
+    aciklamaKey: 'gizlilik.hideRechargeRankAlt',
   },
-  { key: 'hide_gifter_rank', label: 'Hediye sıralamamı gizle' },
-  { key: 'hide_current_room', label: 'Bulunduğum odayı gizle' },
-  { key: 'hide_last_seen', label: 'Son görülmeyi gizle' },
+  { key: 'hide_gifter_rank', labelKey: 'gizlilik.hideGifterRank' },
+  { key: 'hide_current_room', labelKey: 'gizlilik.hideCurrentRoom' },
+  { key: 'hide_last_seen', labelKey: 'gizlilik.hideLastSeen' },
   {
     key: 'hide_online_status',
-    label: 'Çevrimiçi durumumu gizle',
-    aciklama: 'Aktif / çevrimiçi olduğun başkalarına gösterilmez',
+    labelKey: 'gizlilik.hideOnlineStatus',
+    aciklamaKey: 'gizlilik.hideOnlineStatusAlt',
   },
-  { key: 'hide_gift_collection', label: 'Hediye koleksiyonumu gizle' },
-  { key: 'hide_top_supporter', label: 'En çok destekçiyi gizle' },
+  { key: 'hide_gift_collection', labelKey: 'gizlilik.hideGiftCollection' },
+  { key: 'hide_top_supporter', labelKey: 'gizlilik.hideTopSupporter' },
   {
     key: 'hide_followers',
-    label: 'Takipçilerimi gizle',
-    aciklama: 'Takipçi sayısı ve listesi profilde görünmez',
+    labelKey: 'gizlilik.hideFollowers',
+    aciklamaKey: 'gizlilik.hideFollowersAlt',
   },
   {
     key: 'hide_following',
-    label: 'Takip listemi gizle',
-    aciklama: 'Takip ettiğin kişi sayısı ve listesi görünmez',
+    labelKey: 'gizlilik.hideFollowing',
+    aciklamaKey: 'gizlilik.hideFollowingAlt',
   },
   {
     key: 'hide_status_posts',
-    label: 'Durumlarımı / gönderilerimi gizle',
-    aciklama: 'Profildeki durum ızgarası ziyaretçilere kapalı',
+    labelKey: 'gizlilik.hideStatusPosts',
+    aciklamaKey: 'gizlilik.hideStatusPostsAlt',
   },
   {
     key: 'is_private',
-    label: 'Gizli hesap',
-    aciklama: 'Takip isteklerin onayın olmadan kimse seni takip edemez',
+    labelKey: 'gizlilik.isPrivate',
+    aciklamaKey: 'gizlilik.isPrivateAlt',
   },
 ];
 
-/** Profil ziyaretinde görünen göstergeler — kapalıysa başkası göremez */
-export const PROFIL_GOSTERGE_GIZLILIK: {
-  key: keyof GizlilikAyarlari;
-  label: string;
-  aciklama?: string;
-}[] = [
+/** Profil ziyaretinde görünen göstergeler — anahtarlar */
+export const PROFIL_GOSTERGE_ANAHTARLARI: GizlilikAnahtar[] = [
   {
     key: 'hide_prestige',
-    label: 'Ünvanlarımı gizle',
-    aciklama: 'VIP, hediye, çekicilik ve yükleme rozetleri',
+    labelKey: 'gizlilik.hidePrestige',
+    aciklamaKey: 'gizlilik.hidePrestigeAlt',
   },
   {
     key: 'hide_agency',
-    label: 'Ajansımı gizle',
-    aciklama: 'Profil ziyaretinde ajans rozetin görünmez',
+    labelKey: 'gizlilik.hideAgency',
+    aciklamaKey: 'gizlilik.hideAgencyAlt',
   },
   {
     key: 'hide_topup_coin',
-    label: 'Yüklenen coinimi gizle',
-    aciklama: 'Toplam yüklediğin coin miktarı profilde görünmez',
+    labelKey: 'gizlilik.hideTopupCoin',
+    aciklamaKey: 'gizlilik.hideTopupCoinAlt',
   },
   {
     key: 'hide_level',
-    label: 'Seviyemi gizle',
-    aciklama: 'Seviye ve tecrübe puanın profilde görünmez',
+    labelKey: 'gizlilik.hideLevel',
+    aciklamaKey: 'gizlilik.hideLevelAlt',
   },
   {
     key: 'hide_crown',
-    label: 'Seviye tacımı gizle',
-    aciklama: 'Avatarını saran parıltılı taç çerçevesi kapanır',
+    labelKey: 'gizlilik.hideCrown',
+    aciklamaKey: 'gizlilik.hideCrownAlt',
   },
   {
     key: 'hide_account_value',
-    label: 'Hesap değerimi gizle',
-    aciklama: 'Güven / kalite skorun profil ziyaretlerinde görünmez',
+    labelKey: 'gizlilik.hideAccountValue',
+    aciklamaKey: 'gizlilik.hideAccountValueAlt',
   },
   {
     key: 'hide_game_stats',
-    label: 'Oyun istatistiğimi gizle',
-    aciklama: 'Kupa, galibiyet ve lig kartın profilde görünmez',
+    labelKey: 'gizlilik.hideGameStats',
+    aciklamaKey: 'gizlilik.hideGameStatsAlt',
   },
 ];
+
+function cozEtiketler(
+  maddeler: GizlilikAnahtar[],
+  t: (key: CeviriAnahtari) => string,
+): { key: keyof GizlilikAyarlari; label: string; aciklama?: string }[] {
+  return maddeler.map((m) => ({
+    key: m.key,
+    label: t(m.labelKey),
+    aciklama: m.aciklamaKey ? t(m.aciklamaKey) : undefined,
+  }));
+}
+
+/** Genel gizlilik etiketleri — güncel dil */
+export function GizlilikAlanEtiketleri(
+  t: (key: CeviriAnahtari) => string = (k) => i18n.t(k) as string,
+) {
+  return cozEtiketler(GIZLILIK_ALAN_ANAHTARLARI, t);
+}
+
+/** Profil gösterge etiketleri — güncel dil */
+export function ProfilGostergeEtiketleri(
+  t: (key: CeviriAnahtari) => string = (k) => i18n.t(k) as string,
+) {
+  return cozEtiketler(PROFIL_GOSTERGE_ANAHTARLARI, t);
+}
+
+/** @deprecated Prefer GizlilikAlanEtiketleri(t) — canlı dil için her okumada çöz */
+export const GIZLILIK_ALAN_ETIKETLERI = new Proxy(
+  [] as ReturnType<typeof GizlilikAlanEtiketleri>,
+  {
+    get(_t, prop) {
+      const list = GizlilikAlanEtiketleri();
+      return list[prop as keyof typeof list];
+    },
+  },
+);
+
+/** @deprecated Prefer ProfilGostergeEtiketleri(t) */
+export const PROFIL_GOSTERGE_GIZLILIK = new Proxy(
+  [] as ReturnType<typeof ProfilGostergeEtiketleri>,
+  {
+    get(_t, prop) {
+      const list = ProfilGostergeEtiketleri();
+      return list[prop as keyof typeof list];
+    },
+  },
+);

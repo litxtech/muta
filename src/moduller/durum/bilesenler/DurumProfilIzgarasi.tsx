@@ -11,18 +11,23 @@ import { Ionicons } from '@expo/vector-icons';
 import type { DurumOggesi } from '../islemler/DurumIslemleri';
 import {
   DurumMedyaHttpsMi,
+  DurumMuzikPayloadAl,
   DurumOyunKazanciPayloadAl,
 } from '../islemler/DurumIslemleri';
+import { DurumMuzikKarti } from './DurumMuzikKarti';
 import { DurumOyunKazanciKart } from './DurumOyunKazanciKart';
 import { DurumVideoOnizleme } from './DurumVideoOnizleme';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   items: DurumOggesi[];
   yukleniyor?: boolean;
   baslik?: string;
+  /** true ise başlık satırı hiç çizilmez (X sekmesi dışarıda) */
+  baslikGizle?: boolean;
   bosMetin?: string;
   /** Dış padding parent’ta varsa false yap */
   yatayPadding?: boolean;
@@ -35,28 +40,40 @@ type Props = {
 export function DurumProfilIzgarasi({
   items,
   yukleniyor,
-  baslik = 'Gönderiler',
-  bosMetin = 'Henüz paylaşım yok',
+  baslik,
+  baslikGizle = false,
+  bosMetin,
   yatayPadding = true,
   onPress,
   onPaylas,
   onUzunBas,
 }: Props) {
+  const { t } = useCeviri();
+  const baslikMetin = baslik ?? t('durumX.gonderiler');
+  const bosMetinCozulmus = bosMetin ?? t('durumX.paylasimYok');
   return (
-    <View style={[styles.wrap, !yatayPadding && styles.wrapSik]}>
-      <View style={styles.baslikSatir}>
-        <Text style={styles.baslik}>{baslik}</Text>
-        {onPaylas ? (
-          <Pressable onPress={onPaylas} hitSlop={8} style={styles.paylasHit}>
-            <Ionicons
-              name="add-circle-outline"
-              size={20}
-              color={RenkTokenlari.primarySoft}
-            />
-            <Text style={styles.paylasYazi}>Paylaş</Text>
-          </Pressable>
-        ) : null}
-      </View>
+    <View
+      style={[
+        styles.wrap,
+        !yatayPadding && styles.wrapSik,
+        baslikGizle && styles.wrapSekmesiz,
+      ]}
+    >
+      {baslikGizle ? null : (
+        <View style={styles.baslikSatir}>
+          <Text style={styles.baslik}>{baslikMetin}</Text>
+          {onPaylas ? (
+            <Pressable onPress={onPaylas} hitSlop={8} style={styles.paylasHit}>
+              <Ionicons
+                name="add-circle-outline"
+                size={20}
+                color={RenkTokenlari.primarySoft}
+              />
+              <Text style={styles.paylasYazi}>{t('ortak.paylas')}</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      )}
 
       {yukleniyor && !items.length ? (
         <ActivityIndicator
@@ -64,13 +81,14 @@ export function DurumProfilIzgarasi({
           style={{ marginVertical: 24 }}
         />
       ) : !items.length ? (
-        <Text style={styles.bos}>{bosMetin}</Text>
+        <Text style={styles.bos}>{bosMetinCozulmus}</Text>
       ) : (
         <View style={styles.grid}>
           {items
             .filter((oge) => oge && typeof oge.id === 'string' && oge.id.length > 0)
             .map((oge) => {
             const kazanc = DurumOyunKazanciPayloadAl(oge);
+            const muzik = DurumMuzikPayloadAl(oge);
             return (
               <Pressable
                 key={oge.id}
@@ -81,11 +99,13 @@ export function DurumProfilIzgarasi({
                 }
                 accessibilityRole="imagebutton"
                 accessibilityLabel={
-                  kazanc ? 'Oyun kazancı durumu' : 'Durum gönderisi'
+                  kazanc ? t('durumX.oyunKazanciDurumu') : t('durumX.durumGonderisi')
                 }
               >
                 {kazanc ? (
                   <DurumOyunKazanciKart payload={kazanc} compact />
+                ) : muzik ? (
+                  <DurumMuzikKarti payload={muzik} compact />
                 ) : oge.media_type === 'video' ? (
                   <View style={[styles.img, styles.imgBos]}>
                     <DurumVideoOnizleme
@@ -111,7 +131,7 @@ export function DurumProfilIzgarasi({
                 ) : (
                   <View style={[styles.img, styles.imgBos, styles.imgMetin]}>
                     <Text style={styles.metinOnizleme} numberOfLines={4}>
-                      {oge.caption?.trim() || 'Durum'}
+                      {oge.caption?.trim() || t('durum.baslik')}
                     </Text>
                   </View>
                 )}
@@ -138,6 +158,9 @@ const styles = StyleSheet.create({
   },
   wrapSik: {
     paddingHorizontal: 0,
+  },
+  wrapSekmesiz: {
+    marginTop: BoslukTokenlari.sm,
   },
   baslikSatir: {
     flexDirection: 'row',

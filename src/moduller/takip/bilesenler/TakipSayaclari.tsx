@@ -10,9 +10,10 @@ import {
 import { TakipSayaciniFormatla } from '../TakipSayacFormat';
 
 type Props = {
-  posts: number;
-  followers: number;
-  following: number;
+  /** null = gizli (—) */
+  posts: number | null;
+  followers: number | null;
+  following: number | null;
   onPosts?: () => void;
   onFollowers?: () => void;
   onFollowing?: () => void;
@@ -23,19 +24,24 @@ function Hucre({
   label,
   onPress,
 }: {
-  n: number;
+  n: number | null;
   label: string;
   onPress?: () => void;
 }) {
+  const yazi = n == null ? '—' : TakipSayaciniFormatla(n);
+  const tiklanabilir = n != null && !!onPress;
   return (
     <Pressable
       onPress={onPress}
-      disabled={!onPress}
-      accessibilityRole={onPress ? 'button' : 'text'}
-      accessibilityLabel={`${TakipSayaciniFormatla(n)} ${label}`}
-      style={({ pressed }) => [styles.hucre, pressed && onPress ? styles.pressed : null]}
+      disabled={!tiklanabilir}
+      accessibilityRole={tiklanabilir ? 'button' : 'text'}
+      accessibilityLabel={`${yazi} ${label}`}
+      style={({ pressed }) => [
+        styles.hucre,
+        pressed && tiklanabilir ? styles.pressed : null,
+      ]}
     >
-      <Text style={styles.n}>{TakipSayaciniFormatla(n)}</Text>
+      <Text style={styles.n}>{yazi}</Text>
       <Text style={styles.l}>{label}</Text>
     </Pressable>
   );

@@ -16,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { ProfilAvatarKucuk } from '../../canli-sohbet/bilesenler/ProfilAvatarKucuk';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
   displayName?: string | null;
@@ -37,17 +38,21 @@ function OdaProfilCubuguInner({
   altEtiket,
   onPress,
 }: Props) {
+  const { t } = useCeviri();
   const ad =
-    displayName?.trim() || username?.trim() || 'Oda sahibi';
+    displayName?.trim() || username?.trim() || t('sesOda.odaSahibi');
   const handle = username?.trim() ? `@${username.trim()}` : null;
   const seviye = level && level > 0 ? level : null;
   const alt =
     altEtiket?.trim() ||
     (seviye != null
       ? handle
-        ? `Sv.${seviye} · ${handle}`
-        : `Seviye ${seviye}`
-      : handle ?? 'Oda sahibi');
+        ? t('sesOda.seviyeHandle', {
+            kisalt: t('profil.seviyeKisalt', { n: seviye }),
+            handle,
+          })
+        : t('sesOda.seviyeN', { n: seviye })
+      : handle ?? t('sesOda.odaSahibi'));
 
   const isilti = useSharedValue(0);
   useEffect(() => {
@@ -69,7 +74,7 @@ function OdaProfilCubuguInner({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel="Oda sahibi profili"
+      accessibilityLabel={t('sesOda.odaSahibiProfili')}
       style={styles.hit}
     >
       <LinearGradient

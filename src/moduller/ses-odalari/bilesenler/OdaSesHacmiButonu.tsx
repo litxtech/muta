@@ -15,6 +15,7 @@ import {
   ODA_UST_BTN,
   ODA_UST_ICON,
 } from './OdaButonOlculeri';
+import { useCeviri } from '../../../i18n/useCeviri';
 
 const TRACK_H = 132;
 const THUMB = 18;
@@ -43,6 +44,7 @@ function clamp01(v: number) {
  * Yukarı = yüksek, aşağı = düşük / sessiz.
  */
 export function OdaSesHacmiButonu({ hacim, onHacimDegisti, boyut = 'dock' }: Props) {
+  const { t } = useCeviri();
   const [acik, setAcik] = useState(false);
   const [anchor, setAnchor] = useState<{ x: number; y: number; w: number } | null>(
     null,
@@ -108,7 +110,7 @@ export function OdaSesHacmiButonu({ hacim, onHacimDegisti, boyut = 'dock' }: Pro
           { width: btnSize, height: btnSize, borderRadius: btnSize / 2 },
           aktif && styles.btnAktif,
         ]}
-        accessibilityLabel={`Oda sesi ${yuzde} yüzde`}
+        accessibilityLabel={t('sesOda.odaSesiA11y', { yuzde })}
         accessibilityRole="button"
       >
         <Ionicons
@@ -168,7 +170,7 @@ export function OdaSesHacmiButonu({ hacim, onHacimDegisti, boyut = 'dock' }: Pro
                 ]}
               />
             </View>
-            <Text style={styles.ipucu}>Kaydır</Text>
+            <Text style={styles.ipucu}>{t('sesOda.kaydir')}</Text>
           </Pressable>
         </Pressable>
       </Modal>

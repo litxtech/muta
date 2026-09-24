@@ -8,7 +8,9 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
 import type { Gift } from '../../../types/models';
+import { ProfilMiniCache } from '../../kullanici-profili/onbellek/ProfilMiniCache';
 import { HediyeAnimasyonuKuyrugu } from '../animasyon/HediyeAnimasyonuKuyrugu';
+import { HediyeAdiCevir } from '../katalog/HediyeAdiCevir';
 
 type GiftTxRow = {
   id: string;
@@ -73,19 +75,14 @@ export function useCanliHediyeCanlisi(params: {
               const coin =
                 Number(row.coins_spent) || (gift ? gift.coin_cost * adet : 0);
 
-              const { data: profil } = await supabase
-                .from('profiles')
-                .select('display_name, username')
-                .eq('id', row.sender_id)
-                .maybeSingle();
+              const profil = await ProfilMiniCache.al(row.sender_id);
 
               HediyeAnimasyonuKuyrugu.ekle({
                 id: `live_rt_${row.id}`,
                 giftId: row.gift_id,
                 emoji: gift?.emoji ?? '🎁',
-                name: gift?.name ?? 'Hediye',
-                senderName:
-                  profil?.display_name ?? profil?.username ?? 'Birisi',
+                name: HediyeAdiCevir(gift?.code, gift?.name),
+                senderName: ProfilMiniCache.gosterimAdi(profil),
                 durationMs: gift?.duration_ms ?? (adet > 1 ? 2600 : 2200),
                 fullScreen: !!(gift?.full_screen || coin >= 999 || adet >= 77),
                 coinCost: gift?.coin_cost ?? coin,

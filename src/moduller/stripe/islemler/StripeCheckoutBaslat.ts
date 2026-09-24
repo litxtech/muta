@@ -1,15 +1,23 @@
 import { supabase } from '../../../lib/supabase';
 import { FinansIdempotencyAnahtariOlustur } from '../../cuzdan/islemler/FinansIdempotencyAnahtariOlustur';
 
+export type StripeCheckoutSonuc =
+  | { ok: true; url: string; sessionId: string }
+  | { ok: false; hata: string };
+
 /**
- * Stripe Checkout oturumu (web / izinli kanallar).
- * iOS App Store dijital coin satisi icin KULLANILMAZ.
+ * Stripe Checkout oturumu.
+ * catalog: coin (varsayılan) | ai_music
+ * iOS App Store dijital satış için KULLANILMAZ — orada IAP gerekir.
  */
 export async function StripeCheckoutBaslat(input: {
-  packageId: string;
+  packageId?: string;
+  productId?: string;
+  catalog?: 'coin' | 'ai_music';
   successUrl?: string;
   cancelUrl?: string;
-}): Promise<{ ok: true; url: string; sessionId: string } | { ok: false; hata: string }> {
+  idempotencyKey?: string;
+}): Promise<StripeCheckoutSonuc> {
   const base =
     process.env.EXPO_PUBLIC_STRIPE_CHECKOUT_URL ??
     `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/stripe-checkout`;
@@ -17,6 +25,18 @@ export async function StripeCheckoutBaslat(input: {
   const { data: session } = await supabase.auth.getSession();
   const jwt = session.session?.access_token;
   if (!jwt) return { ok: false, hata: 'Oturum gerekli' };
+
+  const catalog = input.catalog ?? 'coin';
+  const ref = catalog === 'ai_music'
+    ? (input.productId ?? input.packageId)
+    : input.packageId;
+  if (!ref) return { ok: false, hata: 'Paket seçilmedi' };
+
+  const idem =
+    input.idempotencyKey ??
+    FinansIdempotencyAnahtariOlustur(
+      catalog === 'ai_music' ? 'ai_music_stripe' : 'coin_purchase',
+    );
 
   try {
     const res = await fetch(base, {
@@ -26,10 +46,12 @@ export async function StripeCheckoutBaslat(input: {
         Authorization: `Bearer ${jwt}`,
       },
       body: JSON.stringify({
-        packageId: input.packageId,
+        catalog,
+        packageId: catalog === 'coin' ? ref : undefined,
+        productId: catalog === 'ai_music' ? ref : undefined,
         successUrl: input.successUrl,
         cancelUrl: input.cancelUrl,
-        idempotencyKey: FinansIdempotencyAnahtariOlustur('coin_purchase'),
+        idempotencyKey: idem,
       }),
     });
     const json = (await res.json()) as {

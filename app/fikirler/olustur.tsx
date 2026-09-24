@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
+import { useCeviri } from '../../src/i18n/useCeviri';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { FikirKategoriSecici } from '../../src/moduller/fikir-geri-bildirim/bilesenler/FikirKategoriSecici';
 import {
@@ -40,6 +41,7 @@ import {
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export default function FikirGonderEkrani() {
+  const { t } = useCeviri();
   const [kategoriler, setKategoriler] = useState<FikirKategori[]>([]);
   const [kategori, setKategori] = useState<FikirKategori | null>(null);
   const [baslik, setBaslik] = useState('');
@@ -65,41 +67,41 @@ export default function FikirGonderEkrani() {
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       void FikirBenzerAra(baslik).then(setBenzer).catch(() => setBenzer([]));
     }, 350);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [baslik]);
 
   const gorselEkle = useCallback(async () => {
     if (ekler.length >= 3) {
-      Alert.alert('Limit', 'En fazla 3 görsel ekleyebilirsin.');
+      Alert.alert(t('fikirler.limit'), t('fikirler.gorselLimit'));
       return;
     }
     setYukleniyorEk(true);
     const r = await FikirGorseliSecVeYukle();
     setYukleniyorEk(false);
     if (!r.ok) {
-      if (!r.iptal) Alert.alert('Görsel', r.hata);
+      if (!r.iptal) Alert.alert(t('fikirler.gorsel'), r.hata);
       return;
     }
     setEkler((prev) => [...prev, r.ek]);
-  }, [ekler.length]);
+  }, [ekler.length, t]);
 
   const gonder = useCallback(async () => {
     if (kilitRef.current || gonderiliyor) return;
     if (!kategori) {
-      Alert.alert('Kategori', 'Önce bir kategori seç.');
+      Alert.alert(t('fikirler.kategori'), t('fikirler.kategoriSec'));
       return;
     }
     if (baslik.trim().length < FIKIR_BASLIK_MIN) {
-      Alert.alert('Başlık', `Başlık en az ${FIKIR_BASLIK_MIN} karakter olmalı.`);
+      Alert.alert(t('fikirler.baslikLabel'), t('fikirler.baslikMin', { n: FIKIR_BASLIK_MIN }));
       return;
     }
     if (aciklama.trim().length < FIKIR_ACIKLAMA_MIN) {
       Alert.alert(
-        'Açıklama',
-        `Fikrini en az ${FIKIR_ACIKLAMA_MIN} karakterle anlat.`,
+        t('fikirler.aciklama'),
+        t('fikirler.aciklamaMin', { n: FIKIR_ACIKLAMA_MIN }),
       );
       return;
     }
@@ -118,18 +120,17 @@ export default function FikirGonderEkrani() {
         bugRepro: kategori.is_bug_form ? bugRepro : undefined,
         clientToken,
       });
-      Alert.alert(
-        'Teşekkürler 💜',
-        'Fikrin bize ulaştı. Ekibimiz tarafından değerlendirilecek.',
-        [
-          {
-            text: 'Detaya git',
-            onPress: () => router.replace(`/fikirler/${sonuc.id}` as any),
-          },
-        ],
-      );
+      Alert.alert(t('fikirler.tesekkurler'), t('fikirler.tesekkurlerBody'), [
+        {
+          text: t('fikirler.detayaGit'),
+          onPress: () => router.replace(`/fikirler/${sonuc.id}` as any),
+        },
+      ]);
     } catch (e) {
-      Alert.alert('Gönderilemedi', e instanceof Error ? e.message : 'Hata');
+      Alert.alert(
+        t('fikirler.gonderilemedi'),
+        e instanceof Error ? e.message : t('ortak.hata'),
+      );
       kilitRef.current = false;
     } finally {
       setGonderiliyor(false);
@@ -143,33 +144,34 @@ export default function FikirGonderEkrani() {
     bugWhat,
     bugRepro,
     gonderiliyor,
+    t,
   ]);
 
   return (
     <Screen>
       <ModulHataSiniri modulAdi="fikir-gonder">
         <EkranBasligi
-          title="Fikir Gönder"
-          subtitle="Detaylı anlat · kaliteli fikir"
+          title={t('fikirler.olustur')}
+          subtitle={t('fikirler.altDetayli')}
           onBack={() => router.back()}
         />
         <ScrollView
           contentContainerStyle={styles.govde}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.label}>Kategori</Text>
+          <Text style={styles.label}>{t('fikirler.kategori')}</Text>
           <FikirKategoriSecici
             kategoriler={kategoriler}
             seciliId={kategori?.id ?? null}
             onSec={setKategori}
           />
 
-          <Text style={styles.label}>Başlık</Text>
+          <Text style={styles.label}>{t('fikirler.baslikLabel')}</Text>
           <TextInput
             style={styles.input}
             value={baslik}
-            onChangeText={(t) => setBaslik(t.slice(0, FIKIR_BASLIK_MAX))}
-            placeholder='Örn: "Ses odalarına zamanlayıcı eklenebilir"'
+            onChangeText={(txt) => setBaslik(txt.slice(0, FIKIR_BASLIK_MAX))}
+            placeholder={t('fikirler.baslikPlaceholder')}
             placeholderTextColor={RenkTokenlari.textMuted}
           />
           <Text style={styles.sayac}>
@@ -178,7 +180,7 @@ export default function FikirGonderEkrani() {
 
           {benzer.length > 0 ? (
             <View style={styles.benzerKutu}>
-              <Text style={styles.benzerBaslik}>Buna benzer fikirler olabilir</Text>
+              <Text style={styles.benzerBaslik}>{t('fikirler.benzerBaslik')}</Text>
               {benzer.map((b) => (
                 <Pressable
                   key={b.id}
@@ -189,61 +191,62 @@ export default function FikirGonderEkrani() {
                     {b.title}
                   </Text>
                   <Text style={styles.benzerOy}>
-                    💡 {b.vote_count.toLocaleString('tr-TR')}
+                    💡 {b.vote_count.toLocaleString()}
                   </Text>
                 </Pressable>
               ))}
             </View>
           ) : null}
 
-          <Text style={styles.label}>Fikrini anlat</Text>
-          <Text style={styles.yardim}>
-            Ne eklenmesini veya değiştirilmesini istediğini ve bunun Tamuso
-            deneyimini nasıl iyileştireceğini anlat.
-          </Text>
+          <Text style={styles.label}>{t('fikirler.fikriniAnlat')}</Text>
+          <Text style={styles.yardim}>{t('fikirler.anlatYardim')}</Text>
           <TextInput
             style={[styles.input, styles.textarea]}
             value={aciklama}
-            onChangeText={(t) => setAciklama(t.slice(0, FIKIR_ACIKLAMA_MAX))}
-            placeholder="Fikrini mümkün olduğunca detaylı anlat..."
+            onChangeText={(txt) => setAciklama(txt.slice(0, FIKIR_ACIKLAMA_MAX))}
+            placeholder={t('fikirler.aciklamaPlaceholder')}
             placeholderTextColor={RenkTokenlari.textMuted}
             multiline
             textAlignVertical="top"
           />
           <Text style={styles.sayac}>
-            {aciklama.trim().length}/{FIKIR_ACIKLAMA_MAX} · min {FIKIR_ACIKLAMA_MIN}
+            {t('fikirler.sayacMin', {
+              cur: aciklama.trim().length,
+              max: FIKIR_ACIKLAMA_MAX,
+              min: FIKIR_ACIKLAMA_MIN,
+            })}
           </Text>
 
           {kategori?.is_bug_form ? (
             <View style={styles.bugBlok}>
-              <Text style={styles.label}>Sorun nerede yaşandı?</Text>
+              <Text style={styles.label}>{t('fikirler.bugNerede')}</Text>
               <TextInput
                 style={styles.input}
                 value={bugWhere}
                 onChangeText={setBugWhere}
                 placeholderTextColor={RenkTokenlari.textMuted}
-                placeholder="Örn: Ses odası koltuk paneli"
+                placeholder={t('fikirler.bugNeredePh')}
               />
-              <Text style={styles.label}>Ne yaparken oldu?</Text>
+              <Text style={styles.label}>{t('fikirler.bugNe')}</Text>
               <TextInput
                 style={styles.input}
                 value={bugWhat}
                 onChangeText={setBugWhat}
                 placeholderTextColor={RenkTokenlari.textMuted}
-                placeholder="Örn: Mikrofon isterken"
+                placeholder={t('fikirler.bugNePh')}
               />
-              <Text style={styles.label}>Tekrar yaşanıyor mu?</Text>
+              <Text style={styles.label}>{t('fikirler.bugTekrar')}</Text>
               <TextInput
                 style={styles.input}
                 value={bugRepro}
                 onChangeText={setBugRepro}
                 placeholderTextColor={RenkTokenlari.textMuted}
-                placeholder="Her seferinde / ara sıra / bir kez"
+                placeholder={t('fikirler.bugTekrarPh')}
               />
             </View>
           ) : null}
 
-          <Text style={styles.label}>Görsel ekle (opsiyonel)</Text>
+          <Text style={styles.label}>{t('fikirler.gorselEkle')}</Text>
           <View style={styles.ekSerit}>
             {ekler.map((e, i) => (
               <View key={e.storage_path} style={styles.ekKart}>
@@ -263,7 +266,7 @@ export default function FikirGonderEkrani() {
                 ) : (
                   <>
                     <Ionicons name="image-outline" size={22} color={RenkTokenlari.primarySoft} />
-                    <Text style={styles.ekEkleYazi}>Galeri</Text>
+                    <Text style={styles.ekEkleYazi}>{t('fikirler.galeri')}</Text>
                   </>
                 )}
               </Pressable>
@@ -278,7 +281,7 @@ export default function FikirGonderEkrani() {
             {gonderiliyor ? (
               <ActivityIndicator color={RenkTokenlari.textOnPrimary} />
             ) : (
-              <Text style={styles.gonderYazi}>Fikrimi Gönder</Text>
+              <Text style={styles.gonderYazi}>{t('fikirler.fikrimiGonder')}</Text>
             )}
           </Pressable>
         </ScrollView>

@@ -13,6 +13,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { RenkTokenlari } from '../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../tasarim-sistemi/TipografiTokenlari';
+import i18n from '../../i18n';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -27,7 +28,9 @@ type Props = {
  * Marka açılış — modern aurora + ince halka; gölge yerine ışık katmanları.
  * Auth yüklenirken paralel akar; ek gecikme dayatmaz.
  */
-export function AcilisEkrani({ altYazi = 'Yükleniyor' }: Props) {
+export function AcilisEkrani({
+  altYazi = i18n.t('ortak.yukleniyor'),
+}: Props) {
   const enter = useSharedValue(0);
   const pulse = useSharedValue(0);
   const sweep = useSharedValue(0);

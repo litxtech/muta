@@ -12,12 +12,14 @@ import { IliskiEtiketi } from './IliskiEtiketi';
 import { TakipButonu } from './TakipButonu';
 import type { TakipKullaniciKarti } from '../TakipTipleri';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { DogrulanmisTik } from '../../kullanici-profili/bilesenler/DogrulanmisTik';
 
 type Props = {
   kart: TakipKullaniciKarti;
   onPress?: () => void;
   onFollowPress?: () => void;
-  onRemove?: () => void;
+  /** Üç nokta menüsü (kaldır / engelle / bildir) */
+  onMenuPress?: () => void;
   followLoading?: boolean;
   hideFollow?: boolean;
 };
@@ -26,7 +28,7 @@ export function TakipciKarti({
   kart,
   onPress,
   onFollowPress,
-  onRemove,
+  onMenuPress,
   followLoading,
   hideFollow,
 }: Props) {
@@ -57,7 +59,7 @@ export function TakipciKarti({
             {ad}
           </Text>
           {kart.is_verified ? (
-            <Ionicons name="checkmark-circle" size={14} color={RenkTokenlari.mint} />
+            <DogrulanmisTik size={14} />
           ) : null}
           {kart.level > 1 ? (
             <View style={styles.lvl}>
@@ -86,14 +88,22 @@ export function TakipciKarti({
             compact
           />
         ) : null}
-        {onRemove ? (
+        {onMenuPress ? (
           <Pressable
-            onPress={onRemove}
+            onPress={(e) => {
+              e?.stopPropagation?.();
+              onMenuPress();
+            }}
+            hitSlop={10}
             accessibilityRole="button"
-            accessibilityLabel={`${ad} kullanıcısını takipçilerinden kaldır`}
-            style={styles.kaldir}
+            accessibilityLabel={`${ad} için menü`}
+            style={styles.menuBtn}
           >
-            <Text style={styles.kaldirYazi}>Kaldır</Text>
+            <Ionicons
+              name="ellipsis-vertical"
+              size={18}
+              color={RenkTokenlari.textMuted}
+            />
           </Pressable>
         ) : null}
       </View>
@@ -129,13 +139,16 @@ const styles = StyleSheet.create({
     backgroundColor: RenkTokenlari.bgElevated,
   },
   lvlYazi: { ...TipografiTokenlari.caption, fontSize: 10, color: RenkTokenlari.primarySoft },
-  aksiyon: { alignItems: 'flex-end', gap: 6 },
-  kaldir: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: YaricapTokenlari.pill,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
+  aksiyon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  kaldirYazi: { ...TipografiTokenlari.caption, color: RenkTokenlari.danger, fontWeight: '700' },
+  menuBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
