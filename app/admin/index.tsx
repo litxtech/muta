@@ -185,6 +185,14 @@ const MODULLER: Modul[] = [
     bolum: 'Ürün',
   },
   {
+    icon: 'people-outline',
+    label: 'Kişiler & Aramalar',
+    alt: 'Keşif · ücret · komisyon · algoritma',
+    href: '/admin/kisiler-aramalar',
+    tint: RenkTokenlari.magenta,
+    bolum: 'Ürün',
+  },
+  {
     icon: 'gift-outline',
     label: 'Ekonomi',
     alt: 'Paket · hediye kataloğu',

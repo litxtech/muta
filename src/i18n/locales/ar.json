@@ -627,7 +627,10 @@
     "kategoriCuzdan": "محفظة",
     "kategoriSistem": "نظام",
     "varsayilanBaslik": "إشعار",
-    "okunmamisA11y": "{{count}} إشعار غير مقروء"
+    "okunmamisA11y": "{{count}} إشعار غير مقروء",
+    "altBaslik": "نشاط · هدايا · نظام",
+    "okunmamisOzet": "{{count}} غير مقروء",
+    "duzenle": "تعديل"
   },
   "bildirimAyar": {
     "tumu": "كل الإشعارات",
@@ -1812,7 +1815,10 @@
     "sesliUcret": "سعر المكالمة الصوتية",
     "goruntuluUcret": "سعر مكالمة الفيديو",
     "ucretleriKaydet": "حفظ الأسعار",
-    "digerGizlilik": "إعدادات خصوصية أخرى ←"
+    "digerGizlilik": "إعدادات خصوصية أخرى ←",
+    "ucretsizHakBaslik": "حق المكالمات المجانية",
+    "ucretsizHakKaldi": "المتبقي: {{sure}}",
+    "ucretsizHakAciklama": "حق مدى الحياة على حسابك. عند انتهائه تستمر المكالمة بالعملات."
   },
   "satinAlma": {
     "kanalKart": "بطاقة (Stripe)",
@@ -2478,7 +2484,8 @@
     "sonaErdi": "انتهت المكالمة",
     "medyaBaglantisi": "اتصال الوسائط",
     "medya": "وسائط",
-    "demoNativeGerekli": "يلزم بناء أصلي مع LiveKit للصوت/الفيديو المباشر. أنت في وضع العرض."
+    "demoNativeGerekli": "يلزم بناء أصلي مع LiveKit للصوت/الفيديو المباشر. أنت في وضع العرض.",
+    "coinAzaliyorKisa": "العملات تنفد · حزمة"
   },
   "sesOda": {
     "yonetimKapatti": "أغلقت الإدارة غرفة الصوت هذه.",
@@ -2722,7 +2729,9 @@
     "dkSn": "{{dk}} د {{sn}} ث",
     "tumUlkeler": "كل البلدان",
     "filtreBos": "لا مستخدمين يطابقون هذه الفلاتر.",
-    "filtreleriTemizle": "مسح الفلاتر"
+    "filtreleriTemizle": "مسح الفلاتر",
+    "ucretsizHak": "حق مجاني",
+    "ucretsizHakKaldi": "{{sure}} مجاني متبقٍ"
   },
   "durumX": {
     "devaminiGor": "عرض المزيد",

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { BosDurum } from '../../src/components/BosDurum';
@@ -62,36 +63,69 @@ function gonderenAdi(
   return item.title || t('bildirimler.varsayilanBaslik');
 }
 
-function UstIkon({
-  icon,
+function UstMetinDugme({
   label,
   onPress,
+  accent,
   danger,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
+  accent?: boolean;
   danger?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.ustIkon, pressed && { opacity: 0.75 }]}
       hitSlop={6}
+      style={({ pressed }) => [
+        styles.ustMetinHit,
+        pressed && styles.pressed,
+      ]}
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <Ionicons
-        name={icon}
-        size={18}
-        color={danger ? RenkTokenlari.danger : RenkTokenlari.text}
-      />
+      <Text
+        style={[
+          styles.ustMetin,
+          accent && styles.ustMetinAccent,
+          danger && styles.ustMetinDanger,
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function UstIkonDugme({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={4}
+      style={({ pressed }) => [
+        styles.ustIkon,
+        pressed && styles.pressed,
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Ionicons name={icon} size={20} color={RenkTokenlari.text} />
     </Pressable>
   );
 }
 
 export default function BildirimMerkeziEkrani() {
   const { t } = useCeviri();
+  const insets = useSafeAreaInsets();
   const { sayfayiAcincaOkundu, tekOkundu, yenile } = useBildirimler();
   const [items, setItems] = useState<UygulamaBildirimi[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -237,32 +271,28 @@ export default function BildirimMerkeziEkrani() {
 
   const tumunuSil = useCallback(() => {
     if (items.length === 0) return;
-    Alert.alert(
-      t('bildirimler.tumunuSil'),
-      t('bildirimler.tumunuSilSoru'),
-      [
-        { text: t('ortak.vazgec'), style: 'cancel' },
-        {
-          text: t('bildirimler.tumunuSil'),
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                setSiliniyor(true);
-                await BildirimleriHepsiniSil();
-                setItems([]);
-                secimModunuKapat();
-                await yenile();
-              } catch {
-                Alert.alert(t('ortak.hata'), t('bildirimler.silinemediCoklu'));
-              } finally {
-                setSiliniyor(false);
-              }
-            })();
-          },
+    Alert.alert(t('bildirimler.tumunuSil'), t('bildirimler.tumunuSilSoru'), [
+      { text: t('ortak.vazgec'), style: 'cancel' },
+      {
+        text: t('bildirimler.tumunuSil'),
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            try {
+              setSiliniyor(true);
+              await BildirimleriHepsiniSil();
+              setItems([]);
+              secimModunuKapat();
+              await yenile();
+            } catch {
+              Alert.alert(t('ortak.hata'), t('bildirimler.silinemediCoklu'));
+            } finally {
+              setSiliniyor(false);
+            }
+          })();
         },
-      ],
-    );
+      },
+    ]);
   }, [items.length, secimModunuKapat, yenile, t]);
 
   const seciliSayisi = secili.size;
@@ -270,67 +300,47 @@ export default function BildirimMerkeziEkrani() {
     () => items.length > 0 && seciliSayisi === items.length,
     [items.length, seciliSayisi],
   );
+  const okunmamisSayisi = useMemo(
+    () => items.filter((x) => !x.read_at).length,
+    [items],
+  );
+
+  const altBaslik = secimModu
+    ? t('bildirimler.secili', { count: seciliSayisi })
+    : okunmamisSayisi > 0
+      ? t('bildirimler.okunmamisOzet', { count: okunmamisSayisi })
+      : t('bildirimler.altBaslik');
 
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="bildirimler">
         <EkranBasligi
-          title={
-            secimModu
-              ? t('bildirimler.secili', { count: seciliSayisi })
-              : t('bildirimler.baslik')
-          }
+          title={t('bildirimler.baslik')}
+          subtitle={altBaslik}
+          border
           right={
             <View style={styles.ustAksiyonlar}>
               {secimModu ? (
-                <>
-                  <UstIkon
-                    icon={tumuSecili ? 'checkbox' : 'checkbox-outline'}
-                    label={
-                      tumuSecili
-                        ? t('bildirimler.secimiKaldir')
-                        : t('bildirimler.tumunuSec')
-                    }
-                    onPress={() => {
-                      if (tumuSecili) setSecili(new Set());
-                      else hepsiniSec();
-                    }}
-                  />
-                  <UstIkon
-                    icon="trash-outline"
-                    label={
-                      seciliSayisi > 0
-                        ? t('bildirimler.secilenleriSil')
-                        : t('bildirimler.tumunuSil')
-                    }
-                    danger
-                    onPress={() => {
-                      if (seciliSayisi > 0) secilenleriSil();
-                      else tumunuSil();
-                    }}
-                  />
-                  <UstIkon
-                    icon="close"
-                    label={t('bildirimler.secimiKapat')}
-                    onPress={secimModunuKapat}
-                  />
-                </>
+                <UstMetinDugme
+                  label={t('bildirimler.secimiKapat')}
+                  onPress={secimModunuKapat}
+                  accent
+                />
               ) : (
                 <>
                   {items.length > 0 ? (
-                    <UstIkon
-                      icon="trash-outline"
-                      label={t('bildirimler.silBaslik')}
-                      danger
+                    <UstMetinDugme
+                      label={t('bildirimler.duzenle')}
                       onPress={secimModunuAc}
+                      accent
                     />
                   ) : null}
-                  <UstIkon
+                  <UstIkonDugme
                     icon="flag-outline"
                     label={t('bildirimler.raporlarim')}
                     onPress={() => router.push('/raporlarim' as any)}
                   />
-                  <UstIkon
+                  <UstIkonDugme
                     icon="options-outline"
                     label={t('bildirimler.ayarlar')}
                     onPress={() => router.push('/bildirim-ayarlari' as any)}
@@ -340,16 +350,24 @@ export default function BildirimMerkeziEkrani() {
             </View>
           }
         />
+
         <View style={styles.content}>
           <FlatList
             data={items}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[
+              styles.list,
+              secimModu && items.length > 0
+                ? { paddingBottom: 88 + insets.bottom }
+                : null,
+            ]}
             refreshing={yukleniyor || siliniyor}
             onRefresh={() => {
               setYukleniyor(true);
               void load();
             }}
+            showsVerticalScrollIndicator={false}
+            ItemSeparatorComponent={() => <View style={styles.ayirici} />}
             ListEmptyComponent={
               yukleniyor ? null : (
                 <BosDurum
@@ -370,13 +388,18 @@ export default function BildirimMerkeziEkrani() {
                 actor_id: item.actor_id,
               });
               const secildi = secili.has(item.id);
+              const govde =
+                item.title !== ad
+                  ? item.body || item.title
+                  : item.body || item.title;
 
               return (
                 <Pressable
-                  style={[
-                    styles.card,
-                    okunmadi && styles.cardUnread,
-                    secildi && styles.cardSecili,
+                  style={({ pressed }) => [
+                    styles.satir,
+                    okunmadi && styles.satirUnread,
+                    secildi && styles.satirSecili,
+                    pressed && styles.pressedSoft,
                   ]}
                   onPress={() => ac(item)}
                   onLongPress={() => {
@@ -389,28 +412,37 @@ export default function BildirimMerkeziEkrani() {
                   }}
                   delayLongPress={350}
                 >
+                  {okunmadi ? <View style={styles.unreadBar} /> : null}
+
                   {secimModu ? (
                     <View style={styles.secimKutu}>
-                      <Ionicons
-                        name={secildi ? 'checkbox' : 'square-outline'}
-                        size={22}
-                        color={
-                          secildi
-                            ? RenkTokenlari.primarySoft
-                            : RenkTokenlari.textDim
-                        }
-                      />
+                      <View
+                        style={[
+                          styles.checkbox,
+                          secildi && styles.checkboxOn,
+                        ]}
+                      >
+                        {secildi ? (
+                          <Ionicons
+                            name="checkmark"
+                            size={14}
+                            color={RenkTokenlari.textOnPrimary}
+                          />
+                        ) : null}
+                      </View>
                     </View>
                   ) : null}
 
                   <View style={styles.avatarWrap}>
                     <ProfilAvatarKucuk
-                      size={48}
+                      size={46}
                       displayName={ad}
                       username={item.actor_username}
                       avatarUrl={item.actor_avatar_url}
                     />
-                    {okunmadi ? <View style={styles.nokta} /> : null}
+                    {okunmadi && !secimModu ? (
+                      <View style={styles.nokta} />
+                    ) : null}
                   </View>
 
                   <View style={styles.cardGovde}>
@@ -421,30 +453,16 @@ export default function BildirimMerkeziEkrani() {
                       >
                         {ad}
                       </Text>
-                      {!secimModu ? (
-                        <Pressable
-                          onPress={() => tekSil(item)}
-                          hitSlop={8}
-                          style={styles.satirSil}
-                          accessibilityRole="button"
-                          accessibilityLabel={t('bildirimler.silBaslik')}
-                        >
-                          <Ionicons
-                            name="trash-outline"
-                            size={16}
-                            color={RenkTokenlari.textDim}
-                          />
-                        </Pressable>
-                      ) : (
-                        <Text style={styles.saat}>{zs.saat}</Text>
-                      )}
+                      <Text style={styles.saat}>
+                        {zs.saat || zs.tarih || ''}
+                      </Text>
                     </View>
 
                     <Text
                       style={[styles.baslik, okunmadi && styles.baslikUnread]}
                       numberOfLines={2}
                     >
-                      {item.title !== ad ? item.title : item.body || item.title}
+                      {item.title !== ad ? item.title : govde}
                     </Text>
 
                     {item.body && item.title !== ad ? (
@@ -454,16 +472,20 @@ export default function BildirimMerkeziEkrani() {
                     ) : null}
 
                     <View style={styles.metaSatir}>
-                      <Text style={styles.meta}>
-                        {kategoriEtiketi(item.category, t)}
-                        {zs.tarih ? ` · ${zs.tarih}` : ''}
-                        {zs.saat ? ` · ${zs.saat}` : ''}
-                      </Text>
+                      <View style={styles.kategoriChip}>
+                        <Text style={styles.kategoriYazi}>
+                          {kategoriEtiketi(item.category, t)}
+                        </Text>
+                      </View>
+                      {zs.tarih ? (
+                        <Text style={styles.meta}>{zs.tarih}</Text>
+                      ) : null}
                       {!secimModu && hedefVar ? (
                         <Ionicons
                           name="chevron-forward"
                           size={14}
                           color={RenkTokenlari.textDim}
+                          style={styles.chevron}
                         />
                       ) : null}
                     </View>
@@ -473,6 +495,73 @@ export default function BildirimMerkeziEkrani() {
             }}
           />
         </View>
+
+        {secimModu && items.length > 0 ? (
+          <View
+            style={[
+              styles.altBar,
+              { paddingBottom: Math.max(insets.bottom, BoslukTokenlari.md) },
+            ]}
+          >
+            <Pressable
+              onPress={() => {
+                if (tumuSecili) setSecili(new Set());
+                else hepsiniSec();
+              }}
+              style={({ pressed }) => [
+                styles.altBarBtn,
+                pressed && styles.pressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={
+                tumuSecili
+                  ? t('bildirimler.secimiKaldir')
+                  : t('bildirimler.tumunuSec')
+              }
+            >
+              <Ionicons
+                name={tumuSecili ? 'checkbox' : 'square-outline'}
+                size={20}
+                color={RenkTokenlari.text}
+              />
+              <Text style={styles.altBarBtnYazi}>
+                {tumuSecili
+                  ? t('bildirimler.secimiKaldir')
+                  : t('bildirimler.tumunuSec')}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                if (seciliSayisi > 0) secilenleriSil();
+                else tumunuSil();
+              }}
+              disabled={siliniyor}
+              style={({ pressed }) => [
+                styles.altBarSil,
+                pressed && styles.pressed,
+                siliniyor && { opacity: 0.5 },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={
+                seciliSayisi > 0
+                  ? t('bildirimler.secilenleriSil')
+                  : t('bildirimler.tumunuSil')
+              }
+            >
+              <Ionicons
+                name="trash-outline"
+                size={18}
+                color={RenkTokenlari.danger}
+              />
+              <Text style={styles.altBarSilYazi}>
+                {seciliSayisi > 0
+                  ? t('bildirimler.secilenleriSil')
+                  : t('bildirimler.tumunuSil')}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
       </ModulHataSiniri>
     </Screen>
   );
@@ -481,48 +570,95 @@ export default function BildirimMerkeziEkrani() {
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    paddingHorizontal: BoslukTokenlari.lg,
   },
   ustAksiyonlar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+  },
+  ustMetinHit: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  ustMetin: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  ustMetinAccent: {
+    color: RenkTokenlari.primarySoft,
+  },
+  ustMetinDanger: {
+    color: RenkTokenlari.danger,
   },
   ustIkon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: YaricapTokenlari.pill,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: RenkTokenlari.chipFill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: RenkTokenlari.border,
   },
-  list: { paddingBottom: BoslukTokenlari.xxxl, gap: BoslukTokenlari.sm },
-  card: {
+  pressed: { opacity: 0.72 },
+  pressedSoft: { opacity: 0.88 },
+  list: {
+    paddingBottom: BoslukTokenlari.xxxl,
+    flexGrow: 1,
+  },
+  ayirici: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: RenkTokenlari.border,
+    marginStart: 78,
+  },
+  satir: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    padding: BoslukTokenlari.md,
-    borderRadius: YaricapTokenlari.md,
-    backgroundColor: RenkTokenlari.bgCard,
-    borderWidth: 1,
-    borderColor: RenkTokenlari.border,
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingVertical: 14,
+    backgroundColor: RenkTokenlari.bg,
+    position: 'relative',
   },
-  cardUnread: {
-    borderColor: `${RenkTokenlari.primarySoft}55`,
+  satirUnread: {
     backgroundColor: RenkTokenlari.bgElevated,
   },
-  cardSecili: {
-    borderColor: RenkTokenlari.primarySoft,
+  satirSecili: {
+    backgroundColor: `${RenkTokenlari.primarySoft}14`,
+  },
+  unreadBar: {
+    position: 'absolute',
+    left: 0,
+    top: 10,
+    bottom: 10,
+    width: 3,
+    borderTopRightRadius: 2,
+    borderBottomRightRadius: 2,
+    backgroundColor: RenkTokenlari.primarySoft,
   },
   secimKutu: {
     paddingTop: 12,
     width: 24,
     alignItems: 'center',
   },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    borderColor: RenkTokenlari.textDim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxOn: {
+    backgroundColor: RenkTokenlari.primarySoft,
+    borderColor: RenkTokenlari.primarySoft,
+  },
   avatarWrap: {
     position: 'relative',
+    marginTop: 1,
   },
   nokta: {
     position: 'absolute',
@@ -535,7 +671,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: RenkTokenlari.bgElevated,
   },
-  cardGovde: { flex: 1, minWidth: 0, gap: 3 },
+  cardGovde: { flex: 1, minWidth: 0, gap: 4 },
   cardUst: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -544,8 +680,9 @@ const styles = StyleSheet.create({
   isim: {
     ...TipografiTokenlari.body,
     color: RenkTokenlari.textMuted,
-    fontWeight: '700',
+    fontWeight: '600',
     flex: 1,
+    fontSize: 15,
   },
   isimUnread: {
     color: RenkTokenlari.text,
@@ -555,14 +692,13 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
     fontWeight: '600',
-  },
-  satirSil: {
-    padding: 4,
+    letterSpacing: 0,
   },
   baslik: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textMuted,
     lineHeight: 18,
+    fontSize: 13,
   },
   baslikUnread: {
     color: RenkTokenlari.text,
@@ -576,13 +712,75 @@ const styles = StyleSheet.create({
   metaSatir: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 2,
-    gap: 6,
+    marginTop: 4,
+    gap: 8,
+  },
+  kategoriChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: RenkTokenlari.chipFill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: RenkTokenlari.border,
+  },
+  kategoriYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    fontSize: 10,
+    lineHeight: 13,
   },
   meta: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
+    letterSpacing: 0,
     flex: 1,
+  },
+  chevron: {
+    marginStart: 'auto',
+  },
+  altBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: BoslukTokenlari.sm,
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingTop: BoslukTokenlari.md,
+    backgroundColor: RenkTokenlari.bgElevated,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: RenkTokenlari.border,
+  },
+  altBarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    minHeight: 44,
+  },
+  altBarBtnYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+  },
+  altBarSil: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    minHeight: 44,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: `${RenkTokenlari.danger}18`,
+  },
+  altBarSilYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.danger,
+    fontWeight: '700',
   },
 });

@@ -37,6 +37,12 @@ export type GorusmeOturumDurum = {
   /** Bağlantı kuruluyor / kuruldu */
   hazir: boolean;
   hata: string | null;
+  /** Tahmini kalan konuşma (sn) — heartbeat + lokal tick */
+  billingRemainingSec: number | null;
+  freeSecondsRemaining: number | null;
+  billingLowBalance: boolean;
+  /** Son 1 dk’da coin paket sheet bir kez açılsın */
+  coinPaketAc: boolean;
 };
 
 type Dinleyici = (d: GorusmeOturumDurum | null) => void;
@@ -46,8 +52,10 @@ const dinleyiciler = new Set<Dinleyici>();
 let kanal: RealtimeChannel | null = null;
 let ringTimer: ReturnType<typeof setTimeout> | undefined;
 let billingTimer: ReturnType<typeof setInterval> | undefined;
+let billingTickTimer: ReturnType<typeof setInterval> | undefined;
 let korumaStop: (() => void) | undefined;
 let baslatmaSayaci = 0;
+let coinPaketAcildi = false;
 
 function yayinla() {
   dinleyiciler.forEach((fn) => fn(durum));
@@ -80,6 +88,10 @@ function kanalTemizle() {
     clearInterval(billingTimer);
     billingTimer = undefined;
   }
+  if (billingTickTimer) {
+    clearInterval(billingTickTimer);
+    billingTickTimer = undefined;
+  }
   korumaStop?.();
   korumaStop = undefined;
   if (kanal) {
@@ -88,12 +100,27 @@ function kanalTemizle() {
   }
 }
 
+function billingTickBaslat() {
+  if (billingTickTimer) {
+    clearInterval(billingTickTimer);
+    billingTickTimer = undefined;
+  }
+  billingTickTimer = setInterval(() => {
+    if (!durum?.billingLowBalance) return;
+    if (durum.billingRemainingSec == null) return;
+    const next = Math.max(0, durum.billingRemainingSec - 1);
+    patch({ billingRemainingSec: next });
+  }, 1000);
+}
+
 function billingHeartbeatBaslat(callId: string) {
   if (billingTimer) {
     clearInterval(billingTimer);
     billingTimer = undefined;
   }
-  billingTimer = setInterval(() => {
+  billingTickBaslat();
+
+  const calistir = () => {
     void (async () => {
       try {
         const { KisilerBillingHeartbeat } = await import(
@@ -102,16 +129,42 @@ function billingHeartbeatBaslat(callId: string) {
         const r = await KisilerBillingHeartbeat(callId);
         if (r.ended || !r.continue) {
           await GorusmeOturumTamamenBitir({ reason: 'insufficient_balance' });
-        } else if (r.low_balance) {
-          patch({
-            durumYazi: i18n.t('gorusme.coinAzaliyor'),
-          });
+          return;
         }
+        const remaining =
+          r.estimated_remaining_sec == null
+            ? null
+            : Math.max(0, Math.floor(r.estimated_remaining_sec));
+        const low = !!r.low_balance || (remaining != null && remaining <= 60);
+        const acPaket = low && !coinPaketAcildi;
+        if (acPaket) coinPaketAcildi = true;
+        patch({
+          billingRemainingSec: remaining,
+          freeSecondsRemaining:
+            r.free_seconds_remaining == null
+              ? null
+              : Math.max(0, Math.floor(r.free_seconds_remaining)),
+          billingLowBalance: low,
+          coinPaketAc: acPaket ? true : durum?.coinPaketAc ?? false,
+          durumYazi: low
+            ? i18n.t('gorusme.coinAzaliyor')
+            : durum?.baglandi
+              ? i18n.t('gorusme.baglandi')
+              : durum?.durumYazi ?? i18n.t('gorusme.baglaniyor'),
+        });
       } catch {
         /* billing heartbeat opsiyonel */
       }
     })();
-  }, 20_000);
+  };
+
+  calistir();
+  billingTimer = setInterval(calistir, 20_000);
+}
+
+/** UI coin paketini kapattı — arama devam eder */
+export function GorusmeOturumCoinPaketKapat() {
+  patch({ coinPaketAc: false });
 }
 
 async function keepAc() {
@@ -139,6 +192,7 @@ export async function GorusmeOturumTamamenBitir(opts?: {
   const dbBitir = opts?.dbBitir !== false;
   kanalTemizle();
   baslatmaSayaci += 1;
+  coinPaketAcildi = false;
   durum = null;
   yayinla();
   keepKapat();
@@ -288,7 +342,12 @@ export async function GorusmeOturumEkranAc(input: {
       sunum: 'fullscreen',
       hazir: false,
       hata: null,
+      billingRemainingSec: null,
+      freeSecondsRemaining: null,
+      billingLowBalance: false,
+      coinPaketAc: false,
     };
+    coinPaketAcildi = false;
     yayinla();
     realtimeKur(callId);
 

@@ -2,17 +2,25 @@ import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
+  Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   View,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { CihazPushTokeniniKaydet } from '../../src/moduller/bildirimler/kayit/CihazPushTokeniniKaydet';
+import {
+  BildirimIzniDurumuAl,
+  BildirimIzniIste,
+} from '../../src/moduller/bildirimler/kayit/BildirimIzniIste';
 import {
   PushTercihiniKaydet,
   PushTercihleriniGetir,
@@ -32,25 +40,56 @@ import {
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useCeviri } from '../../src/i18n/useCeviri';
 
-/** Kullanıcı istediği push bildirimlerini açıp kapatır */
+const KATEGORI_IKON: Record<
+  PushTercihAnahtari,
+  keyof typeof Ionicons.glyphMap
+> = {
+  all_enabled: 'notifications',
+  messages: 'chatbubble-ellipses-outline',
+  calls: 'call-outline',
+  gifts: 'gift-outline',
+  live: 'radio-outline',
+  rooms: 'musical-notes-outline',
+  social: 'heart-outline',
+  wallet: 'wallet-outline',
+  agency: 'briefcase-outline',
+  system: 'shield-checkmark-outline',
+};
+
+/** Kullanıcı istediği push / uygulama bildirimlerini açıp kapatır */
 export default function BildirimAyarlariEkrani() {
   const { t } = useCeviri();
   const [prefs, setPrefs] = useState<PushTercihleri>(VarsayilanPushTercihleri());
   const [yukleniyor, setYukleniyor] = useState(true);
   const [busyKey, setBusyKey] = useState<PushTercihAnahtari | null>(null);
+  const [osIzin, setOsIzin] = useState<'granted' | 'denied' | 'undetermined'>(
+    'undetermined',
+  );
+
+  const osIzinYenile = useCallback(async () => {
+    try {
+      const status = await BildirimIzniDurumuAl();
+      if (status === 'granted') setOsIzin('granted');
+      else if (status === 'denied') setOsIzin('denied');
+      else setOsIzin('undetermined');
+    } catch {
+      setOsIzin('undetermined');
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       setYukleniyor(true);
-      void CihazPushTokeniniKaydet();
+      void osIzinYenile();
       PushTercihleriniGetir()
         .then((p) => {
           setPrefs(p);
           void PushBildirimAyariniKaydet(p.all_enabled);
+          if (p.all_enabled) void CihazPushTokeniniKaydet();
         })
         .catch(() => setPrefs(VarsayilanPushTercihleri()))
         .finally(() => setYukleniyor(false));
-    }, []),
+    }, [osIzinYenile]),
   );
 
   const degistir = async (key: PushTercihAnahtari, value: boolean) => {
@@ -75,17 +114,47 @@ export default function BildirimAyarlariEkrani() {
     }
   };
 
+  const osIzinYonet = async () => {
+    if (osIzin === 'granted') {
+      await Linking.openSettings();
+      return;
+    }
+    const ok = await BildirimIzniIste();
+    await osIzinYenile();
+    if (ok && prefs.all_enabled) void CihazPushTokeniniKaydet();
+    if (!ok) {
+      Alert.alert(t('bildirimAyar.osIzinBaslik'), t('bildirimAyar.osIzinRed'), [
+        { text: t('ortak.iptal'), style: 'cancel' },
+        {
+          text: t('bildirimAyar.osAyarlar'),
+          onPress: () => void Linking.openSettings(),
+        },
+      ]);
+    }
+  };
+
+  const osDurumMetni =
+    osIzin === 'granted'
+      ? t('bildirimAyar.osIzinAcik')
+      : osIzin === 'denied'
+        ? t('bildirimAyar.osIzinKapali')
+        : t('bildirimAyar.osIzinSor');
+
+  const osIkonRengi =
+    osIzin === 'granted' ? RenkTokenlari.success : RenkTokenlari.textDim;
+
   return (
     <Screen edges={['top']}>
       <ModulHataSiniri modulAdi="bildirim-ayarlari">
         <EkranBasligi
           title={t('ayarlar.bildirimAyarlari')}
           subtitle={t('ayarlar.bildirimAyarAlt')}
+          border
         />
         {yukleniyor ? (
           <ActivityIndicator
             color={RenkTokenlari.primarySoft}
-            style={{ marginTop: 32 }}
+            style={{ marginTop: 40 }}
           />
         ) : (
           <ScrollView
@@ -96,10 +165,68 @@ export default function BildirimAyarlariEkrani() {
               {t('ayarlar.bildirimAyarAciklama')}
             </Text>
 
+            <Text style={styles.bolum}>{t('bildirimAyar.bolumCihaz')}</Text>
+            <View style={styles.liste}>
+              <Pressable
+                onPress={() => void osIzinYonet()}
+                style={({ pressed }) => [
+                  styles.satir,
+                  styles.border,
+                  pressed && styles.pressed,
+                ]}
+                accessibilityRole="button"
+              >
+                <View style={[styles.ikonWrap, { backgroundColor: `${osIkonRengi}22` }]}>
+                  <Ionicons
+                    name={
+                      osIzin === 'granted'
+                        ? 'phone-portrait-outline'
+                        : 'notifications-off-outline'
+                    }
+                    size={18}
+                    color={osIkonRengi}
+                  />
+                </View>
+                <View style={styles.copy}>
+                  <Text style={styles.baslik}>{t('bildirimAyar.osIzinBaslik')}</Text>
+                  <Text style={styles.alt}>{osDurumMetni}</Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={RenkTokenlari.textDim}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => router.push('/ayarlar/kisiler-aramalar' as any)}
+                style={({ pressed }) => [styles.satir, pressed && styles.pressed]}
+                accessibilityRole="button"
+              >
+                <View style={styles.ikonWrap}>
+                  <Ionicons
+                    name="call-outline"
+                    size={18}
+                    color={RenkTokenlari.primarySoft}
+                  />
+                </View>
+                <View style={styles.copy}>
+                  <Text style={styles.baslik}>{t('bildirimAyar.aramaTercih')}</Text>
+                  <Text style={styles.alt}>{t('bildirimAyar.aramaTercihAlt')}</Text>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={RenkTokenlari.textDim}
+                />
+              </Pressable>
+            </View>
+
+            <Text style={styles.bolum}>{t('bildirimAyar.bolumKategori')}</Text>
             <View style={styles.liste}>
               {PUSH_TERCIH_KATALOGU.map((item, index) => {
                 const masterKapali =
                   item.key !== 'all_enabled' && !prefs.all_enabled;
+                const ikon = KATEGORI_IKON[item.key] ?? 'notifications-outline';
                 return (
                   <View
                     key={item.key}
@@ -109,6 +236,22 @@ export default function BildirimAyarlariEkrani() {
                       masterKapali && styles.soluk,
                     ]}
                   >
+                    <View
+                      style={[
+                        styles.ikonWrap,
+                        item.key === 'all_enabled' && styles.ikonWrapAccent,
+                      ]}
+                    >
+                      <Ionicons
+                        name={ikon}
+                        size={18}
+                        color={
+                          item.key === 'all_enabled'
+                            ? RenkTokenlari.primarySoft
+                            : RenkTokenlari.textMuted
+                        }
+                      />
+                    </View>
                     <View style={styles.copy}>
                       <Text style={styles.baslik}>{item.baslik}</Text>
                       <Text style={styles.alt}>{item.alt}</Text>
@@ -126,6 +269,12 @@ export default function BildirimAyarlariEkrani() {
                 );
               })}
             </View>
+
+            {Platform.OS === 'ios' ? (
+              <Text style={styles.dipnot}>{t('bildirimAyar.iosDipnot')}</Text>
+            ) : (
+              <Text style={styles.dipnot}>{t('bildirimAyar.androidDipnot')}</Text>
+            )}
           </ScrollView>
         )}
       </ModulHataSiniri>
@@ -138,10 +287,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: BoslukTokenlari.lg,
     paddingBottom: BoslukTokenlari.xxxl,
     gap: BoslukTokenlari.md,
+    paddingTop: BoslukTokenlari.sm,
   },
   aciklama: {
     ...TipografiTokenlari.body,
     color: RenkTokenlari.textMuted,
+    lineHeight: 22,
+  },
+  bolum: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textDim,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: BoslukTokenlari.sm,
+    marginStart: 4,
   },
   liste: {
     borderRadius: YaricapTokenlari.lg,
@@ -157,19 +317,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: BoslukTokenlari.md,
     paddingVertical: 14,
   },
+  pressed: { opacity: 0.78 },
   border: {
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: RenkTokenlari.border,
   },
   soluk: { opacity: 0.45 },
-  copy: { flex: 1, gap: 2 },
+  ikonWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: RenkTokenlari.chipFill,
+  },
+  ikonWrapAccent: {
+    backgroundColor: `${RenkTokenlari.primarySoft}22`,
+  },
+  copy: { flex: 1, gap: 2, minWidth: 0 },
   baslik: {
     ...TipografiTokenlari.body,
     color: RenkTokenlari.text,
     fontWeight: '700',
+    fontSize: 15,
   },
   alt: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
+    letterSpacing: 0,
+    lineHeight: 15,
+  },
+  dipnot: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.textMuted,
+    lineHeight: 16,
+    letterSpacing: 0,
+    paddingHorizontal: 4,
   },
 });

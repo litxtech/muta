@@ -12,6 +12,7 @@ import { LiveKitBaglantiYoneticisi } from '../../src/moduller/livekit/baglanti/L
 import { GorusmeAktifEkrani } from '../../src/moduller/gorusme/bilesenler/GorusmeEkranlari';
 import { GorusmeArkaPlan } from '../../src/moduller/gorusme/bilesenler/GorusmeArkaPlan';
 import {
+  GorusmeOturumCoinPaketKapat,
   GorusmeOturumEkranAc,
   GorusmeOturumEkranKapandiIptal,
   GorusmeOturumEkranKapandi,
@@ -24,15 +25,29 @@ import {
 import { useGorusmeOturumu } from '../../src/moduller/gorusme/oturum/useGorusmeOturumu';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { useCeviri } from '../../src/i18n/useCeviri';
+import { CoinYuklePaneli } from '../../src/moduller/cuzdan/bilesenler/CoinYuklePaneli';
+import { useCoinYuklePaneli } from '../../src/moduller/cuzdan/islemler/useCoinYuklePaneli';
 
 export default function GorusmeEkrani() {
   const { t } = useCeviri();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, wallet } = useAuth();
   const oturum = useGorusmeOturumu();
   const bilincliCikis = useRef(false);
   const mockUyariVerildi = useRef(false);
   const oturumKuruldu = useRef(false);
+  const coin = useCoinYuklePaneli();
+
+  useEffect(() => {
+    if (!oturum?.coinPaketAc) return;
+    if (oturum.call.caller_id !== user?.id) return;
+    coin.ac();
+  }, [oturum?.coinPaketAc, oturum?.call.caller_id, user?.id, coin.ac]);
+
+  const coinKapatVeSinyal = useCallback(() => {
+    coin.kapat();
+    GorusmeOturumCoinPaketKapat();
+  }, [coin.kapat]);
 
   useEffect(() => {
     Keyboard.dismiss();
@@ -153,6 +168,8 @@ export default function GorusmeEkrani() {
               speaker={oturum.speaker}
               cameraOn={oturum.cameraOn}
               mock={oturum.mock}
+              billingRemainingSec={oturum.billingRemainingSec}
+              billingLowBalance={oturum.billingLowBalance}
               onMute={() => GorusmeOturumMuteAyarla(!oturum.muted)}
               onSpeaker={() => GorusmeOturumSpeakerAyarla(!oturum.speaker)}
               onCamera={
@@ -173,6 +190,17 @@ export default function GorusmeEkrani() {
           ) : (
             <View style={styles.bos} />
           )}
+          <CoinYuklePaneli
+            visible={coin.acik}
+            packages={coin.packages}
+            locked={coin.purchaseLocked}
+            coins={wallet?.coins}
+            onBuy={coin.satinAl}
+            onClose={coinKapatVeSinyal}
+            upgradeAcik={coin.upgradeAcik}
+            upgradeKapat={coin.upgradeKapat}
+            onPaketleriYenile={() => void coin.paketleriYenile(true)}
+          />
         </ModulHataSiniri>
       </View>
     </GorusmeArkaPlan>

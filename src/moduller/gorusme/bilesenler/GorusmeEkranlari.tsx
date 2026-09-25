@@ -69,6 +69,9 @@ type AktifProps = {
   speaker: boolean;
   cameraOn: boolean;
   mock?: boolean;
+  /** Son 1 dk billing geri sayımı (sn) */
+  billingRemainingSec?: number | null;
+  billingLowBalance?: boolean;
   onMute: () => void;
   onSpeaker: () => void;
   onCamera?: () => void;
@@ -94,6 +97,8 @@ export function GorusmeAktifEkrani({
   speaker,
   cameraOn,
   mock,
+  billingRemainingSec,
+  billingLowBalance,
   onMute,
   onSpeaker,
   onCamera,
@@ -176,6 +181,18 @@ export function GorusmeAktifEkrani({
             </View>
             <View style={styles.kucultBos} />
           </View>
+          {billingLowBalance &&
+          billingRemainingSec != null &&
+          billingRemainingSec <= 60 ? (
+            <View style={styles.billingChip} accessibilityLiveRegion="polite">
+              <Text style={styles.billingSure}>
+                {sureMetni(Math.max(0, billingRemainingSec))}
+              </Text>
+              <Text style={styles.billingInfo} numberOfLines={1}>
+                {t('gorusme.coinAzaliyorKisa')}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.orta} pointerEvents="none">
@@ -385,6 +402,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: BoslukTokenlari.md,
     paddingBottom: 8,
     backgroundColor: 'transparent',
+  },
+  billingChip: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    marginStart: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,180,80,0.45)',
+  },
+  billingSure: {
+    ...TipografiTokenlari.caption,
+    color: '#FFB454',
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+    fontSize: 13,
+  },
+  billingInfo: {
+    ...TipografiTokenlari.micro,
+    color: 'rgba(255,255,255,0.82)',
+    letterSpacing: 0,
+    fontSize: 11,
+    maxWidth: 160,
   },
   ustSatir: {
     flexDirection: 'row',
