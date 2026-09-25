@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -14,6 +15,7 @@ import type { DirektMesaj } from '../okuma/MesajlariGetir';
 import { HostBasvurusuOlustur } from '../../hostlar/islemler/HostBasvuruIslemleri';
 import { AjansDavetMesajindanKoduCikar } from '../../ajanslar/yardimcilar/AjansDavetMesajindanKoduCikar';
 import { MedyaUriGuvenli } from '../yardimcilar/MedyaUriGecerliMi';
+import { MesajYanitOzetMetin } from '../yardimcilar/MesajYanitOzetMetin';
 import { DurumVideoOnizleme } from '../../durum/bilesenler/DurumVideoOnizleme';
 import { PaylasilanGonderiKarti } from '../../durum/paylasim/bilesenler/PaylasilanGonderiKarti';
 import type { PaylasilanDurumOnizleme } from '../../durum/paylasim/tipler';
@@ -21,7 +23,15 @@ import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { YaricapTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useCeviri } from '../../../i18n/useCeviri';
+import { DIL_LOCALE_MAP } from '../../../i18n/diller';
 import { fizikselHiza } from '../../../i18n/rtl';
+import { MesajSesKarti } from './MesajSesKarti';
+import { MesajMuzikKarti } from './MesajMuzikKarti';
+import { MesajLinkOnizlemeKarti } from './MesajLinkOnizlemeKarti';
+import { MesajViewOnceKarti } from './MesajViewOnceKarti';
+import { MesajKartTokenlari } from '../tasarim/MesajKartTokenlari';
+import { OzellikBayragiAktifMi } from '../../ozellik-bayraklari/OzellikBayragiAktifMi';
+import { CeviriMetinKarti } from '../../ai-ceviri/bilesenler/CeviriMetinKarti';
 
 type Props = {
   item: DirektMesaj;
@@ -34,11 +44,18 @@ type Props = {
   /** shared_post önizleme (batch) */
   sharedPostOnizleme?: PaylasilanDurumOnizleme | null;
   sharedPostYukleniyor?: boolean;
+  /** Yanıtlanan mesaj (liste içinden resolve) */
+  replyTo?: DirektMesaj | null;
+  onReplyPress?: (replyToId: string) => void;
+  onViewOncePatch?: (patch: Partial<DirektMesaj>) => void;
+  /** Çift dokunuşla yanıt */
+  onReply?: (item: DirektMesaj) => void;
+  highlighted?: boolean;
 };
 
-function saat(iso: string): string {
+function saat(iso: string, locale: string): string {
   try {
-    return new Date(iso).toLocaleTimeString('tr-TR', {
+    return new Date(iso).toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -55,7 +72,7 @@ function mesajGorulduMu(
   return new Date(peerLastReadAt).getTime() >= new Date(item.created_at).getTime();
 }
 
-/** Telegram tarzi baloncuk — metin / kenarsiz medya / ajans daveti */
+/** Telegram tarzi baloncuk — metin / kenarsiz medya / ajans daveti / V2 kartlar */
 export function MesajBaloncugu({
   item,
   mine,
@@ -64,8 +81,15 @@ export function MesajBaloncugu({
   onMedyaAc,
   sharedPostOnizleme,
   sharedPostYukleniyor,
+  replyTo,
+  onReplyPress,
+  onViewOncePatch,
+  onReply,
+  highlighted,
 }: Props) {
-  const { t } = useCeviri();
+  const { t, dil } = useCeviri();
+  const locale = DIL_LOCALE_MAP[dil];
+  const pendingTap = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
    * Baloncuk tarafı GÖNDEREN semantiği — UI dili değil.
    * mine her zaman fiziksel SAĞ, theirs fiziksel SOL.
@@ -76,14 +100,19 @@ export function MesajBaloncugu({
   const icHiza = {
     alignItems: hiza.alignSelf === 'flex-end' ? ('flex-end' as const) : ('flex-start' as const),
   };
-  const sending = item._localStatus === 'sending';
+  const queued = item._localStatus === 'queued';
+  const sending = item._localStatus === 'sending' || queued;
   const failed = item._localStatus === 'failed';
   const safeMediaUri = MedyaUriGuvenli(item.media_url);
   const isImage = item.message_type === 'image' && !!safeMediaUri;
   const isVideo = item.message_type === 'video' && !!safeMediaUri;
+  const isVoice = item.message_type === 'voice';
+  const isMusic = item.message_type === 'music';
+  const isViewOnce = !!item.view_once && (item.message_type === 'image' || item.message_type === 'video');
   const isBrokenMedia =
     (item.message_type === 'image' || item.message_type === 'video') &&
-    !safeMediaUri;
+    !safeMediaUri &&
+    !isViewOnce;
   const isMedya = isImage || isVideo;
   const isSystem = item.message_type === 'system';
   const isSharedPost = item.message_type === 'shared_post';
@@ -91,6 +120,39 @@ export function MesajBaloncugu({
   const [davetBusy, setDavetBusy] = useState(false);
   const [davetGonderildi, setDavetGonderildi] = useState(false);
   const goruldu = mine && !sending && !failed && mesajGorulduMu(item, peerLastReadAt);
+  const edited = !!item.edited_at;
+
+  const yanitAktif =
+    !!onReply &&
+    OzellikBayragiAktifMi('message_reply_enabled') &&
+    !isSystem;
+
+  useEffect(() => {
+    return () => {
+      if (pendingTap.current) clearTimeout(pendingTap.current);
+    };
+  }, []);
+
+  /** Çift dokunuş → yanıt; tek dokunuş (gecikmeli) → onTek */
+  const ciftTik = (onTek?: () => void) => {
+    if (!yanitAktif) {
+      onTek?.();
+      return;
+    }
+    if (pendingTap.current) {
+      clearTimeout(pendingTap.current);
+      pendingTap.current = null;
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(
+        () => undefined,
+      );
+      onReply?.(item);
+      return;
+    }
+    pendingTap.current = setTimeout(() => {
+      pendingTap.current = null;
+      onTek?.();
+    }, 280);
+  };
 
   const davetiKabulEt = () => {
     if (!davet || mine || davetBusy || davetGonderildi) return;
@@ -143,8 +205,13 @@ export function MesajBaloncugu({
   }
 
   if (isSharedPost) {
-    return (
-      <View style={[styles.sharedWrap, hiza, icHiza, sending && styles.sending]}>
+    return sar(
+      <Pressable
+        onPress={() => ciftTik()}
+        onLongPress={onLongPress}
+        delayLongPress={300}
+        style={[styles.sharedWrap, hiza, icHiza, sending && styles.sending]}
+      >
         <PaylasilanGonderiKarti
           onizleme={sharedPostOnizleme}
           note={item.body}
@@ -154,7 +221,7 @@ export function MesajBaloncugu({
         />
         <View style={styles.sharedMeta}>
           <Text style={mine ? styles.timeMine : styles.time}>
-            {saat(item.created_at)}
+            {saat(item.created_at, locale)}
           </Text>
           {mine ? (
             <Ionicons
@@ -162,7 +229,9 @@ export function MesajBaloncugu({
                 failed
                   ? 'alert-circle'
                   : sending
-                    ? 'time-outline'
+                    ? queued
+                      ? 'cloud-upload-outline'
+                      : 'time-outline'
                     : goruldu
                       ? 'checkmark-done'
                       : 'checkmark'
@@ -178,7 +247,7 @@ export function MesajBaloncugu({
             />
           ) : null}
         </View>
-      </View>
+      </Pressable>,
     );
   }
 
@@ -187,6 +256,12 @@ export function MesajBaloncugu({
     color: string;
   } => {
     if (failed) return { name: 'alert-circle', color: RenkTokenlari.danger };
+    if (queued) {
+      return {
+        name: 'cloud-upload-outline',
+        color: isMedya ? 'rgba(255,255,255,0.75)' : 'rgba(18,4,12,0.55)',
+      };
+    }
     if (sending) {
       return {
         name: 'time-outline',
@@ -204,6 +279,22 @@ export function MesajBaloncugu({
     const ikon = durumIkonu();
     return (
       <View style={[styles.meta, medyaUstu && styles.metaMedya]}>
+        {edited ? (
+          <Text
+            style={[
+              mine
+                ? medyaUstu
+                  ? styles.timeMedya
+                  : styles.timeMine
+                : medyaUstu
+                  ? styles.timeMedya
+                  : styles.time,
+              styles.edited,
+            ]}
+          >
+            {t('mesajV2.edited')}
+          </Text>
+        ) : null}
         <Text
           style={[
             mine
@@ -215,7 +306,7 @@ export function MesajBaloncugu({
                 : styles.time,
           ]}
         >
-          {saat(item.created_at)}
+          {saat(item.created_at, locale)}
         </Text>
         {mine ? (
           <Ionicons name={ikon.name} size={14} color={ikon.color} />
@@ -223,6 +314,113 @@ export function MesajBaloncugu({
       </View>
     );
   };
+
+  const ceviriAcik = OzellikBayragiAktifMi('live_chat_translation_enabled');
+  const replyOzet = replyTo
+    ? MesajYanitOzetMetin(replyTo, t as (k: string) => string)
+    : null;
+  const replyCevir = !!replyTo?.body?.trim() && ceviriAcik;
+
+  const replyBlok =
+    replyTo || item.reply_to_id ? (
+      <Pressable
+        onPress={() => {
+          if (item.reply_to_id) onReplyPress?.(item.reply_to_id);
+        }}
+        style={[styles.replyBlok, mine ? styles.replyMine : styles.replyTheirs]}
+      >
+        <View style={styles.replyBar} />
+        {replyCevir && replyTo?.body ? (
+          <CeviriMetinKarti
+            text={replyTo.body}
+            context="dm"
+            varyant={mine ? 'bubbleMine' : 'bubble'}
+            numberOfLines={2}
+          />
+        ) : (
+          <Text
+            style={mine ? styles.replyTextMine : styles.replyText}
+            numberOfLines={1}
+          >
+            {replyOzet ?? t('mesajV2.messageUnavailable')}
+          </Text>
+        )}
+      </Pressable>
+    ) : null;
+
+  const sar = (node: React.ReactNode) => (
+    <View
+      style={highlighted ? styles.highlight : undefined}
+      accessibilityHint={yanitAktif ? t('mesajV2.doubleTapToReply') : undefined}
+    >
+      {node}
+    </View>
+  );
+
+  if (isViewOnce) {
+    return sar(
+      <Pressable
+        onPress={() => ciftTik()}
+        onLongPress={onLongPress}
+        delayLongPress={300}
+        style={[styles.kartWrap, hiza, icHiza, sending && styles.sending]}
+      >
+        {replyBlok}
+        <MesajViewOnceKarti
+          item={item}
+          mine={mine}
+          onLongPress={onLongPress}
+          onAcildi={onMedyaAc}
+          onDurumGuncelle={onViewOncePatch}
+        />
+        {metaSatiri(false)}
+      </Pressable>,
+    );
+  }
+
+  if (isVoice) {
+    return sar(
+      <Pressable
+        // Sesli mesajda tek dokunuş oynatır; çift dokunuş yanıt gecikmesi yok
+        onLongPress={onLongPress}
+        delayLongPress={300}
+        style={[styles.kartWrap, hiza, icHiza, sending && styles.sending]}
+      >
+        {replyBlok}
+        <MesajSesKarti
+          messageId={item.id}
+          mediaUrl={item.media_url}
+          durationMs={item.media_meta?.duration_ms}
+          waveform={item.media_meta?.waveform}
+          mine={mine}
+          onLongPress={onLongPress}
+        />
+        {metaSatiri(false)}
+      </Pressable>,
+    );
+  }
+
+  if (isMusic) {
+    return sar(
+      <Pressable
+        onPress={() => ciftTik()}
+        onLongPress={onLongPress}
+        delayLongPress={300}
+        style={[styles.kartWrap, hiza, icHiza, sending && styles.sending]}
+      >
+        {replyBlok}
+        <MesajMuzikKarti
+          messageId={item.id}
+          musicTrackId={item.music_track_id}
+          snapshot={item.media_meta?.music_snapshot}
+          mediaUrl={item.media_url}
+          mine={mine}
+          onLongPress={onLongPress}
+        />
+        {metaSatiri(false)}
+      </Pressable>,
+    );
+  }
 
   if (isBrokenMedia) {
     return (
@@ -243,8 +441,13 @@ export function MesajBaloncugu({
   }
 
   if (isMedya && safeMediaUri) {
-    return (
+    return sar(
       <Pressable
+        onPress={() =>
+          ciftTik(() =>
+            onMedyaAc?.(safeMediaUri, isImage ? 'image' : 'video'),
+          )
+        }
         onLongPress={onLongPress}
         delayLongPress={300}
         style={[
@@ -253,27 +456,21 @@ export function MesajBaloncugu({
           hiza,
           sending && styles.sending,
         ]}
+        accessibilityRole="button"
+        accessibilityLabel={
+          isImage ? t('mesajlar.fotoAc') : t('mesajlar.videoAc')
+        }
       >
-        <View style={styles.medyaGovde}>
+        {replyBlok}
+        <View style={styles.medyaGovde} pointerEvents="none">
           {isImage ? (
-            <Pressable
-              onPress={() => onMedyaAc?.(safeMediaUri, 'image')}
-              accessibilityRole="button"
-              accessibilityLabel={t('mesajlar.fotoAc')}
-            >
-              <Image
-                source={{ uri: safeMediaUri }}
-                style={styles.mediaFull}
-                resizeMode="cover"
-              />
-            </Pressable>
+            <Image
+              source={{ uri: safeMediaUri }}
+              style={styles.mediaFull}
+              resizeMode="cover"
+            />
           ) : (
-            <Pressable
-              style={styles.videoFull}
-              onPress={() => onMedyaAc?.(safeMediaUri, 'video')}
-              accessibilityRole="button"
-              accessibilityLabel={t('mesajlar.videoAc')}
-            >
+            <View style={styles.videoFull}>
               <DurumVideoOnizleme
                 uri={safeMediaUri}
                 style={StyleSheet.absoluteFill}
@@ -283,22 +480,40 @@ export function MesajBaloncugu({
               <View style={styles.videoOverlay} pointerEvents="none">
                 <Ionicons name="play-circle" size={48} color="#fff" />
               </View>
-            </Pressable>
+            </View>
           )}
           {!item.body ? metaSatiri(true) : null}
         </View>
         {item.body ? (
           <View style={styles.medyaCaptionWrap}>
-            <Text style={styles.medyaCaption}>{item.body}</Text>
+            {ceviriAcik ? (
+              <CeviriMetinKarti
+                text={item.body}
+                context="dm"
+                varyant={mine ? 'bubbleMine' : 'bubble'}
+              />
+            ) : (
+              <Text style={styles.medyaCaption}>{item.body}</Text>
+            )}
             {metaSatiri(false)}
           </View>
         ) : null}
-      </Pressable>
+      </Pressable>,
     );
   }
 
+  const linkKart =
+    item.link_preview && (item.link_preview.title || item.link_preview.image_url) ? (
+      <MesajLinkOnizlemeKarti
+        preview={item.link_preview}
+        url={item.link_url}
+        mine={mine}
+      />
+    ) : null;
+
   const icerik = (
     <>
+      {replyBlok}
       {davet ? (
         <View style={mine ? styles.davetKartMine : styles.davetKart}>
           <View style={styles.davetBaslikSatir}>
@@ -343,15 +558,28 @@ export function MesajBaloncugu({
           )}
         </View>
       ) : item.body ? (
-        <Text style={mine ? styles.bodyMine : styles.body}>{item.body}</Text>
+        ceviriAcik ? (
+          <CeviriMetinKarti
+            text={item.body}
+            context="dm"
+            varyant={mine ? 'bubbleMine' : 'bubble'}
+          />
+        ) : (
+          <Text style={mine ? styles.bodyMine : styles.body}>{item.body}</Text>
+        )
       ) : null}
+      {linkKart}
       {metaSatiri(false)}
     </>
   );
 
   if (mine) {
-    return (
-      <Pressable onLongPress={onLongPress} delayLongPress={300}>
+    return sar(
+      <Pressable
+        onPress={() => ciftTik()}
+        onLongPress={onLongPress}
+        delayLongPress={300}
+      >
         <LinearGradient
           colors={[...RenkTokenlari.gradientPrimary]}
           start={{ x: 0, y: 0 }}
@@ -360,23 +588,28 @@ export function MesajBaloncugu({
         >
           {icerik}
         </LinearGradient>
-      </Pressable>
+      </Pressable>,
     );
   }
 
-  return (
+  return sar(
     <Pressable
+      onPress={() => ciftTik()}
       onLongPress={onLongPress}
       delayLongPress={300}
       style={[styles.bubble, styles.theirs, hiza]}
     >
       {icerik}
-    </Pressable>
+    </Pressable>,
   );
 }
 
 const styles = StyleSheet.create({
   sharedWrap: {
+    maxWidth: '86%',
+    gap: 4,
+  },
+  kartWrap: {
     maxWidth: '86%',
     gap: 4,
   },
@@ -403,6 +636,36 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
     borderBottomLeftRadius: 4,
+  },
+  replyBlok: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 6,
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    marginBottom: 2,
+  },
+  replyMine: {
+    backgroundColor: 'rgba(18,4,12,0.12)',
+  },
+  replyTheirs: {
+    backgroundColor: RenkTokenlari.pressFill,
+  },
+  replyBar: {
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: MesajKartTokenlari.accent,
+  },
+  replyText: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    flex: 1,
+  },
+  replyTextMine: {
+    ...TipografiTokenlari.caption,
+    color: 'rgba(18,4,12,0.7)',
+    flex: 1,
   },
   /** Kenara kadar medya — çerçeve / gradient yok, şeffaf zemin */
   medyaKart: {
@@ -557,6 +820,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
+  edited: {
+    fontStyle: 'italic',
+    opacity: 0.85,
+  },
   videoHint: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textOnOverlay,
@@ -573,5 +840,9 @@ const styles = StyleSheet.create({
   systemText: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textMuted,
+  },
+  highlight: {
+    borderRadius: 18,
+    backgroundColor: 'rgba(232,64,145,0.18)',
   },
 });

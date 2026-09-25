@@ -22,14 +22,17 @@ import {
   ProfilSilinmisMi,
 } from '../../kullanici-profili/yardimcilar/ProfilSilinmis';
 import { useCeviri } from '../../../i18n/useCeviri';
+import { DIL_LOCALE_MAP } from '../../../i18n/diller';
 
 type Props = {
   konu: MesajKonusu;
+  /** Yerel taslak metni — varsa last_message_preview yerine gösterilir */
+  taslakMetin?: string | null;
   onPress: () => void;
   onLongPress?: () => void;
 };
 
-function formatZaman(iso: string | null, dunEtiketi: string): string {
+function formatZaman(iso: string | null, dunEtiketi: string, locale: string): string {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
@@ -39,7 +42,7 @@ function formatZaman(iso: string | null, dunEtiketi: string): string {
     d.getMonth() === now.getMonth() &&
     d.getDate() === now.getDate();
   if (sameDay) {
-    return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   }
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
@@ -50,12 +53,13 @@ function formatZaman(iso: string | null, dunEtiketi: string): string {
   ) {
     return dunEtiketi;
   }
-  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
 /** Inbox — Telegram tarzi: avatar + isim + onizleme + okunmamis */
-export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
-  const { t } = useCeviri();
+export function MesajKonuKarti({ konu, taslakMetin, onPress, onLongPress }: Props) {
+  const { t, dil } = useCeviri();
+  const locale = DIL_LOCALE_MAP[dil];
   const mahkeme = konu.thread_kind === 'mahkeme';
   const hamAd =
     (mahkeme ? konu.thread_title || konu.peer_display_name : null)?.trim() ||
@@ -69,10 +73,14 @@ export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
         display_name: konu.peer_display_name,
         username: konu.peer_username,
       });
-  const onizleme = konu.last_message_preview?.trim() || t('mesajlar.yeniSohbet');
-  const zaman = formatZaman(konu.last_message_at, t('mesajlar.dun'));
+  const taslak = (taslakMetin ?? '').replace(/\s+/g, ' ').trim();
+  const taslakVar = taslak.length > 0;
+  const onizleme = taslakVar
+    ? taslak
+    : konu.last_message_preview?.trim() || t('mesajlar.yeniSohbet');
+  const zaman = formatZaman(konu.last_message_at, t('mesajlar.dun'), locale);
   const unread = konu.unread_count ?? 0;
-  const harf = ad.charAt(0).toLocaleUpperCase('tr-TR');
+  const harf = ad.charAt(0).toLocaleUpperCase(locale);
   const maviTik =
     !!konu.peer_is_platform_official ||
     mahkeme ||
@@ -120,12 +128,22 @@ export function MesajKonuKarti({ konu, onPress, onLongPress }: Props) {
             ) : null}
           </View>
           <View style={styles.alt}>
-            <Text
-              style={[styles.onizleme, unread > 0 && styles.onizlemeUnread]}
-              numberOfLines={1}
-            >
-              {onizleme}
-            </Text>
+            {taslakVar ? (
+              <Text
+                style={[styles.onizleme, styles.taslakOnizleme]}
+                numberOfLines={1}
+              >
+                <Text style={styles.taslakEtiket}>{t('mesajlar.taslak')}: </Text>
+                {onizleme}
+              </Text>
+            ) : (
+              <Text
+                style={[styles.onizleme, unread > 0 && styles.onizlemeUnread]}
+                numberOfLines={1}
+              >
+                {onizleme}
+              </Text>
+            )}
             {unread > 0 ? (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>
@@ -217,6 +235,15 @@ const styles = StyleSheet.create({
   onizlemeUnread: {
     color: RenkTokenlari.text,
     fontWeight: '600',
+  },
+  taslakOnizleme: {
+    color: RenkTokenlari.textMuted,
+    fontStyle: 'italic',
+  },
+  taslakEtiket: {
+    color: RenkTokenlari.accent,
+    fontWeight: '700',
+    fontStyle: 'italic',
   },
   badge: {
     minWidth: 22,

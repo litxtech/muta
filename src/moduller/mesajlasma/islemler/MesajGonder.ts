@@ -2,18 +2,26 @@ import { supabase } from '../../../lib/supabase';
 import i18n from '../../../i18n';
 import { OzellikBayragiAktifMiSunucu } from '../../ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
 import { PushWorkerTetikle } from '../../bildirimler/kayit/PushWorkerTetikle';
-import type { DirektMesaj } from '../okuma/MesajlariGetir';
+import type { DirektMesaj, MesajMediaMeta } from '../okuma/MesajlariGetir';
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export async function MesajGonder(input: {
+export type MesajGonderGirdi = {
   threadId: string;
   body?: string;
-  messageType?: 'text' | 'image' | 'video' | 'voice';
+  messageType?: 'text' | 'image' | 'video' | 'voice' | 'music' | 'emoji' | 'gift';
   mediaUrl?: string | null;
   clientId?: string;
-}): Promise<
+  replyToId?: string | null;
+  musicTrackId?: string | null;
+  viewOnce?: boolean;
+  mediaMeta?: MesajMediaMeta | null;
+};
+
+export async function MesajGonder(
+  input: MesajGonderGirdi,
+): Promise<
   | { ok: true; mesaj: DirektMesaj }
   | { ok: false; hata: string }
 > {
@@ -30,6 +38,10 @@ export async function MesajGonder(input: {
     p_message_type: input.messageType ?? 'text',
     p_media_url: input.mediaUrl ?? null,
     p_client_id: clientId,
+    p_reply_to_id: input.replyToId ?? null,
+    p_music_track_id: input.musicTrackId ?? null,
+    p_view_once: input.viewOnce ?? false,
+    p_media_meta: input.mediaMeta ?? null,
   });
 
   if (error) return { ok: false, hata: error.message };

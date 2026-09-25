@@ -16,6 +16,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../../src/components/Screen';
 import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan';
+import { useKlavyeYuksekligi } from '../../src/bilesenler/klavye/useKlavyeYuksekligi';
 import { useAuth } from '../../src/contexts/AuthContext';
 import {
   MesajlariGetir,
@@ -31,11 +32,45 @@ import {
   MesajThreadOkundu,
   OzelSohbetAcVeyaGetir,
 } from '../../src/moduller/mesajlasma/islemler/MesajGonder';
-import { DmMedyasiSecVeYukle } from '../../src/moduller/mesajlasma/islemler/DmMedyasiYukle';
+import { MesajGonderVeyaKuyruk } from '../../src/moduller/mesajlasma/islemler/MesajGonderVeyaKuyruk';
+import { MesajDuzenle } from '../../src/moduller/mesajlasma/islemler/MesajDuzenle';
+import {
+  MesajSabitle,
+  MesajSabitlemeyiKaldir,
+  MesajSabitlenenleriGetir,
+  type MesajSabitKayit,
+} from '../../src/moduller/mesajlasma/islemler/MesajSabitle';
+import {
+  MesajThreadMuteGet,
+  MesajThreadSessizeAl,
+  MesajThreadSessiziAc,
+} from '../../src/moduller/mesajlasma/islemler/MesajSessizeAl';
+import { MesajHedefCevresindeGetir } from '../../src/moduller/mesajlasma/islemler/MesajHedefCevresindeGetir';
+import { DmMedyalariSec, DmMedyaUriYukle, type DmMedyaTaslak } from '../../src/moduller/mesajlasma/islemler/DmMedyasiYukle';
 import { MesajKullaniciAramaPaneli } from '../../src/moduller/mesajlasma/bilesenler/MesajKullaniciAramaPaneli';
 import { MesajBaloncugu } from '../../src/moduller/mesajlasma/bilesenler/MesajBaloncugu';
 import { MesajMedyaSecimPaneli } from '../../src/moduller/mesajlasma/bilesenler/MesajMedyaSecimPaneli';
+import { MesajMedyaOnizlemePaneli } from '../../src/moduller/mesajlasma/bilesenler/MesajMedyaOnizlemePaneli';
 import { MesajMedyaGoruntuleyici } from '../../src/moduller/mesajlasma/bilesenler/MesajMedyaGoruntuleyici';
+import { GALERI_COKLU_LIMIT } from '../../src/ortak/medya/ImagePickerHazirMi';
+import { MesajYanitOnizleme } from '../../src/moduller/mesajlasma/bilesenler/MesajYanitOnizleme';
+import { MesajDuzenlemeBasligi } from '../../src/moduller/mesajlasma/bilesenler/MesajDuzenlemeBasligi';
+import { MesajSabitBar } from '../../src/moduller/mesajlasma/bilesenler/MesajSabitBar';
+import {
+  MesajUzunBasMenu,
+  type MesajMenuAksiyon,
+} from '../../src/moduller/mesajlasma/bilesenler/MesajUzunBasMenu';
+import { MesajSessizeSheet } from '../../src/moduller/mesajlasma/bilesenler/MesajSessizeSheet';
+import { MesajMuzikSecimSheet } from '../../src/moduller/mesajlasma/bilesenler/MesajMuzikSecimSheet';
+import { MesajSesKayitDugmesi } from '../../src/moduller/mesajlasma/bilesenler/MesajSesKayitDugmesi';
+import { MesajSesYoneticisi } from '../../src/moduller/mesajlasma/ses/MesajSesYoneticisi';
+import { MesajLinkOnizlemeIste } from '../../src/moduller/mesajlasma/islemler/MesajLinkOnizlemeIste';
+import {
+  MesajOutboxFlushSonucAboneOl,
+  MesajOutboxOturumBagla,
+} from '../../src/moduller/mesajlasma/depolama/MesajOutboxDepolama';
+import { OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
+import type { AiMuzikTrackOzet } from '../../src/moduller/ai-muzik/tipler';
 import {
   MesajPeerOkunduYayinla,
   useMesajKanali,
@@ -68,6 +103,12 @@ import {
   YaricapTokenlari,
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useCeviri } from '../../src/i18n/useCeviri';
+import { useMesajTaslak } from '../../src/moduller/mesajlasma/depolama/useMesajTaslak';
+import {
+  MesajTaslakKaydet,
+  MesajTaslakKayitGetir,
+  MesajTaslakSil,
+} from '../../src/moduller/mesajlasma/depolama/MesajTaslakDepolama';
 
 function uuidYerel(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -96,15 +137,24 @@ export default function MesajDetayEkrani() {
   const threadId = id && id !== 'yeni' ? id : undefined;
   const { user, isGuest, profile } = useAuth();
   const insets = useSafeAreaInsets();
+  const { acik: klavyeAcik } = useKlavyeYuksekligi();
+  const composerPadBottom = klavyeAcik
+    ? BoslukTokenlari.sm
+    : Math.max(insets.bottom, BoslukTokenlari.md);
   const magaza = useHediyeMagaza();
   const [mesajlar, setMesajlar] = useState<DirektMesaj[]>([]);
-  const [metin, setMetin] = useState('');
   const [gonderiyor, setGonderiyor] = useState(false);
   const [aciliyor, setAciliyor] = useState(false);
   const [peer, setPeer] = useState<ThreadKarsiProfil | null>(null);
   const [engelli, setEngelli] = useState(false);
   const [peerLastReadAt, setPeerLastReadAt] = useState<string | null>(null);
   const [medyaSecimAcik, setMedyaSecimAcik] = useState(false);
+  const [medyaTaslaklar, setMedyaTaslaklar] = useState<DmMedyaTaslak[]>([]);
+  const [medyaViewOnce, setMedyaViewOnce] = useState(false);
+  const [medyaGonderiyor, setMedyaGonderiyor] = useState(false);
+  const [medyaTaslakTur, setMedyaTaslakTur] = useState<'image' | 'video' | null>(
+    null,
+  );
   const [guvenlikAcik, setGuvenlikAcik] = useState(false);
   const [platformHesapAcik, setPlatformHesapAcik] = useState(false);
   const [medyaGoruntule, setMedyaGoruntule] = useState<{
@@ -116,9 +166,38 @@ export default function MesajDetayEkrani() {
     preview: string;
     mediaUrl?: string | null;
   } | null>(null);
+  const [yanitHedef, setYanitHedef] = useState<DirektMesaj | null>(null);
+  const [duzenleHedef, setDuzenleHedef] = useState<DirektMesaj | null>(null);
+  const [menuMesaj, setMenuMesaj] = useState<DirektMesaj | null>(null);
+  const [menuAksiyonlar, setMenuAksiyonlar] = useState<MesajMenuAksiyon[]>([]);
+  const [pins, setPins] = useState<MesajSabitKayit[]>([]);
+  const [mutedUntil, setMutedUntil] = useState<string | null>(null);
+  const [sessizeAcik, setSessizeAcik] = useState(false);
+  const [muzikSecimAcik, setMuzikSecimAcik] = useState(false);
+  const [vurguMesajId, setVurguMesajId] = useState<string | null>(null);
   const listRef = useRef<FlatList<DirektMesaj>>(null);
   const mahkemeMi = peer?.thread_kind === 'mahkeme';
   const mahkemeKapali = !!peer?.closed_at;
+
+  const mesajMap = useMemo(() => {
+    const m: Record<string, DirektMesaj> = {};
+    for (const x of mesajlar) m[x.id] = x;
+    return m;
+  }, [mesajlar]);
+
+  const {
+    metin,
+    setMetin,
+    taslakHazir,
+    gonderimBasladi,
+    gonderimBasarisiz,
+    gonderimBasarili,
+    taslakFlush,
+  } = useMesajTaslak({
+    userId: user?.id,
+    conversationId: threadId,
+    pasifMi: engelli || mahkemeKapali,
+  });
 
   const sharedStatusIds = useMemo(
     () =>
@@ -131,18 +210,39 @@ export default function MesajDetayEkrani() {
     usePaylasilanDurumOnizleme(sharedStatusIds);
 
   useEffect(() => {
+    const kuyruk = mesajlar
+      .filter((m) => m.message_type === 'voice')
+      .map((m) => {
+        const url = MedyaUriGuvenli(m.media_url);
+        return url ? { key: m.id, url } : null;
+      })
+      .filter((x): x is { key: string; url: string } => !!x);
+    MesajSesYoneticisi.sesliKuyrukAyarla(kuyruk);
+  }, [mesajlar]);
+
+  useEffect(() => {
     ImagePickerOnIsit({ izinIste: true });
   }, []);
 
   useEffect(() => {
-    if (Platform.OS !== 'android') return;
-    const sub = Keyboard.addListener('keyboardDidShow', () => {
-      requestAnimationFrame(() => {
-        listRef.current?.scrollToEnd({ animated: true });
-      });
+    MesajOutboxOturumBagla(user?.id ?? null);
+    return () => {
+      if (!user?.id) MesajOutboxOturumBagla(null);
+    };
+  }, [user?.id]);
+
+  const listeAltaKaydir = useCallback(() => {
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToEnd({ animated: false });
     });
-    return () => sub.remove();
   }, []);
+
+  useEffect(() => {
+    const evt =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const sub = Keyboard.addListener(evt, listeAltaKaydir);
+    return () => sub.remove();
+  }, [listeAltaKaydir]);
 
   const mergeMesaj = useCallback((msg: DirektMesaj) => {
     if (!msg?.id) return;
@@ -167,10 +267,24 @@ export default function MesajDetayEkrani() {
       }
       return [...prev, { ...msg, _localStatus: 'sent' }];
     });
-    requestAnimationFrame(() => {
-      listRef.current?.scrollToEnd({ animated: true });
+    listeAltaKaydir();
+  }, [listeAltaKaydir]);
+
+  useEffect(() => {
+    return MesajOutboxFlushSonucAboneOl((sonuc) => {
+      if (sonuc.ok && sonuc.mesaj) {
+        mergeMesaj({ ...sonuc.mesaj, _localStatus: 'sent' });
+      } else if (!sonuc.ok) {
+        setMesajlar((p) =>
+          p.map((m) =>
+            m.client_id === sonuc.clientId || m.id === sonuc.clientId
+              ? { ...m, _localStatus: 'failed' }
+              : m,
+          ),
+        );
+      }
     });
-  }, []);
+  }, [mergeMesaj]);
 
   useMesajKanali(
     engelli ? undefined : threadId,
@@ -220,12 +334,22 @@ export default function MesajDetayEkrani() {
         return;
       }
 
-      const msgs = await MesajlariGetir({ threadId, limit: 60 });
+      const msgs = await MesajlariGetir({ threadId, limit: 20 });
       setMesajlar(
         msgs
           .filter((m) => typeof m?.id === 'string' && m.id.length > 0)
           .map((m) => ({ ...m, _localStatus: 'sent' as const })),
       );
+      if (OzellikBayragiAktifMi('message_pin_enabled')) {
+        setPins(await MesajSabitlenenleriGetir(threadId));
+      } else {
+        setPins([]);
+      }
+      if (OzellikBayragiAktifMi('conversation_mute_enabled')) {
+        setMutedUntil(await MesajThreadMuteGet(threadId));
+      } else {
+        setMutedUntil(null);
+      }
       const at = new Date().toISOString();
       void MesajThreadOkundu(threadId).then(() => {
         void MesajPeerOkunduYayinla(threadId, at, user?.id);
@@ -247,7 +371,11 @@ export default function MesajDetayEkrani() {
   useFocusEffect(
     useCallback(() => {
       void load();
-    }, [load]),
+      return () => {
+        taslakFlush();
+        MesajSesYoneticisi.otomatikSirayiKes();
+      };
+    }, [load, taslakFlush]),
   );
 
   const ara = async (tur: 'audio' | 'video') => {
@@ -304,7 +432,33 @@ export default function MesajDetayEkrani() {
   const gonderMetin = async () => {
     if (!id || id === 'yeni' || !metin.trim() || !user?.id) return;
     const body = metin.trim();
+
+    if (duzenleHedef && OzellikBayragiAktifMi('message_edit_enabled')) {
+      setGonderiyor(true);
+      const sonuc = await MesajDuzenle({
+        messageId: duzenleHedef.id,
+        newBody: body,
+        expectedVersion: duzenleHedef.edit_version,
+      });
+      setGonderiyor(false);
+      if (!sonuc.ok) {
+        Alert.alert(t('mesajSohbet.gonderilemedi'), sonuc.hata ?? t('ortak.hata'));
+        return;
+      }
+      setMesajlar((p) =>
+        p.map((m) => (m.id === sonuc.mesaj.id ? { ...sonuc.mesaj, _localStatus: 'sent' } : m)),
+      );
+      setDuzenleHedef(null);
+      setMetin('');
+      await gonderimBasarili();
+      return;
+    }
+
     const clientId = uuidYerel();
+    const replyToId =
+      OzellikBayragiAktifMi('message_reply_enabled') && yanitHedef
+        ? yanitHedef.id
+        : null;
     const temp: DirektMesaj = {
       id: clientId,
       thread_id: id,
@@ -312,22 +466,116 @@ export default function MesajDetayEkrani() {
       body,
       message_type: 'text',
       client_id: clientId,
+      reply_to_id: replyToId,
       created_at: new Date().toISOString(),
       _localStatus: 'sending',
     };
-    setMetin('');
+    gonderimBasladi(body);
+    setYanitHedef(null);
+    if (user.id) {
+      void MesajTaslakKaydet(user.id, id, '', { replyToMessageId: null });
+    }
     setMesajlar((p) => [...p, temp]);
-    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
+    listeAltaKaydir();
 
     setGonderiyor(true);
-    const sonuc = await MesajGonder({
-      threadId: id,
-      body,
-      clientId,
-      messageType: 'text',
+    const sonuc = await MesajGonderVeyaKuyruk({
+      userId: user.id,
+      girdi: {
+        threadId: id,
+        body,
+        clientId,
+        messageType: 'text',
+        replyToId,
+      },
     });
     setGonderiyor(false);
 
+    if (!sonuc.ok) {
+      setMesajlar((p) =>
+        p.map((m) =>
+          m.id === clientId ? { ...m, _localStatus: 'failed' } : m,
+        ),
+      );
+      gonderimBasarisiz(body);
+      Alert.alert(t('mesajSohbet.gonderilemedi'), sonuc.hata ?? t('ortak.hata'));
+      return;
+    }
+    if (sonuc.queued) {
+      setMesajlar((p) =>
+        p.map((m) =>
+          m.id === clientId || m.client_id === clientId
+            ? { ...m, _localStatus: 'queued' }
+            : m,
+        ),
+      );
+      await gonderimBasarili();
+      return;
+    }
+    await gonderimBasarili();
+    mergeMesaj({ ...sonuc.mesaj, _localStatus: 'sent' });
+    if (
+      OzellikBayragiAktifMi('link_preview_enabled') &&
+      sonuc.mesaj.link_url
+    ) {
+      void MesajLinkOnizlemeIste({
+        url: sonuc.mesaj.link_url,
+        messageId: sonuc.mesaj.id,
+      }).then((lp) => {
+        if (!lp.ok) return;
+        setMesajlar((p) =>
+          p.map((m) =>
+            m.id === sonuc.mesaj.id
+              ? { ...m, link_preview: lp.preview }
+              : m,
+          ),
+        );
+      });
+    }
+  };
+
+  const sesliMesajGonder = async (payload: {
+    url: string;
+    durationMs: number;
+    mime: string;
+  }) => {
+    if (!id || id === 'yeni' || !user?.id) return;
+    if (!OzellikBayragiAktifMi('voice_message_enabled')) return;
+    const clientId = uuidYerel();
+    const replyToId =
+      OzellikBayragiAktifMi('message_reply_enabled') && yanitHedef
+        ? yanitHedef.id
+        : null;
+    const temp: DirektMesaj = {
+      id: clientId,
+      thread_id: id,
+      sender_id: user.id,
+      body: null,
+      message_type: 'voice',
+      media_url: payload.url,
+      client_id: clientId,
+      reply_to_id: replyToId,
+      media_meta: {
+        duration_ms: payload.durationMs,
+        mime: payload.mime,
+      },
+      created_at: new Date().toISOString(),
+      _localStatus: 'sending',
+    };
+    setYanitHedef(null);
+    setMesajlar((p) => [...p, temp]);
+    const sonuc = await MesajGonder({
+      threadId: id,
+      body: '',
+      messageType: 'voice',
+      mediaUrl: payload.url,
+      clientId,
+      replyToId,
+      mediaMeta: {
+        duration_ms: payload.durationMs,
+        mime: payload.mime,
+      },
+    });
     if (!sonuc.ok) {
       setMesajlar((p) =>
         p.map((m) =>
@@ -397,43 +645,310 @@ export default function MesajDetayEkrani() {
     void hizliMetinGonder(t('mesajSohbet.idPaylasMetin', { id: pid }));
   }, [hizliMetinGonder, profile?.public_user_id]);
 
-  const medyaGonder = async (
+  const medyaTaslakTemizle = useCallback(() => {
+    setMedyaTaslaklar([]);
+    setMedyaViewOnce(false);
+    setMedyaTaslakTur(null);
+    setMedyaGonderiyor(false);
+  }, []);
+
+  const medyaSecVeOnizle = async (
     tur: 'image' | 'video',
     kaynak: 'galeri' | 'kamera' = 'galeri',
+    mevcut?: DmMedyaTaslak[],
   ) => {
     if (!id || id === 'yeni' || !user?.id) return;
     if (isGuest) {
       Alert.alert(t('ortak.misafir'), t('mesajSohbet.misafirMedya'));
       return;
     }
-    const up = await DmMedyasiSecVeYukle(tur, { kaynak });
-    if (!up.ok) {
-      if (!up.iptal) Alert.alert(t('ortak.medya'), up.hata);
+    const onceki = mevcut ?? medyaTaslaklar;
+    const kalan = Math.max(0, GALERI_COKLU_LIMIT - onceki.length);
+    if (kalan <= 0) return;
+
+    const secim = await DmMedyalariSec(tur, {
+      kaynak,
+      maxAdet: kaynak === 'kamera' ? 1 : kalan,
+    });
+    if (!secim.ok) {
+      if (!secim.iptal) Alert.alert(t('ortak.medya'), secim.hata);
       return;
     }
+    const birlesik = [...onceki, ...secim.items].slice(0, GALERI_COKLU_LIMIT);
+    setMedyaTaslaklar(birlesik);
+    setMedyaTaslakTur(tur);
+    if (birlesik.length > 1) setMedyaViewOnce(false);
+  };
 
+  const medyaOnaylaGonder = async () => {
+    if (!id || id === 'yeni' || !user?.id || medyaTaslaklar.length === 0) return;
+    if (medyaGonderiyor) return;
+
+    const items = [...medyaTaslaklar];
+    const useViewOnce =
+      medyaViewOnce &&
+      OzellikBayragiAktifMi('view_once_enabled') &&
+      items.length === 1;
+
+    setMedyaGonderiyor(true);
+    setMedyaTaslaklar([]);
+    setMedyaViewOnce(false);
+    setMedyaTaslakTur(null);
+
+    try {
+      for (const item of items) {
+        const up = await DmMedyaUriYukle(item);
+        if (!up.ok) {
+          Alert.alert(t('ortak.medya'), up.hata);
+          continue;
+        }
+
+        const clientId = uuidYerel();
+        const temp: DirektMesaj = {
+          id: clientId,
+          thread_id: id,
+          sender_id: user.id,
+          body: null,
+          message_type: up.messageType,
+          media_url: up.url,
+          client_id: clientId,
+          view_once: useViewOnce,
+          created_at: new Date().toISOString(),
+          _localStatus: 'sending',
+        };
+        setMesajlar((p) => [...p, temp]);
+        listeAltaKaydir();
+
+        const sonuc = await MesajGonder({
+          threadId: id,
+          body: '',
+          messageType: up.messageType,
+          mediaUrl: up.url,
+          clientId,
+          viewOnce: useViewOnce,
+        });
+        if (!sonuc.ok) {
+          setMesajlar((p) =>
+            p.map((m) =>
+              m.id === clientId ? { ...m, _localStatus: 'failed' } : m,
+            ),
+          );
+          Alert.alert(
+            t('mesajSohbet.gonderilemedi'),
+            sonuc.hata ?? t('ortak.hata'),
+          );
+          continue;
+        }
+        mergeMesaj({ ...sonuc.mesaj, _localStatus: 'sent' });
+      }
+    } finally {
+      setMedyaGonderiyor(false);
+    }
+  };
+
+  const mesajMenu = (item: DirektMesaj) => {
+    const mine = item.sender_id === user?.id;
+    const aksiyonlar: MesajMenuAksiyon[] = [];
+    if (
+      OzellikBayragiAktifMi('message_reply_enabled') &&
+      item._localStatus !== 'sending' &&
+      item._localStatus !== 'queued'
+    ) {
+      aksiyonlar.push('reply');
+    }
+    if (
+      mine &&
+      item.message_type === 'text' &&
+      OzellikBayragiAktifMi('message_edit_enabled') &&
+      item._localStatus !== 'sending'
+    ) {
+      aksiyonlar.push('edit');
+    }
+    if (
+      OzellikBayragiAktifMi('message_pin_enabled') &&
+      item._localStatus !== 'sending' &&
+      item._localStatus !== 'queued' &&
+      item._localStatus !== 'failed'
+    ) {
+      const pinned = pins.some((p) => p.message_id === item.id);
+      aksiyonlar.push(pinned ? 'unpin' : 'pin');
+    }
+    if (item.body) aksiyonlar.push('copy');
+    if (item._localStatus === 'failed') aksiyonlar.push('retry');
+    aksiyonlar.push('delete_me');
+    if (mine && item._localStatus !== 'sending' && item._localStatus !== 'queued') {
+      aksiyonlar.push('delete_everyone');
+    }
+    if (!mine) aksiyonlar.push('report');
+    setMenuMesaj(item);
+    setMenuAksiyonlar(aksiyonlar);
+  };
+
+  const menuAksiyonIsle = (aksiyon: MesajMenuAksiyon) => {
+    const item = menuMesaj;
+    if (!item || !id || id === 'yeni') return;
+    switch (aksiyon) {
+      case 'reply':
+        setDuzenleHedef(null);
+        setYanitHedef(item);
+        if (user?.id) {
+          void MesajTaslakKaydet(user.id, id, metin, {
+            replyToMessageId: item.id,
+          });
+        }
+        break;
+      case 'edit':
+        setYanitHedef(null);
+        setDuzenleHedef(item);
+        setMetin(item.body ?? '');
+        break;
+      case 'pin':
+        void MesajSabitle(item.id).then((r) => {
+          if (!r.ok) Alert.alert(t('mesajV2.pin'), r.hata);
+          else setPins((p) => [r.pin, ...p.filter((x) => x.message_id !== item.id)]);
+        });
+        break;
+      case 'unpin':
+        void MesajSabitlemeyiKaldir(item.id).then((r) => {
+          if (!r.ok) Alert.alert(t('mesajV2.unpin'), r.hata);
+          else setPins((p) => p.filter((x) => x.message_id !== item.id));
+        });
+        break;
+      case 'copy':
+        void (async () => {
+          if (!item.body) return;
+          const Clipboard = await import('expo-clipboard');
+          await Clipboard.setStringAsync(item.body);
+        })();
+        break;
+      case 'retry':
+        if (item.client_id && user?.id) {
+          setMesajlar((p) =>
+            p.map((m) =>
+              m.id === item.id ? { ...m, _localStatus: 'sending' } : m,
+            ),
+          );
+          void MesajGonder({
+            threadId: id,
+            body: item.body ?? '',
+            messageType: (item.message_type as any) || 'text',
+            mediaUrl: item.media_url,
+            clientId: item.client_id,
+            replyToId: item.reply_to_id,
+            musicTrackId: item.music_track_id,
+            viewOnce: item.view_once,
+            mediaMeta: item.media_meta,
+          }).then((r) => {
+            if (!r.ok) {
+              setMesajlar((p) =>
+                p.map((m) =>
+                  m.id === item.id ? { ...m, _localStatus: 'failed' } : m,
+                ),
+              );
+              return;
+            }
+            mergeMesaj({ ...r.mesaj, _localStatus: 'sent' });
+          });
+        }
+        break;
+      case 'delete_me':
+        void MesajSil(item.id, 'me').then((r) => {
+          if (!r.ok) Alert.alert(t('mesajSohbet.sil'), r.hata);
+          else setMesajlar((p) => p.filter((m) => m.id !== item.id));
+        });
+        break;
+      case 'delete_everyone':
+        void MesajSil(item.id, 'everyone').then((r) => {
+          if (!r.ok) Alert.alert(t('mesajSohbet.sil'), r.hata);
+          else setMesajlar((p) => p.filter((m) => m.id !== item.id));
+        });
+        break;
+      case 'report':
+        setRaporIcerik({
+          contentId: item.id,
+          preview:
+            item.body ||
+            (item.message_type === 'shared_post'
+              ? t('mesajSohbet.paylasilanGonderi')
+              : `[${item.message_type}]`),
+          mediaUrl: item.media_url,
+        });
+        setGuvenlikAcik(true);
+        break;
+      default:
+        break;
+    }
+    setMenuMesaj(null);
+  };
+
+  const hedefeGit = (messageId: string) => {
+    if (!threadId) return;
+    const vurgu = () => {
+      setVurguMesajId(messageId);
+      setTimeout(() => setVurguMesajId((cur) => (cur === messageId ? null : cur)), 1600);
+    };
+    const idx = mesajlar.findIndex((m) => m.id === messageId);
+    if (idx >= 0) {
+      try {
+        listRef.current?.scrollToIndex({ index: idx, animated: true });
+      } catch {
+        /* ignore */
+      }
+      vurgu();
+      return;
+    }
+    void MesajHedefCevresindeGetir({ threadId, messageId }).then((r) => {
+      if (!r.ok) return;
+      setMesajlar(
+        r.mesajlar.map((m) => ({ ...m, _localStatus: 'sent' as const })),
+      );
+      requestAnimationFrame(() => {
+        const i = r.mesajlar.findIndex((m) => m.id === messageId);
+        if (i >= 0) {
+          try {
+            listRef.current?.scrollToIndex({ index: i, animated: true });
+          } catch {
+            /* ignore */
+          }
+        }
+        vurgu();
+      });
+    });
+  };
+
+  const muzikGonder = async (track: AiMuzikTrackOzet) => {
+    if (!id || id === 'yeni' || !user?.id) return;
+    if (!OzellikBayragiAktifMi('music_message_enabled')) return;
     const clientId = uuidYerel();
     const temp: DirektMesaj = {
       id: clientId,
       thread_id: id,
       sender_id: user.id,
       body: null,
-      message_type: up.messageType,
-      media_url: up.url,
+      message_type: 'music',
       client_id: clientId,
+      music_track_id: track.id,
+      media_meta: {
+        music_snapshot: {
+          title: track.title,
+          cover_url: track.cover_url,
+          artist_name: '',
+          duration_ms: track.duration_ms,
+        },
+      },
       created_at: new Date().toISOString(),
       _localStatus: 'sending',
     };
     setMesajlar((p) => [...p, temp]);
-    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
-
     const sonuc = await MesajGonder({
       threadId: id,
       body: '',
-      messageType: up.messageType,
-      mediaUrl: up.url,
+      messageType: 'music',
+      musicTrackId: track.id,
       clientId,
+      replyToId: yanitHedef?.id ?? null,
     });
+    setYanitHedef(null);
     if (!sonuc.ok) {
       setMesajlar((p) =>
         p.map((m) =>
@@ -444,59 +959,6 @@ export default function MesajDetayEkrani() {
       return;
     }
     mergeMesaj({ ...sonuc.mesaj, _localStatus: 'sent' });
-  };
-
-  const mesajMenu = (item: DirektMesaj) => {
-    const mine = item.sender_id === user?.id;
-    const opts: {
-      text: string;
-      style?: 'destructive' | 'cancel';
-      onPress?: () => void;
-    }[] = [
-      {
-        text: t('mesajSohbet.bendenSil'),
-        onPress: () => {
-          void (async () => {
-            const r = await MesajSil(item.id, 'me');
-            if (!r.ok) Alert.alert(t('mesajSohbet.sil'), r.hata);
-            else setMesajlar((p) => p.filter((m) => m.id !== item.id));
-          })();
-        },
-      },
-    ];
-    if (mine && item._localStatus !== 'sending') {
-      opts.push({
-        text: t('mesajSohbet.herkestenSil'),
-        style: 'destructive',
-        onPress: () => {
-          void (async () => {
-            const r = await MesajSil(item.id, 'everyone');
-            if (!r.ok) Alert.alert(t('mesajSohbet.sil'), r.hata);
-            else setMesajlar((p) => p.filter((m) => m.id !== item.id));
-          })();
-        },
-      });
-    }
-    if (!mine) {
-      opts.push({
-        text: t('mesajSohbet.bildir'),
-        style: 'destructive',
-        onPress: () => {
-          setRaporIcerik({
-            contentId: item.id,
-            preview: item.body || (
-              item.message_type === 'shared_post'
-                ? t('mesajSohbet.paylasilanGonderi')
-                : `[${item.message_type}]`
-            ),
-            mediaUrl: item.media_url,
-          });
-          setGuvenlikAcik(true);
-        },
-      });
-    }
-    opts.push({ text: t('ortak.vazgec'), style: 'cancel' });
-    Alert.alert(t('mesajSohbet.mesajBaslik'), undefined, opts);
   };
 
   const sohbetMenu = () => {
@@ -657,6 +1119,20 @@ export default function MesajDetayEkrani() {
             })();
           },
         },
+        OzellikBayragiAktifMi('conversation_mute_enabled')
+          ? {
+              text: mutedUntil
+                ? t('mesajV2.unmute')
+                : t('mesajV2.muteNotifications'),
+              onPress: () => setSessizeAcik(true),
+            }
+          : undefined,
+        OzellikBayragiAktifMi('music_message_enabled')
+          ? {
+              text: t('mesajV2.shareMusic'),
+              onPress: () => setMuzikSecimAcik(true),
+            }
+          : undefined,
         {
           text: t('mesajSohbet.sohbetiSil'),
           style: 'destructive',
@@ -676,6 +1152,7 @@ export default function MesajDetayEkrani() {
                         Alert.alert(t('mesajSohbet.silinemedi'), r.hata);
                         return;
                       }
+                      if (user?.id) await MesajTaslakSil(user.id, id);
                       router.replace('/(tabs)/messages' as any);
                     })();
                   },
@@ -821,6 +1298,19 @@ export default function MesajDetayEkrani() {
             </View>
           </View>
 
+          {OzellikBayragiAktifMi('message_pin_enabled') ? (
+            <MesajSabitBar
+              pins={pins}
+              mesajMap={mesajMap}
+              onJump={hedefeGit}
+              onUnpin={(messageId) => {
+                void MesajSabitlemeyiKaldir(messageId).then((r) => {
+                  if (r.ok) setPins((p) => p.filter((x) => x.message_id !== messageId));
+                });
+              }}
+            />
+          ) : null}
+
           <FlatList
             ref={listRef}
             style={styles.listFlex}
@@ -836,6 +1326,7 @@ export default function MesajDetayEkrani() {
               styles.list,
               mesajlar.length === 0 && styles.listEmpty,
             ]}
+            ListFooterComponent={<View style={styles.listFooterBosluk} />}
             ListEmptyComponent={
               <View style={styles.emptyChatWrap}>
                 <Text style={styles.emptyChat}>{t('mesajSohbet.bosChat')}</Text>
@@ -849,8 +1340,27 @@ export default function MesajDetayEkrani() {
                 item={item}
                 mine={item.sender_id === user?.id}
                 peerLastReadAt={peerLastReadAt}
+                highlighted={vurguMesajId === item.id}
                 onLongPress={() => mesajMenu(item)}
+                onReply={(m) => {
+                  setDuzenleHedef(null);
+                  setYanitHedef(m);
+                  if (user?.id && threadId) {
+                    void MesajTaslakKaydet(user.id, threadId, metin, {
+                      replyToMessageId: m.id,
+                    });
+                  }
+                }}
                 onMedyaAc={(uri, tur) => setMedyaGoruntule({ uri, tur })}
+                replyTo={
+                  item.reply_to_id ? mesajMap[item.reply_to_id] ?? null : null
+                }
+                onReplyPress={hedefeGit}
+                onViewOncePatch={(patch) => {
+                  setMesajlar((p) =>
+                    p.map((m) => (m.id === item.id ? { ...m, ...patch } : m)),
+                  );
+                }}
                 sharedPostOnizleme={
                   item.message_type === 'shared_post' && item.ref_id
                     ? sharedPostMap[item.ref_id]
@@ -867,7 +1377,7 @@ export default function MesajDetayEkrani() {
             <View
               style={[
                 styles.composer,
-                { paddingBottom: Math.max(insets.bottom, BoslukTokenlari.md) },
+                { paddingBottom: composerPadBottom },
               ]}
             >
               <Text style={styles.kapaliUyari}>
@@ -893,7 +1403,7 @@ export default function MesajDetayEkrani() {
             <View
               style={[
                 styles.composer,
-                { paddingBottom: Math.max(insets.bottom, BoslukTokenlari.md) },
+                { paddingBottom: composerPadBottom },
               ]}
             >
               <Text style={styles.kapaliUyari}>
@@ -907,12 +1417,38 @@ export default function MesajDetayEkrani() {
                 ajansMi={!!peer?.peer_agency_id}
                 onCuzdanNoPaylas={cuzdanNoPaylas}
                 onIdPaylas={idPaylas}
+                onMetinPaylas={(m) => void hizliMetinGonder(m)}
               />
             ) : null}
+            <MesajDuzenlemeBasligi
+              visible={!!duzenleHedef}
+              onIptal={() => {
+                setDuzenleHedef(null);
+                setMetin('');
+              }}
+            />
+            <MesajYanitOnizleme
+              replyTo={yanitHedef}
+              yazarAdi={
+                yanitHedef
+                  ? yanitHedef.sender_id === user?.id
+                    ? t('mesajV2.you')
+                    : peer?.display_name || peer?.username || null
+                  : null
+              }
+              onKapat={() => {
+                setYanitHedef(null);
+                if (user?.id && threadId) {
+                  void MesajTaslakKaydet(user.id, threadId, metin, {
+                    replyToMessageId: null,
+                  });
+                }
+              }}
+            />
           <View
             style={[
               styles.composer,
-              { paddingBottom: Math.max(insets.bottom, BoslukTokenlari.md) },
+              { paddingBottom: composerPadBottom },
             ]}
           >
             {!mahkemeMi ? (
@@ -963,6 +1499,7 @@ export default function MesajDetayEkrani() {
                 <Ionicons name="images" size={20} color={RenkTokenlari.mint} />
               </LinearGradient>
             </Pressable>
+            {taslakHazir ? (
             <TextInput
               value={metin}
               onChangeText={setMetin}
@@ -973,6 +1510,10 @@ export default function MesajDetayEkrani() {
               maxLength={4000}
               blurOnSubmit={false}
             />
+            ) : (
+              <View style={[styles.input, styles.inputTaslakBekliyor]} />
+            )}
+            {metin.trim() || duzenleHedef ? (
             <Pressable
               style={[
                 styles.sendHit,
@@ -988,6 +1529,25 @@ export default function MesajDetayEkrani() {
                 <Ionicons name="send" size={18} color="#12040C" />
               </LinearGradient>
             </Pressable>
+            ) : OzellikBayragiAktifMi('voice_message_enabled') ? (
+              <MesajSesKayitDugmesi
+                disabled={gonderiyor || isGuest}
+                onGonderildi={(p) => void sesliMesajGonder(p)}
+                onHata={(h) => Alert.alert(t('mesajSohbet.gonderilemedi'), h)}
+              />
+            ) : (
+            <Pressable
+              style={[styles.sendHit, styles.sendDisabled]}
+              disabled
+            >
+              <LinearGradient
+                colors={[...RenkTokenlari.gradientPrimary]}
+                style={styles.sendBtn}
+              >
+                <Ionicons name="send" size={18} color="#12040C" />
+              </LinearGradient>
+            </Pressable>
+            )}
           </View>
           </View>
           )}
@@ -1018,6 +1578,9 @@ export default function MesajDetayEkrani() {
               setMesajlar([]);
               setGuvenlikAcik(false);
               setRaporIcerik(null);
+              if (user?.id && threadId) {
+                void MesajTaslakSil(user.id, threadId);
+              }
               router.back();
             }}
           />
@@ -1029,14 +1592,75 @@ export default function MesajDetayEkrani() {
           visible={medyaSecimAcik}
           onClose={() => setMedyaSecimAcik(false)}
           onSec={(secim) => {
-            void medyaGonder(secim.tur, secim.kaynak);
+            void medyaSecVeOnizle(secim.tur, secim.kaynak, []);
           }}
+        />
+
+        <MesajMedyaOnizlemePaneli
+          visible={medyaTaslaklar.length > 0}
+          items={medyaTaslaklar}
+          gonderiyor={medyaGonderiyor}
+          viewOnceEnabled={OzellikBayragiAktifMi('view_once_enabled')}
+          viewOnce={medyaViewOnce}
+          onViewOnceChange={(v) => {
+            if (v && medyaTaslaklar.length > 1) return;
+            setMedyaViewOnce(v);
+          }}
+          onItemsChange={(items) => {
+            setMedyaTaslaklar(items);
+            if (items.length === 0) medyaTaslakTemizle();
+            if (items.length > 1) setMedyaViewOnce(false);
+          }}
+          onEkle={
+            medyaTaslakTur
+              ? () => void medyaSecVeOnizle(medyaTaslakTur, 'galeri')
+              : undefined
+          }
+          onVazgec={medyaTaslakTemizle}
+          onGonder={() => void medyaOnaylaGonder()}
         />
 
         <MesajMedyaGoruntuleyici
           uri={medyaGoruntule?.uri ?? null}
           tur={medyaGoruntule?.tur ?? null}
           onKapat={() => setMedyaGoruntule(null)}
+        />
+
+        <MesajUzunBasMenu
+          visible={!!menuMesaj}
+          onClose={() => setMenuMesaj(null)}
+          aksiyonlar={menuAksiyonlar}
+          onSec={menuAksiyonIsle}
+        />
+
+        <MesajSessizeSheet
+          visible={sessizeAcik}
+          onClose={() => setSessizeAcik(false)}
+          mutedUntil={mutedUntil}
+          onMute={(opts) => {
+            if (!threadId) return;
+            void MesajThreadSessizeAl({
+              threadId,
+              minutes: opts.minutes,
+              forever: opts.forever,
+            }).then((r) => {
+              if (!r.ok) Alert.alert(t('mesajV2.muteNotifications'), r.hata);
+              else setMutedUntil(r.mutedUntil);
+            });
+          }}
+          onUnmute={() => {
+            if (!threadId) return;
+            void MesajThreadSessiziAc(threadId).then((r) => {
+              if (!r.ok) Alert.alert(t('mesajV2.unmute'), r.hata);
+              else setMutedUntil(null);
+            });
+          }}
+        />
+
+        <MesajMuzikSecimSheet
+          visible={muzikSecimAcik}
+          onClose={() => setMuzikSecimAcik(false)}
+          onSec={(track) => void muzikGonder(track)}
         />
       </ModulHataSiniri>
     </Screen>
@@ -1107,9 +1731,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   list: {
-    padding: BoslukTokenlari.lg,
+    paddingHorizontal: BoslukTokenlari.lg,
+    paddingTop: BoslukTokenlari.lg,
+    /** Son balon kenarı composer / hızlı şerit altına girmesin */
+    paddingBottom: BoslukTokenlari.md,
     gap: 6,
     flexGrow: 1,
+  },
+  listFooterBosluk: {
+    height: BoslukTokenlari.lg,
   },
   listEmpty: { justifyContent: 'center' },
   emptyChatWrap: { alignItems: 'center', gap: 6, paddingHorizontal: 24 },
@@ -1165,6 +1795,9 @@ const styles = StyleSheet.create({
     borderColor: RenkTokenlari.border,
     color: RenkTokenlari.text,
     ...TipografiTokenlari.body,
+  },
+  inputTaslakBekliyor: {
+    opacity: 0.55,
   },
   sendHit: { borderRadius: YaricapTokenlari.pill, overflow: 'hidden' },
   sendBtn: {

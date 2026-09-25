@@ -4,8 +4,9 @@ import { KlavyeKonumunuKaydet } from './KlavyeKonum';
 
 /**
  * Klavye yüksekliği + açık mı?
- * Android: screen−window nav bar farkını "resize oldu" sanıp pad'i 0 yapmak
- * input'u klavyenin altında bırakıyordu — overlap / baseline ile düzeltilir.
+ * Android: `softwareKeyboardLayoutMode: 'resize'` varsa önce pad=0;
+ * resize yetmezse overlap ile tamamlanır. Erken tam-yükseklik pad
+ * aşağı-yukarı zıplama yapıyordu.
  */
 export function useKlavyeYuksekligi(ekstraPad = 0): {
   yukseklik: number;
@@ -24,15 +25,21 @@ export function useKlavyeYuksekligi(ekstraPad = 0): {
       0,
       Dimensions.get('screen').height - Dimensions.get('window').height,
     );
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
-    const androidPadHesapla = (keyboardH: number, screenY: number) => {
+    const androidPadHesapla = (
+      keyboardH: number,
+      screenY: number,
+      agresif: boolean,
+    ) => {
       const screenH = Dimensions.get('screen').height;
       const windowH = Dimensions.get('window').height;
       const gap = Math.max(0, screenH - windowH);
       const resizeMiktari = Math.max(0, gap - baselineGap);
 
+      // Resize klavyeyi zaten taşıdıysa ekstra pad yok.
       if (resizeMiktari >= keyboardH * 0.45) {
-        return Math.max(ekstraPad, Math.round(keyboardH * 0.55));
+        return Math.max(0, ekstraPad);
       }
 
       const overlap = Math.max(0, Math.ceil(windowH - screenY));
@@ -40,17 +47,26 @@ export function useKlavyeYuksekligi(ekstraPad = 0): {
         return Math.max(0, overlap + ekstraPad);
       }
 
+      // İlk karede agresif pad uygulama — resize henüz gelmemiş olabilir.
+      if (!agresif) {
+        return Math.max(0, ekstraPad);
+      }
+
       return Math.max(0, keyboardH + ekstraPad);
     };
 
-    const uygula = (keyboardH: number, screenY: number) => {
+    const uygula = (
+      keyboardH: number,
+      screenY: number,
+      agresif = false,
+    ) => {
       KlavyeKonumunuKaydet(screenY, keyboardH);
       if (keyboardH <= 0) {
         setYukseklik(0);
         return;
       }
       if (Platform.OS === 'android') {
-        setYukseklik(androidPadHesapla(keyboardH, screenY));
+        setYukseklik(androidPadHesapla(keyboardH, screenY, agresif));
         return;
       }
       setYukseklik(Math.max(0, keyboardH + ekstraPad));
@@ -60,21 +76,31 @@ export function useKlavyeYuksekligi(ekstraPad = 0): {
       const keyboardH = e.endCoordinates?.height ?? 0;
       const screenY = e.endCoordinates?.screenY ?? 0;
       setAcik(true);
-      uygula(keyboardH, screenY);
+      uygula(keyboardH, screenY, false);
       if (Platform.OS === 'android' && keyboardH > 0) {
-        requestAnimationFrame(() => uygula(keyboardH, screenY));
-        setTimeout(() => uygula(keyboardH, screenY), 60);
-        setTimeout(() => uygula(keyboardH, screenY), 180);
+        // Resize otursun; gerekirse overlap ile tamamla (agresif = true).
+        timers.push(
+          setTimeout(() => uygula(keyboardH, screenY, true), 80),
+          setTimeout(() => uygula(keyboardH, screenY, true), 200),
+        );
       }
     });
 
     const onHide = Keyboard.addListener(hideEvt, () => {
+      while (timers.length) {
+        const id = timers.pop();
+        if (id != null) clearTimeout(id);
+      }
       setAcik(false);
       setYukseklik(0);
       KlavyeKonumunuKaydet(Dimensions.get('window').height, 0);
     });
 
     return () => {
+      while (timers.length) {
+        const id = timers.pop();
+        if (id != null) clearTimeout(id);
+      }
       onShow.remove();
       onHide.remove();
     };
