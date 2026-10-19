@@ -18,6 +18,7 @@ import { KonusmaciSesSeviyesi } from '../ses/KonusmaciSesSeviyesi';
 // Native kontrol — VideoViewAl ile aynı kaynak
 import { LiveKitNativeVarMi } from '../bilesenler/LiveKitVideoViewAl';
 import {
+  IosCanliYayinOturumu,
   IosYankIptaliAc,
   LiveKitGlobalsKaydet,
 } from '../polyfill/LiveKitGlobalsKaydet';
@@ -59,7 +60,27 @@ const SES_ODA_PUBLISH = {
 } as const;
 
 /**
- * Ses odası misafir + canlı izleyici — STREAM_MUSIC.
+ * Canlı yayın mikrofonu — AEC/NS kapalı.
+ * Kamera + hoparlör açıkken donanım yankı iptali konuşmayı sıfırlar;
+ * izleyici track görür ama ses gelmez. Solo yayında uzak mikrofon yok.
+ */
+const CANLI_YAYIN_CAPTURE = {
+  echoCancellation: false,
+  noiseSuppression: false,
+  autoGainControl: true,
+  channelCount: 1,
+} as const;
+
+const CANLI_YAYIN_PUBLISH = {
+  audioPreset: AudioPresets.music,
+  dtx: false,
+  red: false,
+  forceStereo: false,
+  stopMicTrackOnMute: false,
+} as const;
+
+/**
+ * Eski canlı izleyici profili. Canlıda kullanılmaz: media/duck uzak konuşmayı keser.
  * gainTransientMayDuck: Spotify/YouTube Music kesilmez, oda konuşması varken kısılır.
  * Exclusive `gain` + inCommunication müzik uygulamalarını durdurur.
  */
@@ -264,6 +285,8 @@ class LiveKitBaglantiYoneticisiImpl {
   private gorusmeModu = false;
   /** Ses odası (video yayını yok) — misafir duck, konuşmacı communication */
   private sesOdasiModu = false;
+  /** Canlı yayın (video, 1:1 değil) — izleyici de communication duysun */
+  private canliYayinModu = false;
   private speakerTimer: ReturnType<typeof setTimeout> | null = null;
   private speakerBekleyen: Participant[] | null = null;
   /** Uzak ses hacmi 0..1 (kullanıcı tercihi) — reconnect ezmez */
@@ -372,19 +395,21 @@ class LiveKitBaglantiYoneticisiImpl {
   }
 
   private leaveRequestMi(e: unknown): boolean {
-    if (!e || typeof e !== 'object') {
-      return /leave request/i.test(String(e));
-    }
-    const err = e as {
-      reasonName?: string;
-      message?: string;
-      name?: string;
-    };
-    if (err.reasonName === 'LeaveRequest') return true;
-    if (err.name === 'ConnectionError' && /leave request/i.test(err.message ?? '')) {
+    const metin =
+      !e || typeof e !== 'object'
+        ? String(e)
+        : `${(e as { reasonName?: string }).reasonName ?? ''} ${(e as { message?: string }).message ?? ''} ${(e as { name?: string }).name ?? ''}`;
+    // Kasıtlı kes / çift join yarışı — kullanıcıya "ses bağlanamadı" gösterme
+    if (
+      /leave request|client initiated|connection closed|websocket.*(close|abort)|negotiat|cancelled|canceled|aborted|state_mismatch|duplicate identity/i.test(
+        metin,
+      )
+    ) {
       return true;
     }
-    return /leave request/i.test(err.message ?? String(e));
+    if (!e || typeof e !== 'object') return false;
+    const err = e as { reasonName?: string; name?: string };
+    return err.reasonName === 'LeaveRequest';
   }
 
   durumGetir() {
@@ -496,6 +521,7 @@ class LiveKitBaglantiYoneticisiImpl {
       !!mevcut && mevcut.mediaStreamTrack?.readyState !== 'ended';
     if (mevcutCanli) {
       this.yayinlaVideo();
+      await this.canliKameraSonrasiSes();
       return true;
     }
 
@@ -504,16 +530,19 @@ class LiveKitBaglantiYoneticisiImpl {
       const ok = await this.kameraGucluAc();
       if (ok && this.localVideoTrack()) {
         this.yayinlaVideo();
+        await this.canliKameraSonrasiSes();
         return true;
       }
       if (this.localVideoTrack()) {
         this.yayinlaVideo();
+        await this.canliKameraSonrasiSes();
         return true;
       }
       await new Promise((r) => setTimeout(r, 160));
     }
     if (this.localVideoTrack()) {
       this.yayinlaVideo();
+      await this.canliKameraSonrasiSes();
       return true;
     }
     return false;
@@ -523,7 +552,9 @@ class LiveKitBaglantiYoneticisiImpl {
   kameraOncedenAc(): void {
     if (Platform.OS === 'web') return;
     void (async () => {
-      if (Platform.OS !== 'web') {
+      if (Platform.OS === 'ios') {
+        await IosCanliYayinOturumu(true);
+      } else {
         const native = livekitNativeAl();
         if (native) await this.sesOturumuHazirla(native).catch(() => undefined);
       }
@@ -607,6 +638,7 @@ class LiveKitBaglantiYoneticisiImpl {
         const ok = await this.kameraGucluAc().catch(() => false);
         if (ok || this.localVideoYayindaMi()) {
           this.yayinlaVideo();
+          await this.canliKameraSonrasiSes();
           return;
         }
         await new Promise((r) => setTimeout(r, 700 + i * 350));
@@ -704,6 +736,7 @@ class LiveKitBaglantiYoneticisiImpl {
     const nesil = ++this.baglantiNesil;
     this.gorusmeModu = !!input.gorusmeModu;
     this.sesOdasiModu = !!input.sesOdasi;
+    this.canliYayinModu = !this.gorusmeModu && !this.sesOdasiModu;
     if (input.publishVideo) this.kameraFacing = 'user';
     // undefined → false (dinleyici güvenli); sadece açık true yayıncı
     this.asPublisher = !!input.asPublisher;
@@ -826,6 +859,7 @@ class LiveKitBaglantiYoneticisiImpl {
     // baglantiyiKesIc odayı keser; rol bayrakları bu join için yeniden yazılır
     this.gorusmeModu = !!input.gorusmeModu;
     this.sesOdasiModu = !!input.sesOdasi;
+    this.canliYayinModu = !this.gorusmeModu && !this.sesOdasiModu;
     this.asPublisher = !!input.asPublisher;
     if (!this.asPublisher) {
       this.micIstenenAcik = false;
@@ -906,7 +940,7 @@ class LiveKitBaglantiYoneticisiImpl {
             }
           : videoYayin
             ? {
-                ...SES_ODA_PUBLISH,
+                ...CANLI_YAYIN_PUBLISH,
                 simulcast: false,
                 videoEncoding: VideoPresets.h720.encoding,
                 degradationPreference: 'maintain-framerate',
@@ -935,10 +969,27 @@ class LiveKitBaglantiYoneticisiImpl {
             this.webUzakSesiBagla(track as RemoteAudioTrack);
           }
           if (!kendi) {
+            try {
+              track.mediaStreamTrack.enabled = true;
+            } catch {
+              /* ignore */
+            }
+            try {
+              const baslat = track as RemoteAudioTrack & {
+                start?: () => Promise<void> | void;
+              };
+              void Promise.resolve(baslat.start?.()).catch(() => undefined);
+            } catch {
+              /* native çalma devam eder */
+            }
             // Dinleyici join: track gelince çıkış + hacim — sessiz kalmasın
             void this.hoparlorGucluAc().catch(() => undefined);
             this.uzakSesleriGucluAc();
-            if (Platform.OS === 'ios') IosYankIptaliAc();
+            if (Platform.OS === 'ios' && this.canliYayinModu && !this.asPublisher) {
+              void IosCanliYayinOturumu(false);
+            } else if (Platform.OS === 'ios' && !this.canliYayinModu) {
+              IosYankIptaliAc();
+            }
           }
         }
         yenile();
@@ -949,7 +1000,19 @@ class LiveKitBaglantiYoneticisiImpl {
         }
         yenile();
       });
-      room.on(RoomEvent.TrackPublished, yenile);
+      room.on(RoomEvent.TrackPublished, (pub, participant) => {
+        if (
+          pub.kind === Track.Kind.Audio &&
+          participant.identity !== room.localParticipant.identity
+        ) {
+          try {
+            pub.setSubscribed(true);
+          } catch {
+            /* autoSubscribe yedek */
+          }
+        }
+        yenile();
+      });
       room.on(RoomEvent.TrackMuted, (pub, participant) => {
         if (pub.kind === Track.Kind.Audio && participant?.identity) {
           try {
@@ -1085,11 +1148,28 @@ class LiveKitBaglantiYoneticisiImpl {
         await this.mikrofonuGuvenliKapat();
       }
 
-      // Join sonrası: hoparlör + uzak ses (tam configure TEKRAR etme)
+      // Android: kamera media moda düşürmesin.
+      if (this.canliYayinModu && Platform.OS === 'android') {
+        await this.androidIletisimKilitle();
+      }
       await this.hoparlorGucluAc();
       this.uzakSesleriGucluAc();
-      if (Platform.OS === 'ios' && this.asPublisher) {
+      // iOS: hoparlörden sonra videoChat / voiceChat. Kamera voiceChat'i ezer.
+      if (Platform.OS === 'ios' && this.canliYayinModu) {
+        await IosCanliYayinOturumu(this.asPublisher);
+        if (this.asPublisher && this.micIstenenAcik) {
+          const mic = room.localParticipant.getTrackPublication(
+            Track.Source.Microphone,
+          );
+          if (mic?.track && !mic.isMuted) await this.canliMikrofonuYenile(mic.track);
+        }
+      } else if (Platform.OS === 'ios' && this.asPublisher) {
         IosYankIptaliAc();
+      } else if (this.canliYayinModu && this.asPublisher && this.micIstenenAcik) {
+        const mic = room.localParticipant.getTrackPublication(
+          Track.Source.Microphone,
+        );
+        if (mic?.track && !mic.isMuted) await this.canliMikrofonuYenile(mic.track);
       }
 
       this.durum = 'connected';
@@ -1099,14 +1179,35 @@ class LiveKitBaglantiYoneticisiImpl {
       setTimeout(() => {
         if (nesil !== this.baglantiNesil) return;
         if (this.room?.state !== ConnectionState.Connected) return;
-        void this.mikrofonDurumunuDogrula();
-        // Çalışan kamerayı yeniden publish etme — yalnızca yoksa arka plan dene
-        if (this.asPublisher && input.publishVideo && !this.localVideoTrack()) {
-          this.kameraArkaPlandaDene(5);
-        }
-        void this.hoparlorGucluAc();
-        this.uzakSesleriGucluAc();
-        this.yayinlaVideo();
+        void (async () => {
+          await this.mikrofonDurumunuDogrula().catch((e) => {
+            console.warn('[LiveKit] gecikmeli mic', e);
+          });
+          if (this.asPublisher && input.publishVideo && !this.localVideoTrack()) {
+            this.kameraArkaPlandaDene(5);
+          }
+          await this.hoparlorGucluAc();
+          if (Platform.OS === 'ios' && this.canliYayinModu) {
+            await IosCanliYayinOturumu(this.asPublisher);
+          } else if (this.canliYayinModu && Platform.OS === 'android') {
+            await this.androidIletisimKilitle();
+          }
+          if (
+            nesil === this.baglantiNesil &&
+            this.canliYayinModu &&
+            this.asPublisher &&
+            this.micIstenenAcik
+          ) {
+            const mic = this.room?.localParticipant?.getTrackPublication(
+              Track.Source.Microphone,
+            );
+            if (mic?.track && !mic.isMuted) {
+              await this.canliMikrofonuYenile(mic.track);
+            }
+          }
+          this.uzakSesleriGucluAc();
+          this.yayinlaVideo();
+        })();
       }, 700);
       return { ok: true };
     } catch (e) {
@@ -1138,10 +1239,13 @@ class LiveKitBaglantiYoneticisiImpl {
     native: LiveKitNative,
     zorla = false,
   ): Promise<void> {
-    // Ses odası: yayıncı + dinleyici aynı communication profili
-    // (media/duck dinleyicide Opus uzak ses sık kaçıyordu — koltuk isteyince duyuluyordu)
+    // Ses odası ve canlı yayın: yayıncı + dinleyici aynı communication profili.
+    // media/duck uzak Opus'u düşürür — canlı izleyici hostu duymaz.
     const iletisim =
-      this.gorusmeModu || this.asPublisher || this.sesOdasiModu;
+      this.gorusmeModu ||
+      this.asPublisher ||
+      this.sesOdasiModu ||
+      this.canliYayinModu;
     const profil = iletisim ? 'com' : 'duck';
     const imza = `${Platform.OS}:${profil}:${this.asPublisher ? 1 : 0}`;
     if (!zorla && this.audioSessionAcik && this.sonSesImza === imza) {
@@ -1230,12 +1334,30 @@ class LiveKitBaglantiYoneticisiImpl {
           /* ignore */
         }
         for (const pub of p.trackPublications.values()) {
-          if (pub.kind === Track.Kind.Audio && pub.track) {
+          if (pub.kind !== Track.Kind.Audio) continue;
+          const uzak = pub as {
+            isSubscribed?: boolean;
+            setSubscribed?: (on: boolean) => void;
+            track?: RemoteAudioTrack;
+          };
+          if (uzak.isSubscribed === false) {
             try {
-              (pub.track as RemoteAudioTrack).setVolume(v);
+              uzak.setSubscribed?.(true);
             } catch {
-              /* ignore */
+              /* autoSubscribe yedek */
             }
+          }
+          const track = uzak.track;
+          if (!track) continue;
+          try {
+            track.mediaStreamTrack.enabled = true;
+          } catch {
+            /* ignore */
+          }
+          try {
+            track.setVolume(v);
+          } catch {
+            /* ignore */
           }
         }
       }
@@ -1306,7 +1428,7 @@ class LiveKitBaglantiYoneticisiImpl {
         // force_speaker Bluetooth/AirPods'u keser — otomatik rotada ASLA kullanma.
         // default + defaultToSpeaker: kulaklık yoksa hoparlör, varsa BT/kablolu.
         await AudioSession.selectAudioOutput('default').catch(() => undefined);
-        if (this.asPublisher || this.gorusmeModu) {
+        if ((this.asPublisher || this.gorusmeModu) && !this.canliYayinModu) {
           IosYankIptaliAc();
         }
         return;
@@ -1342,6 +1464,73 @@ class LiveKitBaglantiYoneticisiImpl {
     }
   }
 
+  /**
+   * Android canlı: AEC kapalı (kamera konuşmayı yer).
+   * iOS canlı: AEC açık. Kapalı VPIO sessiz örnek yollar.
+   */
+  private mikrofonCapture() {
+    if (this.canliYayinModu && Platform.OS === 'android') return CANLI_YAYIN_CAPTURE;
+    return SES_ODA_CAPTURE;
+  }
+
+  /**
+   * Kamera Android ses modunu media'ya düşürür.
+   * Media yayın iOS izleyicide sessiz kalır — communication'a geri kilitle.
+   */
+  private async androidIletisimKilitle(): Promise<void> {
+    if (Platform.OS !== 'android') return;
+    if (
+      !this.asPublisher &&
+      !this.sesOdasiModu &&
+      !this.gorusmeModu &&
+      !this.canliYayinModu
+    ) {
+      return;
+    }
+    const native = livekitNativeAl();
+    if (!native) return;
+    await this.sesOturumuHazirla(native, true).catch(() => undefined);
+    await this.hoparlorGucluAc().catch(() => undefined);
+  }
+
+  /** Kamera ses modunu bozduysa canlı mikrofonu communication altında yenile. */
+  private async canliKameraSonrasiSes(): Promise<void> {
+    await this.androidIletisimKilitle();
+    if (!this.canliYayinModu || !this.asPublisher || !this.micIstenenAcik) return;
+    const pub = this.room?.localParticipant?.getTrackPublication(
+      Track.Source.Microphone,
+    );
+    if (!pub?.track || pub.isMuted) return;
+    await this.canliMikrofonuYenile(pub.track);
+  }
+
+  /** Oturum kilitlendikten sonra mikrofonu doğru modda yeniden yakala. */
+  private async canliMikrofonuYenile(track: {
+    restartTrack?: (opts: object) => Promise<unknown>;
+    mediaStreamTrack?: { enabled: boolean };
+  }): Promise<void> {
+    try {
+      if (track.mediaStreamTrack) track.mediaStreamTrack.enabled = true;
+    } catch {
+      /* ignore */
+    }
+    if (Platform.OS === 'ios') await IosCanliYayinOturumu(true);
+    const capture = Platform.OS === 'ios' ? SES_ODA_CAPTURE : CANLI_YAYIN_CAPTURE;
+    if (track.restartTrack) {
+      await track.restartTrack({ ...capture }).catch(() => undefined);
+    }
+    const pub = this.room?.localParticipant?.getTrackPublication(
+      Track.Source.Microphone,
+    );
+    if (pub?.isMuted) await pub.unmute().catch(() => undefined);
+    try {
+      if (pub?.track?.mediaStreamTrack) pub.track.mediaStreamTrack.enabled = true;
+    } catch {
+      /* ignore */
+    }
+    if (Platform.OS === 'ios') IosYankIptaliAc();
+  }
+
   /** Mikrofonu aç + yayın doğrula (retry + manuel publish yedegi) */
   private async mikrofonGucluAc(opts?: {
     /** true: unpublish/republish yok — reconnect sonrası güvenli */
@@ -1366,27 +1555,27 @@ class LiveKitBaglantiYoneticisiImpl {
           if (native) await this.sesOturumuHazirla(native).catch(() => undefined);
         }
         await lp.setMicrophoneEnabled(true, {
-          ...SES_ODA_CAPTURE,
+          ...this.mikrofonCapture(),
         });
         await new Promise((r) => setTimeout(r, 200));
         const pub = lp.getTrackPublication(Track.Source.Microphone);
         if (pub?.isMuted) {
           await pub.unmute().catch(() => undefined);
         }
-        if (pub?.track && !pub.isMuted) {
-          if (Platform.OS === 'ios') IosYankIptaliAc();
-          if (Platform.OS === 'android' && (this.sesOdasiModu || this.gorusmeModu)) {
-            // Mic açılınca Android bazen media'ya düşer — communication'a kilitle
-            const native = livekitNativeAl();
-            if (native) {
-              await this.sesOturumuHazirla(native, true).catch(() => undefined);
-              await this.hoparlorGucluAc().catch(() => undefined);
-            }
+        if (pub?.track) {
+          try {
+            pub.track.mediaStreamTrack.enabled = true;
+          } catch {
+            /* ignore */
           }
+        }
+        if (pub?.track && !pub.isMuted) {
+          if (Platform.OS === 'ios' && !this.canliYayinModu) IosYankIptaliAc();
+          await this.androidIletisimKilitle();
           return true;
         }
         if (pub && !pub.isMuted) {
-          if (Platform.OS === 'ios') IosYankIptaliAc();
+          if (Platform.OS === 'ios' && !this.canliYayinModu) IosYankIptaliAc();
           return true;
         }
       } catch (e) {
@@ -1412,25 +1601,23 @@ class LiveKitBaglantiYoneticisiImpl {
         }
         if (room.state !== ConnectionState.Connected) return false;
         const track = await createLocalAudioTrack({
-          ...SES_ODA_CAPTURE,
+          ...this.mikrofonCapture(),
         });
+        const yayin = this.canliYayinModu ? CANLI_YAYIN_PUBLISH : SES_ODA_PUBLISH;
         await lp.publishTrack(track, {
           source: Track.Source.Microphone,
-          audioPreset: AudioPresets.speech,
-          dtx: false,
-          red: true,
+          ...yayin,
         });
         await new Promise((r) => setTimeout(r, 140));
         const pub = lp.getTrackPublication(Track.Source.Microphone);
         if (pub?.track && !pub.isMuted) {
-          if (Platform.OS === 'android' && (this.sesOdasiModu || this.gorusmeModu)) {
-            const native = livekitNativeAl();
-            if (native) {
-              await this.sesOturumuHazirla(native, true).catch(() => undefined);
-              await this.hoparlorGucluAc().catch(() => undefined);
-            }
+          try {
+            pub.track.mediaStreamTrack.enabled = true;
+          } catch {
+            /* ignore */
           }
-          if (Platform.OS === 'ios') IosYankIptaliAc();
+          await this.androidIletisimKilitle();
+          if (Platform.OS === 'ios' && !this.canliYayinModu) IosYankIptaliAc();
           return true;
         }
       } catch (e) {
@@ -1657,12 +1844,12 @@ class LiveKitBaglantiYoneticisiImpl {
         // (Clubhouse/Bigo — mute tıklama sesi + hoparlör kesilmesi olmasın)
         const mevcut = lp.getTrackPublication(Track.Source.Microphone);
         if (mevcut?.track) {
-          await lp.setMicrophoneEnabled(true, { ...SES_ODA_CAPTURE }).catch(() => undefined);
+          await lp.setMicrophoneEnabled(true, { ...this.mikrofonCapture() }).catch(() => undefined);
           if (mevcut.isMuted) {
             await mevcut.unmute().catch(() => undefined);
           }
           this.uzakSesleriGucluAc();
-          if (Platform.OS === 'ios') IosYankIptaliAc();
+          if (Platform.OS === 'ios' && !this.canliYayinModu) IosYankIptaliAc();
           return;
         }
 
@@ -1675,7 +1862,7 @@ class LiveKitBaglantiYoneticisiImpl {
         // İlk mic açılışı — hoparlör + AEC
         await this.hoparlorGucluAc().catch(() => undefined);
         this.uzakSesleriGucluAc();
-        if (Platform.OS === 'ios') IosYankIptaliAc();
+        if (Platform.OS === 'ios' && !this.canliYayinModu) IosYankIptaliAc();
       } catch (e) {
         console.warn('[LiveKit] muteLocalAudio', e);
       }
@@ -1749,13 +1936,21 @@ class LiveKitBaglantiYoneticisiImpl {
       const room = this.room;
       if (!room || room.state !== ConnectionState.Connected) return;
       const native = livekitNativeAl();
-      if (native && (zorla || !this.audioSessionAcik)) {
+      // iOS modal kapanınca oturum düşer; bayrak true kalsa da yeniden başlat.
+      if (native) {
+        await native.AudioSession.startAudioSession().catch(() => undefined);
+        this.audioSessionAcik = true;
+      }
+      if (native && (zorla || !this.sonSesImza)) {
         await this.sesOturumuHazirla(native, zorla).catch(() => undefined);
       }
       await this.hoparlorGucluAc();
       this.uzakSesleriGucluAc();
-      // Ses odasında iOS dinleyici de playAndRecord — VPIO açık kalsın
-      if (Platform.OS === 'ios') {
+      // Ses odasında iOS dinleyici de playAndRecord — VPIO açık kalsın.
+      // Canlı: videoChat (yayıncı) / voiceChat+hoparlör (izleyici).
+      if (Platform.OS === 'ios' && this.canliYayinModu) {
+        await IosCanliYayinOturumu(this.asPublisher);
+      } else if (Platform.OS === 'ios') {
         IosYankIptaliAc();
       }
       if (this.asPublisher && this.micIstenenAcik) {
@@ -1968,6 +2163,7 @@ class LiveKitBaglantiYoneticisiImpl {
       if (rolSifirla) {
         this.gorusmeModu = false;
         this.sesOdasiModu = false;
+        this.canliYayinModu = false;
         this.asPublisher = false;
         this.micIstenenAcik = false;
         this.kameraIstenenAcik = false;

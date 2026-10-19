@@ -31,6 +31,35 @@ type SonBaglanti = {
 let sonBaglanti: SonBaglanti | null = null;
 let acikMotor: RtcSaglayici | null = null;
 
+/** Küçültülmüş oda/yayın varken blur temizliği bağlantıyı kesmesin. */
+function miniOturumSesiKoru(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const ses = require('../ses-odalari/oturum/AktifSesOdasiOturumu') as {
+      AktifSesOdasiArkaPlandaMi: () => boolean;
+      AktifSesOdasiKucultmeTazeMi: (ms?: number) => boolean;
+    };
+    if (ses.AktifSesOdasiArkaPlandaMi() || ses.AktifSesOdasiKucultmeTazeMi()) {
+      return true;
+    }
+  } catch {
+    /* oturum modülü yok */
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const canli = require('../canli-yayin/oturum/AktifCanliYayinOturumu') as {
+      AktifCanliYayinArkaPlandaMi: () => boolean;
+      AktifCanliYayinKucultmeTazeMi: (ms?: number) => boolean;
+    };
+    if (canli.AktifCanliYayinArkaPlandaMi() || canli.AktifCanliYayinKucultmeTazeMi()) {
+      return true;
+    }
+  } catch {
+    /* oturum modülü yok */
+  }
+  return false;
+}
+
 export type MedyaBaglantiSonuc =
   | { ok: true; saglayici: RtcSaglayici; mock: boolean; kanal: string }
   | { ok: false; hata: string };
@@ -140,14 +169,15 @@ export async function MedyaSaglayiciGecisi(): Promise<void> {
   await MedyaOdasiBaglan({ ...girdi, zorla: true });
 }
 
-export async function MedyaOdasiKes() {
+export async function MedyaOdasiKes(opts?: { hizli?: boolean; zorla?: boolean }) {
+  if (!opts?.zorla && miniOturumSesiKoru()) return;
   const motor = acikMotor;
   acikMotor = null;
   if (motor === 'agora') {
     await AgoraKes();
     return;
   }
-  await LiveKitBaglantiYoneticisi.baglantiyiKes();
+  await LiveKitBaglantiYoneticisi.baglantiyiKes(!!opts?.hizli);
 }
 
 /** Yerel mikrofonu aç/kapat (yayıncı token gerekir). */
@@ -231,8 +261,40 @@ export function MedyaSesOturumunuYenile(zorla = false) {
   void LiveKitBaglantiYoneticisi.sesOturumunuYenile(zorla);
 }
 
+/** Ekran kapanınca iOS ses oturumunu yeniden aç — bağlantı duruyorsa ses geri gelir. */
+export function MedyaMiniSesiniTut() {
+  const muzigiSurdur = () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { OdaMuzikDevamEttir } = require('../oda-muzik/oynatici/OdaMuzikOynatici') as {
+        OdaMuzikDevamEttir: () => void;
+      };
+      OdaMuzikDevamEttir();
+    } catch {
+      /* müzik yok */
+    }
+  };
+  const dene = () => {
+    if (miniOturumSesiKoru()) {
+      MedyaHoparlorAyarla(true);
+      MedyaSesOturumunuYenile(true);
+      setTimeout(muzigiSurdur, 500);
+    }
+  };
+  setTimeout(dene, 200);
+  setTimeout(dene, 800);
+}
+
 /** Bu oturumda mikrofon yayın hakkı var mı (host/konuşmacı ve bağlı). */
 export function MedyaYayinciMi(): boolean {
   if (acikMotor === 'agora') return AgoraYayinciMi();
   return LiveKitBaglantiYoneticisi.yayinciMi();
+}
+
+/** Aynı odaya LiveKit ile bağlı mı — yarış sonrası sahte hata bastırmak için. */
+export function MedyaOdaBagliMi(roomName?: string): boolean {
+  if (acikMotor === 'agora') return !!acikMotor;
+  if (LiveKitBaglantiYoneticisi.durumGetir() !== 'connected') return false;
+  if (roomName && LiveKitBaglantiYoneticisi.odaAdi() !== roomName) return false;
+  return !!LiveKitBaglantiYoneticisi.oda();
 }
