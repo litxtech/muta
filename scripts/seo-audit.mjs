@@ -95,7 +95,7 @@ if (!fs.existsSync(path.join(dist, 'index.html'))) {
     if (!title || !title[1].trim()) hata(`title yok ${sayfa.yol}`);
     if (!desc || !desc[1].trim()) hata(`description yok ${sayfa.yol}`);
     if (robotsMeta && /noindex/i.test(robotsMeta[1])) hata(`public sayfa noindex ${sayfa.yol}`);
-    if (!/<main id="tamuso-statik">[\s\S]*<h1>/.test(html)) hata(`H1 yok ${sayfa.yol}`);
+    if (!/<main id="(?:icerik|tamuso-statik)">[\s\S]*<h1/.test(html)) hata(`H1 yok ${sayfa.yol}`);
     const duz = html
       .replace(/<script[\s\S]*?<\/script>/gi, ' ')
       .replace(/<style[\s\S]*?<\/style>/gi, ' ')

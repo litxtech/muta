@@ -150,3 +150,4 @@ export function sayfaIcerigi(yol) {
   }
   throw new Error(`içerik yok: ${yol}`);
 }
+

@@ -56,6 +56,13 @@ function gitGunu(dosya) {
 
 function oncelik(url) {
   if (url === '/') return { priority: '1.0', changefreq: 'weekly' };
+  if (
+    ['/goruntulu-sohbet', '/sesli-sohbet-odalari', '/sohbet-odalari', '/canli-yayin', '/arkadas-bul', '/yabanci-sohbet'].includes(
+      url,
+    )
+  ) {
+    return { priority: '0.9', changefreq: 'monthly' };
+  }
   if (url === '/tanitim' || url === '/politika' || url === '/blog') return { priority: '0.8', changefreq: 'weekly' };
   return { priority: '0.6', changefreq: 'monthly' };
 }
@@ -81,7 +88,7 @@ for (const sayfa of sayfalar) {
     console.error(`sitemap: başlık veya açıklama yok ${yol}`);
     process.exit(1);
   }
-  tekil.set(yol, { ...sayfa, gun: gitGunu(sayfa.kaynak) });
+  tekil.set(yol, { ...sayfa, gun: sayfa.guncelleme || gitGunu(sayfa.kaynak) });
 }
 
 if (!tekil.has('/blog')) {

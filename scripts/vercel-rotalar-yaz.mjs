@@ -101,9 +101,16 @@ const yollar = [...new Set(yuru(appDizin))]
   .filter((yol) => yol === '/blog' || !yol.startsWith('/blog/'))
   .filter((yol) => !sabitKaynak.has(yol))
   .sort((a, b) => b.length - a.length || a.localeCompare(b));
+/**
+ * Uygulama yolları /app.html'e gider.
+ * /index.html artık pazarlama ana sayfasıdır; uygulama kabuğu orada değil.
+ * Herkese açık pazarlama sayfaları dist içinde kendi HTML dosyasıdır ve
+ * dosya sistemi rewrite'tan önce geldiği için onlara dokunulmaz.
+ */
 const rewrites = [
   ...SABIT,
-  ...yollar.map((source) => ({ source, destination: '/index.html' })),
+  ...yollar.map((source) => ({ source, destination: '/app.html' })),
+  { source: '/app', destination: '/app.html' },
 ];
 const vercel = JSON.parse(fs.readFileSync(vercelYol, 'utf8'));
 vercel.rewrites = rewrites;

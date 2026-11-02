@@ -1,13 +1,56 @@
 [
   {
     "yol": "/",
-    "title": "Tamuso — Görüntülü sohbet, canlı yayın ve arkadaş bul",
-    "description": "Tamuso ile görüntülü görüş, canlı yayın aç, mesajlaş ve yeni arkadaşlar bul. Ses odaları, coin ve meyve oyunu aynı uygulamada. 18 yaş ve üzeri.",
-    "kaynak": "app/index.tsx"
+    "title": "Tamuso | Görüntülü sohbet, canlı yayın ve arkadaş bul",
+    "description": "Tamuso ile görüntülü sohbet et, canlı yayın aç, sesli sohbet odalarına katıl ve yeni arkadaşlar bul. Web, iOS ve Android. 18 yaş ve üzeri.",
+    "kaynak": "scripts/web-sayfalar.mjs",
+    "guncelleme": "2026-11-02"
+  },
+  {
+    "yol": "/goruntulu-sohbet",
+    "title": "Görüntülü sohbet: kamerayı aç, konuş | Tamuso",
+    "description": "Tamuso'da görüntülü sohbet: birebir kamera görüşmesi, görüşme içi mesaj, sesli odaya geçiş ve engelleme. Web, iOS ve Android. 18 yaş ve üzeri.",
+    "kaynak": "scripts/web-sayfalar.mjs",
+    "guncelleme": "2026-11-02"
+  },
+  {
+    "yol": "/sesli-sohbet-odalari",
+    "title": "Sesli sohbet odaları: mikrofonu aç | Tamuso",
+    "description": "Tamuso sesli sohbet odaları: mikrofonlu grup sohbeti, dinleyici olarak katılma, oda moderasyonu ve kamera açmadan konuşma. 18 yaş ve üzeri.",
+    "kaynak": "scripts/web-sayfalar.mjs",
+    "guncelleme": "2026-11-02"
+  },
+  {
+    "yol": "/sohbet-odalari",
+    "title": "Sohbet odaları: sesli, görüntülü ve canlı yayın | Tamuso",
+    "description": "Tamuso sohbet odaları: mikrofonlu sesli odalar, birebir görüntülü görüşme ve canlı yayın aynı hesapta. Katılma adımları, oda kuralları ve güvenlik. 18 yaş ve üzeri.",
+    "kaynak": "scripts/web-sayfalar.mjs",
+    "guncelleme": "2026-11-02"
+  },
+  {
+    "yol": "/canli-yayin",
+    "title": "Canlı yayın yap: kameranı aç | Tamuso",
+    "description": "Tamuso'da canlı yayın: kamera izniyle yayına çık, izleyici yorumları, PK düelloları, hediye ve yayıncı başvurusu. 18 yaş ve üzeri.",
+    "kaynak": "scripts/web-sayfalar.mjs",
+    "guncelleme": "2026-11-02"
+  },
+  {
+    "yol": "/arkadas-bul",
+    "title": "Arkadaş bul: keşfet, tanış, sohbet | Tamuso",
+    "description": "Tamuso'da arkadaş bul: keşfet ekranı, canlı yayınlar, sesli odalar, hikâyeler ve şehir sayfaları. Engelleme ve bildirme ile güvenli tanışma.",
+    "kaynak": "scripts/web-sayfalar.mjs",
+    "guncelleme": "2026-11-02"
+  },
+  {
+    "yol": "/yabanci-sohbet",
+    "title": "Yabancı sohbet: yeni ülkeler, yeni insanlar | Tamuso",
+    "description": "Tamuso'da yabancı sohbet: ülke ve şehir sayfaları, beş dilde arayüz, sesli odalarda dinleme pratiği ve güvenli tanışma önerileri.",
+    "kaynak": "scripts/web-sayfalar.mjs",
+    "guncelleme": "2026-11-02"
   },
   {
     "yol": "/tanitim",
-    "title": "Tamuso | Canlı yayın, görüntülü sohbet ve mesajlaşma",
+    "title": "Tamuso tanıtım | Canlı yayın, görüntülü sohbet ve mesajlaşma",
     "description": "Tamuso tanıtımı: görüntülü görüşme, canlı yayın, mesajlaşma ve arkadaş bulma. Uygulamanın açık sayfası.",
     "kaynak": "app/tanitim/index.tsx"
   },
@@ -37,7 +80,7 @@
   },
   {
     "yol": "/tanitim/yatirim",
-    "title": "Tamuso yatırım | support@litxtech.com",
+    "title": "Tamuso yatırım | Yatırımcı bilgileri",
     "description": "Tamuso yatırım görüşmesi için support@litxtech.com adresine yazın. Bu sayfa bir teklif, getiri veya satış vaadi değildir.",
     "kaynak": "app/tanitim/yatirim.tsx"
   },
@@ -50,31 +93,31 @@
   {
     "yol": "/politika",
     "title": "Tamuso politikalar | Gizlilik ve kullanım şartları",
-    "description": "Tamuso topluluk kuralları, gizlilik, kullanım şartları ve çocuk güvenliği metinleri.",
+    "description": "Tamuso politikaları: topluluk kuralları, gizlilik politikası, kullanım şartları ve çocuk koruma metinleri tek sayfada.",
     "kaynak": "app/politika/index.tsx"
   },
   {
     "yol": "/politika/tos",
     "title": "Kullanım Şartları | Tamuso",
-    "description": "Platform kuralları ve sorumluluklar.",
+    "description": "Tamuso kullanım şartları: hesap, içerik, coin, yayın ve sorumluluk kuralları. Platform 18 yaş ve üzeri kullanıcılar içindir.",
     "kaynak": "app/politika/[kod].tsx"
   },
   {
     "yol": "/politika/privacy",
     "title": "Gizlilik Politikası | Tamuso",
-    "description": "Kişisel verilerin işlenmesi.",
+    "description": "Tamuso gizlilik politikası: hangi kişisel veriler işlenir, hangi amaçla saklanır, silme ve itiraz hakları nasıl kullanılır.",
     "kaynak": "app/politika/[kod].tsx"
   },
   {
     "yol": "/politika/community_rules",
     "title": "Topluluk Kuralları | Tamuso",
-    "description": "Kullanıcı içeriği, bildirme ve engelleme kuralları.",
+    "description": "Tamuso topluluk kuralları: yayın, sesli oda ve mesajlarda kabul edilen davranışlar, bildirme ve engelleme adımları.",
     "kaynak": "app/politika/[kod].tsx"
   },
   {
     "yol": "/politika/child_safety",
     "title": "Çocuk Koruma Politikası | Tamuso",
-    "description": "Tamuso 18 yaş ve üzeri içindir. Çocuklara yönelik içerikte sıfır tolerans uygulanır.",
+    "description": "Tamuso çocuk koruma politikası: platform 18 yaş ve üzeri içindir, çocuklara yönelik içerikte sıfır tolerans uygulanır.",
     "kaynak": "app/politika/[kod].tsx"
   }
 ]
