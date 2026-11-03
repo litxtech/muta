@@ -1,9 +1,14 @@
 /**
- * Meyve çarkı personel RPC'leri — YALNIZCA web yönetim konsolunda kullanılır.
+ * Meyve Çarkı personel RPC'leri — YALNIZCA web yönetim konsolunda kullanılır.
  *
  * Bu dosya `apps/super-admin` içinde tutulur; mobil uygulama hiçbir zaman
- * import etmez. Böylece iOS/Android binary'sinde personel RPC adları
- * (force_next, save_policy vb.) hiç görünmez (Guideline 2.5.19).
+ * import etmez. Böylece iOS/Android binary'sinde personel RPC adları görünmez
+ * (Guideline 2.5.19).
+ *
+ * ÖNEMLİ: Sonuç belirleme (force_next), ağırlık/çarpan yayınlama ve politika
+ * yazma uçları kaldırıldı. Çark sonucu sunucudaki RNG ile üretilir; personel
+ * paneli sonucu seçemez. Panel yalnızca okuma, bakım aç/kapat ve denetim izleme
+ * yapar.
  */
 import { supabase } from '../../../src/lib/supabase';
 
@@ -19,33 +24,10 @@ export async function fruitWheelAdminMath(): Promise<unknown> {
   return data;
 }
 
+/** Yalnızca bakım modu: oyunu kapatır/açar. Sonucu değiştirmez. */
 export async function fruitWheelAdminSetEnabled(enabled: boolean): Promise<unknown> {
   const { data, error } = await supabase.rpc('fruit_wheel_admin_set_enabled', {
     p_enabled: enabled,
-  });
-  if (error) return { ok: false, code: error.message };
-  return data;
-}
-
-export async function fruitWheelAdminPublish(fruits: unknown): Promise<unknown> {
-  const { data, error } = await supabase.rpc('fruit_wheel_admin_publish_fruits', {
-    p_fruits: fruits,
-  });
-  if (error) return { ok: false, code: error.message };
-  return data;
-}
-
-export async function fruitWheelAdminSavePolicy(patch: unknown): Promise<unknown> {
-  const { data, error } = await supabase.rpc('fruit_wheel_admin_save_policy', {
-    p_patch: patch,
-  });
-  if (error) return { ok: false, code: error.message };
-  return data;
-}
-
-export async function fruitWheelAdminForceNext(fruitId: string | null): Promise<unknown> {
-  const { data, error } = await supabase.rpc('fruit_wheel_admin_force_next', {
-    p_fruit_id: fruitId,
   });
   if (error) return { ok: false, code: error.message };
   return data;

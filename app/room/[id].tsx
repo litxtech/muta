@@ -569,7 +569,7 @@ export default function RoomScreen() {
     setOyunMonteli(true);
   }, [oyunParam, isDemo]);
 
-  /** Zeus gibi tam ekran oyun: ses odasına girdikten sonra ilgili sayfayı aç. */
+  /** Tam ekran oyun: ses odasına girdikten sonra ilgili sayfayı aç. */
   React.useEffect(() => {
     const kod = Array.isArray(oyunParam) ? oyunParam[0] : oyunParam;
     const sayfa = kod ? OyunKazancSayfasi(kod) : null;

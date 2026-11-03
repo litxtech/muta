@@ -10,6 +10,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useCeviri } from '../../../i18n/useCeviri';
+import { OzellikBilgiDugmesi } from '../../../bilesenler/bilgi/OzellikBilgiDugmesi';
 
 type Props = {
   canliSayisi: number;
@@ -33,7 +34,12 @@ export function KesfetMarkaBasligi({ canliSayisi, onGeri }: Props) {
 
         <View style={styles.markaBlok}>
           <Text style={styles.fisilti}>{t('kesfet.fisilti')}</Text>
-          <Text style={styles.baslik}>{t('kesfet.sahneBul')}</Text>
+          <View style={styles.baslikSatir}>
+            <Text style={styles.baslik} numberOfLines={1} ellipsizeMode="tail">
+              {t('kesfet.sahneBul')}
+            </Text>
+            <OzellikBilgiDugmesi konu="kesfet" />
+          </View>
           <Text style={styles.slogan}>{t('kesfet.slogan')}</Text>
         </View>
 
@@ -90,6 +96,13 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
     fontSize: 28,
     lineHeight: 34,
+    flexShrink: 1,
+  },
+  baslikSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 0,
   },
   slogan: {
     ...TipografiTokenlari.caption,

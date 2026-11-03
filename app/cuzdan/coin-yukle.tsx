@@ -193,6 +193,7 @@ export default function CoinYukleEkrani() {
           title={t('cuzdanX.coinYukle')}
           subtitle={t('cuzdanY.heroNot')}
           fallbackHref="/(tabs)/wallet"
+          bilgi="coinPaket"
           right={
             <Pressable
               onPress={() => router.push('/(tabs)/wallet' as any)}

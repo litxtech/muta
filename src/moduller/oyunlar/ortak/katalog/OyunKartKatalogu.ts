@@ -2,8 +2,8 @@
  * Oyun kart kataloğu — feed / lobi kartlarının görsel kimliği tek yerde.
  *
  * Yalnızca binary'de gerçekten oynanabilen oyunlar burada tutulur.
- * Diğer motorların (zeus, nox, kaskad, fair-spin, astral-falls, storm-king)
- * varlıkları ve rotaları iOS paketinden çıkarılmıştır; katalogda yer almazlar.
+ * Şu anda tek oyun fruit_wheel'dir; kaldırılan motorların varlıkları ve
+ * rotaları dağıtım paketinden çıkarılmıştır.
  */
 
 import type { ImageSourcePropType } from 'react-native';

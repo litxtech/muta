@@ -74,7 +74,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       ITSAppUsesNonExemptEncryption: false,
       LSApplicationQueriesSchemes: ['whatsapp', 'whatsapp-business'],
       CFBundleAllowMixedLocalizations: true,
-      CFBundleLocalizations: ['tr', 'en', 'es', 'pt', 'ar'],
+      CFBundleLocalizations: ['tr', 'en', 'es', 'pt', 'ar', 'fr', 'fil'],
     },
   },
   android: {

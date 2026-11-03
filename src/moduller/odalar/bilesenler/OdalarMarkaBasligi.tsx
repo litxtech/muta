@@ -8,6 +8,7 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useCeviri } from '../../../i18n/useCeviri';
+import { OzellikBilgiDugmesi } from '../../../bilesenler/bilgi/OzellikBilgiDugmesi';
 
 type Props = {
   canliSayisi: number;
@@ -21,7 +22,12 @@ export function OdalarMarkaBasligi({ canliSayisi }: Props) {
       <View style={styles.ust}>
         <View style={styles.markaBlok}>
           <Text style={styles.fisilti}>{t('odalar.fisilti')}</Text>
-          <Text style={styles.baslik}>{t('odalar.canliOdalar')}</Text>
+          <View style={styles.baslikSatir}>
+            <Text style={styles.baslik} numberOfLines={1} ellipsizeMode="tail">
+              {t('odalar.canliOdalar')}
+            </Text>
+            <OzellikBilgiDugmesi konu="sesliOda" />
+          </View>
           <Text style={styles.slogan}>{t('odalar.slogan')}</Text>
         </View>
         <View style={styles.canliRozet}>
@@ -66,6 +72,13 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     fontSize: 22,
     lineHeight: 28,
+    flexShrink: 1,
+  },
+  baslikSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 0,
   },
   slogan: {
     ...TipografiTokenlari.caption,

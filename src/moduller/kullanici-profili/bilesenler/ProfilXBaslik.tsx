@@ -29,6 +29,7 @@ import { OzellikBayragiAktifMi } from '../../ozellik-bayraklari/OzellikBayragiAk
 import { useUnvanKatalog } from '../../unvanlar/kancalar/useUnvanKatalog';
 import { HikayeCanliHalka } from '../../hikaye/bilesenler/HikayeCanliHalka';
 import { HikayeOnizlemeGorselMi } from '../../hikaye/yardimcilar/HikayeAvatarDaireUri';
+import { OzellikBilgiDugmesi } from '../../../bilesenler/bilgi/OzellikBilgiDugmesi';
 
 export const PROFIL_X_COVER_H = 150;
 export const PROFIL_X_AVATAR = 76;
@@ -293,6 +294,7 @@ export function ProfilXBaslik({
           {verified ? <DogrulanmisTik size={18} /> : null}
           {title ? <UserTitleBadge title={title} size="NORMAL" /> : null}
           {isimYani}
+          <OzellikBilgiDugmesi konu="profil" style={styles.isimBilgi} />
         </View>
         {ajansSahibi ? <AjansSahipRozeti /> : null}
         {username ? (
@@ -522,6 +524,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     maxWidth: '100%',
+  },
+  isimBilgi: {
+    flexShrink: 0,
   },
   name: {
     ...TipografiTokenlari.title,

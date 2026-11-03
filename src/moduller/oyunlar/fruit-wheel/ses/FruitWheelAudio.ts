@@ -1,6 +1,6 @@
 /**
  * Fruit Wheel ses — expo-audio.
- * Fair Spin / Realm asset'leri yeniden kullanılır; eksik dosya oyunu durdurmaz.
+ * Ses dosyaları assets/oyunlar/fruit-wheel/audio altında; eksik dosya oyunu durdurmaz.
  */
 
 import { createAudioPlayer, preload } from 'expo-audio';
@@ -32,18 +32,18 @@ type PlayerLike = {
 const PLAYER_OPTS = { keepAudioSessionActive: true } as const;
 
 const SOURCES: Record<Cue, number> = {
-  'round-open': require('../../../../../assets/realm-of-storms/audio/game_open.wav'),
-  'selection-add': require('../../../../../assets/realm-of-storms/audio/ui_click.wav'),
-  'selection-remove': require('../../../../../assets/realm-of-storms/audio/ui_click.wav'),
-  'selection-confirm': require('../../../../../assets/realm-of-storms/audio/spin_press.wav'),
+  'round-open': require('../../../../../assets/oyunlar/fruit-wheel/audio/fw-open.wav'),
+  'selection-add': require('../../../../../assets/oyunlar/fruit-wheel/audio/fw-click.wav'),
+  'selection-remove': require('../../../../../assets/oyunlar/fruit-wheel/audio/fw-click.wav'),
+  'selection-confirm': require('../../../../../assets/oyunlar/fruit-wheel/audio/fw-confirm.wav'),
   countdown: require('../../../../../assets/oyunlar/fruit-wheel/audio/wheel-tick.mp3'),
-  lock: require('../../../../../assets/realm-of-storms/audio/scatter_anticipation.wav'),
+  lock: require('../../../../../assets/oyunlar/fruit-wheel/audio/fw-lock.wav'),
   'wheel-start': require('../../../../../assets/oyunlar/fruit-wheel/audio/wheel-spin.mp3'),
   'pointer-tick': require('../../../../../assets/oyunlar/fruit-wheel/audio/wheel-tick.mp3'),
-  'wheel-stop': require('../../../../../assets/realm-of-storms/audio/crystal_land.wav'),
-  win: require('../../../../../assets/realm-of-storms/audio/mega_win.wav'),
-  lose: require('../../../../../assets/realm-of-storms/audio/ui_click.wav'),
-  error: require('../../../../../assets/realm-of-storms/audio/error.wav'),
+  'wheel-stop': require('../../../../../assets/oyunlar/fruit-wheel/audio/fw-stop.wav'),
+  win: require('../../../../../assets/oyunlar/fruit-wheel/audio/fw-win.wav'),
+  lose: require('../../../../../assets/oyunlar/fruit-wheel/audio/fw-click.wav'),
+  error: require('../../../../../assets/oyunlar/fruit-wheel/audio/fw-error.wav'),
 };
 
 const VOLUMES: Partial<Record<Cue, number>> = {

@@ -10,9 +10,8 @@ import { AktifSesOdasiDurumunuAl } from '../../ses-odalari/oturum/AktifSesOdasiO
 /**
  * Bağımsız oyun rotası olan oyunlar.
  *
- * Ölü oyun motorları (zeus, nox, kaskad, fair-spin, astral-falls, sis-spin, dede)
- * ve storm-king iOS binary'sinden çıkarıldı; rotaları yok. Bu kodlar artık
- * oda içi oyun akışına düşer.
+ * Şu anda yalnızca fruit_wheel desteklenir; oyun içi akış modal üzerinden
+ * yürür, ayrı bir rotaya ihtiyaç duymaz.
  */
 const SAYFA: Record<string, string> = {};
 

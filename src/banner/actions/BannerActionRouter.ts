@@ -42,7 +42,7 @@ export async function routeBannerAction(
       case 'INTERNAL_SCREEN': {
         const raw = (action.target ?? '').trim();
         if (!raw) return { ok: false, error: i18n.t('banner.hedefEkranYok') };
-        // `/oyun/zeus` gibi absolute path'ler doğrudan
+        // `/oyun/fruit-wheel` gibi absolute path'ler doğrudan
         if (raw.startsWith('/')) {
           router.push(raw as never);
           return { ok: true };

@@ -6,6 +6,7 @@ import { YonluIkon } from './YonluIkon';
 import { RenkTokenlari } from '../tasarim-sistemi/RenkTokenlari';
 import { BoslukTokenlari, HeaderTokenlari } from '../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import i18n from '../i18n';
+import { OzellikBilgiDugmesi, type BilgiKonusu } from '../bilesenler/bilgi/OzellikBilgiDugmesi';
 
 type Hiza = 'start' | 'center';
 
@@ -27,6 +28,8 @@ export type TamusoScreenHeaderProps = {
   divider?: boolean;
   compact?: boolean;
   align?: Hiza;
+  /** Başlık yanında (?) açıklama düğmesi — mevcut işlevi anlatır. */
+  bilgi?: BilgiKonusu;
 };
 
 type EkranBasligiProps = {
@@ -44,6 +47,8 @@ type EkranBasligiProps = {
   fallbackHref?: Href;
   border?: boolean;
   transparent?: boolean;
+  /** Başlık yanında (?) açıklama düğmesi. */
+  bilgi?: BilgiKonusu;
 };
 
 function cevir(anahtar: string, yedek: string) {
@@ -97,6 +102,7 @@ export function TamusoScreenHeader({
   divider = false,
   compact = false,
   align = 'start',
+  bilgi,
 }: TamusoScreenHeaderProps) {
   const geriBas = onBack ?? (() => guvenliGeriDon(fallbackHref));
   const menuSol = !back && !!onMenu;
@@ -138,7 +144,7 @@ export function TamusoScreenHeader({
   const metin = (
     <View
       style={[styles.metin, ortali && styles.metinOrta]}
-      pointerEvents={ortali ? 'none' : 'auto'}
+      pointerEvents={ortali && !bilgi ? 'none' : 'auto'}
     >
       <View style={styles.baslikSatir}>
         <Text
@@ -155,6 +161,7 @@ export function TamusoScreenHeader({
             </Text>
           </View>
         ) : null}
+        {bilgi ? <OzellikBilgiDugmesi konu={bilgi} /> : null}
       </View>
       {subtitle ? (
         <Text
@@ -217,6 +224,7 @@ export function EkranBasligi({
   fallbackHref = '/(tabs)/profile',
   border = false,
   transparent = false,
+  bilgi,
 }: EkranBasligiProps) {
   return (
     <TamusoScreenHeader
@@ -229,6 +237,7 @@ export function EkranBasligi({
       divider={border}
       transparent={transparent}
       align={alignment}
+      bilgi={bilgi}
     />
   );
 }

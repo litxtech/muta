@@ -9,6 +9,7 @@ import { BoslukTokenlari } from '../../../tasarim-sistemi/BoslukVeYaricapTokenla
 import { useCeviri } from '../../../i18n/useCeviri';
 import { DIL_LOCALE_MAP } from '../../../i18n/diller';
 import { CanliCoinSimgesi } from './CanliCoinSimgesi';
+import { OzellikBilgiDugmesi } from '../../../bilesenler/bilgi/OzellikBilgiDugmesi';
 import {
   BilgiKarti,
   CuzdanOzetTablosu,
@@ -64,6 +65,7 @@ export function CuzdanHero({
         <Text style={styles.markaYazi} numberOfLines={1}>
           {t('cuzdan.baslik')}
         </Text>
+        <OzellikBilgiDugmesi konu="cuzdan" style={styles.markaBilgi} />
       </View>
 
       <View style={styles.bakiyeBlok}>
@@ -428,6 +430,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(240,180,41,0.6)',
   },
   markaSatir: { flexDirection: 'row', alignItems: 'center', gap: 7, minWidth: 0 },
+  markaBilgi: { marginLeft: 'auto', borderColor: 'rgba(255,255,255,0.45)' },
   markaSimge: {
     width: 22,
     height: 22,

@@ -5838,6 +5838,84 @@ export const tr = {
     mimeReddedildi: "Bu dosya türü desteklenmiyor ({{type}}).",
     yuklemeBasarisiz: "Yükleme başarısız.",
   },
+  bilgi: {
+    dugme: 'Açıklama',
+    dugmeIpucu: 'Bu özelliğin ne yaptığını gösterir',
+    kapat: 'Anladım',
+    neBaslik: 'Ne işe yarar',
+    nasilBaslik: 'Nasıl kullanılır',
+    kosulBaslik: 'Coin ve kurallar',
+    canliBaslik: 'Canlı yayın',
+    canliNe:
+      'Yayıncıların kamera ve mikrofonla gerçek zamanlı yayın açtığı, izleyicilerin sohbet edip hediye gönderebildiği bölüm.',
+    canliNasil:
+      'Canlı sekmesinden bir yayın seçip izlemeye başla. Yayıncıysan kendi yayınını açabilir, yorumları takip edebilir ve gelen hediyeleri görebilirsin.',
+    canliKosullar:
+      'İzlemek ücretsizdir. Hediye göndermek coin harcar; coinler Cüzdanım içindeki paketlerden satın alınır. Kural dışı içerik bildirilebilir.',
+    sesliOdaBaslik: 'Sesli odalar',
+    sesliOdaNe:
+      'Konuşmacıların mikrofonla sohbet ettiği, dinleyicilerin yazılı olarak katıldığı canlı ses odaları.',
+    sesliOdaNasil:
+      'Odalar sekmesinden bir oda seç. Boş bir koltuğa geçerek konuşmaya başlayabilir, mikrofonunu kapatabilir ve odadan ayrılabilirsin.',
+    sesliOdaKosullar:
+      'Dinlemek ücretsizdir. Hediye göndermek coin harcar. Oda sahibi ve moderatörler katılımcıları susturabilir veya odadan çıkarabilir.',
+    pkBaslik: 'PK karşılaşması',
+    pkNe:
+      'İki canlı yayıncının belirli bir süre boyunca hediye puanıyla yarıştığı gerçek zamanlı yayın etkileşimi.',
+    pkNasil:
+      'Yayın ekranındaki PK göstergesinde tarafların puanını ve kalan süreyi görürsün. Desteklemek istediğin tarafa hediye gönderebilirsin.',
+    pkKosullar:
+      'Hediye göndermek coin harcar. Süre bitince yüksek puanlı taraf kazanır; sonuç yayında gösterilir.',
+    cuzdanBaslik: 'Cüzdanım',
+    cuzdanNe:
+      'Coin bakiyeni, elmas kazancını, satın alma ve hediye hareketlerini tek yerde gösteren bölüm.',
+    cuzdanNasil:
+      'Bakiyeni ve hareket geçmişini görüntüle, coin paketlerini aç veya yayıncı kazancın varsa ödeme durumunu incele.',
+    cuzdanKosullar:
+      'Coin satın alımları Apple App Store veya Google Play üzerinden yapılır. Elmaslar yayıncı kazancıdır; para çekme yalnızca açıksa kullanılabilir.',
+    coinPaketBaslik: 'Coin paketleri',
+    coinPaketNe:
+      'Uygulama içinde hediye göndermek için kullanılan coinlerin satın alma paketleri.',
+    coinPaketNasil:
+      'Cüzdanım ekranından bir paket seç, mağaza onay ekranını tamamla; coinler doğrulama sonrası bakiyene eklenir.',
+    coinPaketKosullar:
+      'Ödeme Apple App Store veya Google Play üzerinden alınır. Fiyatlar mağazada gösterilir. Başarısız ödeme bakiyeye yansımaz; satın alma geçmişinden kontrol edebilirsin.',
+    hediyeBaslik: 'Sanal hediyeler',
+    hediyeNe:
+      'Canlı yayın, sesli oda ve mesajlarda gönderilen, yayıncıya elmas kazandıran dijital hediyeler.',
+    hediyeNasil:
+      'Hediye düğmesine bas, listeden bir hediye seç ve gönder. Gönderdiğin hediye sohbette görünür.',
+    hediyeKosullar:
+      'Her hediyenin coin bedeli vardır ve gönderim anında bakiyeden düşer. Gönderilen hediyeler iade edilmez.',
+    meyveCarkiBaslik: 'Meyve Çarkı',
+    meyveCarkiNe:
+      'Sekiz meyveli, canlı turlarla çalışan bir çark oyunu. Tur sonucu sunucuda üretilir.',
+    meyveCarkiNasil:
+      'En fazla dört farklı meyve seçip coin yatır; tur kilitlenmeden önce seçimini değiştirebilirsin. Tur açıldığında kazanan meyve sunucuda belirlenir.',
+    meyveCarkiKosullar:
+      'Oyun coinleri ile oynanır; yetmezse satın alınan coin kullanımı onay ister. Oyun coinleri çekilebilir bakiye değildir. Kazanç garantisi yoktur.',
+    profilBaslik: 'Profil',
+    profilNe:
+      'Fotoğraf, biyografi, ülke, gönderiler ve takipçi bilgilerini gösteren kişisel sayfa.',
+    profilNasil:
+      'Kendi profilini düzenleyebilir, başka profilleri takip edebilir, mesaj gönderebilir veya şikâyet edebilirsin.',
+    profilKosullar:
+      'Takip ve mesajlaşma ücretsizdir. Engelleme ve şikâyet araçları tüm profillerde kullanılabilir.',
+    kesfetBaslik: 'Keşfet',
+    kesfetNe:
+      'Ülke filtreleri ve arama ile yeni kişileri, odaları ve yayınları bulma bölümü.',
+    kesfetNasil:
+      'Üstteki ülke seçicisini kullan veya arama alanına yaz. Sonuçlardan profile, odaya ya da yayına geçebilirsin.',
+    kesfetKosullar:
+      'Arama ve keşfetme ücretsizdir. Görünen içerik topluluk kurallarına tabidir.',
+    gonderiBaslik: 'Sosyal gönderiler',
+    gonderiNe:
+      'Kullanıcıların fotoğraf, video ve metin paylaştığı, beğeni ve yorum aldığı akış.',
+    gonderiNasil:
+      'Akışta kaydır, bir gönderiyi beğen, yorum yap veya paylaş. Kendi gönderini oluştur düğmesinden paylaşabilirsin.',
+    gonderiKosullar:
+      'Paylaşım ve etkileşim ücretsizdir. Uygunsuz içerik bildirilebilir; moderasyon incelemesi sonrası kaldırılabilir.',
+  },
   odaX: {
     odaBulunamadi: "Oda bulunamadı.",
     odaDolu: "Oda dolu.",
@@ -5845,9 +5923,9 @@ export const tr = {
   },
 } as const;
 
-/** Değerler dil bağımsız string; anahtar yapısı Türkçe sözlükten */
-export type CeviriSozlugu = {
-  [K in keyof typeof tr]: (typeof tr)[K] extends string
-    ? string
-    : { [P in keyof (typeof tr)[K]]: string };
+/** Değerler dil bağımsız string; anahtar yapısı Türkçe sözlükten (özyinelemeli). */
+type DerinSozluk<T> = {
+  [K in keyof T]: T[K] extends string ? string : DerinSozluk<T[K]>;
 };
+
+export type CeviriSozlugu = DerinSozluk<typeof tr>;

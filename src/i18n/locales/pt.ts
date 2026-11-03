@@ -1120,7 +1120,7 @@ export const pt: CeviriSozlugu = {
     listeYuklenemedi: "Could not load list",
     takipcilerdeAra: "Buscar seguidores...",
     takipEdilenlerdeAra: "Search following...",
-    hataRateLimited: "You're acting too fast. Try again in a bit.",
+    hataRateLimited: "Você está agindo rápido demais. Tente novamente em instantes.",
     hataBlocked: "Communication with this user is blocked.",
     hataSelf: "You can't follow yourself.",
     hataGuest: "Conclua sua conta para seguir.",
@@ -5823,6 +5823,84 @@ export const pt: CeviriSozlugu = {
     dosyaSecilemedi: "Nenhum arquivo foi selecionado.",
     mimeReddedildi: "Este tipo de arquivo não é compatível ({{type}}).",
     yuklemeBasarisiz: "Falha no envio.",
+  },
+  bilgi: {
+    dugme: 'Sobre este recurso',
+    dugmeIpucu: 'Mostra o que este recurso faz',
+    kapat: 'Entendi',
+    neBaslik: 'Para que serve',
+    nasilBaslik: 'Como usar',
+    kosulBaslik: 'Moedas e regras',
+    canliBaslik: 'Transmissões ao vivo',
+    canliNe:
+      'A seção onde criadores transmitem ao vivo com câmera e microfone enquanto espectadores conversam e enviam presentes em tempo real.',
+    canliNasil:
+      'Escolha uma transmissão na aba Ao vivo para começar a assistir. Se você é criador, pode iniciar sua própria transmissão, acompanhar o chat e ver os presentes.',
+    canliKosullar:
+      'Assistir é grátis. Enviar um presente gasta moedas, e as moedas são compradas nos pacotes da Carteira. Conteúdo que viola as regras pode ser denunciado.',
+    sesliOdaBaslik: 'Salas de voz',
+    sesliOdaNe:
+      'Salas de áudio ao vivo onde os falantes conversam pelo microfone e os ouvintes participam pelo chat de texto.',
+    sesliOdaNasil:
+      'Escolha uma sala na aba Salas. Ocupe um assento livre para falar, silencie o microfone ou saia da sala quando quiser.',
+    sesliOdaKosullar:
+      'Ouvir é grátis. Enviar um presente gasta moedas. Donos e moderadores podem silenciar ou remover participantes.',
+    pkBaslik: 'Batalha PK',
+    pkNe:
+      'Uma interação ao vivo em tempo real em que dois criadores competem por pontos de presentes durante um período fixo.',
+    pkNasil:
+      'O indicador PK da transmissão mostra a pontuação de cada lado e o tempo restante. Você pode enviar presentes para o lado que preferir.',
+    pkKosullar:
+      'Enviar um presente gasta moedas. Quando o tempo acaba, o lado com mais pontos vence e o resultado aparece na transmissão.',
+    cuzdanBaslik: 'Minha carteira',
+    cuzdanNe:
+      'A seção que mostra seu saldo de moedas, ganhos em diamantes, compras e movimentações de presentes em um só lugar.',
+    cuzdanNasil:
+      'Veja o saldo e o histórico, abra os pacotes de moedas ou confira o status de pagamento se tiver ganhos de criador.',
+    cuzdanKosullar:
+      'As compras de moedas são feitas pela Apple App Store ou Google Play. Diamantes são ganhos do criador e os saques só ficam disponíveis quando habilitados.',
+    coinPaketBaslik: 'Pacotes de moedas',
+    coinPaketNe:
+      'Pacotes de compra das moedas usadas para enviar presentes dentro do app.',
+    coinPaketNasil:
+      'Escolha um pacote na Carteira e conclua a confirmação da loja. As moedas são adicionadas após a verificação.',
+    coinPaketKosullar:
+      'O pagamento é processado pela Apple App Store ou Google Play. Os preços aparecem na loja. Um pagamento com falha não altera seu saldo; confira o histórico de compras.',
+    hediyeBaslik: 'Presentes virtuais',
+    hediyeNe:
+      'Presentes digitais enviados em transmissões, salas de voz e mensagens que geram diamantes para o criador.',
+    hediyeNasil:
+      'Toque no botão de presente, escolha um item da lista e envie. Seu presente aparece no chat.',
+    hediyeKosullar:
+      'Cada presente tem um preço em moedas e é descontado no envio. Presentes enviados não são reembolsáveis.',
+    meyveCarkiBaslik: 'Roleta de Frutas',
+    meyveCarkiNe:
+      'Um jogo de roleta com oito frutas que funciona em rodadas ao vivo. O resultado é gerado no servidor.',
+    meyveCarkiNasil:
+      'Escolha até quatro frutas diferentes e adicione moedas; você pode mudar a seleção até a rodada travar. Quando a rodada abre, a fruta vencedora é escolhida no servidor.',
+    meyveCarkiKosullar:
+      'Jogado com moedas de jogo; se não forem suficientes, usar moedas compradas exige sua confirmação. Moedas de jogo não são saldo sacável. Não há garantia de ganhos.',
+    profilBaslik: 'Perfil',
+    profilNe:
+      'Sua página pessoal com foto, biografia, país, publicações e seguidores.',
+    profilNasil:
+      'Você pode editar seu perfil, seguir outros perfis, enviar mensagem ou denunciar uma conta.',
+    profilKosullar:
+      'Seguir e enviar mensagens é grátis. Ferramentas de bloqueio e denúncia estão disponíveis em todos os perfis.',
+    kesfetBaslik: 'Descobrir',
+    kesfetNe:
+      'A seção para encontrar novas pessoas, salas e transmissões com filtros de país e busca.',
+    kesfetNasil:
+      'Use o seletor de país ou digite na busca. Nos resultados você pode abrir um perfil, uma sala ou uma transmissão.',
+    kesfetKosullar:
+      'Buscar e descobrir é grátis. O conteúdo visível está sujeito às regras da comunidade.',
+    gonderiBaslik: 'Publicações sociais',
+    gonderiNe:
+      'O feed onde usuários compartilham fotos, vídeos e textos e recebem curtidas e comentários.',
+    gonderiNasil:
+      'Role o feed, curta, comente ou compartilhe. Você pode publicar seu próprio post pelo botão de criar.',
+    gonderiKosullar:
+      'Publicar e interagir é grátis. Conteúdo inadequado pode ser denunciado e removido após revisão.',
   },
   odaX: {
     odaBulunamadi: "Sala não encontrada.",

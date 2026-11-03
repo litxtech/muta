@@ -5840,6 +5840,84 @@ export const en: CeviriSozlugu = {
     mimeReddedildi: "This file type is not supported ({{type}}).",
     yuklemeBasarisiz: "Upload failed.",
   },
+  bilgi: {
+    dugme: 'About this feature',
+    dugmeIpucu: 'Shows what this feature does',
+    kapat: 'Got it',
+    neBaslik: 'What it does',
+    nasilBaslik: 'How to use it',
+    kosulBaslik: 'Coins and rules',
+    canliBaslik: 'Live streams',
+    canliNe:
+      'The section where creators go live with camera and microphone while viewers chat and send gifts in real time.',
+    canliNasil:
+      'Pick a stream on the Live tab to start watching. If you are a creator, you can start your own stream, follow the chat and see incoming gifts.',
+    canliKosullar:
+      'Watching is free. Sending a gift spends coins, and coins are purchased from the packages in Wallet. Content that breaks the rules can be reported.',
+    sesliOdaBaslik: 'Voice rooms',
+    sesliOdaNe:
+      'Live audio rooms where speakers talk with their microphone and listeners take part in text chat.',
+    sesliOdaNasil:
+      'Choose a room on the Rooms tab. Take an empty seat to speak, mute your microphone, or leave the room at any time.',
+    sesliOdaKosullar:
+      'Listening is free. Sending a gift spends coins. Room owners and moderators can mute or remove participants.',
+    pkBaslik: 'PK battle',
+    pkNe:
+      'A real-time live interaction where two creators compete for gift points during a fixed period.',
+    pkNasil:
+      'The PK indicator on the stream shows each side score and the remaining time. You can send gifts to support the side you prefer.',
+    pkKosullar:
+      'Sending a gift spends coins. When time runs out, the side with the higher score wins and the result is shown on the stream.',
+    cuzdanBaslik: 'Wallet',
+    cuzdanNe:
+      'The section that shows your coin balance, diamond earnings, purchases and gift activity in one place.',
+    cuzdanNasil:
+      'View your balance and transaction history, open coin packages, or check payout status if you have creator earnings.',
+    cuzdanKosullar:
+      'Coin purchases are made through the Apple App Store or Google Play. Diamonds are creator earnings and withdrawals are only available when enabled.',
+    coinPaketBaslik: 'Coin packages',
+    coinPaketNe:
+      'Purchase packages for the coins used to send gifts inside the app.',
+    coinPaketNasil:
+      'Choose a package on the Wallet screen and complete the store confirmation. Coins are added to your balance after verification.',
+    coinPaketKosullar:
+      'Payment is handled by the Apple App Store or Google Play. Prices are shown in the store. A failed payment does not change your balance; check your purchase history.',
+    hediyeBaslik: 'Virtual gifts',
+    hediyeNe:
+      'Digital gifts sent in live streams, voice rooms and messages that earn diamonds for the creator.',
+    hediyeNasil:
+      'Tap the gift button, choose a gift from the list and send it. Your gift appears in the chat.',
+    hediyeKosullar:
+      'Every gift has a coin price and is deducted from your balance when sent. Sent gifts are not refundable.',
+    meyveCarkiBaslik: 'Fruit Wheel',
+    meyveCarkiNe:
+      'A wheel game with eight fruits that runs in live rounds. The round result is produced on the server.',
+    meyveCarkiNasil:
+      'Pick up to four different fruits and add coins; you can change your selection until the round locks. When the round opens, the winning fruit is chosen on the server.',
+    meyveCarkiKosullar:
+      'Played with game coins; if they are not enough, using purchased coins requires your confirmation. Game coins are not a withdrawable balance. Winnings are not guaranteed.',
+    profilBaslik: 'Profile',
+    profilNe:
+      'Your personal page showing photo, bio, country, posts and follower information.',
+    profilNasil:
+      'You can edit your own profile, follow other profiles, send a message or report an account.',
+    profilKosullar:
+      'Following and messaging are free. Block and report tools are available on every profile.',
+    kesfetBaslik: 'Discover',
+    kesfetNe:
+      'The section for finding new people, rooms and streams with country filters and search.',
+    kesfetNasil:
+      'Use the country selector at the top or type in the search field. From the results you can open a profile, a room or a stream.',
+    kesfetKosullar:
+      'Searching and discovering are free. Visible content is subject to the community rules.',
+    gonderiBaslik: 'Social posts',
+    gonderiNe:
+      'The feed where users share photos, videos and text and receive likes and comments.',
+    gonderiNasil:
+      'Scroll the feed, like a post, comment or share it. You can publish your own post from the create button.',
+    gonderiKosullar:
+      'Posting and interacting are free. Inappropriate content can be reported and may be removed after moderation review.',
+  },
   odaX: {
     odaBulunamadi: "Room not found.",
     odaDolu: "The room is full.",

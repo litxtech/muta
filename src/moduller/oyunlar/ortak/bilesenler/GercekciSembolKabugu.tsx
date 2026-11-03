@@ -1,7 +1,7 @@
 /**
  * GercekciSembolKabugu — sembol PNG'sini opak bir karo üstünde gösterir.
  * Arka plan karodan sızmaz; simgeler hayali / saydam görünmez.
- * vivid: Zeus vb. için yüksek kontrast, silik/cam hissi yok.
+ * vivid: yüksek kontrast, silik/cam hissi yok.
  */
 
 import React, { memo } from 'react';

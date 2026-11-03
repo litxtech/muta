@@ -14,6 +14,12 @@ import type { GameCode } from '../tipler/OyunTipleri';
 
 const VARSAYILAN_OYUNLAR: GameCode[] = ['fruit_wheel'];
 
+/**
+ * Binary'de bulunan tek oyun. Sunucu başka bir kod döndürse bile istemci
+ * yalnızca bu kodu görünür kabul eder; uzaktan yeni oyun etkinleştirilemez.
+ */
+const IZINLI_OYUNLAR: GameCode[] = ['fruit_wheel'];
+
 const CANLI_YENILE_MS = 400;
 
 export function useGorunurOyunKodlari(params?: { enabled?: boolean }) {
@@ -44,7 +50,8 @@ export function useGorunurOyunKodlari(params?: { enabled?: boolean }) {
       ]);
       const plat = Boolean(gamesOk) && !killAktif;
       // Liste okunamazsa son bilinen kalır; ağ dalgalanması açık oyunu kapatmasın.
-      const next = !plat ? [] : res.ok ? res.data : sonKodlar.current;
+      const ham = !plat ? [] : res.ok ? res.data : sonKodlar.current;
+      const next = ham.filter((k) => IZINLI_OYUNLAR.includes(k));
       if (no === istekNo.current) {
         sonKodlar.current = next;
         setPlatformAcik(plat);
@@ -89,7 +96,8 @@ export function useGorunurOyunKodlari(params?: { enabled?: boolean }) {
     codes,
     anyVisible: codes.length > 0,
     platformAcik,
-    isVisible: (code: GameCode) => codes.includes(code),
+    isVisible: (code: GameCode) =>
+      IZINLI_OYUNLAR.includes(code) && codes.includes(code),
     loading,
     yenile,
   };

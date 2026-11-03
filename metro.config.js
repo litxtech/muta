@@ -10,9 +10,6 @@ config.resolver.assetExts = Array.from(
 );
 
 // Windows EMFILE: Metro'nun izlememesi gereken ağır / ilgisiz yollar
-// Not: kök `sis-spin/` Vite referansı — `src/moduller/oyunlar/sis-spin` uygulama kodu, engellenmez
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const sisSpinReferans = path.resolve(__dirname, 'sis-spin');
 const blockExtras = [
   /[\\/]load-tests[\\/].*/,
   /[\\/]imports[\\/].*/,
@@ -28,13 +25,10 @@ const blockExtras = [
   /[\\/]archive[\\/].*/,
   /[\\/]apps[\\/]super-admin[\\/]dist[\\/].*/,
   /[\\/]apps[\\/]super-admin[\\/]\.expo[\\/].*/,
-  /kaskad-sim.*\.json$/,
   /COUNTRY_LEAGUE_.*\.md$/,
   /HEADER_AUDIT\.md$/,
   /I18N_.*\.md$/,
   /MESSAGING_V2_.*\.md$/,
-  /ZEUS_V2_.*\.md$/,
-  new RegExp(`^${escapeRe(sisSpinReferans)}([\\\\/].*)?$`),
 ];
 const existing = config.resolver.blockList;
 if (Array.isArray(existing)) {

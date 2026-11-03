@@ -33,6 +33,7 @@ import {
   type DurumOggesi,
 } from '../../src/moduller/durum/islemler/DurumIslemleri';
 import { useCeviri } from '../../src/i18n/useCeviri';
+import { OzellikBilgiDugmesi } from '../../src/bilesenler/bilgi/OzellikBilgiDugmesi';
 import { useDurumAkisRealtime } from '../../src/moduller/durum/gercek-zamanli/useDurumAkisRealtime';
 import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediyeMagaza';
 import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
@@ -560,7 +561,12 @@ export default function DurumAkisEkrani() {
     <Screen edges={['top']} tabSayfaKaydir>
       <ModulHataSiniri modulAdi="durum">
         <View style={styles.header}>
-          <Text style={styles.title}>{t('durum.baslik')}</Text>
+          <View style={styles.headerSol}>
+            <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+              {t('durum.baslik')}
+            </Text>
+            <OzellikBilgiDugmesi konu="gonderi" />
+          </View>
           <Pressable
             style={styles.paylasBtn}
             onPress={() =>
@@ -759,6 +765,14 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.text,
     fontSize: 22,
     fontWeight: '800',
+    flexShrink: 1,
+  },
+  headerSol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 0,
+    flexShrink: 1,
   },
   sekmeRow: {
     flexDirection: 'row',

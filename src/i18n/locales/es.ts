@@ -5836,6 +5836,84 @@ export const es: CeviriSozlugu = {
     mimeReddedildi: "Este tipo de archivo no es compatible ({{type}}).",
     yuklemeBasarisiz: "La carga falló.",
   },
+  bilgi: {
+    dugme: 'Acerca de esta función',
+    dugmeIpucu: 'Muestra qué hace esta función',
+    kapat: 'Entendido',
+    neBaslik: 'Para qué sirve',
+    nasilBaslik: 'Cómo se usa',
+    kosulBaslik: 'Monedas y reglas',
+    canliBaslik: 'Transmisiones en vivo',
+    canliNe:
+      'La sección donde los creadores transmiten en vivo con cámara y micrófono mientras los espectadores chatean y envían regalos en tiempo real.',
+    canliNasil:
+      'Elige una transmisión en la pestaña En vivo para empezar a ver. Si eres creador, puedes iniciar tu propia transmisión, seguir el chat y ver los regalos.',
+    canliKosullar:
+      'Ver es gratis. Enviar un regalo gasta monedas y las monedas se compran en los paquetes de Mi cartera. El contenido que incumple las normas se puede reportar.',
+    sesliOdaBaslik: 'Salas de voz',
+    sesliOdaNe:
+      'Salas de audio en vivo donde los hablantes conversan con el micrófono y los oyentes participan por chat de texto.',
+    sesliOdaNasil:
+      'Elige una sala en la pestaña Salas. Ocupa un asiento libre para hablar, silencia tu micrófono o sal de la sala cuando quieras.',
+    sesliOdaKosullar:
+      'Escuchar es gratis. Enviar un regalo gasta monedas. Los dueños y moderadores pueden silenciar o expulsar participantes.',
+    pkBaslik: 'Batalla PK',
+    pkNe:
+      'Una interacción en vivo en tiempo real donde dos creadores compiten por puntos de regalo durante un periodo fijo.',
+    pkNasil:
+      'El indicador PK de la transmisión muestra la puntuación de cada lado y el tiempo restante. Puedes enviar regalos al lado que prefieras.',
+    pkKosullar:
+      'Enviar un regalo gasta monedas. Al terminar el tiempo gana el lado con más puntos y el resultado se muestra en la transmisión.',
+    cuzdanBaslik: 'Mi cartera',
+    cuzdanNe:
+      'La sección que muestra tu saldo de monedas, ganancias en diamantes, compras y movimientos de regalos en un solo lugar.',
+    cuzdanNasil:
+      'Consulta tu saldo y el historial, abre los paquetes de monedas o revisa el estado de pago si tienes ganancias de creador.',
+    cuzdanKosullar:
+      'Las compras de monedas se realizan a través de Apple App Store o Google Play. Los diamantes son ganancias del creador y los retiros solo están disponibles cuando están activados.',
+    coinPaketBaslik: 'Paquetes de monedas',
+    coinPaketNe:
+      'Paquetes de compra de las monedas que se usan para enviar regalos dentro de la app.',
+    coinPaketNasil:
+      'Elige un paquete en Mi cartera y completa la confirmación de la tienda. Las monedas se añaden tras la verificación.',
+    coinPaketKosullar:
+      'El pago lo gestiona Apple App Store o Google Play. Los precios se muestran en la tienda. Un pago fallido no cambia tu saldo; revísalo en el historial de compras.',
+    hediyeBaslik: 'Regalos virtuales',
+    hediyeNe:
+      'Regalos digitales enviados en transmisiones, salas de voz y mensajes que generan diamantes para el creador.',
+    hediyeNasil:
+      'Toca el botón de regalo, elige uno de la lista y envíalo. Tu regalo aparece en el chat.',
+    hediyeKosullar:
+      'Cada regalo tiene un precio en monedas y se descuenta al enviarlo. Los regalos enviados no son reembolsables.',
+    meyveCarkiBaslik: 'Ruleta de Frutas',
+    meyveCarkiNe:
+      'Un juego de ruleta con ocho frutas que funciona por rondas en vivo. El resultado se genera en el servidor.',
+    meyveCarkiNasil:
+      'Elige hasta cuatro frutas diferentes y añade monedas; puedes cambiar la selección hasta que la ronda se bloquee. Al abrirse la ronda, la fruta ganadora se elige en el servidor.',
+    meyveCarkiKosullar:
+      'Se juega con monedas de juego; si no alcanzan, usar monedas compradas requiere tu confirmación. Las monedas de juego no son un saldo retirable. No se garantizan ganancias.',
+    profilBaslik: 'Perfil',
+    profilNe:
+      'Tu página personal con foto, biografía, país, publicaciones y seguidores.',
+    profilNasil:
+      'Puedes editar tu perfil, seguir otros perfiles, enviar un mensaje o reportar una cuenta.',
+    profilKosullar:
+      'Seguir y enviar mensajes es gratis. Las herramientas de bloqueo y reporte están disponibles en todos los perfiles.',
+    kesfetBaslik: 'Descubrir',
+    kesfetNe:
+      'La sección para encontrar nuevas personas, salas y transmisiones con filtros de país y búsqueda.',
+    kesfetNasil:
+      'Usa el selector de país o escribe en el buscador. Desde los resultados puedes abrir un perfil, una sala o una transmisión.',
+    kesfetKosullar:
+      'Buscar y descubrir es gratis. El contenido visible está sujeto a las normas de la comunidad.',
+    gonderiBaslik: 'Publicaciones sociales',
+    gonderiNe:
+      'El feed donde los usuarios comparten fotos, videos y texto y reciben me gusta y comentarios.',
+    gonderiNasil:
+      'Desplázate por el feed, da me gusta, comenta o comparte. Puedes publicar tu propia entrada desde el botón de crear.',
+    gonderiKosullar:
+      'Publicar e interactuar es gratis. El contenido inapropiado se puede reportar y puede retirarse tras la revisión.',
+  },
   odaX: {
     odaBulunamadi: "Sala no encontrada.",
     odaDolu: "La sala está llena.",
