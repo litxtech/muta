@@ -1,0 +1,18 @@
+profilDuzenle.altBaslik | Kimlik · Konum · Medya | Identity · Location · Media
+profilDuzenle.avatarHint | Fotoğrafa dokunarak büyüt · kameraya dokunarak ekle, değiştir veya sil | Tap the photo to enlarge · tap the camera to add, change, or delete
+profilDuzenle.telefonPlaceholder | 05xx xxx xx xx | 05xx xxx xx xx
+kyc.altBaslik | Belge · canlılık · selfie | Document · liveness · selfie
+kyc.gonderiliyor | Gönderiliyor… | Submitting…
+verify.baslik | Tamuso Verify | Tamuso Verify
+verify.flas | Flaş | Flash
+satinAlma.kanalManuel | Manuel | Manual
+satinAlma.kisacaAnlat | Kısaca anlat… | Briefly explain…
+satinAlma.durum | Durum | Status
+cuzdanX.hazirlaniyor | Hazırlanıyor… | Preparing…
+cuzdanX.oyunOzet | Oyun: {{oyun}} · Kazanç (1.): {{kazanc}} · Oran %{{oran}} · {{lig}} | Games: {{oyun}} · Wins (1st): {{kazanc}} · Rate {{oran}}% · {{lig}}
+cuzdanX.paketSecOde | Paketi seç · {{kanal}} ile öde · bakiyene anında eklenir | Pick a pack · pay with {{kanal}} · added to your balance instantly
+cuzdanX.paketSecGuvenli | Paketi seç · güvenli öde · bakiyene anında eklenir | Pick a pack · pay securely · added to your balance instantly
+cuzdanX.taban | {{adet}} taban | {{adet}} base
+cuzdanX.bakiyeNokta | Bakiye · {{adet}} | Balance · {{adet}}
+cuzdanXExtra.pdfExcel | PDF / Excel | PDF / Excel
+cuzdanXExtra.gonderildiOk | Gönderildi → {{kim}} | Sent → {{kim}}

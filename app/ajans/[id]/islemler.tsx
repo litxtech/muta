@@ -90,14 +90,6 @@ export default function AjansIslemlerEkrani() {
       onRefresh={() => void yukle()}
     >
       <AjansBolumBaslik>{t('ajans.coinYukleme')}</AjansBolumBaslik>
-      {coinYetkili ? (
-        <Pressable
-          style={styles.paketLink}
-          onPress={() => router.push(`/ajans/${id}/paketler` as any)}
-        >
-          <Text style={styles.paketLinkYazi}>{t('ajans.paketlereGit')}</Text>
-        </Pressable>
-      ) : null}
       <AjansCoinYukleKarti
         yetkili={coinYetkili}
         bakiye={bakiye}
@@ -249,18 +241,4 @@ const styles = StyleSheet.create({
   chipAktif: { borderColor: RenkTokenlari.primarySoft },
   chipYazi: { ...TipografiTokenlari.caption, color: RenkTokenlari.text },
   transfer: { ...TipografiTokenlari.caption, color: RenkTokenlari.textDim },
-  paketLink: {
-    marginBottom: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: RenkTokenlari.border,
-    backgroundColor: RenkTokenlari.bgElevated,
-  },
-  paketLinkYazi: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.primarySoft,
-    fontWeight: '700',
-  },
 });

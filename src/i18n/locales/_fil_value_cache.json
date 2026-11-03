@@ -2566,7 +2566,7 @@
   "Complete your account to send media.": "Kumpletuhin ang account mo para magpadala ng media.",
   "Call": "Call",
   "Wallet number not found.": "Hindi nahanap ang wallet number.",
-  "MUTA PAY wallet no: {{no}}": "MUTA PAY wallet no: {{no}}",
+  "Wallet no: {{no}}": "Wallet no: {{no}}",
   "User ID is not ready yet.": "Hindi pa ready ang User ID.",
   "User ID: {{id}}": "User ID: {{id}}",
   "Delete for me": "Tanggalin para sa akin",

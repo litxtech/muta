@@ -89,7 +89,7 @@ export default function FinanceUserDetailEkrani() {
               <AdminKullaniciCoinPaneli
                 userRef={String(id)}
                 baslik="Coin işle"
-                alt="Yükle · eksilt · ceza (sunucu)"
+                alt="Bakiye gör · coin / ödül coin ekle · eksilt · ceza"
                 onBasarili={() => void yukle()}
               />
             ) : null}

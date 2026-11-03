@@ -85,3 +85,9 @@ eas-*.log
 # Yerel calisma dosyalari (commit edilmez)
 /.cache/
 .vercel
+
+# Lighthouse / tsc / gecici olcum ciktilari
+.lh-*.json
+tsc-out.txt
+tsc-admin.txt
+*.tsbuildinfo

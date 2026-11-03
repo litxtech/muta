@@ -39,16 +39,57 @@ export async function fruitWheelConfirm(
   roundId: string,
   idempotencyKey: string,
   items: { fruitId: string; amount: number }[],
+  satinCoinOnay = false,
 ): Promise<ConfirmResult> {
   const { data, error } = await oyunRpcRetryIle(() =>
     supabase.rpc('fruit_wheel_confirm', {
       p_round_id: roundId,
       p_key: idempotencyKey,
       p_items: items,
+      p_satin_coin_onay: satinCoinOnay,
     }),
   );
   if (error || !data) return { ok: false, code: 'network' };
   return data as ConfirmResult;
+}
+
+export type OyunCuzdani = {
+  ok: boolean;
+  game_coins: number;
+  bonus_coins: number;
+  purchased_coins: number;
+  total_coins: number;
+  satin_coin_ile_oyun: boolean;
+  satin_coin_onayi_zorunlu: boolean;
+};
+
+/** Oyun ve satın alınan bakiyeleri ayrı ayrı döndürür (sunucu otoritesi). */
+export async function fruitWheelCuzdanOzeti(): Promise<OyunCuzdani | null> {
+  const { data, error } = await supabase.rpc('cuzdan_oyun_cuzdani');
+  if (error || !data) return null;
+  return data as OyunCuzdani;
+}
+
+export type HarcamaOnizleme = {
+  ok: boolean;
+  code?: string;
+  from_game_coins: number;
+  from_bonus_coins: number;
+  from_purchased_coins: number;
+  satin_coin_onayi_gerekli: boolean;
+  satin_coin_izinli: boolean;
+  yeterli: boolean;
+  game_coins: number;
+  purchased_coins: number;
+  total_coins_after: number;
+};
+
+/** Bahsin hangi bakiyeden düşeceğini sunucudan önizler. */
+export async function fruitWheelHarcamaOnizleme(amount: number): Promise<HarcamaOnizleme | null> {
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  const { data, error } = await supabase.rpc('cuzdan_oyun_harcama_onizleme', { p_amount: amount });
+  if (error || !data) return null;
+  return data as HarcamaOnizleme;
 }
 
 export async function fruitWheelHistory(): Promise<unknown> {

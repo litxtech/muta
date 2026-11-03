@@ -36,7 +36,6 @@ const WEB_NATIVE_PAKETLER = [
   '@livekit/react-native',
   '@livekit/react-native-webrtc',
   'react-native-webrtc',
-  '@stripe/stripe-react-native',
   'expo-iap',
   '@supersami/rn-foreground-service',
   'react-native-compressor',

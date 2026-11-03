@@ -10,15 +10,6 @@ export type AjansLimitler = {
   updated_at?: string;
 };
 
-export type AjansOdemeSablonu = {
-  account_holder: string;
-  bank_name: string;
-  iban: string;
-  phone: string;
-  note: string;
-  updated_at?: string;
-};
-
 export type AjansKurallar = {
   body: string;
   updated_at?: string;
@@ -117,7 +108,6 @@ export type AjansPanelDetay = {
   ciro?: AjansCiroOzet | null;
   limits: AjansLimitler | null;
   rules: AjansKurallar | null;
-  payment_template: AjansOdemeSablonu | null;
   kullanim: {
     gunluk_transfer: number;
     aylik_transfer: number;
@@ -275,26 +265,6 @@ export async function AjansKurallariKaydet(input: {
   return { ok: true };
 }
 
-export async function AjansOdemeSablonuKaydet(input: {
-  agencyId: string;
-  accountHolder: string;
-  bankName: string;
-  iban: string;
-  phone?: string;
-  note?: string;
-}): Promise<{ ok: boolean; hata?: string }> {
-  const { error } = await supabase.rpc('ajans_odeme_sablonu_kaydet', {
-    p_agency_id: input.agencyId,
-    p_account_holder: input.accountHolder,
-    p_bank_name: input.bankName,
-    p_iban: input.iban,
-    p_phone: input.phone ?? '',
-    p_note: input.note ?? '',
-  });
-  if (error) return { ok: false, hata: error.message };
-  return { ok: true };
-}
-
 export async function AjansSil(
   agencyId: string,
 ): Promise<{ ok: boolean; hata?: string }> {
@@ -303,29 +273,6 @@ export async function AjansSil(
   });
   if (error) return { ok: false, hata: error.message };
   return { ok: true };
-}
-
-export function AjansOdemeMesajiOlustur(
-  template: AjansOdemeSablonu,
-  agencyName?: string,
-): string {
-  const satirlar = [
-    agencyName
-      ? i18n.t('ajans.odemeBilgileriAdli', { ad: agencyName })
-      : i18n.t('ajans.odemeBilgileri'),
-    '',
-    i18n.t('ajans.odemeHesapSahibi', { ad: template.account_holder }),
-    i18n.t('ajans.odemeBanka', { ad: template.bank_name }),
-    i18n.t('ajans.odemeIban', { iban: template.iban }),
-  ];
-  if (template.phone?.trim()) {
-    satirlar.push(i18n.t('ajans.odemeTelefon', { tel: template.phone.trim() }));
-  }
-  if (template.note?.trim()) {
-    satirlar.push('', template.note.trim());
-  }
-  satirlar.push('', i18n.t('ajans.odemeAciklamaHint'));
-  return satirlar.join('\n');
 }
 
 export async function AdminAjansDistributorAyarla(input: {

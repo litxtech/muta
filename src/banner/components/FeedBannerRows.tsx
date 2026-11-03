@@ -5,16 +5,19 @@ import { FEED_BANNER_AFTER_INDEXES } from '../core/BannerConstants';
 import { BoslukTokenlari } from '../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 
 export type FeedBannerRow<T> =
-  | { kind: 'pair'; key: string; items: [T] | [T, T] }
+  | { kind: 'pair'; key: string; items: T[] }
   | { kind: 'banner'; key: string; placement: string };
 
 /**
- * 2 kolon feed + after-post banner satırları (yatay şerit).
+ * Kolonlu feed + after-post banner satırları (yatay şerit).
+ * `columns` ana sayfada 3 (tasarım), eski çağrılarda 2.
  */
 export function buildFeedBannerRows<T extends { id: string }>(
   items: T[],
   afterPostIndexes: readonly number[] = FEED_BANNER_AFTER_INDEXES,
+  columns = 2,
 ): FeedBannerRow<T>[] {
+  const kolon = Math.max(1, Math.floor(columns));
   const after = new Set(afterPostIndexes.filter((n) => n > 0));
   const rows: FeedBannerRow<T>[] = [];
   let pair: T[] = [];
@@ -24,14 +27,14 @@ export function buildFeedBannerRows<T extends { id: string }>(
     rows.push({
       kind: 'pair',
       key: `pair-${rows.length}-${pair.map((p) => p.id).join('-')}`,
-      items: pair.length === 1 ? [pair[0]] : [pair[0], pair[1]],
+      items: pair.slice(),
     });
     pair = [];
   };
 
   items.forEach((item, index) => {
     pair.push(item);
-    if (pair.length === 2) flushPair();
+    if (pair.length === kolon) flushPair();
 
     const n = index + 1;
     if (after.has(n)) {

@@ -35,6 +35,8 @@ type Props = {
   /** Misafir upgrade (hook’tan) */
   upgradeAcik?: boolean;
   upgradeKapat?: () => void;
+  /** Paket yenileme sürüyor */
+  yenileniyor?: boolean;
   onPaketleriYenile?: () => void;
 };
 
@@ -54,6 +56,7 @@ export function CoinYuklePaneli({
   onClose,
   upgradeAcik = false,
   upgradeKapat,
+  yenileniyor = false,
   onPaketleriYenile,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -114,6 +117,7 @@ export function CoinYuklePaneli({
                 locked={locked}
                 onBuy={onBuy}
                 baslikGoster={false}
+                yenileniyor={yenileniyor}
                 onPaketleriYenile={onPaketleriYenile}
               />
             </ScrollView>

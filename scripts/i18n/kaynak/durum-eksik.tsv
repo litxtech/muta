@@ -1,0 +1,11 @@
+durum.ses	Ses	Voice
+durum.sesKaydi	Ses kaydı	Voice note
+durum.sesKaydediliyor	Kaydediliyor…	Recording…
+durum.sesDurdur	Durdur	Stop
+durum.sesKaldir	Kaydı kaldır	Remove recording
+durum.sesCokKisa	Kayıt çok kısa	Recording is too short
+durum.sesOnceDurdur	Paylaşmadan önce kaydı durdur.	Stop the recording before sharing.
+durum.sesSn	{{n}} sn	{{n}} sec
+durum.sesDk	{{n}} dk	{{n}} min
+durum.sesDkSn	{{n}} dk {{sn}} sn	{{n}} min {{sn}} sec
+durum.baglantiyiPaylas	Bağlantıyı paylaş	Share link

@@ -34,6 +34,7 @@ import type { BelgeIcerik } from '../../../../src/moduller/belge-paylasim/BelgeS
 import {
   ADMIN_BOLUM_SIRASI,
   ADMIN_MODULLER,
+  AdminModuluGorunurMu,
   type AdminAramaSonuc,
   type AdminModul,
 } from '../../../../src/moduller/admin/arama/AdminModulKatalogu';
@@ -60,7 +61,7 @@ export default function AdminHubEkrani() {
   const yetkiliModuller = useMemo((): AdminModul[] => {
     if (isSuper) return ADMIN_MODULLER;
     if (izinYukleniyor) return [];
-    return ADMIN_MODULLER.filter((m) => has(m.permissionKey));
+    return ADMIN_MODULLER.filter((m) => AdminModuluGorunurMu(m, has));
   }, [has, isSuper, izinYukleniyor]);
 
   const yukle = useCallback(async () => {

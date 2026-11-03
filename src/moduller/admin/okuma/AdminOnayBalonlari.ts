@@ -1,6 +1,8 @@
 import { AdminDogrulamaDashboardGetir } from '../dogrulama/AdminDogrulamaIslemleri';
 import type { AdminPlatformOzeti } from '../tipler/PlatformTipleri';
 import { AdminSatinAlmaItirazListele } from '../../cuzdan/itiraz/SatinAlmaItirazIslemleri';
+import { AdminVerifyDashboard } from '../kimlik-dogrulama/AdminKimlikIslemleri';
+import { AdminYayinciOnaySayilari } from '../finance/AdminYayinciFinanceApi';
 
 export type AdminOnayBalonu = {
   id: string;
@@ -13,16 +15,28 @@ export type AdminOnayBalonu = {
 export async function AdminOnayBalonlariGetir(
   platform?: AdminPlatformOzeti | null,
 ): Promise<AdminOnayBalonu[]> {
-  const [dogrulama, itiraz] = await Promise.all([
+  const [dogrulama, itiraz, verify, yayinci] = await Promise.all([
     AdminDogrulamaDashboardGetir().catch(() => null),
     AdminSatinAlmaItirazListele('pending', 40).catch(() => []),
+    AdminVerifyDashboard().catch(() => null),
+    AdminYayinciOnaySayilari().catch(() => null),
   ]);
+
+  const verifyBekleyen = verify
+    ? verify.inceleme_bekleyen + verify.ek_dogrulama + verify.acik_itiraz
+    : 0;
 
   const adaylar: AdminOnayBalonu[] = [
     {
+      id: 'verify',
+      adet: verifyBekleyen,
+      etiket: 'Tamuso Verify',
+      href: '/admin/kimlik-dogrulama',
+    },
+    {
       id: 'kimlik',
       adet: dogrulama?.pending_kyc ?? 0,
-      etiket: 'Kimlik onayı',
+      etiket: 'Kimlik onayı (eski)',
       href: '/admin/kyc',
     },
     {
@@ -32,16 +46,22 @@ export async function AdminOnayBalonlariGetir(
       href: '/admin/dogrulama',
     },
     {
-      id: 'cekim',
-      adet: platform?.finans.bekleyen_cekim ?? 0,
-      etiket: 'Bekleyen çekim',
-      href: '/admin/finans',
-    },
-    {
       id: 'itiraz',
       adet: itiraz.length,
       etiket: 'Satın alma itirazı',
       href: '/admin/satin-alma-itirazlar',
+    },
+    {
+      id: 'yayinci_odeme',
+      adet: yayinci?.onay_bekleyen_toplam ?? 0,
+      etiket: 'Yayıncı ödeme onayı',
+      href: '/admin/finance/yayinci/onaylar',
+    },
+    {
+      id: 'yayinci_kazanc',
+      adet: yayinci?.kazanc ?? 0,
+      etiket: 'Yayıncı kazancı',
+      href: '/admin/finance/yayinci/bekleyen',
     },
     {
       id: 'rapor',

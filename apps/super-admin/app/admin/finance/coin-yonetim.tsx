@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Modal,
   Pressable,
@@ -22,6 +21,7 @@ import {
   AdminFinanceCoinAyarla,
   AdminFinanceCoinYonetimGetir,
 } from '../../../../../src/moduller/admin/finance/AdminFinanceApi';
+import { AdminKullaniciCoinIsle } from '../../../../../src/moduller/admin/kullanici/islemler/AdminKullaniciCoinIsle';
 import {
   FinanceCoin,
   FinanceKpiKart,
@@ -45,6 +45,8 @@ type Satir = {
   avatar_url: string | null;
   agency_name: string | null;
   current_coin: number;
+  current_bonus_coin: number;
+  current_game_coin: number;
   coin_purchased: number;
   coin_platform: number;
   coin_spent: number;
@@ -58,6 +60,18 @@ const FILTRELER: { key: Filtre; label: string }[] = [
 ];
 
 const HIZLI = [1_000, 5_000, 10_000, 50_000, 100_000] as const;
+
+type CoinIslemi =
+  | 'topup'
+  | 'deduct'
+  | 'reset'
+  | 'set'
+  | 'bonus_topup'
+  | 'bonus_deduct';
+
+type CoinOnayi = { islem: CoinIslemi; miktar: number };
+
+type CoinSonucu = { tur: 'ok' | 'hata'; yazi: string };
 
 function Avatar({ url, ad }: { url?: string | null; ad: string }) {
   const safe = MedyaUriGuvenli(url);
@@ -85,6 +99,9 @@ export default function FinanceCoinYonetimEkrani() {
   const [miktar, setMiktar] = useState('1000');
   const [hedef, setHedef] = useState('');
   const [busy, setBusy] = useState(false);
+  /** Onay panelin içinde sorulur — web'de Alert'e bağlı kalmadan çalışır. */
+  const [onay, setOnay] = useState<CoinOnayi | null>(null);
+  const [sonuc, setSonuc] = useState<CoinSonucu | null>(null);
 
   const yukle = useCallback(async () => {
     setYukleniyor(true);
@@ -111,62 +128,108 @@ export default function FinanceCoinYonetimEkrani() {
     }, [admin, yukle]),
   );
 
-  const isle = async (
-    islem: 'topup' | 'deduct' | 'reset' | 'set',
+  const isle = (
+    islem: CoinIslemi,
     opts?: { miktar?: number },
   ) => {
-    if (!secili) return;
+    if (!secili || busy) return;
     const m = opts?.miktar ?? Number(miktar);
     if (islem !== 'reset' && islem !== 'set' && (!Number.isFinite(m) || m <= 0)) {
-      Alert.alert('Coin', 'Geçerli miktar girin');
+      setSonuc({ tur: 'hata', yazi: 'Geçerli miktar girin' });
       return;
     }
     if (islem === 'set') {
       const h = Number(hedef);
       if (!Number.isFinite(h) || h < 0) {
-        Alert.alert('Coin', 'Hedef miktar 0 veya üzeri olmalı');
+        setSonuc({ tur: 'hata', yazi: 'Hedef miktar 0 veya üzeri olmalı' });
         return;
       }
     }
 
-    const etiket =
-      islem === 'topup'
-        ? `+${FinanceCoin(m)} yükle`
-        : islem === 'deduct'
-          ? `-${FinanceCoin(m)} düşür`
-          : islem === 'reset'
-            ? 'Bakiyeyi sıfırla'
-            : `Bakiyeyi ${FinanceCoin(Number(hedef))} yap`;
+    setSonuc(null);
+    setOnay({ islem, miktar: m });
+  };
 
-    Alert.alert('Onay', `${secili.display_name}\n${etiket}?`, [
-      { text: 'Vazgeç', style: 'cancel' },
-      {
-        text: 'Uygula',
-        style: islem === 'reset' || islem === 'deduct' ? 'destructive' : 'default',
-        onPress: async () => {
-          setBusy(true);
-          try {
-            const r = await AdminFinanceCoinAyarla({
-              userId: secili.user_id,
-              islem,
-              miktar: islem === 'set' ? Number(hedef) : islem === 'reset' ? undefined : m,
-              not: 'Finans Merkezi coin yönetimi',
-            });
-            if (r?.ok === false) throw new Error('İşlem başarısız');
-            Alert.alert(
-              'Tamam',
-              `Yeni bakiye: ${FinanceCoin(r?.balance_after ?? 0)}`,
-            );
-            setSecili(null);
-            await yukle();
-          } catch (e) {
-            Alert.alert('Hata', e instanceof Error ? e.message : 'İşlem başarısız');
-          } finally {
-            setBusy(false);
-          }
-        },
-      },
-    ]);
+  const onayMetni = (onayDegeri: CoinOnayi): string => {
+    const { islem, miktar: m } = onayDegeri;
+    const etiket =
+      islem === 'bonus_topup'
+        ? `+${FinanceCoin(m)} ödül coin yükle`
+        : islem === 'bonus_deduct'
+          ? `-${FinanceCoin(m)} ödül coin düşür`
+          : islem === 'topup'
+            ? `+${FinanceCoin(m)} yükle`
+            : islem === 'deduct'
+              ? `-${FinanceCoin(m)} düşür`
+              : islem === 'reset'
+                ? 'Bakiyeyi sıfırla'
+                : `Bakiyeyi ${FinanceCoin(Number(hedef))} yap`;
+    const bakiye = secili
+      ? ` · coin ${FinanceCoin(secili.current_coin)} · ödül ${FinanceCoin(
+          secili.current_bonus_coin,
+        )}`
+      : '';
+    return `${secili?.display_name ?? 'Kullanıcı'} · ${etiket}${bakiye}`;
+  };
+
+  const uygula = async (onayDegeri: CoinOnayi) => {
+    if (!secili || busy) return;
+    const { islem, miktar: m } = onayDegeri;
+    setOnay(null);
+    setSonuc(null);
+    setBusy(true);
+    try {
+      const bakiyeYaz = (coins: number, bonus: number, eksik = 0) => {
+        setSonuc({
+          tur: 'ok',
+          yazi: `Tamam · coin ${FinanceCoin(coins)} · ödül ${FinanceCoin(bonus)}${
+            eksik > 0 ? ` · ${FinanceCoin(eksik)} eksik` : ''
+          }`,
+        });
+        setSecili((s) =>
+          s ? { ...s, current_coin: coins, current_bonus_coin: bonus } : s,
+        );
+      };
+
+      // Ödül coin işlemleri ayrı kovada yürür (bonus_coins).
+      if (islem === 'bonus_topup' || islem === 'bonus_deduct') {
+        const r = await AdminKullaniciCoinIsle({
+          userRef: secili.user_id,
+          islem: islem === 'bonus_topup' ? 'topup' : 'deduct',
+          kova: 'bonus_coins',
+          miktar: m,
+          not: 'Finans Merkezi ödül coin',
+        });
+        if (!r.ok) throw new Error(r.hata);
+        bakiyeYaz(r.coins, r.bonus_coins, r.shortfall);
+        await yukle();
+        return;
+      }
+
+      const r = await AdminFinanceCoinAyarla({
+        userId: secili.user_id,
+        islem,
+        miktar: islem === 'set' ? Number(hedef) : islem === 'reset' ? undefined : m,
+        not: 'Finans Merkezi coin yönetimi',
+      });
+      if (r?.ok === false) throw new Error('İşlem başarısız');
+      const coinsAfter =
+        typeof r?.coins === 'number' ? r.coins : Number(r?.balance_after ?? 0);
+      const bonusAfter =
+        typeof r?.bonus_coins === 'number'
+          ? r.bonus_coins
+          : secili.current_bonus_coin;
+      bakiyeYaz(coinsAfter, bonusAfter, Number(r?.shortfall ?? 0));
+      await yukle();
+    } catch (e) {
+      setSonuc({
+        tur: 'hata',
+        yazi: e instanceof Error && e.message ? e.message : 'İşlem başarısız',
+      });
+    } finally {
+      // Hata olsa da düğmeler kilitli kalmasın.
+      setBusy(false);
+    }
   };
 
   if (!admin) return null;
@@ -175,7 +238,7 @@ export default function FinanceCoinYonetimEkrani() {
     <Screen>
       <EkranBasligi
         title="Coin yönetimi"
-        subtitle="Platform · kullanıcı · artır / düşür / sıfırla"
+        subtitle="Coin / ödül coin · bakiye gör · ekle / düşür / sıfırla"
       />
       <ScrollView
         contentContainerStyle={AdminStil.content}
@@ -200,7 +263,18 @@ export default function FinanceCoinYonetimEkrani() {
           <FinanceKpiKart
             label="Cüzdan toplamı"
             value={FinanceCoin(ozet?.cuzdan_toplam)}
-            hint="Şu an eldeki coin"
+            hint="Satın alınan coin"
+          />
+          <FinanceKpiKart
+            label="Ödül toplamı"
+            value={FinanceCoin(ozet?.odul_toplam)}
+            hint="Bonus / promosyon"
+            tone="warning"
+          />
+          <FinanceKpiKart
+            label="Oyun toplamı"
+            value={FinanceCoin(ozet?.oyun_toplam)}
+            hint="Oyun kazancı"
           />
           <FinanceKpiKart
             label="Bakiyeli kullanıcı"
@@ -264,7 +338,10 @@ export default function FinanceCoinYonetimEkrani() {
                 </Text>
                 <View style={st.etiketRow}>
                   <View style={[st.etiket, st.etiketBakiye]}>
-                    <Text style={st.etiketYazi}>Bakiye {FinanceCoin(u.current_coin)}</Text>
+                    <Text style={st.etiketYazi}>Coin {FinanceCoin(u.current_coin)}</Text>
+                  </View>
+                  <View style={[st.etiket, st.etiketBonus]}>
+                    <Text style={st.etiketYazi}>Ödül {FinanceCoin(u.current_bonus_coin)}</Text>
                   </View>
                   <View style={[st.etiket, st.etiketUser]}>
                     <Text style={st.etiketYazi}>Kullanıcı {FinanceCoin(u.coin_purchased)}</Text>
@@ -292,7 +369,8 @@ export default function FinanceCoinYonetimEkrani() {
                       @{secili.username || '—'} · ID {secili.public_user_id || secili.user_id.slice(0, 8)}
                     </Text>
                     <Text style={AdminStil.kartAlt}>
-                      Bakiye {FinanceCoin(secili.current_coin)} · Kullanıcı{' '}
+                      Coin {FinanceCoin(secili.current_coin)} · Ödül{' '}
+                      {FinanceCoin(secili.current_bonus_coin)} · Kullanıcı{' '}
                       {FinanceCoin(secili.coin_purchased)} · Platform{' '}
                       {FinanceCoin(secili.coin_platform)}
                     </Text>
@@ -317,22 +395,45 @@ export default function FinanceCoinYonetimEkrani() {
 
                 <View style={st.aksiyonGrid}>
                   <Pressable
-                    style={[st.btn, st.btnPoz]}
+                    style={({ pressed }) => [
+                      st.btn,
+                      st.btnPoz,
+                      pressed && !busy && st.btnBasili,
+                      busy && st.btnPasif,
+                    ]}
                     disabled={busy}
-                    onPress={() => void isle('topup')}
+                    onPress={() => isle('bonus_topup')}
                   >
-                    <Text style={st.btnYazi}>Yükselt</Text>
+                    <Text style={st.btnYazi}>Ödül yükle</Text>
                   </Pressable>
                   <Pressable
-                    style={[st.btn, st.btnNeg]}
+                    style={({ pressed }) => [
+                      st.btn,
+                      st.btnNeg,
+                      pressed && !busy && st.btnBasili,
+                      busy && st.btnPasif,
+                    ]}
                     disabled={busy}
-                    onPress={() => void isle('deduct')}
+                    onPress={() => isle('deduct')}
                   >
-                    <Text style={st.btnYazi}>Düşür</Text>
+                    <Text style={st.btnYazi}>Coin düşür</Text>
                   </Pressable>
                 </View>
 
-                <Text style={AdminStil.sectionLabel}>Hedef bakiye</Text>
+                <Pressable
+                  style={({ pressed }) => [
+                    st.btn,
+                    st.btnBonus,
+                    pressed && !busy && st.btnBasili,
+                    busy && st.btnPasif,
+                  ]}
+                  disabled={busy}
+                  onPress={() => isle('bonus_deduct')}
+                >
+                  <Text style={st.btnYazi}>Ödül coin düşür</Text>
+                </Pressable>
+
+                <Text style={AdminStil.sectionLabel}>Hedef coin bakiyesi</Text>
                 <TextInput
                   style={AdminStil.input}
                   keyboardType="number-pad"
@@ -341,23 +442,80 @@ export default function FinanceCoinYonetimEkrani() {
                   placeholder="Örn. 50000"
                   placeholderTextColor={RenkTokenlari.textDim}
                 />
+                <Text style={AdminStil.kartAlt}>
+                  Hedefin üzerindeki fark ödül coinine yazılır; satın alınan coin
+                  admin tarafından artırılmaz.
+                </Text>
                 <Pressable
-                  style={[st.btn, st.btnNotr]}
+                  style={({ pressed }) => [
+                    st.btn,
+                    st.btnNotr,
+                    pressed && !busy && st.btnBasili,
+                    busy && st.btnPasif,
+                  ]}
                   disabled={busy}
-                  onPress={() => void isle('set')}
+                  onPress={() => isle('set')}
                 >
                   <Text style={st.btnYazi}>Miktarı ayarla</Text>
                 </Pressable>
 
                 <Pressable
-                  style={[st.btn, st.btnTehlike]}
+                  style={({ pressed }) => [
+                    st.btn,
+                    st.btnTehlike,
+                    pressed && !busy && st.btnBasili,
+                    busy && st.btnPasif,
+                  ]}
                   disabled={busy}
-                  onPress={() => void isle('reset')}
+                  onPress={() => isle('reset')}
                 >
-                  <Text style={st.btnYazi}>
-                    {busy ? 'İşleniyor…' : 'Coinleri sıfırla'}
-                  </Text>
+                  {busy ? (
+                    <ActivityIndicator size="small" color={RenkTokenlari.text} />
+                  ) : (
+                    <Text style={st.btnYazi}>Coinleri sıfırla</Text>
+                  )}
                 </Pressable>
+
+                {onay ? (
+                  <View style={st.onayKutu}>
+                    <Text style={st.onayBaslik}>Onay</Text>
+                    <Text style={st.onayMetin}>{onayMetni(onay)}?</Text>
+                    <View style={st.onaySatir}>
+                      <Pressable
+                        style={({ pressed }) => [st.onayDugme, pressed && st.btnBasili]}
+                        onPress={() => setOnay(null)}
+                      >
+                        <Text style={st.onayVazgecYazi}>Vazgeç</Text>
+                      </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [
+                          st.onayDugme,
+                          st.onayUygula,
+                          pressed && st.btnBasili,
+                        ]}
+                        onPress={() => void uygula(onay)}
+                      >
+                        <Text style={st.onayUygulaYazi}>Uygula</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : null}
+
+                {sonuc ? (
+                  <Text
+                    style={[
+                      st.sonucYazi,
+                      {
+                        color:
+                          sonuc.tur === 'hata'
+                            ? RenkTokenlari.danger
+                            : RenkTokenlari.mint,
+                      },
+                    ]}
+                  >
+                    {sonuc.yazi}
+                  </Text>
+                ) : null}
 
                 <Pressable
                   style={AdminStil.aksiyon}
@@ -455,6 +613,9 @@ const st = StyleSheet.create({
   etiketUser: {
     backgroundColor: 'rgba(107,207,176,0.15)',
   },
+  etiketBonus: {
+    backgroundColor: `rgba(232,184,75,0.16)`,
+  },
   etiketPlat: {
     backgroundColor: 'rgba(232,64,145,0.12)',
   },
@@ -517,6 +678,9 @@ const st = StyleSheet.create({
   btnNeg: {
     backgroundColor: 'rgba(232,75,106,0.22)',
   },
+  btnBonus: {
+    backgroundColor: 'rgba(232,184,75,0.22)',
+  },
   btnNotr: {
     backgroundColor: RenkTokenlari.bgElevated,
     borderWidth: StyleSheet.hairlineWidth,
@@ -529,5 +693,55 @@ const st = StyleSheet.create({
     ...TipografiTokenlari.body,
     color: RenkTokenlari.text,
     fontWeight: '700',
+  },
+  btnBasili: { opacity: 0.75 },
+  btnPasif: { opacity: 0.55 },
+  onayKutu: {
+    gap: 8,
+    padding: 12,
+    borderRadius: YaricapTokenlari.md,
+    borderWidth: 1,
+    borderColor: 'rgba(232,64,145,0.45)',
+    backgroundColor: RenkTokenlari.bgCard,
+    marginTop: 4,
+  },
+  onayBaslik: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.text,
+    fontWeight: '800',
+  },
+  onayMetin: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    lineHeight: 19,
+  },
+  onaySatir: { flexDirection: 'row', gap: 8 },
+  onayDugme: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: YaricapTokenlari.sm,
+    borderWidth: 1,
+    borderColor: RenkTokenlari.border,
+    backgroundColor: RenkTokenlari.surface,
+  },
+  onayVazgecYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textMuted,
+    fontWeight: '700',
+  },
+  onayUygula: {
+    borderColor: RenkTokenlari.borderAccent,
+    backgroundColor: RenkTokenlari.primary,
+  },
+  onayUygulaYazi: {
+    ...TipografiTokenlari.caption,
+    color: RenkTokenlari.textOnPrimary,
+    fontWeight: '800',
+  },
+  sonucYazi: {
+    ...TipografiTokenlari.caption,
+    fontWeight: '700',
+    marginTop: 2,
   },
 });

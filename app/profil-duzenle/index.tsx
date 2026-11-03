@@ -26,10 +26,6 @@ import {
   EpostaGuncelle,
   ProfilGuncelle,
 } from '../../src/moduller/kullanici-profili/islemler/ProfilGuncelle';
-import {
-  BankaHesabiGetir,
-  BankaHesabiKaydet,
-} from '../../src/moduller/kullanici-profili/islemler/BankaHesabi';
 import { ProfilMedyasiSil } from '../../src/moduller/kullanici-profili/islemler/ProfilMedyasiSil';
 import {
   ProfilMedyasiSec,
@@ -147,12 +143,6 @@ export default function ProfilDuzenleEkrani() {
   const [sifreTekrar, setSifreTekrar] = useState('');
   const [sifreBusy, setSifreBusy] = useState(false);
 
-  const [hesapSahibi, setHesapSahibi] = useState('');
-  const [bankaAdi, setBankaAdi] = useState('');
-  const [iban, setIban] = useState('');
-  const [bankaBusy, setBankaBusy] = useState(false);
-  const [bankaYukleniyor, setBankaYukleniyor] = useState(true);
-
   const formuDoldur = useCallback(
     (zorla = false) => {
       if (!profile) return;
@@ -221,27 +211,6 @@ export default function ProfilDuzenleEkrani() {
 
   useEffect(() => {
     ImagePickerOnIsit({ izinIste: false });
-  }, []);
-
-  useEffect(() => {
-    let iptal = false;
-    (async () => {
-      setBankaYukleniyor(true);
-      try {
-        const b = await BankaHesabiGetir();
-        if (iptal || !b) return;
-        setHesapSahibi(b.account_holder);
-        setBankaAdi(b.bank_name);
-        setIban(b.iban);
-      } catch {
-        /* migration yoksa sessiz */
-      } finally {
-        if (!iptal) setBankaYukleniyor(false);
-      }
-    })();
-    return () => {
-      iptal = true;
-    };
   }, []);
 
   const setDirty = <T,>(setter: (v: T) => void) => (v: T) => {
@@ -466,37 +435,9 @@ export default function ProfilDuzenleEkrani() {
     Alert.alert(t('auth.sifre'), t('profilDuzenle.yeniSifreKaydedildi'));
   };
 
-  const bankaKaydet = async () => {
-    if (misafirEngel()) return;
-    setBankaBusy(true);
-    const sonuc = await BankaHesabiKaydet({
-      account_holder: hesapSahibi,
-      bank_name: bankaAdi,
-      iban,
-    });
-    setBankaBusy(false);
-    if (!sonuc.ok) {
-      Alert.alert(t('profilDuzenle.banka'), sonuc.hata);
-      return;
-    }
-    Alert.alert(t('profilDuzenle.banka'), t('profilDuzenle.bankaKaydedildi'));
-  };
-
   const klavyeKaydir = useCallback(
     (e?: Parameters<typeof KlavyeFocusKaydir>[1]) => {
       KlavyeFocusKaydir(scrollRef.current, e, { ustBosluk: 72, delayMs: 80 });
-    },
-    [],
-  );
-
-  /** Formun en altı (banka) — ekstra boşluk + bir kez sona yaklaştır */
-  const bankaKlavyeKaydir = useCallback(
-    (e?: Parameters<typeof KlavyeFocusKaydir>[1]) => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-      KlavyeFocusKaydir(scrollRef.current, e, {
-        ustBosluk: 96,
-        delayMs: Platform.OS === 'ios' ? 90 : 140,
-      });
     },
     [],
   );
@@ -794,49 +735,6 @@ export default function ProfilDuzenleEkrani() {
           loading={sifreBusy}
           variant="ghost"
         />
-
-        <Text style={styles.section}>{t('profilDuzenle.bankaBolum')}</Text>
-        <Text style={styles.sectionSub}>
-          {t('profilDuzenle.bankaAlt')}
-        </Text>
-        {bankaYukleniyor ? (
-          <ActivityIndicator
-            color={RenkTokenlari.primary}
-            style={{ marginVertical: 12 }}
-          />
-        ) : (
-          <>
-            <TextField
-              label={t('profilDuzenle.hesapSahibi')}
-              value={hesapSahibi}
-              onChangeText={setHesapSahibi}
-              placeholder={t('profilDuzenle.hesapSahibiPlaceholder')}
-              onFocus={bankaKlavyeKaydir}
-            />
-            <TextField
-              label={t('profilDuzenle.bankaAdi')}
-              value={bankaAdi}
-              onChangeText={setBankaAdi}
-              placeholder={t('profilDuzenle.bankaAdiPlaceholder')}
-              onFocus={bankaKlavyeKaydir}
-            />
-            <TextField
-              label="IBAN"
-              value={iban}
-              onChangeText={setIban}
-              autoCapitalize="characters"
-              placeholder="TR00 0000 0000 0000 0000 0000 00"
-              onFocus={bankaKlavyeKaydir}
-            />
-            <GradientButton
-              title={t('profilDuzenle.bankaKaydet')}
-              onPress={() => void bankaKaydet()}
-              loading={bankaBusy}
-            />
-            {/* Klavye açıkken son alanların kaydırılacağı boşluk */}
-            <View style={styles.bankaAltBosluk} />
-          </>
-        )}
       </KlavyeScrollView>
 
       <HesabiTamamlaKarti
@@ -881,9 +779,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: BoslukTokenlari.xl,
     paddingBottom: BoslukTokenlari.xxxl,
     gap: BoslukTokenlari.md,
-  },
-  bankaAltBosluk: {
-    height: 180,
   },
   section: {
     ...TipografiTokenlari.h2,

@@ -1,99 +1,43 @@
 import { Platform } from 'react-native';
-import { OzellikBayragiAktifMiSunucu } from '../../ozellik-bayraklari/okuma/OzellikBayragiAktifMiSunucu';
-import {
-  StripeNativeHazirMi,
-  StripeUygulamaIciOdemeYap,
-} from '../../stripe/islemler/StripeUygulamaIciOdemeYap';
+import i18n from '../../../i18n';
 import type { AiMuzikProduct } from '../tipler';
 import { AiMuzikIapSatinAl } from './AiMuzikIapSatinAl';
 
 export type AiMuzikSatinAlSonuc =
   | {
       ok: true;
-      method: 'iap' | 'stripe';
+      method: 'iap';
       secondsAdded?: number;
       availableSeconds?: number;
-      webSheet?: boolean;
-      paymentIntentId?: string;
     }
-  | { ok: false; hata: string; kod?: string; webSheet?: boolean };
+  | { ok: false; hata: string; kod?: string };
 
 /**
- * AI müzik dakika:
- * - iOS/Android → IAP
- * - Stripe → native PaymentSheet (sonraki build) veya şimdi uygulama içi WebView sheet
- * @stripe/stripe-react-native paketi durur; native yokken import edilmez.
+ * AI müzik dakika satın alma: yalnızca mağaza içi satın alma (StoreKit / Play Billing).
+ * Uygulama içinde başka ödeme yolu yoktur.
  */
 export async function AiMuzikPaketSatinAl(
   pkg: AiMuzikProduct,
 ): Promise<AiMuzikSatinAlSonuc> {
-  if (Platform.OS === 'ios' || Platform.OS === 'android') {
-    const iap = await AiMuzikIapSatinAl(pkg);
-    if (iap.ok) {
-      return {
-        ok: true,
-        method: 'iap',
-        secondsAdded: iap.secondsAdded,
-        availableSeconds: iap.availableSeconds,
-      };
-    }
-    if (iap.kod === 'cancel') return { ok: false, hata: 'İptal edildi', kod: 'cancel' };
-
-    const stripeAcik = await OzellikBayragiAktifMiSunucu('stripe_enabled');
-    if (stripeAcik && (iap.kod === 'store' || iap.kod === 'flag')) {
-      return AiMuzikStripeIleSatinAl(pkg);
-    }
-    return { ok: false, hata: iap.hata, kod: iap.kod };
+  if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
+    return { ok: false, hata: i18n.t('aiMuzik.iapSadeceMobil'), kod: 'store' };
   }
 
-  return AiMuzikStripeIleSatinAl(pkg);
-}
-
-async function AiMuzikStripeIleSatinAl(
-  pkg: AiMuzikProduct,
-): Promise<AiMuzikSatinAlSonuc> {
-  if (!(await OzellikBayragiAktifMiSunucu('stripe_enabled'))) {
-    return {
-      ok: false,
-      hata: 'Kart ödemesi kapalı. iOS/Android mağaza satın almayı dene.',
-      kod: 'flag',
-    };
-  }
-
-  // Bu build'de native Stripe yok → WebView sheet (paket sonraki build için duruyor)
-  if (!StripeNativeHazirMi()) {
-    return {
-      ok: false,
-      hata: 'Stripe native sonraki build ile gelecek.',
-      kod: 'native',
-      webSheet: true,
-    };
-  }
-
-  const sheet = await StripeUygulamaIciOdemeYap({
-    catalog: 'ai_music',
-    productId: pkg.product_id,
-  });
-
-  if (sheet.ok) {
+  const iap = await AiMuzikIapSatinAl(pkg);
+  if (iap.ok) {
     return {
       ok: true,
-      method: 'stripe',
-      paymentIntentId: sheet.paymentIntentId,
-      // onayBekleniyor: webhook yedek; UI yine başarı gösterir, bakiye yenilenir
+      method: 'iap',
+      secondsAdded: iap.secondsAdded,
+      availableSeconds: iap.availableSeconds,
     };
   }
 
-  if (sheet.kod === 'cancel') {
-    return { ok: false, hata: sheet.hata, kod: 'cancel' };
+  if (iap.kod === 'cancel') {
+    return { ok: false, hata: i18n.t('auth.iptalEdildi'), kod: 'cancel' };
   }
 
-  return {
-    ok: false,
-    hata: sheet.hata,
-    kod: sheet.kod,
-    webSheet: true,
-  };
+  return { ok: false, hata: iap.hata, kod: iap.kod };
 }
 
 export function AiMuzikPaketFiyatYazi(pkg: AiMuzikProduct): string {

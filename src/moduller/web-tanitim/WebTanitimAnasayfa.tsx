@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -39,6 +40,13 @@ export function WebTanitimAnasayfa() {
   const [sohbetN, setSohbetN] = useState(1);
   const [klipler, setKlipler] = useState<WebTanitimMedya[]>(VARSAYILAN_TANITIM_MEDYA);
   const [kaydir, setKaydir] = useState(0);
+
+  // Statik kabuk (scripts/seo-html-yaz.mjs) ilk boyamayı yapar. Pazarlama
+  // sayfası gerçekten monte olunca yedek kahraman gizlenir.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    document.documentElement.setAttribute('data-tamuso-hazir', '1');
+  }, []);
 
   useEffect(() => {
     let iptal = false;
@@ -105,7 +113,12 @@ export function WebTanitimAnasayfa() {
       <TanitimSeo yol="/" />
 
       <View style={[styles.hero, dar && styles.heroDar]}>
-        <TanitimVideo key={gorusme.url} kaynak={gorusme.url} poster={gorusme.poster} />
+        <TanitimVideo
+          key={gorusme.url}
+          kaynak={gorusme.url}
+          poster={gorusme.poster}
+          oncelikli
+        />
         <LinearGradient
           colors={['rgba(8,8,17,0.15)', 'rgba(8,8,17,0.55)', '#080811']}
           style={StyleSheet.absoluteFill}

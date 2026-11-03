@@ -3,6 +3,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
@@ -51,12 +52,18 @@ export function WalletProvider({
   children: React.ReactNode;
 }) {
   const [wallet, setWallet] = useState<Wallet | null>(null);
+  /** Optimistic değişiklik sayacı — eski sunucu yanıtı yeni bakiyeyi ezmesin. */
+  const surumRef = useRef(0);
+  /** Uçuştaki okumaların sırası — yalnızca en son istek uygulanır. */
+  const istekRef = useRef(0);
 
   const refreshWallet = useCallback(async () => {
     if (!userId) {
       setWallet(null);
       return;
     }
+    const istek = ++istekRef.current;
+    const surum = surumRef.current;
     let { data, error } = await supabase
       .from('wallets')
       .select('user_id, coins, game_coins, bonus_coins, diamonds, updated_at')
@@ -70,6 +77,9 @@ export function WalletProvider({
         .eq('user_id', userId)
         .maybeSingle());
     }
+    // Bu sırada daha yeni bir okuma veya optimistic güncelleme olduysa yazma.
+    if (istek !== istekRef.current) return;
+    if (surum !== surumRef.current) return;
     if (error) return;
     if (!data) {
       setWallet({
@@ -87,6 +97,7 @@ export function WalletProvider({
 
   const patchWallet = useCallback(
     (patch: Partial<Pick<Wallet, BakiyeAlani>>) => {
+      surumRef.current += 1;
       setWallet((prev) => {
         if (!prev) return prev;
         const next: Wallet = { ...prev, updated_at: new Date().toISOString() };
@@ -102,6 +113,7 @@ export function WalletProvider({
 
   const adjustWallet = useCallback(
     (delta: Partial<Pick<Wallet, BakiyeAlani>>) => {
+      surumRef.current += 1;
       setWallet((prev) => {
         if (!prev) return prev;
         const next: Wallet = { ...prev, updated_at: new Date().toISOString() };
@@ -135,6 +147,8 @@ export function WalletProvider({
         (payload) => {
           const row = payload.new as Partial<CuzdanSatiriHam> | null;
           if (!row?.user_id || row.coins == null || row.diamonds == null) return;
+          // Realtime daha yeni bir gerçek: uçuştaki okumalar bunu ezmesin.
+          surumRef.current += 1;
           setWallet(cuzdanSatiri(row as CuzdanSatiriHam));
         },
       )

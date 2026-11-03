@@ -86,6 +86,8 @@ type Props = {
   coinLocked?: boolean;
   onCoinBuy?: (pkg: CoinPackage) => void;
   onCoinPaketHazirla?: () => void;
+  /** Coin paketleri yenileniyor — düğmede spinner */
+  coinPaketYenileniyor?: boolean;
   /** Gönderim sürerken buton kilidi */
   gonderiyor?: boolean;
   /** Verilirse kullanıcı hangi coin bakiyesinden göndereceğini seçer */
@@ -152,6 +154,7 @@ export function HediyeMagazaPaneli({
   coinLocked,
   onCoinBuy,
   onCoinPaketHazirla,
+  coinPaketYenileniyor = false,
   gonderiyor = false,
   coinKaynagi,
   onCoinKaynagiDegis,
@@ -460,6 +463,7 @@ export function HediyeMagazaPaneli({
                   locked={coinLocked}
                   onBuy={onCoinBuy}
                   baslikGoster={false}
+                  yenileniyor={coinPaketYenileniyor}
                   onPaketleriYenile={onCoinPaketHazirla}
                 />
               </ScrollView>

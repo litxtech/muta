@@ -17,6 +17,7 @@ import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari
 import { BoslukTokenlari, HeaderTokenlari } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useCeviri } from '../../src/i18n/useCeviri';
 import { UygulamaSurumNotu } from '../../src/bilesenler/UygulamaSurumNotu';
+import { VerifyProfilSatiri } from '../../src/moduller/tamuso-verify/bilesenler/VerifyProfilSatiri';
 
 /** Profil menüsü — hesap hub; tercihler / gizlilik ayrı sayfalarda */
 export default function ProfilAyarlarEkrani() {
@@ -79,6 +80,17 @@ export default function ProfilAyarlarEkrani() {
             icon="phone-portrait-outline"
             label={t('profil.aktifCihazlar')}
             onPress={() => router.navigate('/(tabs)/cihazlar')}
+            last
+          />
+        </ListeGrubu>
+
+        <ListeGrubu title={t('verify.profilGrup')}>
+          <VerifyProfilSatiri
+            onPress={() =>
+              misafirEngelle(() =>
+                router.push('/cuzdan/yayinci-kazanclari/kimlik-dogrula' as any),
+              )
+            }
             last
           />
         </ListeGrubu>

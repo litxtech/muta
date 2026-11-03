@@ -32,6 +32,8 @@ const KALICI_KODLAR = new Set([
   'daily_loss',
   'feature_disabled',
   'games_disabled',
+  'satin_coin_onayi_gerekli',
+  'satin_coin_kapali',
 ]);
 
 export function oyunHataGeciciMi(
@@ -48,6 +50,7 @@ export function oyunHataGeciciMi(
     }
   }
   const t = (ham ?? '').toLowerCase();
+  if (/satin_coin_onay|satin_coin_kapali/.test(t)) return false;
   if (
     /insufficient|yetersiz|bakımda|bakimda|durduruldu|limit|bet out of range|bet not allowed/i.test(
       t,
@@ -76,6 +79,12 @@ export function oyunHataKullaniciMesaji(
   if (c === 'feature_disabled' || c === 'games_disabled') {
     return 'Oyun şu an kapalı';
   }
+  if (c === 'satin_coin_onayi_gerekli') {
+    return 'Oyun coinleriniz yetersiz. Kalan tutar satın aldığınız coinlerden kullanılacak; devam etmek için onay verin.';
+  }
+  if (c === 'satin_coin_kapali') {
+    return 'Bu oyunda satın alınan coinlerle oynanamaz. Oyun coinleriniz yetersiz.';
+  }
 
   const t = (ham ?? '').trim();
   if (!t) return 'Bağlantı yenileniyor';
@@ -87,6 +96,12 @@ export function oyunHataKullaniciMesaji(
     return 'Bağlantı yenileniyor';
   }
   if (/insufficient coins|insufficient/i.test(t)) return 'Yetersiz bakiye';
+  if (/cuzdan_satin_coin_onayi_gerekli/i.test(t)) {
+    return 'Oyun coinleriniz yetersiz. Kalan tutar satın aldığınız coinlerden kullanılacak; devam etmek için onay verin.';
+  }
+  if (/cuzdan_satin_coin_kapali/i.test(t)) {
+    return 'Bu oyunda satın alınan coinlerle oynanamaz. Oyun coinleriniz yetersiz.';
+  }
   if (/oyun bakımda|bakımda|maintenance/i.test(t)) {
     return t.length < 80 ? t : 'Oyun kısa süreliğine bakımda';
   }
@@ -102,6 +117,8 @@ export function oyunHataKullaniciMesaji(
 export function oyunSettleKod(mesaj?: string | null): string {
   const t = (mesaj ?? '').toLowerCase();
   if (/insufficient/i.test(t)) return 'insufficient_balance';
+  if (/satin_coin_onayi|satin_coin_onay/i.test(t)) return 'satin_coin_onayi_gerekli';
+  if (/satin_coin_kapali/i.test(t)) return 'satin_coin_kapali';
   if (/bakımda|bakimda|maintenance/i.test(t)) return 'maintenance';
   if (/durduruldu|paused/i.test(t)) return 'paused';
   if (/günlük oyun limiti/i.test(t)) return 'daily_rounds';

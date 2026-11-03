@@ -6,13 +6,17 @@
 
 import { supabase } from '../../../lib/supabase';
 import { KullanicilariAra, type ArananKullanici } from '../../mesajlasma/okuma/KullanicilariAra';
-import {
-  TakasAjansAra,
-  type TakasAjansSatir,
-} from '../../cuzdan/takas/CuzdanTakasIslemleri';
+import { AjanslariAra } from '../../ajanslar/okuma/AjanslariGetir';
 
 export type KesfetAramaKullanici = ArananKullanici;
-export type KesfetAramaAjans = TakasAjansSatir;
+export type KesfetAramaAjans = {
+  id: string;
+  name: string;
+  agency_public_id: string | null;
+  logo_url: string | null;
+  status: string;
+  owner_id?: string | null;
+};
 
 export type KesfetAramaOda = {
   id: string;
@@ -202,7 +206,18 @@ export async function AnaSayfaKesfetAra(input: {
       haricUserId: input.haricUserId,
       limit: input.kullaniciLimit ?? 8,
     }).catch(() => [] as KesfetAramaKullanici[]),
-    TakasAjansAra(q).catch(() => [] as KesfetAramaAjans[]),
+    AjanslariAra(q, input.ajansLimit ?? 6)
+      .then((rows) =>
+        rows.map((a) => ({
+          id: a.id,
+          name: a.name,
+          agency_public_id: a.agency_public_id ?? null,
+          logo_url: null,
+          status: a.status,
+          owner_id: a.owner_id ?? null,
+        })),
+      )
+      .catch(() => [] as KesfetAramaAjans[]),
     odalariAra(q, odaLimit).catch(() => [] as KesfetAramaOda[]),
     canlilariAra(q, canliLimit).catch(() => [] as KesfetAramaCanli[]),
   ]);

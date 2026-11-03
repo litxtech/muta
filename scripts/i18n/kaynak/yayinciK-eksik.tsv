@@ -1,0 +1,47 @@
+yayinciK.alanSortCode	Sort code (6 hane)	Sort code (6 digits)
+yayinciK.alanBankaKodu	Banka kodu	Bank code
+yayinciK.alanSubeKodu	Şube kodu	Branch code
+yayinciK.alanAcente	Şube / acente	Branch / agency
+yayinciK.alanClabe	CLABE (18 hane)	CLABE (18 digits)
+yayinciK.alanCbu	CBU (22 hane)	CBU (22 digits)
+yayinciK.alanCci	CCI (20 hane)	CCI (20 digits)
+yayinciK.alanPix	PIX anahtarı	PIX key
+yayinciK.alanIfsc	IFSC kodu	IFSC code
+yayinciK.alanBsb	BSB kodu	BSB code
+yayinciK.alanTransitNo	Transit numarası	Transit number
+yayinciK.alanKurumNo	Kurum numarası	Institution number
+yayinciK.alanBic	BIC	BIC
+yayinciK.alanRib	RIB	RIB
+yayinciK.alanMuhabirHesap	Muhabir hesap	Correspondent account
+yayinciK.bankaSec	Banka / sağlayıcı	Bank / provider
+yayinciK.bankaSecPh	Banka seçin	Choose a bank
+yayinciK.bankaListedeYok	Listede yok — elle gir	Not listed — enter manually
+yayinciK.bankaListeIpucu	{{sayi}} banka/cüzdan listelendi	{{sayi}} banks/wallets listed
+yayinciK.bankaElleIpucu	Banka adını kendiniz girin.	Enter the bank name yourself.
+yayinciK.alanOrnek	Örnek: {{ornek}}	Example: {{ornek}}
+yayinciK.ibanKural	IBAN {{uzunluk}} karakter olmalı.	IBAN must be {{uzunluk}} characters.
+yayinciK.paraBirimiOtomatik	Para birimi ülkeye göre belirlenir.	Currency is set by the country.
+yayinciK.hataAlanZorunlu	Bu alan zorunlu.	This field is required.
+yayinciK.hataAlanBicim	Biçim geçersiz. Örnek değere bakın.	Invalid format. Check the example value.
+yayinciK.hataBankaSec	Banka seçin veya "Listede yok" seçip banka adı girin.	Choose a bank, or pick "Not listed" and type the bank name.
+yayinciK.hataIbanUzunluk	IBAN bu ülke için {{uzunluk}} karakter olmalı.	IBAN must be {{uzunluk}} characters for this country.
+yayinciK.hataIbanUlke	IBAN ülke koduyla uyuşmuyor.	IBAN does not match the country code.
+yayinciK.hataBankaKodu	Seçilen banka bu ülke için geçerli değil.	The selected bank is not valid for this country.
+yayinciK.cuzdanPaynow	PayNow	PayNow
+yayinciK.cuzdanGrabpay	GrabPay	GrabPay
+yayinciK.cuzdanAlipay	Alipay	Alipay
+yayinciK.cuzdanWechat	WeChat Pay	WeChat Pay
+yayinciK.cuzdanWise	Wise	Wise
+yayinciK.cuzdanRevolut	Revolut	Revolut
+yayinciK.cuzdanPaypal	PayPal	PayPal
+yayinciK.cuzdanOrange	Orange Money	Orange Money
+yayinciK.cuzdanMtn	MTN MoMo	MTN MoMo
+yayinciK.cuzdanWave	Wave	Wave
+yayinciK.cuzdanMpesa	M-Pesa	M-Pesa
+yayinciK.cuzdanTigopesa	Tigo Pesa	Tigo Pesa
+yayinciK.cuzdanAirtel	Airtel Money	Airtel Money
+yayinciK.cuzdanTelebirr	Telebirr	Telebirr
+yayinciK.cuzdanHalopesa	HaloPesa	HaloPesa
+yayinciK.cuzdanFree	Free Money	Free Money
+yayinciK.semaUkSort	İngiltere banka havalesi (sort code)	UK bank transfer (sort code)
+yayinciK.semaClabe	CLABE havalesi	CLABE transfer

@@ -1,0 +1,55 @@
+sesOda.katkiBaslik	Katkılar	Contributions
+sesOda.katkiGunluk	Günlük	Daily
+sesOda.katkiHaftalik	Haftalık	Weekly
+sesOda.katkiAylik	Aylık	Monthly
+sesOda.katkiHediye	Hediye	Gifts
+sesOda.katkiOyun	Oyun	Games
+sesOda.katkiToplam	Toplam	Total
+sesOda.katkiBos	Bu dönemde katkı yok	No contributions in this period
+sesOda.katkiA11y	Hediye ve oyun katkıları	Gift and game contributions
+sesOda.kartHediyeA11y	Hediye {{n}} coin	Gifts {{n}} coins
+sesOda.kartOyunA11y	Oyun {{n}} coin	Games {{n}} coins
+sesOda.liderligiGeriAl	Liderliği geri al	Take leadership back
+sesOda.liderligiGeriAlSoru	{{ad}} liderliği bırakacak. Taht sana dönecek. Emin misin?	{{ad}} will give up leadership. The throne returns to you. Continue?
+sesOda.liderlikGeriAlinamadi	Liderlik geri alınamadı.	Could not take leadership back.
+sesOda.liderlikGeriAlOdaAcik	Liderliği geri alamazsınız. Mevcutta bir oda açtınız.	You cannot take leadership back. You already have a room open.
+sesOda.liderlikDevriBekliyor	{{ad}} kişisinin açık bir ses odası var. Kabul ederse o oda kapanır ve lider olur.	{{ad}} already has an open voice room. If they accept, that room closes and they become leader.
+sesOda.liderlikDevriKartBaslik	Lider olarak atanacaksınız	You will be assigned as leader
+sesOda.liderlikDevriKartMetin	{{ad}} sizi {{oda}} odasının lideri yapmak istiyor. Kabul ederseniz açık ses odanız kapanır.	{{ad}} wants you to lead {{oda}}. If you accept, your open voice room will close.
+sesOda.liderlikDevriKabul	Kabul et	Accept
+sesOda.liderlikDevriVazgec	Vazgeç	Decline
+sesOda.geriAl	Geri al	Take back
+sesOda.menuLiderligiGeriAl	Liderliği Geri Al	Take leadership back
+sesOda.sesSuAnBaglanamadi	Ses şu an bağlanamadı. Biraz sonra tekrar dene.	Audio could not connect. Try again in a moment.
+sesOda.sesInternetKontrol	Ses sunucusuna ulaşılamadı. İnternetini kontrol edip tekrar dene.	Could not reach the audio server. Check your internet and try again.
+sesOda.mikrofonIzniGerekli	Mikrofon izni gerekli.	Microphone permission is required.
+sesOda.tekrarGirisGerekli	Tekrar giriş yapman gerekiyor.	Please sign in again.
+sesOda.mikrofonAcik	Mikrofon açık	Mic on
+sesOda.mikrofonKapali	Mikrofon kapalı	Mic off
+sesOda.kucultGezin	Küçült ve gezin	Minimize and browse
+sesOda.canli	CANLI	LIVE
+sesOda.kucukPencereIpucu	Oda küçük pencerede devam ediyor	Room continues in a mini window
+sesOda.kucultBasarisiz	Oda küçültülemedi. Biraz bekleyip tekrar dene.	Couldn’t minimize the room. Wait a moment and try again.
+sesOda.hostKoltugaGecSoru	Koltuk {{n}} üzerine geçilsin mi? Taht diğer kullanıcılara kilitlenir.	Move to seat {{n}}? The throne locks for everyone else.
+sesOda.hostTahtaDonSoru	Tahta geri dönülsün mü?	Return to the throne?
+sesOda.hostTahtaDon	Tahta dön	Return to throne
+sesOda.tahtKilitli	Taht kilitli. Oda sahibi başka koltukta.	The throne is locked. The owner is on another seat.
+sesOda.yoneticiGeriAl	Geri al	Revoke
+sesOda.dinliyorKisa	Dinliyor	Listening
+sesOda.oturmaAyar	Oturma	Seating
+sesOda.mikrofonAyar	Mikrofon	Microphone
+sesOda.izinli	İzinli	With permission
+sesOda.izinsiz	İzinsiz	Open
+sesOda.izinKaydedilemedi	Ayar kaydedilemedi	Couldn’t save the setting
+sesOda.oturmaOnayGerekli	Bu odada oturmak için izin gerekir.	Sitting in this room requires permission.
+sesOda.koltukDolu	Bu koltuk dolu.	This seat is taken.
+sesOda.zatenKoltuktasin	Zaten bir koltuktasın.	You’re already seated.
+sesOda.misafirKoltukYok	Misafir hesap koltuğa oturamaz.	Guest accounts can’t take a seat.
+sesOda.koltukBulunamadi	Koltuk bulunamadı.	Seat not found.
+sesOda.koltugaOturulamadi	Koltuğa oturulamadı.	Couldn’t take the seat.
+sesOda.serbestOturSoru	Koltuk {{n}} için izin gerekmez. Oturulsun mu?	Seat {{n}} doesn’t need permission. Sit down?
+sesOda.otur	Otur	Sit
+sesOda.serbestOturuldu	Koltuğa oturdun.	You’re seated.
+sesOda.serbestOturMikIstek	Koltuğa oturdun. Mikrofon için oda sahibinin onayı istendi.	You’re seated. Microphone permission was requested from the owner.
+sesOda.mikIstekSoru	Mikrofonu açmak için oda sahibinden izin istensin mi?	Ask the room owner for permission to turn on the microphone?
+sesOda.mikrofonIzni	Mikrofon izni	Microphone permission

@@ -101,6 +101,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     minHeight: 0,
+    minWidth: 0,
     width: '100%',
     maxWidth: '100%',
     overflow: Platform.OS === 'web' ? 'hidden' : 'visible',
@@ -108,6 +109,7 @@ const styles = StyleSheet.create({
   safe: {
     flex: 1,
     minHeight: 0,
+    minWidth: 0,
     width: '100%',
     maxWidth: '100%',
   },

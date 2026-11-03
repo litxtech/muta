@@ -28,6 +28,20 @@ export async function PopulerAjanslariGetir(limit = 20): Promise<Ajans[]> {
   return (data as Ajans[]) ?? [];
 }
 
+/** Ajans adı / public ID ile arama (keşfet araması). */
+export async function AjanslariAra(q: string, limit = 6): Promise<Ajans[]> {
+  const term = q.trim().replace(/[,()%]/g, ' ');
+  if (!term) return [];
+  const { data, error } = await supabase
+    .from('agencies')
+    .select('*')
+    .eq('status', 'active')
+    .or(`name.ilike.%${term}%,agency_public_id.ilike.%${term}%`)
+    .limit(limit);
+  if (error) return [];
+  return (data as Ajans[]) ?? [];
+}
+
 export async function SahipOlunanAjanslariGetir(): Promise<Ajans[]> {
   const uid = (await supabase.auth.getUser()).data.user?.id;
   if (!uid) return [];

@@ -403,8 +403,7 @@ export default function AdminKycDetayEkrani() {
             </Pressable>
           </Bolum>
 
-          <Bolum baslik="MUTA PAY cüzdan">
-            <Satir e="Marka" d={c?.wallet_brand_name ?? 'MUTA PAY'} />
+          <Bolum baslik="Cüzdan">
             <Satir e="Cüzdan no" d={formatCuzdanNo(c?.wallet_number)} />
             <Satir
               e="Yasal ad"

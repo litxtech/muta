@@ -36,7 +36,6 @@ export {
 } from './HesapHareketleriBelgesi';
 export type {
   HesapHareketleriBelgeGirdi,
-  HesapCekimSatiri,
 } from './HesapHareketleriBelgesi';
 
 export const BELGE_PAYLASIM_MODUL_ADI = 'belge-paylasim' as const;

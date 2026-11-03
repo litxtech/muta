@@ -39,7 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: displayName,
   slug: 'muta',
   owner: 'mutaq',
-  version: '1.3.1',
+  version: '1.4.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'dark',
@@ -131,17 +131,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'expo-font',
-    'expo-dev-client',
+    // expo-dev-client yalnızca geliştirme/test derlemelerinde bulunur.
+    // Production binary'sine dev launcher girmez.
+    ...(APP_ENV === 'production' ? [] : ['expo-dev-client']),
     'expo-apple-authentication',
     'expo-web-browser',
     'expo-iap',
     'expo-localization',
-    [
-      '@stripe/stripe-react-native',
-      {
-        enableGooglePay: true,
-      },
-    ],
     'expo-system-ui',
     'expo-sharing',
     'react-native-compressor',
@@ -240,6 +236,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     appEnv: APP_ENV,
+    /**
+     * Expo Router async routes (web): rota modülleri tek 10 MB paket yerine
+     * ayrı parçalar hâlinde iner. Pazarlama sayfası yalnızca kabuğu indirir.
+     */
+    router: { asyncRoutes: { web: true } },
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     livekitUrl: process.env.EXPO_PUBLIC_LIVEKIT_URL,

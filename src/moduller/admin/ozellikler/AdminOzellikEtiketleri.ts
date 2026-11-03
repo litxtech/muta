@@ -74,11 +74,6 @@ export const ADMIN_OZELLIK_GRUPLARI: AdminOzellikGrubu[] = [
     baslik: 'Cüzdan / Ödeme',
     flagKeys: [
       'iap_enabled',
-      'stripe_enabled',
-      'withdrawals_enabled',
-      'wallet_exchange_enabled',
-      'wallet_sell_enabled',
-      'wallet_withdraw_enabled',
       'transaction_volume_enabled',
       'transaction_volume_profile_enabled',
       'transaction_volume_tiers_enabled',
@@ -119,9 +114,6 @@ export const ADMIN_OZELLIK_GRUPLARI: AdminOzellikGrubu[] = [
     flagKeys: [
       'games_enabled',
       'fruit_wheel_enabled',
-      'kozmik_kaskad_enabled',
-      'zeus_enabled',
-      'nox_reels_enabled',
     ],
   },
   {
@@ -201,8 +193,6 @@ export const ADMIN_OZELLIK_GRUPLARI: AdminOzellikGrubu[] = [
     killKeys: [
       'kill_coin_purchase',
       'kill_gift_send',
-      'kill_withdrawal',
-      'kill_agency_coin_transfer',
       'kill_live',
       'kill_pk',
       'kill_moderation',
@@ -307,23 +297,6 @@ const OZELLIK_METINLERI: Record<string, AdminOzellikMetni> = {
     baslik: 'Doğrulama → cüzdan KYC senkronu',
     aciklama:
       'Manuel/ajans kimlik onayı sonrası wallet_accounts.kyc_status ve profil rozetini senkronlar. Varsayılan kapalı.',
-  },
-  withdrawals_enabled: {
-    baslik: 'Para çekimi (eski)',
-    aciklama: 'Elmas / kazanç çekim taleplerini açar veya kapatır.',
-  },
-  wallet_exchange_enabled: {
-    baslik: 'Cüzdan takas',
-    aciklama:
-      'Kullanıcı cüzdanında Takas / anlaşma butonunu ve /cuzdan/takas yolunu açar. Kapalıyken RPC da reddeder.',
-  },
-  wallet_sell_enabled: {
-    baslik: 'Coin sat',
-    aciklama: 'Coin satım izlenimi veren kullanıcı aksiyonlarını açar (varsayılan kapalı).',
-  },
-  wallet_withdraw_enabled: {
-    baslik: 'Cüzdan çekim',
-    aciklama: 'Kullanıcı cüzdanındaki Çekim sekmesini açar. Store uyumu için varsayılan kapalı.',
   },
   city_league_enabled: {
     baslik: 'Şehir ligi',
@@ -459,10 +432,6 @@ const OZELLIK_METINLERI: Record<string, AdminOzellikMetni> = {
     baslik: 'Uygulama içi satın alma',
     aciklama: 'App Store / Play Store üzerinden coin paket satışını kontrol eder.',
   },
-  stripe_enabled: {
-    baslik: 'Stripe ödemesi',
-    aciklama: 'Web / izinli kanallarda Stripe ile ödeme almayı açar veya kapatır.',
-  },
   fruit_wheel_enabled: {
     baslik: 'Fruit Wheel',
     aciklama: 'Resmi 8 meyveli çark oyununu açar veya kapatır. Kapalıyken yeni tur açılmaz.',
@@ -470,18 +439,6 @@ const OZELLIK_METINLERI: Record<string, AdminOzellikMetni> = {
   games_enabled: {
     baslik: 'Oyunlar',
     aciklama: 'Tüm oyun platformunu (katalog ve giriş) açar veya kapatır.',
-  },
-  kozmik_kaskad_enabled: {
-    baslik: 'Kozmik Kaskad',
-    aciklama: 'Kozmik Kaskad cascade oyununu açar veya kapatır.',
-  },
-  zeus_enabled: {
-    baslik: 'ZEUS',
-    aciklama: 'ZEUS Olympus cascade oyununu açar veya kapatır.',
-  },
-  nox_reels_enabled: {
-    baslik: 'NOX REELS',
-    aciklama: 'NOX REELS slot oyununu açar veya kapatır.',
   },
   stories_enabled: {
     baslik: 'Hikayeler',
@@ -652,14 +609,6 @@ const KILL_METINLERI: Record<string, AdminOzellikMetni> = {
   kill_gift_send: {
     baslik: 'Hediye göndermeyi durdur',
     aciklama: 'Acil durumda hediye gönderimini anında keser.',
-  },
-  kill_withdrawal: {
-    baslik: 'Çekim taleplerini durdur',
-    aciklama: 'Acil durumda yeni para çekim taleplerini engeller.',
-  },
-  kill_agency_coin_transfer: {
-    baslik: 'Ajans coin transferini durdur',
-    aciklama: 'Ajanslar arası / ajans coin aktarımlarını anında keser.',
   },
   kill_live: {
     baslik: 'Canlı yayını durdur',

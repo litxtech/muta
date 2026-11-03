@@ -14,7 +14,6 @@ import { useAjansRouteId, ajansHref } from '../../../src/moduller/ajanslar/kanca
 import { AjansSahipRozeti } from '../../../src/moduller/ajanslar/bilesenler/AjansSahipRozeti';
 import {
   AjansKurallariKaydet,
-  AjansOdemeSablonuKaydet,
   AjansPanelDetayGetir,
   AjansSil,
   type AjansPanelDetay,
@@ -68,11 +67,6 @@ export default function AjansAyarlarEkrani() {
   const [ulke, setUlke] = useState('');
   const [aciklama, setAciklama] = useState('');
   const [kurallar, setKurallar] = useState('');
-  const [holder, setHolder] = useState('');
-  const [banka, setBanka] = useState('');
-  const [iban, setIban] = useState('');
-  const [telefon, setTelefon] = useState('');
-  const [odemeNot, setOdemeNot] = useState('');
   const [staff, setStaff] = useState<Array<Record<string, unknown>>>([]);
   const [seciliStaff, setSeciliStaff] = useState<string | null>(null);
   const [yoneticiAd, setYoneticiAd] = useState('');
@@ -93,11 +87,6 @@ export default function AjansAyarlarEkrani() {
       setUlke(d.agency.country ?? '');
       setAciklama(d.agency.description ?? '');
       setKurallar(d.rules?.body ?? '');
-      setHolder(d.payment_template?.account_holder ?? '');
-      setBanka(d.payment_template?.bank_name ?? '');
-      setIban(d.payment_template?.iban ?? '');
-      setTelefon(d.payment_template?.phone ?? '');
-      setOdemeNot(d.payment_template?.note ?? '');
       const [s, a, k] = await Promise.all([
         AjansStaffListesi(id).catch(() => []),
         AjansAkademiListesi(id).catch(() => []),
@@ -447,32 +436,6 @@ export default function AjansAyarlarEkrani() {
             void (async () => {
               const r = await AjansKurallariKaydet({ agencyId: id, body: kurallar });
               if (!r.ok) Alert.alert(t('ajans.alertKurallar'), r.hata);
-              else Alert.alert(t('ajans.tamam'), t('ajans.kaydedildi'));
-            })();
-          }}
-        />
-      </AjansKart>
-
-      <AjansBolumBaslik>{t('ajans.ibanBolum')}</AjansBolumBaslik>
-      <AjansKart>
-        <AjansInput value={holder} onChangeText={setHolder} placeholder={t('ajans.phHesapSahibi')} />
-        <AjansInput value={banka} onChangeText={setBanka} placeholder={t('ajans.phBanka')} />
-        <AjansInput value={iban} onChangeText={setIban} placeholder={t('ajans.phIban')} autoCapitalize="characters" />
-        <AjansInput value={telefon} onChangeText={setTelefon} placeholder={t('ajans.phTelefonKisa')} />
-        <AjansInput value={odemeNot} onChangeText={setOdemeNot} placeholder={t('ajans.phNot')} />
-        <AjansCta
-          label={t('ajans.odemeSablonuKaydet')}
-          onPress={() => {
-            void (async () => {
-              const r = await AjansOdemeSablonuKaydet({
-                agencyId: id,
-                accountHolder: holder,
-                bankName: banka,
-                iban,
-                phone: telefon,
-                note: odemeNot,
-              });
-              if (!r.ok) Alert.alert(t('ajans.alertOdeme'), r.hata);
               else Alert.alert(t('ajans.tamam'), t('ajans.kaydedildi'));
             })();
           }}

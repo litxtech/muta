@@ -1,0 +1,4 @@
+gizlilik.searchProfile	Profilimi Google gibi arama motorlarında görünür yap	Show my profile on search engines like Google
+gizlilik.searchProfileAlt	Kapalıysa herkese açık profilin site haritasına eklenmez. Uygulama içinde profilini kimlerin gördüğü ayrıdır.	When off, your public profile stays out of the sitemap. Who can see your profile in the app is unchanged.
+gizlilik.searchPosts	Herkese açık paylaşımlarımın arama motorlarında görünmesine izin ver	Allow my public posts to appear on search engines
+gizlilik.searchPostsAlt	Kapalıysa herkese açık paylaşımların arama dizinine eklenmez. Uygulamadaki gizlilik ayarın değişmez.	When off, public posts stay out of the search index. In-app privacy is unchanged.

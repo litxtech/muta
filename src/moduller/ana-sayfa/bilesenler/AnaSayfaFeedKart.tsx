@@ -150,16 +150,19 @@ function AnaSayfaFeedKartIc({ oge, onPress, eskiVeri }: Props) {
                     </Text>
                   </View>
                 ) : null}
-                <IcerikGuvenlikDugmesi
-                  tur={ses ? 'room' : 'live'}
-                  contentId={contentId}
-                  roomId={ses ? contentId : null}
-                  targetUserId={oge.host?.id}
-                  title={oge.title}
-                  isGuest={isGuest}
-                  koyu
-                />
               </View>
+            </View>
+
+            <View style={styles.guvenlik}>
+              <IcerikGuvenlikDugmesi
+                tur={ses ? 'room' : 'live'}
+                contentId={contentId}
+                roomId={ses ? contentId : null}
+                targetUserId={oge.host?.id}
+                title={oge.title}
+                isGuest={isGuest}
+                koyu
+              />
             </View>
 
             <View style={styles.alt}>
@@ -332,9 +335,14 @@ const styles = StyleSheet.create({
   alt: {
     position: 'absolute',
     left: BoslukTokenlari.sm,
-    right: BoslukTokenlari.sm,
+    right: BoslukTokenlari.sm + 20,
     bottom: BoslukTokenlari.sm,
     gap: 4,
+  },
+  guvenlik: {
+    position: 'absolute',
+    right: 2,
+    bottom: 2,
   },
   populer: {
     flexDirection: 'row',

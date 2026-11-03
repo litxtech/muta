@@ -87,6 +87,30 @@ export async function IapBaglantisiniAc(): Promise<ExpoIap> {
   }
 }
 
+/**
+ * Bağlantı durumunu geçersiz kıl.
+ * StoreKit oturumu düşebilir (uygulama arka plana gider, başka modül
+ * endConnection çağırır, mağaza bağlantıyı kapatır). Bu durumda bayat
+ * `bagli=true` yüzünden sonraki satın almalar "not prepared" ile düşüyordu.
+ */
+export function IapBaglantisiniGecersizKil(): void {
+  bagli = false;
+}
+
+/** Bağlantıyı kapatıp yeniden aç — hata sonrası tek deneme için. */
+export async function IapBaglantisiniTazele(): Promise<ExpoIap> {
+  bagli = false;
+  baglantiPromise = null;
+  if (iapMod) {
+    try {
+      await iapMod.endConnection();
+    } catch {
+      /* zaten kapalı olabilir */
+    }
+  }
+  return IapBaglantisiniAc();
+}
+
 /** Cüzdan / mağaza açılınca arka planda ısıt — sheet gecikmesi azalır */
 export function IapBaglantisiniIsit(): void {
   if (!IapOrtamUygunMu()) return;

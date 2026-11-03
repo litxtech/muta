@@ -176,7 +176,10 @@ async function loadContextFallback(
   } | null;
   return {
     isAdmin: (profileRow.data as { is_admin?: boolean } | null)?.is_admin === true,
-    coins: Number((wallet.data as { coins?: number } | null)?.coins ?? 0),
+    coins:
+      Number((wallet.data as { coins?: number; game_coins?: number; bonus_coins?: number } | null)?.coins ?? 0) +
+      Number((wallet.data as { coins?: number; game_coins?: number; bonus_coins?: number } | null)?.game_coins ?? 0) +
+      Number((wallet.data as { coins?: number; game_coins?: number; bonus_coins?: number } | null)?.bonus_coins ?? 0),
     sessionId: sess?.id ? String(sess.id) : null,
     bonusSpinsRemaining: Number(sess?.bonus_spins_remaining ?? 0),
     persistentMultiplier: Number(sess?.bonus_persistent_multiplier ?? 0),

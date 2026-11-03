@@ -1,0 +1,14 @@
+biyometri.bolum	Cihaz kilidi	Device lock
+biyometri.baslikFaceId	Face ID	Face ID
+biyometri.baslikTouchId	Touch ID	Touch ID
+biyometri.baslikYuz	Yüz tanıma	Face recognition
+biyometri.baslikParmak	Parmak izi	Fingerprint
+biyometri.baslikGenel	Biyometrik kilit	Biometric lock
+biyometri.hint	Uygulamaya döndüğünde kilidi aç	Unlock when you return to the app
+biyometri.prompt	Kimliğini doğrula	Confirm it's you
+biyometri.kilidiAc	Kilidi aç	Unlock
+biyometri.kilitBaslik	Tamuso kilitli	Tamuso is locked
+biyometri.kilitAlt	Devam etmek için {{yontem}} ile doğrula	Confirm with {{yontem}} to continue
+biyometri.cihazDesteklemiyor	Bu cihaz biyometrik doğrulamayı desteklemiyor.	This device does not support biometrics.
+biyometri.kayitYok	Önce telefon ayarlarından Face ID veya parmak izi ekle.	Add Face ID or a fingerprint in your phone settings first.
+biyometri.basarisiz	Doğrulanamadı. Tekrar dene.	Couldn't verify. Try again.

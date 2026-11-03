@@ -60,12 +60,12 @@ Bu belge, Tamuso mobil uygulaması, web arayüzleri, API’ler, canlı ses odala
 4.4. Bakım, kesinti, gecikme veya hata olabilir; kesintisiz erişim garantisi verilmez.
 
 ────────────────────────────────
-5. SANAL VARLIKLAR, ÖDEMELER VE ÇEKİM
+5. SANAL VARLIKLAR VE UYGULAMA İÇİ SATIN ALMA
 ────────────────────────────────
-5.1. Coin, elmas ve benzeri birimler gerçek para, menkul kıymet veya mülkiyet hakkı değildir; yalnızca Platform içinde sınırlı kullanım lisansıdır.
+5.1. Coin, elmas ve benzeri birimler gerçek para, menkul kıymet veya mülkiyet hakkı değildir; yalnızca Platform içinde sınırlı kullanım lisansıdır. Bakiyeler nakde çevrilemez, başka bir kullanıcıya devredilemez ve Platform dışında kullanılamaz.
 5.2. Satın alma App Store / Google Play veya diğer ödeme kanallarının kurallarına tabidir. İade talepleri ilgili mağaza politikalarına göre yürütülür.
 5.3. Hediye gönderme, alıcıya Platform içi fayda sağlar; nakit iade hakkı doğurmaz (yasal zorunluluklar saklıdır).
-5.4. Çekim talepleri kimlik/banka doğrulaması, inceleme ve onay süreçlerine bağlıdır. Onaylanan ödemeler iş günü içinde ilgili hesaba aktarılmaya çalışılır.
+5.4. Coin/elmas bakiyeleri yalnızca uygulama içi dijital öğeler (hediye, oyun, oda özellikleri) için kullanılır; Platform kullanıcı bakiyeleri için nakit ödeme yapmaz.
 5.5. Haksız kazanım, dolandırıcılık, reverse engineering, bot, exploit, collusion veya sistem açığı kullanımı tespitinde bakiyeler dondurulabilir, geri alınabilir ve hesap kapatılabilir.
 5.6. Vergi yükümlülükleri kullanıcının sorumluluğundadır (uygulanabilir mevzuata göre).
 
@@ -175,8 +175,7 @@ Kişisel verileriniz, uygulanabilir veri koruma mevzuatı (ör. KVKK ve ilgili u
 • Performans ve güvenlik sinyalleri (kötüye kullanım tespiti için)
 
 2.4. Ödeme ve finansal veriler
-• Mağaza işlem referansları, satın alma durumu, çekim talepleri
-• IBAN / hesap sahibi (çekim için, isteğe bağlı ve gerekli ölçüde)
+• Mağaza işlem referansları ve satın alma durumu
 • Kart numarası gibi hassas ödeme verileri mağaza / ödeme sağlayıcısında kalır; bizde tutulmaz
 
 2.5. Destek ve güvenlik
@@ -195,7 +194,7 @@ Verilerinizi şu amaçlarla işleriz:
 • Hizmet sunumu (oda, lobi, canlı, mesaj, hediye, oyun, destek)
 • Güvenlik, dolandırıcılık önleme, spam ve kötüye kullanım tespiti
 • Moderasyon ve çocuk koruma yükümlülükleri
-• Ödeme, faturalama referansları, çekim ve muhasebe
+• Ödeme, faturalama referansları ve muhasebe
 • Yasal yükümlülüklerin yerine getirilmesi ve uyuşmazlık yönetimi
 • Bildirimler (tercihlerinize ve yasal dayanağa bağlı)
 • Ürün iyileştirme, hata ayıklama, anonimleştirilmiş analitik
@@ -227,7 +226,7 @@ Verilerinizi şu amaçlarla işleriz:
 ────────────────────────────────
 6.1. Hesabınız aktifken hizmet için gerekli süre boyunca saklanır.
 6.2. Hesap silme talebinden sonra makul süre içinde silinir veya anonimleştirilir.
-6.3. Muhasebe, çekim, uyuşmazlık, güvenlik ve yasal zorunluluk kayıtları ilgili süreyle tutulabilir.
+6.3. Muhasebe, uyuşmazlık, güvenlik ve yasal zorunluluk kayıtları ilgili süreyle tutulabilir.
 6.4. Ciddi güvenlik / çocuk koruma olaylarında delil niteliğindeki kayıtlar yasal süreç boyunca muhafaza edilebilir.
 
 ────────────────────────────────

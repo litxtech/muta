@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   AppState,
   Image,
   InputAccessoryView,
@@ -30,10 +31,14 @@ import {
 } from '../sabitler/FruitWheelSabitleri';
 import {
   fruitWheelConfirm,
+  fruitWheelCuzdanOzeti,
+  fruitWheelHarcamaOnizleme,
   fruitWheelHeartbeat,
   fruitWheelOnbellek,
   fruitWheelSync,
   newFruitWheelIdempotencyKey,
+  type HarcamaOnizleme,
+  type OyunCuzdani,
 } from '../servisler/FruitWheelApi';
 import { fruitWheelSes, fruitWheelSesKapat, preloadFruitWheelAudio, setFruitWheelSoundEnabled } from '../ses/FruitWheelAudio';
 import type { FruitWheelState, PublicFruit, RoundStatus } from '../tipler/FruitWheelTipleri';
@@ -140,6 +145,8 @@ export function FruitWheelEkrani({ onClose, onHistory, onRules }: Props) {
     return 0;
   }, [customText]);
   const [shownBalance, setShownBalance] = useState(0);
+  const [cuzdan, setCuzdan] = useState<OyunCuzdani | null>(null);
+  const [onizleme, setOnizleme] = useState<HarcamaOnizleme | null>(null);
   const [spinning, setSpinning] = useState(false);
   const [spinDone, setSpinDone] = useState(false);
   const [spinArmed, setSpinArmed] = useState(false);
@@ -172,7 +179,7 @@ export function FruitWheelEkrani({ onClose, onHistory, onRules }: Props) {
   const sunumBitis = useRef(0);
   const lastCountdownSec = useRef<number | null>(null);
   const autoConfirmRound = useRef<string | null>(null);
-  const confirmRef = useRef<() => Promise<void>>(async () => undefined);
+  const confirmRef = useRef<(satinCoinOnay?: boolean) => Promise<void>>(async () => undefined);
   const selecting = Object.keys(draft).length > 0;
 
   const names = useMemo(
@@ -341,6 +348,10 @@ export function FruitWheelEkrani({ onClose, onHistory, onRules }: Props) {
   // Bakiye count-up yok — ısı / JS yükü
   useEffect(() => {
     if (state) setShownBalance(state.balance);
+    // Oyun / satın alınan kovaları ayrı göster (sunucu otoritesi)
+    void fruitWheelCuzdanOzeti().then((c) => {
+      if (c) setCuzdan(c);
+    });
   }, [state?.balance]);
 
   const onWheelSettled = useCallback(() => {
@@ -460,6 +471,24 @@ export function FruitWheelEkrani({ onClose, onHistory, onRules }: Props) {
   const balance = readAuthoritativeBalance(state?.balance ?? 0, state?.economyMode ?? 'TEST_BALANCE');
   const remaining = Math.max(0, balance.amount - total);
 
+  // Bahsin hangi kovadan düşeceğini sunucudan önizle (oyun → ödül → satın alınan)
+  useEffect(() => {
+    if (total <= 0) {
+      setOnizleme(null);
+      return;
+    }
+    let iptal = false;
+    const zamanlayici = setTimeout(() => {
+      void fruitWheelHarcamaOnizleme(total).then((p) => {
+        if (!iptal) setOnizleme(p);
+      });
+    }, 300);
+    return () => {
+      iptal = true;
+      clearTimeout(zamanlayici);
+    };
+  }, [total]);
+
   const addAmount = (fruit: FruitId, amount: number) => {
     if (!openForBets) return;
     if ((draft[fruit] ?? 0) <= 0 && secimSayisi(draft) >= MAX_MEYVE_SECIMI) {
@@ -512,7 +541,7 @@ export function FruitWheelEkrani({ onClose, onHistory, onRules }: Props) {
     [],
   );
 
-  const confirm = useCallback(async () => {
+  const confirm = useCallback(async (satinCoinOnay = false) => {
     if (!state?.round || busy || !openForBets) return;
     if (!idem.current) idem.current = newFruitWheelIdempotencyKey();
     const items = FRUIT_ORDER.filter((id) => (draft[id] ?? 0) > 0).map((id) => ({
@@ -522,11 +551,41 @@ export function FruitWheelEkrani({ onClose, onHistory, onRules }: Props) {
     if (items.length === 0) return;
     setBusy(true);
     setNote(t('oyun.fwChecking'));
-    const res = await fruitWheelConfirm(state.round.id, idem.current, items);
+    const res = await fruitWheelConfirm(state.round.id, idem.current, items, satinCoinOnay);
+    if (!res.ok && res.code === 'satin_coin_onayi_gerekli') {
+      // Oyun/ödül coini bitti: satın alınan coin kullanılacaksa açık onay iste.
+      setBusy(false);
+      setNote(t('oyun.fwPurchasedNeeded'));
+      const plan = res.plan;
+      fruitWheelOlay('purchased_consent_required', { total });
+      Alert.alert(
+        t('oyun.fwPurchasedTitle'),
+        t('oyun.fwPurchasedBody', {
+          tutar: coin(plan?.from_purchased_coins ?? total),
+          oyun: coin(plan?.game_coins ?? cuzdan?.game_coins ?? 0),
+          satin: coin(plan?.purchased_coins ?? cuzdan?.purchased_coins ?? 0),
+          sonra: coin(plan?.total_coins_after ?? 0),
+        }),
+        [
+          { text: t('oyun.fwVazgec'), style: 'cancel' },
+          {
+            text: t('oyun.fwOnayla'),
+            onPress: () => {
+              fruitWheelOlay('purchased_consent_given', { total });
+              idem.current = null;
+              void confirmRef.current?.(true);
+            },
+          },
+        ],
+      );
+      fruitWheelOlay('game_error', { code: res.code });
+      return;
+    }
     setBusy(false);
     if (!res.ok) {
       if (res.code === 'round_closed') setNote(t('oyun.fwRoundClosed'));
       else if (res.code === 'insufficient_balance') setNote(t('oyun.fwInsufficient'));
+      else if (res.code === 'satin_coin_kapali') setNote(t('oyun.fwPurchasedDisabled'));
       else if (res.code === 'limit') setNote(t('oyun.fwLimit'));
       else setNote(t('oyun.fwClosed'));
       if (res.code !== 'network') idem.current = null;
@@ -558,9 +617,9 @@ export function FruitWheelEkrani({ onClose, onHistory, onRules }: Props) {
       setState((prev) => (prev ? { ...prev, balance: res.balance! } : prev));
     }
     void pull();
-  }, [state, busy, openForBets, draft, t, pull, names, pushAkis]);
+  }, [state, busy, openForBets, draft, t, pull, names, pushAkis, cuzdan]);
 
-  confirmRef.current = () => confirm();
+  confirmRef.current = (onay?: boolean) => confirm(onay === true);
 
   const settleLines =
     (state?.mySettlement?.length ?? 0) > 0 ? state!.mySettlement : lastSettlement.current;
@@ -772,6 +831,33 @@ export function FruitWheelEkrani({ onClose, onHistory, onRules }: Props) {
         </View>
       </View>
 
+      {/* İki bakiye ayrı: oyun coinleri önce harcanır, satın alınan coinler korunur */}
+      <View style={styles.kovaBar}>
+        <View style={styles.kovaSatir}>
+          <Ionicons name="game-controller" size={13} color="#8AE9C1" />
+          <Text style={styles.kovaEtiket}>{t('oyun.fwGameCoins')}</Text>
+          <Text style={styles.kovaDeger}>{coin(cuzdan?.game_coins ?? 0)}</Text>
+        </View>
+        <View style={styles.kovaSatir}>
+          <Ionicons name="card-outline" size={13} color="#C9B6FF" />
+          <Text style={styles.kovaEtiket}>{t('oyun.fwPurchasedCoins')}</Text>
+          <Text style={styles.kovaDeger}>{coin(cuzdan?.purchased_coins ?? 0)}</Text>
+        </View>
+      </View>
+
+      {total > 0 && onizleme ? (
+        <Text style={styles.kaynakNot}>
+          {onizleme.from_purchased_coins > 0
+            ? t('oyun.fwSourceMixed', {
+                oyun: coin(onizleme.from_game_coins + onizleme.from_bonus_coins),
+                satin: coin(onizleme.from_purchased_coins),
+              })
+            : t('oyun.fwSourceGame', { oyun: coin(onizleme.from_game_coins + onizleme.from_bonus_coins) })}
+          {' · '}
+          {t('oyun.fwAfterRound', { sonra: coin(onizleme.total_coins_after) })}
+        </Text>
+      ) : null}
+
       {hasRecent ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recentBar} contentContainerStyle={styles.recent}>
           <Text style={styles.recentLabel}>{t('oyun.fwRecent')}</Text>
@@ -974,10 +1060,31 @@ const styles = StyleSheet.create({
   iconBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   title: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
   sub: { color: '#9B95A8', fontSize: 12, marginTop: 1 },
-  hud: {
+  kovaBar: {
     marginHorizontal: 12,
     marginBottom: 4,
-    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  kovaSatir: { flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 1 },
+  kovaEtiket: { color: '#A9A3BD', fontSize: 10, fontWeight: '600' },
+  kovaDeger: { color: '#F4F1FA', fontSize: 12, fontWeight: '800' },
+  kaynakNot: {
+    marginHorizontal: 12,
+    marginBottom: 4,
+    color: '#9C94B4',
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  hud: {
+    marginHorizontal: 12,
+    marginBottom: 4,    height: 52,
     borderRadius: 16,
     paddingHorizontal: 8,
     flexDirection: 'row',

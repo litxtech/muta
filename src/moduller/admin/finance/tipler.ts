@@ -98,6 +98,11 @@ export const FINANCE_NAV = [
   { href: '/admin/finance/users', label: 'Kullanıcılar', icon: 'people-outline' as const },
   { href: '/admin/finance/agencies', label: 'Ajanslar', icon: 'business-outline' as const },
   { href: '/admin/finance/creators', label: 'Creatorlar', icon: 'star-outline' as const },
+  {
+    href: '/admin/finance/yayinci',
+    label: 'Yayıncı Kazançları',
+    icon: 'diamond-outline' as const,
+  },
   { href: '/admin/finance/revenue', label: 'Gelir', icon: 'cash-outline' as const },
   { href: '/admin/finance/expenses', label: 'Gider', icon: 'receipt-outline' as const },
   { href: '/admin/finance/liabilities', label: 'Borç', icon: 'alert-circle-outline' as const },

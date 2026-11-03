@@ -56,6 +56,8 @@ function normalizeRoomId(raw: unknown): string | null {
 
 function settleCode(message: string): string {
   const text = message.toLowerCase();
+  if (text.includes('satin_coin_onayi')) return 'satin_coin_onayi_gerekli';
+  if (text.includes('satin_coin_kapali')) return 'satin_coin_kapali';
   if (text.includes('insufficient')) return 'insufficient_balance';
   if (text.includes('bet')) return 'bet';
   if (text.includes('disabled') || text.includes('kill_games')) return 'feature_disabled';
@@ -92,6 +94,7 @@ Deno.serve(async (req) => {
       requestId?: unknown;
       roomId?: unknown;
       ping?: unknown;
+      satinCoinOnay?: unknown;
     } = {};
     try {
       body = (await req.json()) as typeof body;
@@ -145,6 +148,7 @@ Deno.serve(async (req) => {
       p_bet: bet,
       p_room_id: roomId,
       p_result: simulated,
+      p_satin_coin_onay: body.satinCoinOnay === true,
     });
 
     if (error) {

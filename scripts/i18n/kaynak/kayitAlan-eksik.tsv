@@ -1,0 +1,39 @@
+kayitAlan.baslik	Kayıt alanları	Sign-up fields
+kayitAlan.phone	Telefon	Phone
+kayitAlan.gender	Cinsiyet	Gender
+kayitAlan.birth_date	Doğum tarihi	Date of birth
+kayitAlan.email	E-posta	Email
+kayitAlan.avatar	Profil fotoğrafı	Profile photo
+kayitAlan.zorunlu	Zorunlu	Required
+kayitAlan.gizli	Gizli	Hidden
+kayitAlan.istegeBagli	İsteğe bağlı	Optional
+kayitAlan.alt	Kayıt formunda hangi bilgi istenecek. Yerleşik alanlar kaydedince değişir.	Choose what the sign-up form asks. Built-in fields change after you save.
+kayitAlan.herZaman	Her kayıtta sorulur	Always asked
+kayitAlan.herZamanAlt	Kullanıcı adı, görünen ad ve şifre kapatılamaz.	Username, display name, and password stay on.
+kayitAlan.etkiZorunlu	Formda görünür, boş bırakılamaz.	Shown on the form and cannot be left empty.
+kayitAlan.etkiIstege	Formda görünür, boş bırakılabilir.	Shown on the form and can be left empty.
+kayitAlan.etkiGizli	Kayıt formunda çıkmaz.	Not shown on the sign-up form.
+kayitAlan.dogumKilit	18 yaş için her zaman zorunlu. Kapatılamaz.	Always required for the 18+ check. It cannot be turned off.
+kayitAlan.iletisimUyari	Telefon ve e-posta ikisi de gizliyse kayıt tamamlanamaz. En az birini açık bırak.	Sign-up cannot finish if both phone and email are hidden. Leave at least one on.
+kayitAlan.epostaNot	Telefon yazılmazsa e-posta yine istenir.	If no phone is entered, an email is still required.
+kayitAlan.kaydet	Yerleşik alanları kaydet	Save built-in fields
+kayitAlan.kaydedilmedi	Bu seçimler henüz kayıt formuna yazılmadı.	These choices are not on the sign-up form yet.
+kayitAlan.ozelBaslik	Ek sorular	Extra questions
+kayitAlan.ozelAlt	Kendi sorun. Ekleyince ve silince form anında değişir.	Add your own. The form updates as soon as you add or remove one.
+kayitAlan.ozelBos	Ek soru yok.	No extra questions.
+kayitAlan.yeniAlan	Yeni soru	New question
+kayitAlan.etiket	Soru	Question
+kayitAlan.etiketOrnek	Örn. Şehir	e.g. City
+kayitAlan.tur	Cevap türü	Answer type
+kayitAlan.metin	Kısa metin	Short text
+kayitAlan.sayi	Sayı	Number
+kayitAlan.secenek	Listeden seç	Pick from a list
+kayitAlan.secenekler	Seçenekler	Choices
+kayitAlan.secenekOrnek	İstanbul, Ankara, İzmir	Istanbul, Ankara, Izmir
+kayitAlan.alanEkle	Soruyu ekle	Add question
+kayitAlan.onizleme	Kayıt formunda görünecek sıra	Order on the sign-up form
+kayitAlan.onizlemeAlt	Kaydetmeden önceki seçimi de gösterir.	Includes choices you have not saved yet.
+kayitAlan.kaydedildi	Kayıt formu güncellendi.	The sign-up form was updated.
+kayitAlan.silSoru	Bu soru yeni kayıtlarda çıkmaz.	New sign-ups will not see this question.
+kayitAlan.etiketGerekli	Soru yaz.	Write a question.
+kayitAlan.secenekGerekli	Liste için en az bir seçenek yaz.	Write at least one choice for the list.

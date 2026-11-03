@@ -1,4 +1,3 @@
-import '../web-oturum-baslat';
 import React from 'react';
 import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
@@ -7,11 +6,17 @@ import { AuthProvider, useAuth } from '../../../src/contexts/AuthContext';
 import { DilSaglayici } from '../../../src/i18n/DilSaglayici';
 import { TemaSaglayici, useTema } from '../../../src/tasarim-sistemi/tema/TemaSaglayici';
 import { OzellikBayrakSaglayici } from '../../../src/moduller/ozellik-bayraklari/OzellikBayrakSaglayici';
-import { CuzdanUiProvider } from '../../../src/moduller/cuzdan/ui-config/useCuzdanUiConfig';
-import { WebAlertKatmani } from '../../../src/ortak/web/WebAlertKatmani';
+import { WebAlertKatmani, WebAlertKur } from '../../../src/ortak/web/WebAlertKatmani';
 import { AdminOturumKapisi } from '../../../src/moduller/admin/web/AdminOturumKapisi';
 import { adminKayitlariniTemizle } from '../../../src/moduller/admin/web/AdminKayitGuvenligi';
 import { adminGecmisKalkaniniKur } from '../../../src/moduller/admin/web/AdminGecmisKalkani';
+
+/**
+ * react-native-web'de `Alert.alert` boştur. Kurulmazsa onay isteyen bütün
+ * düğmeler (coin eksilt, sil, onayla, yayınla…) hiçbir şey yapmıyor görünür.
+ * `WebAlertKatmani` modülü kendini kurar; burada niyeti açıkça yazıyoruz.
+ */
+WebAlertKur();
 
 /**
  * Super Admin kök yerleşimi.
@@ -47,16 +52,14 @@ function KokIcerik() {
         <AdminOturumKapisi>
           <DilKoku>
             <OzellikBayrakSaglayici>
-              <CuzdanUiProvider>
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor: palet.bg },
-                    animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
-                  }}
-                />
-                <WebAlertKatmani />
-              </CuzdanUiProvider>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: palet.bg },
+                  animation: Platform.OS === 'web' ? 'none' : 'slide_from_right',
+                }}
+              />
+              <WebAlertKatmani />
             </OzellikBayrakSaglayici>
           </DilKoku>
         </AdminOturumKapisi>

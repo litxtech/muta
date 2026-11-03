@@ -22,7 +22,6 @@ import {
   kilitDurumunuGetir,
   sureBicimle,
 } from '../../../src/moduller/admin/web/AdminGirisKoruma';
-import { adminOturumIsaretiniKoy } from '../../../src/moduller/admin/web/AdminOturumIsareti';
 import { GuvenlikOlayiKaydet } from '../../../src/moduller/guvenlik/olaylar/GuvenlikOlayiKaydet';
 
 const MASAUSTU_MIN = 900;
@@ -37,10 +36,7 @@ type OdakAlani = 'eposta' | 'sifre' | null;
 
 /** Giriş sayfasına dışarıdan gelen neden kodları. */
 const NEDEN_MESAJLARI: Record<string, string> = {
-  idle: 'Hareketsizlik nedeniyle oturum kapatıldı. Yeniden giriş yapın.',
-  suresi_doldu: 'Oturum süresi doldu. Yeniden giriş yapın.',
   yetkisiz: 'Bu hesabın yönetim yetkisi yok.',
-  sekme_kapandi: 'Sekme kapatıldığı için oturum sonlandı. Yeniden giriş yapın.',
   cikis: 'Güvenli çıkış yapıldı.',
 };
 
@@ -168,8 +164,6 @@ export default function GirisEkrani() {
       }
 
       basariliGirisiKaydet();
-      // Sekmeye bağlı oturum işareti — sekme kapanınca oturum düşer.
-      adminOturumIsaretiniKoy();
       GuvenlikOlayiKaydet('login_success', { surface: 'admin_web' });
 
       // Yönlendirmeyi oturum kapısı yapar: /giris geçmişte taban kalır,
@@ -360,7 +354,7 @@ export default function GirisEkrani() {
             işlemler denetim kaydına yazılır; şifreler hiçbir zaman kaydedilmez.
           </Text>
           <Text style={styles.notAlt}>
-            20 dakika işlem yapılmazsa oturum otomatik kapanır.
+            Oturum yalnızca "Çıkış" düğmesiyle kapanır; zaman aşımı yoktur.
           </Text>
         </View>
       </View>
@@ -399,7 +393,7 @@ function MarkaPaneli() {
 
         <View style={styles.markaListe}>
           <MarkaMadde ikon="lock-closed" metin="Şifreler ve oturum belirteçleri kaydedilmez" />
-          <MarkaMadde ikon="timer-outline" metin="Hareketsizlikte otomatik oturum kapatma" />
+          <MarkaMadde ikon="timer-outline" metin="Oturum yalnızca elle kapatılır" />
           <MarkaMadde ikon="document-text-outline" metin="Kritik işlemler denetim kaydında" />
         </View>
       </View>
@@ -488,8 +482,14 @@ const styles = StyleSheet.create({
     padding: BoslukTokenlari.xxl,
   },
   formTarafiDar: {
-    flex: 0,
+    // `flex: 0` burada flex-basis'i 0%'a çekiyor ve kolon padding'e (32px)
+    // kadar çöküyordu — iPhone'da form 50px'e sıkışıyordu. Basis auto +
+    // grow/shrink 1 ile genişlik gerçek ekranı kaplar.
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 'auto',
     width: '100%',
+    minWidth: 0,
     minHeight: '100%',
     padding: BoslukTokenlari.lg,
   },

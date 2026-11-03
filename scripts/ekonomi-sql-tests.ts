@@ -13,6 +13,8 @@ const MIGRATIONS = [
   '20261025090100_yayinci_gelir_paylasimi.sql',
   '20261025090200_yayinci_odeme.sql',
   '20261025090500_ajans_yukleme_denetim.sql',
+  '20261031230000_yayinci_kazanc_aylik_odeme.sql',
+  '20261101080000_yayinci_admin_detay.sql',
 ];
 
 const STUB = `
@@ -35,7 +37,10 @@ create function public.ben_admin_miyim() returns boolean language sql stable as
 create function public.bildirim_kuyruga_ekle(p_user uuid, p_cat text, p_title text, p_body text, p_href text, p_data jsonb)
   returns void language sql as $$ insert into public.test_bildirim values (p_user, p_title, p_href) $$;
 
-create table public.profiles (id uuid primary key, is_guest boolean not null default false, display_name text);
+create table public.profiles (
+  id uuid primary key, is_guest boolean not null default false, display_name text,
+  username text, birth_date date, country_code text, is_admin boolean not null default false
+);
 create function public.profil_gosterim_adi(p uuid) returns text language sql stable as
   $$ select display_name from public.profiles where id = p $$;
 
@@ -109,7 +114,10 @@ end $$;
 create function public.kisiler_billable_coins(p_seconds int, p_price int, p_mode text) returns bigint
   language sql immutable as $$ select ceil(p_seconds * p_price / 60.0)::bigint $$;
 create table public.wallet_accounts (user_id uuid primary key, kyc_status text);
-create table public.user_bank_accounts (user_id uuid primary key, account_holder text, bank_name text, iban text);
+create table public.user_bank_accounts (
+  user_id uuid primary key, account_holder text, bank_name text, iban text,
+  created_at timestamptz default now(), updated_at timestamptz default now()
+);
 
 create table public.agency_coin_transfers (
   id uuid primary key default gen_random_uuid(), agency_id uuid, from_user_id uuid, to_user_id uuid,
@@ -132,6 +140,8 @@ const U = {
   D: '00000000-0000-0000-0000-00000000000d',
   E: '00000000-0000-0000-0000-00000000000e',
   F: '00000000-0000-0000-0000-00000000000f',
+  G: '00000000-0000-0000-0000-000000000010',
+  H: '00000000-0000-0000-0000-000000000011',
   AG_OWNER: '00000000-0000-0000-0000-0000000000a9',
 };
 const AJANS = '10000000-0000-0000-0000-000000000001';
@@ -222,8 +232,11 @@ async function kur() {
     insert into public.agency_commission_rates values ('${AJANS}', 0.80, 0.20, 0);
     insert into public.agency_transfer_limits values ('${AJANS}', true, 0, 0, 0, 0);
     insert into public.host_profiles values ('${U.C}', '${AJANS}', 'agency');
-    insert into public.wallets (user_id, coins) values
-      ('${U.A}', 100000), ('${U.D}', 10000), ('${U.E}', 10000);
+    insert into public.wallets (user_id, coins, game_coins) values
+      ('${U.A}', 100000, 0), ('${U.D}', 10000, 0), ('${U.E}', 10000, 0),
+      ('${U.G}', 0, 0), ('${U.H}', 200000, 10000);
+    update public.profiles set birth_date = date '2000-01-01', country_code = 'TR'
+      where id in ('${U.G}', '${U.H}');
   `);
 }
 
@@ -240,15 +253,15 @@ async function testler() {
       [t],
     );
   let d = await donem('2026-10-01T00:00:00Z');
-  esit(`${d.b}..${d.s}`, '2026-10-01..2026-10-15', 'dönem 1 başlangıcı');
+  esit(`${d.b}..${d.s}`, '2026-10-01..2026-10-31', 'aylık dönem başlangıcı');
   d = await donem('2026-10-15T23:59:59Z');
-  esit(`${d.b}..${d.s}`, '2026-10-01..2026-10-15', 'dönem 1 sonu');
+  esit(`${d.b}..${d.s}`, '2026-10-01..2026-10-31', 'aylık dönem ortası');
   d = await donem('2026-10-16T00:00:00Z');
-  esit(`${d.b}..${d.s}`, '2026-10-16..2026-10-31', 'dönem 2 (31 gün)');
+  esit(`${d.b}..${d.s}`, '2026-10-01..2026-10-31', 'aylık dönem (31 gün)');
   d = await donem('2027-02-20T12:00:00Z');
-  esit(`${d.b}..${d.s}`, '2027-02-16..2027-02-28', 'dönem 2 (şubat)');
+  esit(`${d.b}..${d.s}`, '2027-02-01..2027-02-28', 'aylık dönem (şubat)');
   d = await donem('2028-02-29T12:00:00Z');
-  esit(`${d.b}..${d.s}`, '2028-02-16..2028-02-29', 'dönem 2 (artık yıl)');
+  esit(`${d.b}..${d.s}`, '2028-02-01..2028-02-29', 'aylık dönem (artık yıl)');
 
   // --- Kova ayrımı (ertelenmiş tetikleyici) ---
   await db.exec(`
@@ -516,6 +529,282 @@ async function testler() {
   esit(denetim.load_type, 'promotion', 'denetim kaydı yükleme türü');
   esit(denetim.actor_role, 'agency_owner', 'denetim kaydı yükleyen');
   await hataBekle(`delete from public.agency_coin_load_audit where recipient_id = $1`, [U.D], 'silinemez', 'denetim kaydı silinemez');
+
+  // =========================================================================
+  // Aylık ödeme sistemi (v2): takvim, uygunluk, parti, manuel tamamlama
+  // =========================================================================
+  await db.exec(`insert into public.bank_holidays (country_code, holiday_date, name)
+    values ('TR', date '2026-11-16', 'Test Tatili')`);
+  const odemeGunu = await tek<{ d: string; h: string }>(
+    `select public.odeme_gunu(date '2026-11-01', 'TR')::text d,
+            extract(isodow from public.odeme_gunu(date '2026-11-01', 'TR'))::text h`,
+  );
+  esit(odemeGunu.d, '2026-11-17', 'ödeme günü tatilde sonraki iş gününe kayar');
+  assert(!['6', '7'].includes(odemeGunu.h), 'ödeme günü hafta sonuna denk gelmez');
+
+  // Yayıncı programı + sözleşme + ödeme hesabı
+  await kullanici(U.G);
+  await db.exec(`update public.profiles set birth_date = null where id = '${U.G}'`);
+  await hataBekle(
+    `select public.yayinci_program_basvuru('TR', true)`,
+    [],
+    'adult_required',
+    'yaş doğrulanmadan programa başvuru yok',
+  );
+  await db.exec(`update public.profiles set birth_date = date '2010-01-01' where id = '${U.G}'`);
+  await hataBekle(`select public.yayinci_program_basvuru('TR', true)`, [], 'adult_required', '18 yaş altı reddedilir');
+  await db.exec(`update public.profiles set birth_date = date '2000-01-01' where id = '${U.G}'`);
+  await db.query(`select public.yayinci_program_basvuru('TR', true)`);
+  esit(
+    await deger(`select status from public.creator_program_enrollments where user_id = $1`, [U.G]),
+    'applied',
+    'başvuru kaydı oluşur',
+  );
+
+  await hataBekle(
+    `select public.yayinci_odeme_hesabi_kaydet('Test G', 'Banka', 'TR1', 'TR')`,
+    [],
+    'invalid_iban',
+    'geçersiz IBAN reddedilir',
+  );
+  const hesap = (await db.query(
+    `select public.yayinci_odeme_hesabi_kaydet('Test G', 'Banka', 'TR00 1234 5678 9012 3456 7890 12', 'TR') as j`,
+  )).rows[0] as { j: Record<string, unknown> };
+  esit(hesap.j.status, 'pending_verification', 'yeni ödeme hesabı doğrulama bekler');
+  esit(hesap.j.iban_masked, 'TR00 **** 9012', 'IBAN arayüzde maskelenir');
+
+  let elig = (await deger(
+    `select public.yayinci_uygunluk_durumu($1)`,
+    [U.G],
+  )) as Record<string, unknown>;
+  esit(elig.eligible, false, 'program onayı olmadan uygunluk yok');
+  esit(elig.payout_account_verified, false, 'doğrulanmamış hesap uygunluk vermez');
+
+  await db.exec(`insert into public.wallet_accounts (user_id, kyc_status) values ('${U.G}', 'approved')
+    on conflict (user_id) do update set kyc_status = 'approved'`);
+  await admin(true);
+  await db.query(`select public.admin_yayinci_program_durum($1, 'approved', 'Onaylandı')`, [U.G]);
+  const hesapId = await deger(`select id from public.creator_payout_accounts where user_id = $1`, [U.G]);
+  await db.query(`select public.admin_odeme_hesabi_dogrula($1, 'verified', 'Kontrol edildi')`, [hesapId]);
+  await admin(false);
+
+  elig = (await deger(`select public.yayinci_uygunluk_durumu($1)`, [U.G])) as Record<string, unknown>;
+  esit(elig.eligible, true, 'tüm uygunluk şartları tamamlanınca ödeme uygun');
+
+  // --- Yönetici yayıncı detayı + vergi durumu ---
+  await admin(true);
+  const detay = (await deger(`select public.admin_yayinci_detay($1)`, [U.G])) as Record<string, any>;
+  esit(detay.enrollment?.status, 'approved', 'admin detay: program durumu okunur');
+  esit(detay.payout_account?.status, 'verified', 'admin detay: ödeme hesabı durumu okunur');
+  esit(detay.payout_account?.iban_masked, 'TR00 **** 9012', 'admin detay: IBAN maskeli döner');
+  esit(detay.eligibility?.eligible, true, 'admin detay: uygunluk sunucudan gelir');
+  assert(
+    detay.payout_account?.iban_hash === undefined && detay.payout_account?.iban === undefined,
+    'admin detay: tam IBAN veya hash dönmez',
+  );
+  await admin(false);
+  await hataBekle(
+    `select public.admin_yayinci_detay($1)`,
+    [U.G],
+    'Forbidden',
+    'yetkisiz yayıncı detayı engellenir',
+  );
+  await hataBekle(
+    `select public.admin_yayinci_vergi_durum($1, 'complete', 'VKN-1')`,
+    [U.G],
+    'Forbidden',
+    'yetkisiz vergi güncellemesi engellenir',
+  );
+  await admin(true);
+  await hataBekle(
+    `select public.admin_yayinci_vergi_durum($1, 'bogus', null)`,
+    [U.G],
+    'invalid_status',
+    'geçersiz vergi durumu reddedilir',
+  );
+  const vergi = (await deger(
+    `select public.admin_yayinci_vergi_durum($1, 'not_required', null)`,
+    [U.G],
+  )) as Record<string, any>;
+  esit(vergi.tax_status, 'not_required', 'admin vergi durumunu günceller');
+  esit(
+    Number(
+      await deger(
+        `select count(*) from public.financial_audit_events
+         where action = 'admin.creator_tax_status' and entity_id = $1`,
+        [U.G],
+      ),
+    ),
+    1,
+    'vergi güncellemesi denetim kaydına yazılır',
+  );
+  await db.query(`select public.admin_yayinci_vergi_durum($1, 'complete', 'VKN-1')`, [U.G]);
+  await admin(false);
+
+  // Uygun hediye geliri (satın alınan coin) + oyun coini ayrımı
+  const oncekiG = Number((await cuzdan(U.G)).coins);
+  for (let i = 0; i < 13; i += 1) {
+    await hediye(U.H, U.G, 1, 'purchased');
+  }
+  const oyunHediye = await hediye(U.H, U.G, 1, 'game');
+  const oyunElig = await tek<Record<string, unknown>>(
+    `select * from public.gift_revenue_eligibility where gift_transaction_id = $1`,
+    [oyunHediye.id],
+  );
+  esit(oyunElig.eligible, false, 'oyun coini hediyesi gelir uygunluğu taşımaz');
+  esit(oyunElig.reason, 'game_coins', 'oyun coini nedeni kaydedilir');
+  esit(Number((await cuzdan(U.G)).coins) - oncekiG, 0, 'alınan hediye yayıncı coin bakiyesini değiştirmez');
+  assert(Number((await cuzdan(U.G)).diamonds) > 0, 'hediye elmas göstergesi oluşur');
+
+  const gEarn = await tek<{ total: string }>(
+    `select coalesce(sum(net_usd),0)::text total from public.creator_earning_entries
+     where creator_id = $1 and eligible and payout_request_id is null`,
+    [U.G],
+  );
+  esit(Number(gEarn.total).toFixed(2), '26.00', 'uygun hediyeler %40 yayıncı payı üretir');
+
+  // Dönemi geçmiş aya taşı → aylık kapanış + ödeme listesi
+  const gecenAy = await deger(`select (date_trunc('month', current_date) - interval '1 month')::date::text`);
+  await db.exec(`update public.creator_earning_entries
+    set period_start = '${String(gecenAy)}'::date,
+        period_end = (date_trunc('month', '${String(gecenAy)}'::date) + interval '1 month - 1 day')::date
+    where creator_id = '${U.G}' and payout_request_id is null and paid_at is null`);
+  await admin(true);
+  const aylik = (await db.query(
+    `select * from public.admin_yayinci_odeme_listesi_hazirla($1::date, 'Aylık test')`,
+    [gecenAy],
+  )).rows[0] as Record<string, unknown>;
+  await admin(false);
+  esit(aylik.status, 'pending_approval', 'ödeme listesi onay bekler');
+  esit(Number(aylik.item_count), 1, 'ödeme listesinde tek yayıncı');
+  esit(Number(aylik.total_amount_usd).toFixed(2), '26.00', 'parti toplamı doğru');
+
+  const donemDurum = await deger(
+    `select status from public.monthly_settlement_periods where period_month = $1::date`,
+    [gecenAy],
+  );
+  esit(donemDurum, 'payment_list', 'dönem ödeme listesine geçer');
+
+  await admin(true);
+  await hataBekle(
+    `select public.admin_yayinci_odeme_listesi_hazirla($1::date, 'tekrar')`,
+    [gecenAy],
+    'batch_exists',
+    'aynı ay için ikinci parti oluşmaz',
+  );
+  await admin(false);
+
+  const batchId = String(aylik.id);
+  await admin(true);
+  const onay = (await db.query(`select * from public.admin_yayinci_odeme_batch_onayla($1, 'Onay')`, [batchId]))
+    .rows[0] as Record<string, unknown>;
+  esit(onay.status, 'approved', 'parti onaylanır');
+
+  const item = await tek<{ id: string; status: string; net_usd: string }>(
+    `select id, status, net_usd from public.payout_batch_items where batch_id = $1`,
+    [batchId],
+  );
+  await hataBekle(
+    `select public.admin_yayinci_odeme_oge_isle($1, 'completed', 'BANK-REF-1', 'Tamam')`,
+    [item.id],
+    'invalid_transition',
+    'sent olmadan completed olmaz',
+  );
+  await db.query(`select public.admin_yayinci_odeme_oge_isle($1, 'sent', 'BANK-REF-1', 'Gönderildi')`, [item.id]);
+  await db.query(`select public.admin_yayinci_odeme_oge_isle($1, 'completed', 'BANK-REF-1', 'Tamamlandı')`, [item.id]);
+  await hataBekle(
+    `select public.admin_yayinci_odeme_oge_isle($1, 'completed', 'BANK-REF-1', 'Tekrar')`,
+    [item.id],
+    'invalid_transition',
+    'aynı ödeme iki kez tamamlanmaz',
+  );
+  await hataBekle(
+    `select public.admin_yayinci_odeme_oge_isle($1, 'sent', 'BANK-REF-2', 'Tekrar')`,
+    [item.id],
+    'invalid_transition',
+    'aynı ödeme iki kez gönderilmez',
+  );
+  esit(
+    await deger(`select status from public.payout_batch_items where id = $1`, [item.id]),
+    'paid',
+    'öğe ödendi olarak kapanır',
+  );
+  esit(
+    await deger(`select status from public.payout_batches where id = $1`, [batchId]),
+    'completed',
+    'parti tamamlanır',
+  );
+  assert(
+    Number(await deger(`select count(*) from public.financial_audit_events where action like 'payout_%'`)) >= 5,
+    'parti ve öğe işlemleri denetim kaydına girer',
+  );
+  await admin(false);
+
+  await kullanici(U.G);
+  const gOzet = (await deger(`select public.yayinci_kazanc_ozeti()`)) as Record<string, unknown>;
+  esit(Number(gOzet.paid_usd).toFixed(2), '26.00', 'tamamlanan ödeme özetle görünür');
+  esit(Number(gOzet.available_usd).toFixed(2), '0.00', 'ödenen tutar tekrar ödenebilir görünmez');
+  const odemeGecmisi = await db.query(`select * from public.yayinci_odeme_gecmisi()`);
+  esit(odemeGecmisi.rows.length, 1, 'ödeme geçmişi kaydı oluşur');
+
+  // İade: ödeme öncesi kazanç uygunluğu düşer
+  const iadeHediye = await hediye(U.H, U.G, 1, 'purchased');
+  await admin(true);
+  await db.query(`select public.admin_yayinci_iade_isle($1, 'refund', 'Kullanıcı iadesi')`, [iadeHediye.id]);
+  await admin(false);
+  const iadeElig = await tek<Record<string, unknown>>(
+    `select * from public.gift_revenue_eligibility where gift_transaction_id = $1`,
+    [iadeHediye.id],
+  );
+  esit(iadeElig.refund_status, 'refunded', 'iade durumu kaydedilir');
+  esit(iadeElig.eligible, false, 'iade edilen hediye gelir uygunluğunu kaybeder');
+  esit(
+    await deger(
+      `select eligible from public.creator_earning_entries where source_type = 'gift' and source_id = $1`,
+      [iadeHediye.id],
+    ),
+    false,
+    'iade edilen kazanç kalemi uygun değil',
+  );
+
+  // Chargeback: ödenmiş kazanç ters kayıtla düzeltilir
+  const cbHediye = await hediye(U.H, U.G, 1, 'purchased');
+  await admin(true);
+  await db.query(
+    `update public.creator_earning_entries set paid_at = now()
+     where source_type = 'gift' and source_id = $1`,
+    [cbHediye.id],
+  );
+  await db.query(`select public.admin_yayinci_iade_isle($1, 'chargeback', 'Ters ibraz')`, [cbHediye.id]);
+  const duzeltme = await tek<{ amount: string; kind: string }>(
+    `select amount_usd::text amount, kind from public.creator_earning_adjustments
+     where gift_transaction_id = $1`,
+    [cbHediye.id],
+  );
+  esit(duzeltme.kind, 'chargeback', 'chargeback düzeltmesi oluşur');
+  assert(Number(duzeltme.amount) < 0, 'düzeltme negatif ters kayıttır');
+  await admin(false);
+
+  await kullanici(U.G);
+  const gOzet2 = (await deger(`select public.yayinci_kazanc_ozeti()`)) as Record<string, unknown>;
+  assert(Number(gOzet2.adjustments_usd) < 0, 'ters kayıt özet bakiyeye yansır');
+  assert(Number(gOzet2.available_usd) >= 0, 'negatif bakiye gösterilmez (sıfır taban)');
+
+  // Yetkisiz erişim
+  await kullanici(U.G);
+  await hataBekle(`select public.admin_yayinci_odeme_listeleri()`, [], 'Forbidden', 'admin olmayan ödeme listesi göremez');
+  await hataBekle(
+    `select public.admin_yayinci_kazanc_duzelt($1, -5, 'correction', 'deneme')`,
+    [U.G],
+    'Forbidden',
+    'admin olmayan kazanç düzeltemez',
+  );
+
+  // Grafik verileri
+  const grafik = (await deger(`select public.yayinci_kazanc_grafikleri(30)`)) as Record<string, unknown>;
+  assert(Array.isArray(grafik.daily) && (grafik.daily as unknown[]).length === 30, 'günlük grafik 30 gün döner');
+  assert(Array.isArray(grafik.weekly), 'haftalık grafik dizisi döner');
+  assert(Array.isArray(grafik.monthly), 'aylık grafik dizisi döner');
 }
 
 async function main() {

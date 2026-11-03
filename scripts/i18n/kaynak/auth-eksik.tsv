@@ -1,0 +1,3 @@
+auth.appleIleDevam	Apple ile devam et	Continue with Apple
+auth.medyaCokBuyuk	Fotoğraf çok büyük. En fazla {{mb}} MB olmalı; daha küçük bir görsel dene.	Photo is too large. Max {{mb}} MB — try a smaller image.
+auth.medyaHeicDesteklenmiyor	Bu fotoğraf formatı yüklenemedi. Galeriden JPEG/PNG bir görsel seç veya kırpma ekranında onayla.	This photo format could not be uploaded. Pick a JPEG/PNG or confirm the crop screen.

@@ -1,0 +1,17 @@
+oyun.fwGameCoins	Oyun coinleri	Game coins
+oyun.fwPurchasedCoins	Satın alınan coin	Purchased coins
+oyun.fwSourceGame	{oyun} oyun coininden düşecek	{oyun} will be spent from game coins
+oyun.fwSourceMixed	{oyun} oyun coini + {satin} satın alınan coin	{oyun} game coins + {satin} purchased coins
+oyun.fwAfterRound	Tur sonrası bakiye: {sonra}	Balance after round: {sonra}
+oyun.fwPurchasedNeeded	Oyun coininiz yetmiyor. Satın alınan coin onayı bekleniyor.	Not enough game coins. Waiting for purchased-coin approval.
+oyun.fwPurchasedTitle	Satın alınan coin kullanılsın mı?	Use purchased coins?
+oyun.fwPurchasedBody	Oyun ve ödül coinleriniz yetersiz.\n\nOyun coinleri: {oyun}\nSatın alınan coin: {satin}\nSatın alınan coin'den kullanılacak: {tutar}\n\nBu tur sonrası toplam bakiyeniz: {sonra}	Your game and bonus coins are not enough.\n\nGame coins: {oyun}\nPurchased coins: {satin}\nUsed from purchased coins: {tutar}\n\nTotal balance after this round: {sonra}
+oyun.fwPurchasedDisabled	Satın alınan coin ile oyun oynanamıyor. Oyun coininiz yetersiz.	Purchased coins cannot be used for games. Your game coins are not enough.
+oyun.fwVazgec	Vazgeç	Cancel
+oyun.fwOnayla	Onayla ve oyna	Approve and play
+oyun.fwPlayed	Oynadı	Played
+oyun.fwLostShort	Kayıp	Lost
+oyun.tamusoGelistirdi	tarafından geliştirildi	original
+oyun.fwPickCount	{{n}}/{{max}} seçildi	{{n}}/{{max}} selected
+oyun.fwPickFull	En fazla 4 farklı meyve seçebilirsin.	You can pick at most 4 different fruits.
+oyun.fwPotential	Olası	Potential

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -33,12 +33,6 @@ import { MesajDosyaKarti } from './MesajDosyaKarti';
 import { MesajLinkOnizlemeKarti } from './MesajLinkOnizlemeKarti';
 import { MesajBaglantiliMetin } from './MesajBaglantiliMetin';
 import { MesajViewOnceKarti } from './MesajViewOnceKarti';
-import { MesajAjansPaketTeklifKarti } from './MesajAjansPaketTeklifKarti';
-import { MesajAjansPaketFisKarti } from './MesajAjansPaketFisKarti';
-import {
-  AjansPaketTalebiMi,
-  MesajAjansPaketTalepDugmesi,
-} from './MesajAjansPaketTalepDugmesi';
 import {
   HikayeYanitCoz,
   MesajHikayeYanitOnizleme,
@@ -57,24 +51,24 @@ import {
 type Props = {
   item: DirektMesaj;
   mine: boolean;
-  /** Karsi tarafin last_read_at — kendi mesajlarinda goruldu */
+  /** Karsi tarafin last_read_at â€” kendi mesajlarinda goruldu */
   peerLastReadAt?: string | null;
   onLongPress?: () => void;
-  /** Tek ekran-seviyesi goruntuleyici — baloncuk basina Modal yok */
+  /** Tek ekran-seviyesi goruntuleyici â€” baloncuk basina Modal yok */
   onMedyaAc?: (uri: string, tur: 'image' | 'video') => void;
-  /** shared_post önizleme (batch) */
+  /** shared_post Ã¶nizleme (batch) */
   sharedPostOnizleme?: PaylasilanDurumOnizleme | null;
   sharedPostYukleniyor?: boolean;
-  /** Yanıtlanan mesaj (liste içinden resolve) */
+  /** YanÄ±tlanan mesaj (liste iÃ§inden resolve) */
   replyTo?: DirektMesaj | null;
   onReplyPress?: (replyToId: string) => void;
   onViewOncePatch?: (patch: Partial<DirektMesaj>) => void;
-  /** Çift dokunuşla yanıt */
+  /** Ã‡ift dokunuÅŸla yanÄ±t */
   onReply?: (item: DirektMesaj) => void;
   highlighted?: boolean;
-  /** Ajans sahibi: paket talebi altında "Bu paketi gönder" */
+  /** Ajans sahibi: paket talebi altÄ±nda "Bu paketi gÃ¶nder" */
   ajansSahibi?: boolean;
-  /** Talep edilen paketin teklif kartı sonradan gönderildi mi */
+  /** Talep edilen paketin teklif kartÄ± sonradan gÃ¶nderildi mi */
   paketTalebiGonderildi?: boolean;
 };
 
@@ -124,7 +118,7 @@ function mesajGorulduMu(
   return new Date(peerLastReadAt).getTime() >= new Date(item.created_at).getTime();
 }
 
-/** Telegram tarzi baloncuk — metin / kenarsiz medya / ajans daveti / V2 kartlar */
+/** Telegram tarzi baloncuk â€” metin / kenarsiz medya / ajans daveti / V2 kartlar */
 export function MesajBaloncugu({
   item,
   mine,
@@ -145,12 +139,12 @@ export function MesajBaloncugu({
   const locale = DIL_LOCALE_MAP[dil];
   const pendingTap = useRef<ReturnType<typeof setTimeout> | null>(null);
   /**
-   * Baloncuk tarafı GÖNDEREN semantiği — UI dili değil.
-   * mine her zaman fiziksel SAĞ, theirs fiziksel SOL.
-   * RTL'de flex-end sola kaydığı için render-time fizikselHiza şart.
+   * Baloncuk tarafÄ± GÃ–NDEREN semantiÄŸi â€” UI dili deÄŸil.
+   * mine her zaman fiziksel SAÄ, theirs fiziksel SOL.
+   * RTL'de flex-end sola kaydÄ±ÄŸÄ± iÃ§in render-time fizikselHiza ÅŸart.
    */
   const hiza = fizikselHiza(mine ? 'end' : 'start');
-  /** sharedWrap içi (kart + meta) aynı fiziksel kenara yaslansın */
+  /** sharedWrap iÃ§i (kart + meta) aynÄ± fiziksel kenara yaslansÄ±n */
   const icHiza = {
     alignItems: hiza.alignSelf === 'flex-end' ? ('flex-end' as const) : ('flex-start' as const),
   };
@@ -171,14 +165,12 @@ export function MesajBaloncugu({
   const isMedya = isImage || isVideo;
   const isSystem = item.message_type === 'system';
   const isSharedPost = item.message_type === 'shared_post';
-  const isAgencyOffer = item.message_type === 'agency_package_offer';
-  const isAgencyReceipt = item.message_type === 'agency_package_receipt';
   const davet = AjansDavetMesajindanKoduCikar(item.body);
   const paylasim = mesajPaylasimKodu(item.body);
   const [davetBusy, setDavetBusy] = useState(false);
   const [davetGonderildi, setDavetGonderildi] = useState(false);
   const [indirBusy, setIndirBusy] = useState(false);
-  /** Aynı URI ile her render yeni source üretmek Android'de görseli baştan fade eder. */
+  /** AynÄ± URI ile her render yeni source Ã¼retmek Android'de gÃ¶rseli baÅŸtan fade eder. */
   const imageSource = useMemo(
     () => (isImage && safeMediaUri ? { uri: safeMediaUri } : null),
     [isImage, safeMediaUri],
@@ -197,7 +189,7 @@ export function MesajBaloncugu({
     };
   }, []);
 
-  /** Çift dokunuş → yanıt; tek dokunuş (gecikmeli) → onTek */
+  /** Ã‡ift dokunuÅŸ â†’ yanÄ±t; tek dokunuÅŸ (gecikmeli) â†’ onTek */
   const ciftTik = (onTek?: () => void) => {
     if (!yanitAktif) {
       onTek?.();
@@ -321,86 +313,6 @@ export function MesajBaloncugu({
           ) : null}
         </View>
       </Pressable>,
-    );
-  }
-
-  if (isAgencyOffer) {
-    return sar(
-      <View style={[styles.sharedWrap, hiza, icHiza, sending && styles.sending]}>
-        <MesajAjansPaketTeklifKarti
-          item={item}
-          mine={mine}
-          onLongPress={onLongPress}
-        />
-        <View style={styles.sharedMeta}>
-          <Text style={mine ? styles.timeMine : styles.time}>
-            {saat(item.created_at, locale)}
-          </Text>
-          {mine ? (
-            <Ionicons
-              name={
-                failed
-                  ? 'alert-circle'
-                  : sending
-                    ? queued
-                      ? 'cloud-upload-outline'
-                      : 'time-outline'
-                    : goruldu
-                      ? 'checkmark-done'
-                      : 'checkmark'
-              }
-              size={14}
-              color={
-                failed
-                  ? RenkTokenlari.danger
-                  : goruldu
-                    ? RenkTokenlari.mint
-                    : 'rgba(18,4,12,0.55)'
-              }
-            />
-          ) : null}
-        </View>
-      </View>,
-    );
-  }
-
-  if (isAgencyReceipt) {
-    return sar(
-      <View style={[styles.sharedWrap, hiza, icHiza, sending && styles.sending]}>
-        <MesajAjansPaketFisKarti
-          item={item}
-          mine={mine}
-          onLongPress={onLongPress}
-        />
-        <View style={styles.sharedMeta}>
-          <Text style={mine ? styles.timeMine : styles.time}>
-            {saat(item.created_at, locale)}
-          </Text>
-          {mine ? (
-            <Ionicons
-              name={
-                failed
-                  ? 'alert-circle'
-                  : sending
-                    ? queued
-                      ? 'cloud-upload-outline'
-                      : 'time-outline'
-                    : goruldu
-                      ? 'checkmark-done'
-                      : 'checkmark'
-              }
-              size={14}
-              color={
-                failed
-                  ? RenkTokenlari.danger
-                  : goruldu
-                    ? RenkTokenlari.mint
-                    : 'rgba(18,4,12,0.55)'
-              }
-            />
-          ) : null}
-        </View>
-      </View>,
     );
   }
 
@@ -615,7 +527,7 @@ export function MesajBaloncugu({
   if (isVoice) {
     return sar(
       <Pressable
-        // Sesli mesajda tek dokunuş oynatır; çift dokunuş yanıt gecikmesi yok
+        // Sesli mesajda tek dokunuÅŸ oynatÄ±r; Ã§ift dokunuÅŸ yanÄ±t gecikmesi yok
         onLongPress={onLongPress}
         delayLongPress={300}
         style={[styles.kartWrap, hiza, icHiza, sending && styles.sending]}
@@ -903,14 +815,11 @@ export function MesajBaloncugu({
         )
       ) : null}
       {paylasim ? <MesajKopyaSatiri deger={paylasim.deger} mine={mine} /> : null}
-      {!mine && ajansSahibi && AjansPaketTalebiMi(item) ? (
-        <MesajAjansPaketTalepDugmesi item={item} gonderildi={!!paketTalebiGonderildi} />
-      ) : null}
       {metaSatiri(false)}
     </>
   );
 
-  // Link kartı balon DIŞINDA — şeffaf cam, etrafı transparan
+  // Link kartÄ± balon DIÅINDA â€” ÅŸeffaf cam, etrafÄ± transparan
   const paket = (
     <View style={[styles.linkPaket, hiza, icHiza]}>
       {mine ? (
@@ -972,13 +881,13 @@ const styles = StyleSheet.create({
     maxWidth: '86%',
     gap: 4,
   },
-  /** Link kartı balon dışında — şeffaf boşluk */
+  /** Link kartÄ± balon dÄ±ÅŸÄ±nda â€” ÅŸeffaf boÅŸluk */
   linkPaket: {
     maxWidth: '86%',
     gap: 4,
     backgroundColor: 'transparent',
   },
-  /** shared taraf hizası render-time fizikselHiza ile — statik alignSelf YOK */
+  /** shared taraf hizasÄ± render-time fizikselHiza ile â€” statik alignSelf YOK */
   sharedMeta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -992,7 +901,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     gap: 4,
   },
-  /** Taraf hizası render-time fizikselHiza — köşe yarıçapı FİZİKSEL kalır */
+  /** Taraf hizasÄ± render-time fizikselHiza â€” kÃ¶ÅŸe yarÄ±Ã§apÄ± FÄ°ZÄ°KSEL kalÄ±r */
   mine: {
     borderBottomRightRadius: 4,
   },
@@ -1032,7 +941,7 @@ const styles = StyleSheet.create({
     color: 'rgba(18,4,12,0.7)',
     flex: 1,
   },
-  /** Kenara kadar medya — çerçeve / gradient yok, şeffaf zemin */
+  /** Kenara kadar medya â€” Ã§erÃ§eve / gradient yok, ÅŸeffaf zemin */
   medyaKart: {
     maxWidth: '78%',
     borderRadius: 14,

@@ -12,6 +12,14 @@ const cache = TtlInflightCacheOlustur<unknown>(KATALOG_TTL_MS);
 export const KatalogCache = {
   ttlMs: KATALOG_TTL_MS,
 
+  get<T>(key: string): T | undefined {
+    return cache.get(key) as T | undefined;
+  },
+
+  set<T>(key: string, value: T, ttlMs = KATALOG_TTL_MS) {
+    cache.set(key, value, ttlMs);
+  },
+
   getOrFetch<T>(key: string, fetchFn: () => Promise<T>, ttlMs = KATALOG_TTL_MS) {
     return cache.getOrFetch(key, fetchFn, ttlMs) as Promise<T>;
   },

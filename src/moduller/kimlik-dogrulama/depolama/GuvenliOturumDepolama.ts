@@ -16,17 +16,14 @@ const IOS_KEYCHAIN: SecureStore.SecureStoreOptions = {
  * Native: SecureStore (Keychain/Keystore).
  * Web: AsyncStorage fallback (SecureStore web sinirli).
  *
- * Yönetim paneli (apps/super-admin) açılışta `globalThis.__TAMUSO_ADMIN_WEB__`
- * bayrağını koyar. Bayrak açıkken web'de sessionStorage kullanılır: personel
- * oturumu sekme kapanınca tarayıcıdan silinir ve aynı tarayıcıdaki diğer
- * sekmeleri etkilemez.
+ * Web'de belirteç localStorage'da tutulur: oturum OTOMATİK KAPANMAZ. Sekme
+ * veya pencerenin kapanması personeli dışarı atmaz; oturum yalnızca paneldeki
+ * "Çıkış" düğmesiyle (AdminOturumuKapat) sonlanır.
  */
 function webDeposu(): Storage | null {
   try {
     if (typeof window === 'undefined') return null;
-    const bayrak = (globalThis as { __TAMUSO_ADMIN_WEB__?: boolean })
-      .__TAMUSO_ADMIN_WEB__;
-    return bayrak ? window.sessionStorage : window.localStorage;
+    return window.localStorage;
   } catch {
     return null;
   }

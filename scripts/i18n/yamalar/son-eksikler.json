@@ -1,0 +1,18 @@
+{
+  "es": {
+    "verify.tekrarDene": "Reintentar"
+  },
+  "pt": {
+    "verify.tekrarDene": "Tentar novamente"
+  },
+  "ar": {
+    "verify.tekrarDene": "أعد المحاولة"
+  },
+  "fr": {
+    "verify.tekrarDene": "Réessayer"
+  },
+  "fil": {
+    "verify.tekrarDene": "Subukan muli",
+    "durum.baglantiyiPaylas": "I-share ang link"
+  }
+}

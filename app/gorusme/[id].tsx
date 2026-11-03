@@ -208,6 +208,7 @@ export default function GorusmeEkrani() {
             onClose={coinKapatVeSinyal}
             upgradeAcik={coin.upgradeAcik}
             upgradeKapat={coin.upgradeKapat}
+            yenileniyor={coin.yenileniyor}
             onPaketleriYenile={() => void coin.paketleriYenile(true)}
           />
         </ModulHataSiniri>

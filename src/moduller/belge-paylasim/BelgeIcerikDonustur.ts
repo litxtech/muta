@@ -9,7 +9,6 @@ import {
   type LedgerSatiri,
 } from '../cuzdan/okuma/CuzdanLedgeriniGetir';
 import type { HediyeGecmisiKaydi } from '../hediyeler/okuma/HediyeGecmisiniGetir';
-import { CEKIM_ODEME_BILGISI } from '../cuzdan/cekim/CekimOdemeBilgisi';
 import type {
   AdminCiroOzeti,
   CiroDonem,
@@ -108,18 +107,7 @@ export function AdminCiroBelgesiOlustur(data: AdminCiroOzeti | null): BelgeIceri
 /** Belge donusumu icin hareket detayi (UI tipinden bagimsiz) */
 export type BelgeCuzdanHareketGirdi =
   | { tur: 'ledger'; veri: LedgerSatiri }
-  | { tur: 'hediye'; veri: HediyeGecmisiKaydi }
-  | {
-      tur: 'cekim';
-      veri: {
-        id: string;
-        diamonds: number;
-        status: string;
-        method: string;
-        created_at: string;
-      };
-      durumEtiket: string;
-    };
+  | { tur: 'hediye'; veri: HediyeGecmisiKaydi };
 
 /** Admin özet raporu */
 export function AdminOzetBelgesiOlustur(ozet: AdminOzet | null): BelgeIcerik {
@@ -174,14 +162,6 @@ export function AdminOzetBelgesiOlustur(ozet: AdminOzet | null): BelgeIcerik {
               {
                 etiket: i18n.t('belge.admin.son24sYukleme'),
                 deger: String(p.finans.son_24s_yukleme_coin),
-              },
-              {
-                etiket: i18n.t('belge.admin.bekleyenCekim'),
-                deger: String(p.finans.bekleyen_cekim),
-              },
-              {
-                etiket: i18n.t('belge.admin.bekleyenElmas'),
-                deger: String(p.finans.bekleyen_cekim_elmas),
               },
             ],
           },
@@ -327,40 +307,9 @@ export function CuzdanHareketBelgesiOlustur(
     };
   }
 
-  const c = detay.veri;
-  const tarih = new Date(c.created_at);
   return {
-    baslik: i18n.t('cuzdanXExtra.cekimTalebi'),
-    altBaslik: detay.durumEtiket,
+    baslik: i18n.t('belge.hesapHareketleri'),
     platformAdi: 'Tamuso',
-    ozet: `${i18n.t('belge.elmas', { n: c.diamonds.toLocaleString(dil) })} · ${c.method}`,
-    satirlar: [
-      {
-        etiket: i18n.t('belge.miktar'),
-        deger: i18n.t('belge.elmas', { n: c.diamonds.toLocaleString(dil) }),
-      },
-      { etiket: i18n.t('belge.yontem'), deger: c.method },
-      { etiket: i18n.t('belge.durum'), deger: detay.durumEtiket },
-      { etiket: i18n.t('belge.odemeSuresi'), deger: CEKIM_ODEME_BILGISI() },
-      {
-        etiket: i18n.t('belge.tarih'),
-        deger: tarih.toLocaleDateString(dil, {
-          weekday: 'long',
-          day: '2-digit',
-          month: 'long',
-          year: 'numeric',
-        }),
-      },
-      {
-        etiket: i18n.t('belge.saat'),
-        deger: tarih.toLocaleTimeString(dil, {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        }),
-      },
-      { etiket: i18n.t('belge.talepNo'), deger: c.id.slice(0, 13).toUpperCase() },
-    ],
-    not: CEKIM_ODEME_BILGISI(),
+    satirlar: [],
   };
 }

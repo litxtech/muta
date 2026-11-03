@@ -19,11 +19,11 @@ const TARIH_LOCALE: Record<string, string> = {
 };
 
 function cuzdanYukleYolu(): string {
-  return '/(tabs)/wallet?sekme=yukle';
+  return '/cuzdan/coin-yukle';
 }
 
 function cuzdanHareketYolu(): string {
-  return '/(tabs)/wallet?sekme=hareket';
+  return '/cuzdan/hareketler';
 }
 
 const DUYURU_ID =
@@ -198,7 +198,7 @@ export function BildirimHedefYolu(input: {
     type === 'trade_offer_accepted' ||
     type === 'trade_offer_rejected'
   ) {
-    return str('agency_id') ? '/ajans/teklifler' : '/cuzdan/takas?sekme=teklifler';
+    return '/(tabs)/wallet';
   }
   if (yuklemeTipiMi(type, input.category)) {
     return cuzdanYukleYolu();

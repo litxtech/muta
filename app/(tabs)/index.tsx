@@ -48,6 +48,7 @@ import {
   type FeedFiltreOgesi,
 } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaFiltreCipleri';
 import { AnaSayfaAramaCubugu } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaAramaCubugu';
+import { AnaSayfaUlkeCipleri } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaUlkeCipleri';
 import { AnaSayfaAramaOnerileri } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaAramaOnerileri';
 import { AnaSayfaIskelet } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaIskelet';
 import { AnaSayfaSonGezilenSeridi } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaSonGezilenSeridi';
@@ -87,6 +88,7 @@ import { TamusoBanner } from '../../src/banner';
 import {
   buildFeedBannerRows,
   FeedBannerRowView,
+  type FeedBannerRow,
 } from '../../src/banner/components/FeedBannerRows';
 import { HikayeTepsi } from '../../src/moduller/hikaye/bilesenler/HikayeTepsi';
 import { useTemayaAboneOl } from '../../src/tasarim-sistemi/tema/useTemayaAboneOl';
@@ -115,6 +117,9 @@ function feedAramaFiltrele(feed: FeedOggesi[], q: string): FeedOggesi[] {
 /** Sessiz yenile — daha seyrek (ısınma / titreme) */
 const YENILE_MS = 45_000;
 const REALTIME_DEBOUNCE_MS = 6_000;
+
+/** Ana sayfa ızgarası — tasarımdaki 3'lü kolon */
+const IZGARA_KOLON = 3;
 
 function feedAyniMi(a: FeedOggesi[], b: FeedOggesi[]): boolean {
   if (a.length !== b.length) return false;
@@ -176,13 +181,14 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [menuAcik, setMenuAcik] = useState(false);
   const [filtre, setFiltre] = useState<FeedFiltre>('tumu');
+  const [ulke, setUlke] = useState<string | null>(null);
   const [arama, setArama] = useState('');
   const odakli = useRef(false);
   const kaydiriyor = useRef(false);
   const ilkYuklemeBitti = useRef(false);
   const [ilkHazir, setIlkHazir] = useState(false);
   const loadNesil = useRef(0);
-  const listeRef = useRef<FlatList<FeedIzgaraOgesi>>(null);
+  const listeRef = useRef<FlatList<FeedBannerRow<FeedIzgaraOgesi>>>(null);
 
   useEffect(() => {
     let iptal = false;
@@ -520,12 +526,27 @@ export default function HomeScreen() {
     );
   }, [yonetimHref, isAdmin, t, bayrakSurum, menuSurum, duyuruRozet]);
 
-  const yayinSayisi = useMemo(() => feed.filter((o) => o.tur === 'canli').length, [feed]);
-  const sesSayisi = useMemo(() => feed.filter((o) => o.tur === 'oda').length, [feed]);
+  /** Ülke çipi — yayıncı ülkesine göre daralt */
+  const ulkeFiltreliFeed = useMemo(() => {
+    if (!ulke) return feed;
+    const kod = ulke.toLocaleUpperCase('tr');
+    return feed.filter(
+      (o) => (o.host?.country_code ?? '').toLocaleUpperCase('tr') === kod,
+    );
+  }, [feed, ulke]);
+
+  const yayinSayisi = useMemo(
+    () => ulkeFiltreliFeed.filter((o) => o.tur === 'canli').length,
+    [ulkeFiltreliFeed],
+  );
+  const sesSayisi = useMemo(
+    () => ulkeFiltreliFeed.filter((o) => o.tur === 'oda').length,
+    [ulkeFiltreliFeed],
+  );
 
   const filtrelenmisFeed = useMemo(
-    () => feedAramaFiltrele(feed, arama),
-    [feed, arama],
+    () => feedAramaFiltrele(ulkeFiltreliFeed, arama),
+    [ulkeFiltreliFeed, arama],
   );
 
   const canliOgeler = useMemo(
@@ -546,14 +567,14 @@ export default function HomeScreen() {
   const izgara = useMemo(() => {
     if (filtre === 'tumu') {
       // Carousel'de gösterilenleri ızgarada da tut — "Sana özel" olarak skor sırası
-      return feedIzgarasiniKur(filtrelenmisFeed, 'tumu').slice(0, 16);
+      return feedIzgarasiniKur(filtrelenmisFeed, 'tumu').slice(0, 18);
     }
     return feedIzgarasiniKur(filtrelenmisFeed, filtre);
   }, [filtrelenmisFeed, filtre]);
 
   const feedRows = useMemo(
-    () => (filtre === 'tumu' ? buildFeedBannerRows(izgara) : buildFeedBannerRows(izgara)),
-    [izgara, filtre],
+    () => buildFeedBannerRows(izgara, undefined, IZGARA_KOLON),
+    [izgara],
   );
 
   const filtreler = useMemo<FeedFiltreOgesi[]>(
@@ -746,6 +767,8 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        <AnaSayfaUlkeCipleri secili={ulke} onSec={setUlke} />
+
         <TamusoBanner placement="HOME_TOP" screen="HOME" compact />
       </View>
     );
@@ -809,6 +832,7 @@ export default function HomeScreen() {
     t,
     filtreler,
     filtre,
+    ulke,
     loading,
     ilkHazir,
     feed.length,
@@ -979,7 +1003,7 @@ export default function HomeScreen() {
                   return (
                     <View style={styles.satir}>
                       {item.items.map((oge: FeedIzgaraOgesi, i: number) => {
-                        const kartIndex = index * 2 + i;
+                        const kartIndex = index * IZGARA_KOLON + i;
                         return (
                           <View key={`${oge.id}-${i}`} style={styles.kartWrap}>
                             <AnaSayfaFeedKart
@@ -992,8 +1016,16 @@ export default function HomeScreen() {
                           </View>
                         );
                       })}
-                      {item.items.length === 1 ? (
-                        <View style={styles.kartWrap} pointerEvents="none" />
+                      {item.items.length < IZGARA_KOLON ? (
+                        Array.from({
+                          length: IZGARA_KOLON - item.items.length,
+                        }).map((_, bosIdx) => (
+                          <View
+                            key={`bos-${bosIdx}`}
+                            style={styles.kartWrap}
+                            pointerEvents="none"
+                          />
+                        ))
                       ) : null}
                     </View>
                   );
@@ -1043,8 +1075,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    height: 34,
     paddingHorizontal: 12,
-    paddingVertical: 8,
     borderRadius: YaricapTokenlari.pill,
   },
   kisilerCipYazi: {
@@ -1060,7 +1092,7 @@ const styles = StyleSheet.create({
   },
   satir: {
     flexDirection: 'row',
-    gap: BoslukTokenlari.md,
+    gap: BoslukTokenlari.sm,
   },
   kartWrap: {
     flex: 1,

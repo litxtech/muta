@@ -1,10 +1,10 @@
 /**
- * Ortak oyun algoritma admin API — Zeus (ve ileride diğer oyunlar).
+ * Ortak oyun algoritma admin API.
  */
 
 import { supabase } from '../../../../lib/supabase';
 
-export type GameCodeAlg = 'zeus' | 'kozmik_kaskad' | 'nox_reels' | 'fair_spin';
+export type GameCodeAlg = 'fruit_wheel';
 
 export type GameMathRow = {
   mathVersion: string;

@@ -1,0 +1,205 @@
+verify.baslik	Tamuso Verify	Tamuso Verify
+verify.altBaslik	Kimlik doğrulama · yayıncı ödemesi	Identity verification · creator payouts
+verify.girisBaslik	Kimliğinizi Doğrulayın	Verify Your Identity
+verify.girisMetin1	Tamuso Yayıncı Kazanç Programı kapsamında ödeme alabilmeniz için kimlik doğrulamasını tamamlamanız gerekmektedir.	To receive payouts under the Tamuso Creator Earnings Program, you must complete identity verification.
+verify.girisMetin2	Doğrulama işlemi sırasında geçerli bir kimlik kartı, pasaport veya desteklenen sürücü belgesi kullanabilirsiniz.	You can use a valid ID card, passport, or a supported driver's license during verification.
+verify.girisMetin3	Kimliğinizin size ait olduğunu değerlendirmek amacıyla canlı kamera ve selfie kontrolü yapılabilir.	A live camera and selfie check may be used to assess whether the identity document belongs to you.
+verify.girisMetin4	Belgeleriniz ve doğrulama bilgileriniz yalnızca açıklanan kimlik inceleme, hesap güvenliği ve ilgili yasal yükümlülükler kapsamında işlenir.	Your documents and verification data are processed only for the described identity review, account security, and related legal obligations.
+verify.girisMetin5	Kimlik doğrulama başvurunuz yetkili inceleme ekibimiz tarafından değerlendirilebilir.	Your identity application may be evaluated by our authorized review team.
+verify.girisMetin6	İnceleme sırasında ek belge veya yeniden doğrulama talep edilebilir.	During review, additional documents or re-verification may be requested.
+verify.girisMetin7	Kimlik incelemesinin tamamlanması, tek başına ödeme yapılacağı anlamına gelmez. Yayıncı Kazanç Programı'nın diğer ödeme koşullarını da karşılamanız gerekir.	Completing the identity review does not by itself mean a payout will be made. You must also meet the other payout conditions of the Creator Earnings Program.
+verify.girisMetin8	Kişisel verilerinizin işlenmesine, saklanmasına ve haklarınıza ilişkin ayrıntıları Gizlilik Politikamızdan inceleyebilirsiniz.	You can find details about the processing and storage of your personal data and your rights in our Privacy Policy.
+verify.gizlilikPolitikasi	Gizlilik Politikası	Privacy Policy
+verify.onayMetni	Tamuso Verify bilgilendirmesini okudum, kimlik belgelerimin kimlik incelemesi amacıyla işlenmesini kabul ediyorum.	I have read the Tamuso Verify notice and consent to my identity documents being processed for identity review.
+verify.onayGerekli	Devam etmek için bilgilendirmeyi onaylayın.	Please accept the notice to continue.
+verify.basla	Doğrulamaya başla	Start verification
+verify.devamEt	Başvuruya devam et	Continue application
+verify.yenidenDogrula	Yeniden doğrula	Verify again
+verify.adimlar	Adımlar	Steps
+verify.adim1	Belge türü	Document type
+verify.adim2	Belge fotoğrafı	Document photo
+verify.adim3	Canlı selfie	Live selfie
+verify.adim4	Bilgi onayı	Confirm details
+verify.adim5	İnceleme	Review
+verify.durumBaslik	Başvuru durumu	Application status
+verify.durum_not_started	Başlatılmadı	Not started
+verify.durum_in_progress	Başvuru devam ediyor	Application in progress
+verify.durum_awaiting_document	Belge bekleniyor	Waiting for document
+verify.durum_awaiting_selfie	Canlı selfie bekleniyor	Waiting for live selfie
+verify.durum_under_review	İncelemede	Under review
+verify.durum_additional_verification	Ek doğrulama gerekli	Additional verification required
+verify.durum_approved	Onaylandı	Approved
+verify.durum_rejected	Reddedildi	Rejected
+verify.durum_appeal_review	İtiraz incelemesinde	Appeal under review
+verify.durum_not_startedAciklama	Yayıncı ödemesi almak için kimlik doğrulamasını tamamlayın.	Complete identity verification to receive creator payouts.
+verify.durum_in_progressAciklama	Belgeleriniz alındı. Kalan adımları tamamlayın.	Your documents were received. Complete the remaining steps.
+verify.durum_awaiting_documentAciklama	Belge fotoğraflarınızı ekleyin.	Add your document photos.
+verify.durum_awaiting_selfieAciklama	Canlı selfie adımını tamamlayın.	Complete the live selfie step.
+verify.durum_under_reviewAciklama	Başvurunuz yetkili inceleme ekibinde. Süre genellikle 1-3 iş günüdür.	Your application is with our review team. This usually takes 1-3 business days.
+verify.durum_additional_verificationAciklama	İnceleme ekibi ek bilgi veya yeni görüntü talep etti.	The review team requested more information or new images.
+verify.durum_approvedAciklama	Kimlik doğrulamanız tamamlandı. Ödeme için diğer koşulların da sağlanması gerekir.	Your identity verification is complete. Other payout conditions must also be met.
+verify.durum_rejectedAciklama	Başvurunuz onaylanmadı. İtiraz oluşturabilirsiniz.	Your application was not approved. You can file an appeal.
+verify.durum_appeal_reviewAciklama	İtirazınız inceleniyor. Sonuç bildirilecek.	Your appeal is being reviewed. You will be notified.
+verify.belgeTuruBaslik	Belge türünü seçin	Choose document type
+verify.belgeTuruAlt	Ülkenize göre desteklenen belgeler listelenir.	Supported documents for your country are listed.
+verify.belgeYok	Ülkeniz için tanımlı belge türü bulunamadı.	No document type is defined for your country.
+verify.belgeIdCard	Kimlik Kartı	ID Card
+verify.belgePassport	Pasaport	Passport
+verify.belgeDrivers	Sürücü Belgesi	Driver's License
+verify.belgeResidence	Oturum Kartı	Residence Permit
+verify.onYuz	Ön yüz	Front
+verify.arkaYuz	Arka yüz	Back
+verify.onYuzCek	Ön yüzü çek	Capture front
+verify.arkaYuzCek	Arka yüzü çek	Capture back
+verify.onYuzTamam	Ön yüz hazır	Front ready
+verify.arkaYuzTamam	Arka yüz hazır	Back ready
+verify.cerceveIpucu	Belgeyi çerçeveye yerleştirin, kenarlar görünür olsun.	Place the document inside the frame with all edges visible.
+verify.cekimIpucu	Düz tutun · parlamasız ışık · tüm köşeler görünür	Hold steady · even lighting · all corners visible
+verify.cek	Fotoğraf çek	Take photo
+verify.tekrarCek	Yeniden çek	Retake
+verify.kullan	Bu fotoğrafı kullan	Use this photo
+verify.kontrolEdiliyor	Görüntü kontrol ediliyor…	Checking image…
+verify.yukleniyor	Yükleniyor…	Uploading…
+verify.kaliteBulanik	Fotoğraf bulanık görünüyor. Daha sabit tutup yeniden çekin.	The photo looks blurry. Hold steadier and retake.
+verify.kaliteKaranlik	Işık yetersiz. Daha aydınlık bir ortamda yeniden çekin.	Not enough light. Retake in a brighter place.
+verify.kaliteParlama	Parlama var. Işığı arkadan veya yandan alın, flaş kullanmayın.	There is glare. Avoid backlighting and do not use flash.
+verify.kaliteKucuk	Görüntü çözünürlüğü düşük. Belgeyi daha yakından çekin.	Resolution is too low. Move closer to the document.
+verify.kaliteKontrast	Belge okunaklı değil. Daha net bir görüntü gerekli.	The document is not legible. A sharper image is required.
+verify.kaliteTamam	Görüntü kalitesi uygun.	Image quality looks good.
+verify.kaliteOnNot	Bu kontrol yalnızca kalite ön kontrolüdür; belgenin gerçekliği inceleme ile doğrulanır.	This is a quality pre-check only; document authenticity is determined by human review.
+verify.selfieBaslik	Canlı selfie	Live selfie
+verify.selfieAlt	Yüzünüzü oval çerçeveye yerleştirin.	Place your face inside the oval frame.
+verify.selfieIpucu	Ekran parlaklığını artırın · gözlük ve maskeyi çıkarın	Raise screen brightness · remove glasses and mask
+verify.adimCenter	Kameraya bakın	Look at the camera
+verify.adimRight	Başınızı hafifçe sağa çevirin	Turn your head slightly to the right
+verify.adimLeft	Başınızı hafifçe sola çevirin	Turn your head slightly to the left
+verify.adimBlink	Gözlerinizi kırpın	Blink your eyes
+verify.adimSmile	Hafifçe gülümseyin	Smile slightly
+verify.adimTamam	Tamamlandı	Completed
+verify.selfieBaslat	Selfie kontrolünü başlat	Start selfie check
+verify.selfieSuruyor	Kontrol sürüyor…	Check in progress…
+verify.selfieBasarili	Selfie alındı.	Selfie captured.
+verify.selfieNot	Hareket kontrolleri yalnızca ön güvenlik sinyalidir; kesin canlılık doğrulaması değildir. Nihai karar inceleme ekibindedir.	Movement checks are only a preliminary security signal, not proof of liveness. The final decision belongs to the review team.
+verify.sureKalan	Kalan süre: {{saniye}} sn	Time left: {{saniye}}s
+verify.denemeKalan	Kalan deneme: {{sayi}}	Attempts left: {{sayi}}
+verify.denemeBitti	Selfie deneme hakkınız doldu. Destek ekibiyle iletişime geçin.	You have used all selfie attempts. Please contact support.
+verify.bilgiBaslik	Bilgileri doğrulayın	Confirm your details
+verify.bilgiAlt	Belgede yazan bilgileri kontrol edin, gerekiyorsa düzeltin.	Check the information on your document and correct it if needed.
+verify.ad	Ad	First name
+verify.soyad	Soyad	Last name
+verify.dogumTarihi	Doğum tarihi	Date of birth
+verify.dogumPlaceholder	YYYY-AA-GG	YYYY-MM-DD
+verify.bilgiIpucu	Bu bilgiler belgeyle aynı olmalıdır.	This information must match your document.
+verify.gonder	Başvuruyu gönder	Submit application
+verify.gonderiliyor	Gönderiliyor…	Submitting…
+verify.hataBaslik	İşlem tamamlanamadı	Could not complete
+verify.hataGenel	Bir sorun oluştu. Lütfen tekrar deneyin.	Something went wrong. Please try again.
+verify.hataBelgeGerekli	Önce belge fotoğrafını ekleyin.	Add the document photo first.
+verify.hataArkaGerekli	Bu belge türünde arka yüz de gerekli.	This document type also requires the back side.
+verify.hataSelfieGerekli	Önce canlı selfie adımını tamamlayın.	Complete the live selfie step first.
+verify.hataYetiskin	18 yaşından küçükler başvuramaz.	Applicants must be 18 or older.
+verify.hataAd	Ad en az 2 karakter olmalı.	First name must be at least 2 characters.
+verify.hataSoyad	Soyad en az 2 karakter olmalı.	Last name must be at least 2 characters.
+verify.hataTarih	Geçerli bir doğum tarihi girin.	Enter a valid date of birth.
+verify.hataMisafir	Misafir hesap kimlik doğrulaması başlatamaz.	Guest accounts cannot start identity verification.
+verify.hataBelgeDesteklenmiyor	Bu belge türü ülkeniz için desteklenmiyor.	This document type is not supported for your country.
+verify.hataYukleme	Dosya yüklenemedi. Bağlantınızı kontrol edin.	Upload failed. Check your connection.
+verify.hataTekrar	Başvuru şu anda düzenlenebilir değil.	The application cannot be edited right now.
+verify.hataDenemeBitti	Selfie deneme hakkınız doldu.	You have used all selfie attempts.
+verify.hataOturumSuresi	Selfie oturumunun süresi doldu. Yeniden başlatın.	The selfie session expired. Start again.
+verify.hataBaglanti	Bağlantı kesildi. İlerlemeniz kaydedildi, kaldığınız yerden devam edebilirsiniz.	Connection lost. Your progress is saved; you can continue where you left off.
+verify.itirazBaslik	İtiraz oluştur	File an appeal
+verify.itirazAlt	Başvurunuz reddedildiyse gerekçenizi yazın; inceleme ekibi yeniden değerlendirir.	If your application was rejected, explain why; the review team will reassess it.
+verify.itirazPlaceholder	İtiraz gerekçeniz (en az 10 karakter)	Your appeal reason (at least 10 characters)
+verify.itirazGonder	İtirazı gönder	Submit appeal
+verify.itirazGonderildi	İtirazınız alındı. İtiraz incelemesinde.	Your appeal was received. Appeal under review.
+verify.itirazKisa	İtiraz metni en az 10 karakter olmalı.	Appeal text must be at least 10 characters.
+verify.itirazZatenVar	Açık bir itirazınız var.	You already have an open appeal.
+verify.itirazYok	İtiraz hakkı yalnızca reddedilen başvurularda kullanılabilir.	Appeals are only available for rejected applications.
+verify.destekBaslik	Yardım	Help
+verify.destekMetin	Doğrulama sürecinde sorun yaşıyorsanız destek ekibimize ulaşın.	If you have trouble during verification, contact our support team.
+verify.destekGit	Destek ile iletişime geç	Contact support
+verify.kameraIzinBaslik	Kamera izni gerekli	Camera permission required
+verify.kameraIzinMetin	Belge ve selfie çekimi için kameraya erişim izni verin. Görüntüler yalnızca kimlik inceleme amacıyla kullanılır.	Allow camera access to capture your document and selfie. Images are used only for identity review.
+verify.kameraIzinVer	İzin ver	Allow
+verify.kameraIzinReddedildi	Kamera izni verilmedi. Ayarlardan izin verip tekrar deneyin.	Camera permission was not granted. Enable it in settings and try again.
+verify.izinAc	Ayarları aç	Open settings
+verify.veriBaslik	Verilerim	My data
+verify.veriMetin	Ham belge görüntülerinin silinmesini talep edebilirsiniz. Karar kayıtları yasal yükümlülükler için saklanır.	You may request deletion of raw document images. Decision records are kept for legal obligations.
+verify.veriSil	Ham görüntülerimin silinmesini talep et	Request deletion of my raw images
+verify.veriSilindi	Talebiniz alındı.	Your request was received.
+verify.saklamaNot	Ham görüntüler inceleme ve yasal saklama süresi sonunda silinir.	Raw images are deleted after the review and legal retention period.
+verify.superAdminNot	Kimlik incelemesi Tamuso ekibi tarafından yapılır. Kesin canlılık veya otomatik yüz eşleştirme iddiası yoktur.	Identity review is performed by the Tamuso team. There is no claim of definitive liveness or automated face matching.
+verify.belgeOnayNot	Belge fotoğrafınız yalnızca inceleme ekibi tarafından görüntülenir ve her erişim kayıt altına alınır.	Your document photo is visible only to the review team and every access is logged.
+verify.galeridenSec	Galeriden seç	Choose from gallery
+verify.flas	Flaş	Flash
+verify.hazir	Hazır	Ready
+verify.cekiyoruz	Fotoğraf çekiliyor…	Taking photo…
+verify.selfieGonder	Selfie'yi gönder	Send selfie
+verify.yenidenDogrulaBaslik	Kimlik doğrulaması gerekli	Verification required
+verify.odemeKosullari	Ödeme koşulları	Payout conditions
+verify.odemeKosulTamam	Tamam	Completed
+verify.odemeKosulEksik	Eksik	Missing
+verify.analizNotu	Görüntü kalitesi kontrolü yalnızca ön kontroldür; belge gerçekliği ayrıca incelenir.	Image quality check is a pre-check only; document authenticity is reviewed separately.
+verify.belgeTuruKilitli	Başvurunuz {{tur}} ile başlatıldı. Belge türünü değiştirmek için yükleme yapmadan önce destek ekibiyle iletişime geçin.	This application was started with {{tur}}. To change the document type, contact support before uploading.
+verify.yuzSayisi	{{sayi}} yüz	{{sayi}} sides
+verify.belgeYuklendi	Yüklendi	Uploaded
+verify.belgeBekliyor	Bekliyor	Pending
+verify.degistir	Değiştir	Replace
+verify.ulke	Ülke	Country
+verify.gonderildi	Başvurunuz incelemeye alındı.	Your application is under review.
+verify.redSebep	Karar gerekçesi	Decision reason
+verify.incelemeNotu	İnceleme notu	Review note
+verify.veriTalebiZaten	Ham görüntüleriniz silinmiş görünüyor.	Your raw images appear to be deleted.
+verify.ozet	Başvuru özeti	Application summary
+verify.devam	Devam	Continue
+verify.geri	Geri	Back
+verify.kapat	Kapat	Close
+verify.tamam	Tamam	Done
+verify.profilGrup	Kimlik ve doğrulama	Identity and verification
+verify.profilSatiri	Kimlik doğrulama	Identity verification
+verify.cekimKimlikBaslik	Kimlik doğrulaması gerekli	Identity verification required
+verify.cekimKimlikMetin	Yayıncı ödemesi almak için önce kimlik doğrulamasını tamamlayın. Doğrulama Tamuso Verify üzerinden yapılır.	Complete identity verification before requesting a creator payout. Verification is handled by Tamuso Verify.
+verify.cekimKimlikIncelemeBaslik	Kimlik doğrulaması inceleniyor	Identity verification in review
+verify.cekimKimlikIncelemeMetin	Başvurunuz yetkili inceleme ekibinde. Onaylandığında para çekme talebi açılacak.	Your application is with the review team. The payout request unlocks once it is approved.
+verify.cekimBelgeSeviyeBaslik	Belge doğrulaması tamamlanmalı	Document verification must be completed
+verify.cekimBelgeSeviyeMetin	Kimliğiniz onaylı; ancak ödeme için belge seviyesi yetersiz. Kimlik doğrulama ekranından belgenizi tamamlayın.	Your identity is approved, but the document level is not sufficient for payout. Finish your document in the verification screen.
+verify.cekimHesapBaslik	Ödeme hesabı gerekli	Payout account required
+verify.cekimHesapMetin	Ödeme talebi oluşturmadan önce ödeme hesabınızı ekleyip doğrulatın.	Add and verify your payout account before requesting a payout.
+verify.cekimProfilBaslik	Ödeme profilinizi tamamlayın	Complete your payout profile
+verify.cekimProfilMetin	Ad, telefon, vergi numarası, şirket beyanı, banka hesabı ve evraklarınız tek ekranda toplanır. Tamamlandığında para çekme talebi açılır.	Name, phone, tax number, company declaration, bank account and documents are collected on one screen. The payout request unlocks when it is complete.
+verify.cekimProfilGit	Ödeme profilini aç	Open payout profile
+verify.cekimRiskBaslik	Güvenlik incelemesi sürüyor	Security review in progress
+verify.cekimRiskMetin	Hesabınızda açık bir güvenlik incelemesi var. İnceleme tamamlanana kadar para çekme talebi oluşturulamaz.	There is an open security review on your account. Payout requests stay disabled until it is resolved.
+verify.cekimAcikTalepBaslik	Açık ödeme talebiniz var	You have an open payout request
+verify.cekimAcikTalepMetin	Mevcut talep sonuçlanmadan yeni bir para çekme talebi oluşturulamaz.	A new payout request cannot be created until the current one is resolved.
+verify.cekimMinimumBaslik	Minimum tutara ulaşmadınız	Minimum amount not reached
+verify.cekimMinimumMetin	Para çekme talebi için gereken minimum bakiyeye ulaştığınızda buradan talep oluşturabilirsiniz.	You can request a payout here once your balance reaches the minimum amount.
+verify.cekimKapaliBaslik	Para çekme geçici olarak kapalı	Withdrawals are temporarily closed
+verify.cekimKapaliMetin	Para çekme işlemleri şu anda kullanıma kapalı. Daha sonra tekrar deneyin.	Withdrawals are currently unavailable. Please try again later.
+verify.cekimProgramBaslik	Yayıncı programı onayı gerekli	Creator program approval required
+verify.cekimProgramMetin	Yayıncı Kazanç Programı başvurunuz onaylandığında para çekme talebi açılır.	Payout requests unlock when your Creator Earnings Program application is approved.
+verify.cekimHazirBaslik	Para çekme talebi	Payout request
+verify.cekimHazirMetin	Uygun bakiyeniz için ödeme talebi oluşturabilirsiniz. Talebiniz mali inceleme sonrası işleme alınır.	You can request a payout for your available balance. The request is processed after a finance review.
+verify.cekimHazirTutar	Çekilebilir bakiye	Available to withdraw
+verify.cekimOlustur	Para çekme talebi oluştur	Create payout request
+verify.cekimKycGit	Kimliğimi doğrula	Verify my identity
+verify.cekimHesapGit	Ödeme hesabını düzenle	Edit payout account
+verify.cekimOnayBaslik	Talep oluşturulsun mu?	Create this request?
+verify.cekimOnayMetin	Uygun bakiyeniz için para çekme talebi oluşturulacak. Onaylıyor musunuz?	A payout request will be created for your available balance. Do you confirm?
+verify.cekimBasariliBaslik	Talep alındı	Request received
+verify.cekimBasariliMetin	Para çekme talebiniz oluşturuldu. Durumunu ödeme geçmişinden takip edebilirsiniz.	Your payout request was created. You can follow its status in payment history.
+verify.cekimHataBaslik	Talep oluşturulamadı	Request could not be created
+verify.cekimHataKimlik	Kimlik doğrulaması tamamlanmadan para çekme talebi oluşturulamaz. Tamuso Verify ile doğrulayın.	A payout request cannot be created before identity verification is complete. Verify with Tamuso Verify.
+verify.cekimHataBelgeSeviye	Kimlik doğrulamanız onaylı ancak belge seviyesi ödeme için yetersiz. Belgenizi tamamlayın.	Your identity is approved but the document level is not sufficient for payout. Complete your document.
+verify.cekimHataProfil	Ödeme profilinizde eksik bilgi var. Vergi, şirket ve banka bilgilerinizi tek ekrandan tamamlayın.	Information is missing in your payout profile. Complete tax, company and bank details on one screen.
+verify.cekimHataHesap	Ödeme hesabı doğrulanmadan talep oluşturulamaz.	A payout request cannot be created before the payout account is verified.
+verify.cekimHataMinimum	Bakiyeniz minimum ödeme tutarının altında.	Your balance is below the minimum payout amount.
+verify.cekimHataAcikTalep	Zaten açık bir ödeme talebiniz var.	You already have an open payout request.
+verify.cekimHataKapali	Para çekme işlemleri şu anda kapalı.	Withdrawals are currently closed.
+verify.cekimHataRisk	Güvenlik incelemesi nedeniyle talep oluşturulamadı.	The request could not be created due to a security review.
+verify.cekimHataYetiskin	18 yaşından küçük hesaplar para çekme talebi oluşturamaz.	Accounts under 18 cannot create a payout request.
+verify.cekimHataSozlesme	Yayıncı sözleşmesini kabul etmeniz gerekiyor.	You need to accept the creator agreement.
+verify.cekimHataUlke	Ülkeniz için ödeme yöntemi henüz desteklenmiyor.	A payout method is not yet supported for your country.
+verify.cekimHataGenel	Talep oluşturulamadı. Lütfen tekrar deneyin.	The request could not be created. Please try again.
+verify.cekimGuvenlikNotu	Kimlik doğrulaması ve ödeme koşulları sunucuda denetlenir. Talebiniz doğrulama olmadan işleme alınmaz.	Identity verification and payout conditions are enforced on the server. Requests are never processed without verification.

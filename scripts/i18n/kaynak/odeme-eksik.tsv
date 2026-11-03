@@ -1,0 +1,6 @@
+odeme.basariliBaslik	Ödeme başarıyla alındı	Payment successful
+odeme.basariliAlt	İşlemin tamamlandı. Dekont ajans paneline kaydedildi.	Your payment is complete. The receipt was saved to the agency panel.
+odeme.iptalBaslik	Ödeme iptal edildi	Payment cancelled
+odeme.iptalAlt	Kart ödemesi tamamlanmadı. İstersen tekrar deneyebilirsin.	Card payment was not completed. You can try again anytime.
+odeme.kapat	Kapat	Close
+odeme.satisKodu	Satış kodu · {{kod}}	Sale code · {{kod}}

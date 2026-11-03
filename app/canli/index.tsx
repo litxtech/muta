@@ -489,6 +489,7 @@ export default function CanliYayinEkrani() {
             onClose={magaza.coinYuklePaneli.kapat}
             upgradeAcik={magaza.coinYuklePaneli.upgradeAcik}
             upgradeKapat={magaza.coinYuklePaneli.upgradeKapat}
+            yenileniyor={magaza.coinYuklePaneli.yenileniyor}
             onPaketleriYenile={magaza.coinYuklePaneli.paketleriYenile}
           />
           <HesabiTamamlaKarti

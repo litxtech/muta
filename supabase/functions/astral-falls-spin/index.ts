@@ -80,7 +80,10 @@ async function loadContextFallback(
   ]);
   return {
     isAdmin: (profileRow.data as { is_admin?: boolean } | null)?.is_admin === true,
-    coins: Number((wallet.data as { coins?: number } | null)?.coins ?? 0),
+    coins:
+      Number((wallet.data as { coins?: number; game_coins?: number; bonus_coins?: number } | null)?.coins ?? 0) +
+      Number((wallet.data as { coins?: number; game_coins?: number; bonus_coins?: number } | null)?.game_coins ?? 0) +
+      Number((wallet.data as { coins?: number; game_coins?: number; bonus_coins?: number } | null)?.bonus_coins ?? 0),
     freeSpins: 0,
     freeBet: 0,
   };

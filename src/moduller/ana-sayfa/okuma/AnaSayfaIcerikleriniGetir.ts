@@ -14,7 +14,13 @@ export type FeedOggesi = {
   cover_url: string | null;
   host: Pick<
     Profile,
-    'id' | 'display_name' | 'username' | 'avatar_url' | 'level'
+    | 'id'
+    | 'display_name'
+    | 'username'
+    | 'avatar_url'
+    | 'level'
+    | 'is_verified'
+    | 'country_code'
   > | null;
   href: string;
   skor: number;
@@ -49,11 +55,13 @@ type HostRow = {
   username: string | null;
   avatar_url: string | null;
   level: number | null;
+  is_verified: boolean | null;
+  country_code: string | null;
 };
 
 /** Canlı odalar + canlı yayınlar → tek ana akım listesi */
 const ODA_FEED_SELECT =
-  'id, host_id, title, topic, cover_url, mode, listener_count, total_coins_earned, created_at, host:profiles!rooms_host_id_fkey(id, display_name, username, avatar_url, level)';
+  'id, host_id, title, topic, cover_url, mode, listener_count, total_coins_earned, created_at, host:profiles!rooms_host_id_fkey(id, display_name, username, avatar_url, level, is_verified, country_code)';
 
 /** Embed join yok — created_at de yok (kolon tabloda yok) */
 const CANLI_FEED_SELECT =
@@ -80,16 +88,18 @@ function odaOgayaCevir(
     mode: r.mode,
     listener_count: r.listener_count ?? 0,
     cover_url: r.cover_url ?? hostAvatar,
-    host: host
-      ? {
-          id: host.id,
-          display_name: host.display_name,
-          username: host.username,
-          avatar_url: host.avatar_url,
-          level: host.level,
-        }
-      : null,
-    href: `/lobi/${r.id}`,
+        host: host
+          ? {
+              id: host.id,
+              display_name: host.display_name,
+              username: host.username,
+              avatar_url: host.avatar_url,
+              level: host.level,
+              is_verified: host.is_verified ?? false,
+              country_code: host.country_code ?? null,
+            }
+          : null,
+        href: `/lobi/${r.id}`,
     skor:
       (r.listener_count ?? 0) * 10 +
       Math.min(r.total_coins_earned ?? 0, 5000) / 50,
@@ -208,6 +218,8 @@ function canliOgayaCevir(
           username: host.username,
           avatar_url: host.avatar_url ?? null,
           level: host.level ?? 1,
+          is_verified: host.is_verified ?? false,
+          country_code: host.country_code ?? null,
         }
       : null,
     href: `/canli/${c.id}`,
@@ -350,7 +362,9 @@ async function canliFeedGetirIc(
     hostIds.length > 0
       ? supabase
           .from('profiles')
-          .select('id, display_name, username, avatar_url, level')
+          .select(
+            'id, display_name, username, avatar_url, level, is_verified, country_code',
+          )
           .in('id', hostIds)
       : Promise.resolve({ data: [] as HostRow[], error: null }),
     uyeAvatar

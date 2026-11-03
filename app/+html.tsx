@@ -45,6 +45,7 @@ body {
 export default function Root({ children }: PropsWithChildren) {
   const { bodyAttributes, bodyNodes, htmlAttributes, headNodes } =
     useServerDocumentContext();
+  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 
   return (
     <html lang="tr" {...htmlAttributes}>
@@ -55,6 +56,10 @@ export default function Root({ children }: PropsWithChildren) {
           name="viewport"
           content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
         />
+        {/* İlk oturum/profil isteği JS inince atılıyor; TLS el sıkışması önceden kurulsun. */}
+        {supabaseUrl ? (
+          <link rel="preconnect" href={supabaseUrl} crossOrigin="" />
+        ) : null}
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: WEB_KABUK }} />
         <script

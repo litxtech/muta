@@ -128,7 +128,7 @@ export default function AdminFinansEkrani() {
 
         <AdminKullaniciCoinPaneli
           baslik="Kullanıcıya coin"
-          alt="İsim yaz · avatar ile seç · yükle / eksilt / ceza"
+          alt="İsim yaz · avatar ile seç · ödül coin / coin ekle · eksilt"
           onBasarili={() => void yukle()}
         />
 

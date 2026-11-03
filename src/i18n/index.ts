@@ -7,20 +7,26 @@ import {
 } from './diller';
 import { tr } from './locales/tr';
 import { en } from './locales/en';
-import { es } from './locales/es';
-import { pt } from './locales/pt';
-import { ar } from './locales/ar';
-import { fr } from './locales/fr';
-import { fil } from './locales/fil';
+
+/**
+ * Yalnızca varsayılan iki dil giriş paketinde. Diğerleri seçilince `import()`
+ * ile ayrı parça olarak iner (7 dil ≈ 1,8 MB kaynak; web giriş paketini
+ * küçültmek için kritik).
+ */
+const DIL_YUKLEYICILERI: Record<
+  string,
+  () => Promise<Record<string, unknown>>
+> = {
+  es: () => import('./locales/es').then((m) => m.es as unknown as Record<string, unknown>),
+  pt: () => import('./locales/pt').then((m) => m.pt as unknown as Record<string, unknown>),
+  ar: () => import('./locales/ar').then((m) => m.ar as unknown as Record<string, unknown>),
+  fr: () => import('./locales/fr').then((m) => m.fr as unknown as Record<string, unknown>),
+  fil: () => import('./locales/fil').then((m) => m.fil as unknown as Record<string, unknown>),
+};
 
 const resources = {
   tr: { translation: tr },
   en: { translation: en },
-  es: { translation: es },
-  pt: { translation: pt },
-  ar: { translation: ar },
-  fr: { translation: fr },
-  fil: { translation: fil },
 } as const;
 
 /**
@@ -45,10 +51,14 @@ function baslangicDilAl(): UygulamaDili {
 
 const BASLANGIC_DIL = baslangicDilAl();
 
+/** init yalnızca pakette bulunan dillerle başlar; diğerleri await ile iner. */
+const BASLANGIC_HAZIR_DIL: UygulamaDili =
+  BASLANGIC_DIL === 'tr' || BASLANGIC_DIL === 'en' ? BASLANGIC_DIL : 'en';
+
 /** init tamamlanmadan changeLanguage çağrılmasın */
 export const i18nHazir = i18n.use(initReactI18next).init({
   resources,
-  lng: BASLANGIC_DIL,
+  lng: BASLANGIC_HAZIR_DIL,
   fallbackLng: 'en',
   compatibilityJSON: 'v4',
   interpolation: { escapeValue: false },
@@ -63,12 +73,28 @@ export const i18nHazir = i18n.use(initReactI18next).init({
 });
 
 /**
+ * Seçilen dilin sözlüğünü (giriş paketinde değilse) indirip i18next'e ekler.
+ * DilSaglayici hazır olmadan çocukları render etmez — dil değişimi görünmez.
+ */
+export async function DilKaynaginiYukle(dil: string): Promise<void> {
+  const kod = DilNormalizeEt(dil);
+  if (i18n.hasResourceBundle(kod, 'translation')) return;
+  const yukle = DIL_YUKLEYICILERI[kod];
+  if (!yukle) return;
+  const sozluk = await yukle();
+  if (!i18n.hasResourceBundle(kod, 'translation')) {
+    i18n.addResourceBundle(kod, 'translation', sozluk, true, true);
+  }
+}
+
+/**
  * Dil değişimini uygula — mutlaka await et.
  * Aksi halde UI İngilizce açılıp sonra düzelir (language flash).
  */
 export async function I18nDiliniAyarla(dil: string): Promise<UygulamaDili> {
   const kod = DilNormalizeEt(dil);
   await i18nHazir;
+  await DilKaynaginiYukle(kod);
   if (i18n.language !== kod && !i18n.language?.startsWith(`${kod}-`)) {
     await i18n.changeLanguage(kod);
   }

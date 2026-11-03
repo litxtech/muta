@@ -6,7 +6,6 @@
 import { supabase } from '../../../../lib/supabase';
 import { GameLogger } from '../../cekirdek/OyunLogger';
 import { oyunRpcRetryIle } from './OyunAgIstek';
-import { STORM_KING_PAKETTE } from '../../storm-king/StormKingPaket';
 import type {
   GameCode,
   GameControlConfig,
@@ -20,7 +19,7 @@ export type GameControlBundle = {
 };
 
 /** Kullanıcıya açık oyunlar. Kapalı / bakım kodları sorgu zaten eler. */
-const KULLANICI_OYUNLARI = new Set<string>(STORM_KING_PAKETTE ? ['fruit_wheel', 'storm_king'] : ['fruit_wheel']);
+const KULLANICI_OYUNLARI = new Set<string>(['fruit_wheel']);
 
 export function KullaniciOyunuMu(kod: string | null | undefined): boolean {
   return !!kod && KULLANICI_OYUNLARI.has(kod);
@@ -29,7 +28,6 @@ export function KullaniciOyunuMu(kod: string | null | undefined): boolean {
 /** Sunucunun bahis/spin kapısında baktığı oyun bayrağı. */
 const OYUN_BAYRAGI: Record<string, string> = {
   fruit_wheel: 'fruit_wheel_enabled',
-  storm_king: 'storm_king_enabled',
 };
 
 function KullaniciOyunlariniSuz(kodlar: GameCode[]): GameCode[] {

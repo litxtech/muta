@@ -5,7 +5,6 @@ import { InteractionManager, LogBox, Platform, useWindowDimensions } from 'react
 import { Stack, useSegments } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '../src/contexts/AuthContext';
-import { CuzdanUiProvider } from '../src/moduller/cuzdan/ui-config/useCuzdanUiConfig';
 import { BildirimSaglayici } from '../src/moduller/bildirimler/baglam/BildirimSaglayici';
 import { MesajOkunmamisSaglayici } from '../src/moduller/mesajlasma/baglam/MesajOkunmamisSaglayici';
 import { GorusmeGelenSaglayici } from '../src/moduller/gorusme/bilesenler/GorusmeGelenSaglayici';
@@ -155,7 +154,6 @@ function KokIcerik() {
         <AuthProvider>
           <DilSaglayiciKoku>
           <OzellikBayrakSaglayici>
-          <CuzdanUiProvider>
           <KullanimSuresiSaglayici>
           <BildirimSaglayici>
           <MesajOkunmamisSaglayici>
@@ -214,7 +212,39 @@ function KokIcerik() {
           <Stack.Screen name="ajans/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/yonetim/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/uye/index" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/teklifler" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="kyc/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen
+            name="cuzdan/hareketler"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="cuzdan/hediye-gecmisi"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="cuzdan/coin-yukle"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="cuzdan/yayinci-kazanclari/index"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="cuzdan/yayinci-kazanclari/odeme-hesabi"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="cuzdan/yayinci-kazanclari/odeme-profili"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="cuzdan/yayinci-kazanclari/itiraz"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="cuzdan/yayinci-kazanclari/kimlik-dogrula"
+            options={{ animation: 'slide_from_right' }}
+          />
           <Stack.Screen name="ajans/profil/[id]/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/profil/[id]/uyeler" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/index" options={{ animation: 'slide_from_right' }} />
@@ -231,16 +261,10 @@ function KokIcerik() {
           <Stack.Screen name="ajans/[id]/analitik" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/islemler" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/cuzdan" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/[id]/paketler" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/[id]/satis-linkleri" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/[id]/satis-takibi" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/[id]/dekontlar" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/[id]/faturalar" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/ayarlar" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/destek" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/guvenlik" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/dogrulama" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/satis/[kod]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="host/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="sehir/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="sehir/[id]" options={{ animation: 'slide_from_right' }} />
@@ -290,14 +314,6 @@ function KokIcerik() {
             options={{ animation: 'slide_from_right' }}
           />
           <Stack.Screen name="webview" options={{ animation: 'slide_from_bottom' }} />
-          <Stack.Screen
-            name="odeme-basarili"
-            options={{
-              animation: 'fade',
-              presentation: 'modal',
-              gestureEnabled: true,
-            }}
-          />
           <Stack.Screen name="paylasim/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="paylas/[kod]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ayarlar/index" options={{ animation: 'slide_from_right' }} />
@@ -318,8 +334,6 @@ function KokIcerik() {
           <Stack.Screen name="kisiler/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="profil-ayarlar/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="profil-duzenle/index" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="kyc/index" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="cuzdan/takas" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen
             name="room/[id]"
             options={{
@@ -367,7 +381,6 @@ function KokIcerik() {
           </MesajOkunmamisSaglayici>
           </BildirimSaglayici>
           </KullanimSuresiSaglayici>
-          </CuzdanUiProvider>
           </OzellikBayrakSaglayici>
           </DilSaglayiciKoku>
         </AuthProvider>

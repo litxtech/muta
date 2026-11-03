@@ -99,6 +99,33 @@
       "fr": "Solde retirable",
       "fil": "Balanseng maaaring i-withdraw"
     },
+    "kazanilanBakiye": {
+      "tr": "Kazanç bakiyesi",
+      "en": "Earnings balance",
+      "es": "Saldo de ganancias",
+      "pt": "Saldo de ganhos",
+      "ar": "رصيد الأرباح",
+      "fr": "Solde des gains",
+      "fil": "Balanse ng kinita"
+    },
+    "cekimKapaliKisa": {
+      "tr": "Çekim şu anda kapalı",
+      "en": "Withdrawals are closed",
+      "es": "Retiros cerrados",
+      "pt": "Saques fechados",
+      "ar": "السحب مغلق حالياً",
+      "fr": "Retraits fermés",
+      "fil": "Sarado ang pag-withdraw"
+    },
+    "cekimKapaliBilgi": {
+      "tr": "Para çekme işlemleri şu anda kullanılamıyor. Kazançların birikmeye devam eder; çekimler açıldığında bu bakiyeyi kullanabilirsin.",
+      "en": "Withdrawals are currently unavailable. Your earnings keep accumulating and you will be able to use this balance once withdrawals open.",
+      "es": "Los retiros no están disponibles en este momento. Tus ganancias siguen acumulándose y podrás usar este saldo cuando se activen los retiros.",
+      "pt": "Os saques estão indisponíveis no momento. Seus ganhos continuam acumulando e você poderá usar este saldo quando os saques forem liberados.",
+      "ar": "عمليات السحب غير متاحة حالياً. تستمر أرباحك في التراكم ويمكنك استخدام هذا الرصيد عند تفعيل السحب.",
+      "fr": "Les retraits sont actuellement indisponibles. Vos gains continuent de s'accumuler et vous pourrez utiliser ce solde dès que les retraits seront ouverts.",
+      "fil": "Kasalukuyang hindi available ang pag-withdraw. Patuloy na nadaragdagan ang kinita mo at magagamit mo ang balanseng ito kapag binuksan ang pag-withdraw."
+    },
     "toplamUygunGelir": {
       "tr": "Toplam paylaşılabilir gelir",
       "en": "Total shareable revenue",
@@ -190,31 +217,13 @@
       "fil": "Ang mga Coin ay mga virtual na item na ginagamit sa loob ng Tamuso. Hindi ito direktang mapapalitan ng cash."
     },
     "metinOyunCoin": {
-      "tr": "Oyunlardan kazandığın Coin'ler doğrudan nakit olarak çekilemez. Bu Coin'leri desteklenen sanal hediyeler için kullanabilirsin. Oyun Coin'leriyle gönderilen hediyeler alıcıya çekilebilir gelir oluşturmaz.",
-      "en": "Coins you win in games cannot be withdrawn as cash. You can use these Coins for supported virtual gifts. Gifts sent with game Coins do not create withdrawable earnings for the recipient.",
-      "es": "Los Coins que ganas en juegos no se pueden retirar como efectivo. Puedes usarlos para regalos virtuales compatibles. Los regalos enviados con Coins de juego no generan ganancias retirables para quien los recibe.",
-      "pt": "Os Coins que você ganha em jogos não podem ser sacados como dinheiro. Você pode usá-los em presentes virtuais compatíveis. Presentes enviados com Coins de jogos não geram ganhos sacáveis para quem recebe.",
-      "ar": "لا يمكن سحب الـ Coin التي تربحها من الألعاب نقدًا. يمكنك استخدامها للهدايا الافتراضية المدعومة. الهدايا المرسلة بـ Coin الألعاب لا تولّد أرباحًا قابلة للسحب للمستلم.",
-      "fr": "Les Coins gagnés dans les jeux ne peuvent pas être retirés en espèces. Vous pouvez les utiliser pour les cadeaux virtuels pris en charge. Les cadeaux envoyés avec des Coins de jeu ne génèrent pas de revenus retirables pour le destinataire.",
-      "fil": "Ang mga Coin na napanalunan mo sa laro ay hindi maaaring i-withdraw bilang cash. Magagamit mo ang mga ito sa mga suportadong virtual na regalo. Ang mga regalong ipinadala gamit ang game Coin ay hindi lumilikha ng maaaring i-withdraw na kita para sa tatanggap."
-    },
-    "metinYayinci": {
-      "tr": "Uygun hediyelerden elde edilen paylaşılabilir gelirin %40'ı içerik üreticisine, %60'ı Tamuso platformuna aittir.",
-      "en": "40% of the shareable revenue from eligible gifts belongs to the creator and 60% to the Tamuso platform.",
-      "es": "El 40 % de los ingresos compartibles de los regalos elegibles corresponde al creador y el 60 % a la plataforma Tamuso.",
-      "pt": "40% da receita compartilhável de presentes elegíveis pertence ao criador e 60% à plataforma Tamuso.",
-      "ar": "40% من الإيرادات القابلة للمشاركة من الهدايا المؤهلة تعود لصانع المحتوى و60% لمنصة Tamuso.",
-      "fr": "40 % du revenu partageable issu des cadeaux éligibles revient au créateur et 60 % à la plateforme Tamuso.",
-      "fil": "40% ng naibabahaging kita mula sa mga kwalipikadong regalo ay para sa creator at 60% ay para sa Tamuso platform."
-    },
-    "metinOdeme": {
-      "tr": "Minimum ödeme tutarı $25.00'dır. Uygun kazançlar 15 günlük dönemlerde işleme alınır. Banka transfer süresi ödeme yöntemine ve ülkeye göre değişebilir.",
-      "en": "The minimum payout amount is $25.00. Eligible earnings are processed in 15-day periods. Bank transfer times may vary by payment method and country.",
-      "es": "El importe mínimo de pago es de $25.00. Las ganancias elegibles se procesan en periodos de 15 días. El plazo de la transferencia bancaria puede variar según el método de pago y el país.",
-      "pt": "O valor mínimo de pagamento é US$ 25,00. Os ganhos elegíveis são processados em períodos de 15 dias. O prazo da transferência bancária pode variar conforme o método de pagamento e o país.",
-      "ar": "الحد الأدنى لمبلغ الدفع هو 25.00 دولارًا. تُعالج الأرباح المؤهلة في فترات مدتها 15 يومًا. قد تختلف مدة التحويل البنكي حسب طريقة الدفع والبلد.",
-      "fr": "Le montant minimum de paiement est de 25,00 $. Les revenus éligibles sont traités par périodes de 15 jours. Le délai du virement bancaire peut varier selon le mode de paiement et le pays.",
-      "fil": "Ang minimum na halaga ng bayad ay $25.00. Pinoproseso ang mga kwalipikadong kita sa bawat 15 araw. Maaaring mag-iba ang tagal ng bank transfer ayon sa paraan ng pagbabayad at bansa."
+      "tr": "Oyun kazançları doğrudan paraya çevrilemez; oyundan kazanılan Coin'ler hediye olarak kullanıcılara gönderilebilir.",
+      "en": "Game winnings cannot be converted directly into cash; Coins won in games can be sent to users as gifts.",
+      "es": "Las ganancias de los juegos no se pueden convertir directamente en dinero; los Coins ganados en los juegos se pueden enviar a los usuarios como regalos.",
+      "pt": "Os ganhos dos jogos não podem ser convertidos diretamente em dinheiro; os Coins ganhos nos jogos podem ser enviados aos usuários como presentes.",
+      "ar": "لا يمكن تحويل مكاسب الألعاب إلى نقود مباشرة؛ يمكن إرسال الـ Coin المكتسبة من الألعاب إلى المستخدمين كهدايا.",
+      "fr": "Les gains des jeux ne peuvent pas être convertis directement en argent ; les Coins gagnés dans les jeux peuvent être envoyés aux utilisateurs sous forme de cadeaux.",
+      "fil": "Ang mga panalo sa laro ay hindi maaaring direktang i-convert sa pera; ang mga Coin na napanalunan sa laro ay maaaring ipadala sa mga user bilang regalo."
     },
     "metinGuvenlik": {
       "tr": "Şüpheli işlemler güvenlik incelemesine alınabilir. Dolandırıcılık, izinsiz ödeme yöntemi kullanımı, yapay hediye işlemleri ve kara para aklama faaliyetleri yasaktır. Doğrulanan ciddi ihlallerde hesaplar kalıcı olarak kapatılabilir ve hukuken gerekli durumlarda yetkili mercilere bildirim yapılabilir.",
@@ -314,15 +323,6 @@
       "ar": "الرصيد المحدد لا يحتوي على Coin كافية. يمكنك اختيار رصيد آخر.",
       "fr": "Le solde sélectionné ne contient pas assez de Coins. Vous pouvez choisir un autre solde.",
       "fil": "Kulang ang Coin sa napiling balanse. Maaari kang pumili ng ibang balanse."
-    },
-    "hediyeGeliriBilgi": {
-      "tr": "Gelir payı Yayıncı Kazançları bölümünde gösterilir.",
-      "en": "Your revenue share is shown under Creator Earnings.",
-      "es": "Tu parte de los ingresos se muestra en Ganancias de creador.",
-      "pt": "Sua parte da receita aparece em Ganhos de criador.",
-      "ar": "تظهر حصتك من الإيرادات في قسم أرباح صانع المحتوى.",
-      "fr": "Votre part des revenus apparaît dans Revenus du créateur.",
-      "fil": "Makikita ang iyong bahagi ng kita sa Kita ng Creator."
     },
     "hataAcikTalep": {
       "tr": "Açık bir ödeme talebin zaten var.",

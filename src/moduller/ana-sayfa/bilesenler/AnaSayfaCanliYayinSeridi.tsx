@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,15 +23,13 @@ import {
 import { SayiKisaBicim } from '../../../tasarim-sistemi/premium/SeviyeXpHesap';
 import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
 import { useCeviri, type CeviriAnahtari } from '../../../i18n/useCeviri';
+import { ulkeAdi, ulkeBayragi } from '../sabitler/UlkeEtiketleri';
 
 type Props = {
   ogeler: FeedOggesi[];
   onPress: (oge: FeedOggesi) => void;
   onTumunuGor?: () => void;
 };
-
-const KART_W = 148;
-const KART_H = 210;
 
 const MODE_KEY: Record<string, CeviriAnahtari> = {
   party: 'modlar.parti',
@@ -42,10 +41,18 @@ const MODE_KEY: Record<string, CeviriAnahtari> = {
   pk: 'pk.baslik',
 };
 
-/** Yatay portrait canlı yayın carousel */
+const DOGRULANMIS_MAVI = '#3D9BFF';
+const MAKS_ICERIK_W = 480;
+
+/** Yatay canlı yayın carousel — 3 kart görünür (tasarım: üçlü ızgara) */
 export function AnaSayfaCanliYayinSeridi({ ogeler, onPress, onTumunuGor }: Props) {
   useTemayaAboneOl();
   const { t } = useCeviri();
+  const { width: ekranW } = useWindowDimensions();
+
+  const icerikW = Math.min(ekranW, MAKS_ICERIK_W) - BoslukTokenlari.lg * 2;
+  const kartW = Math.max(96, Math.floor((icerikW - BoslukTokenlari.sm * 2) / 3));
+  const kartH = Math.round(kartW * 1.2);
 
   if (ogeler.length === 0) {
     return (
@@ -79,10 +86,13 @@ export function AnaSayfaCanliYayinSeridi({ ogeler, onPress, onTumunuGor }: Props
         {ogeler.map((oge, i) => {
           const kapak = MedyaUriGuvenli(oge.cover_url);
           const hostAd =
-            oge.host?.display_name ??
+            oge.host?.display_name?.trim() ||
             (oge.host?.username ? `@${oge.host.username}` : t('anaSayfa.yayinci'));
           const modKey = oge.mode ? MODE_KEY[oge.mode] : null;
           const mod = modKey ? t(modKey) : null;
+          const ulke = oge.host?.country_code ?? null;
+          const ulkeMetni = ulkeAdi(ulke);
+          const altMetin = ulkeMetni || mod;
 
           return (
             <Pressable
@@ -92,7 +102,7 @@ export function AnaSayfaCanliYayinSeridi({ ogeler, onPress, onTumunuGor }: Props
               accessibilityRole="button"
               accessibilityLabel={t('anaSayfa.canliA11y', { baslik: oge.title })}
             >
-              <View style={styles.kart}>
+              <View style={[styles.kart, { width: kartW, height: kartH }]}>
                 {kapak ? (
                   <Image source={{ uri: kapak }} style={StyleSheet.absoluteFill} />
                 ) : (
@@ -117,11 +127,13 @@ export function AnaSayfaCanliYayinSeridi({ ogeler, onPress, onTumunuGor }: Props
                     style={styles.canliBadge}
                   >
                     <AnaSayfaCanliNokta boyut={5} renk="#fff" nabiz={false} />
-                    <Text style={styles.canliBadgeYazi}>{t('anaSayfa.canliRozet')}</Text>
+                    <Text style={styles.canliBadgeYazi}>
+                      {t('anaSayfa.canliRozet')}
+                    </Text>
                   </LinearGradient>
                   {oge.listener_count > 0 ? (
                     <View style={styles.viewer}>
-                      <Ionicons name="person" size={10} color="#fff" />
+                      <Ionicons name="eye" size={10} color="#fff" />
                       <Text style={styles.viewerYazi}>
                         {SayiKisaBicim(oge.listener_count)}
                       </Text>
@@ -130,17 +142,24 @@ export function AnaSayfaCanliYayinSeridi({ ogeler, onPress, onTumunuGor }: Props
                 </View>
 
                 <View style={styles.alt}>
-                  <Text style={styles.baslik} numberOfLines={2}>
-                    {oge.title}
-                  </Text>
-                  <Text style={styles.host} numberOfLines={1}>
-                    {hostAd}
-                  </Text>
-                  {mod ? (
-                    <View style={styles.tagSatir}>
-                      <View style={styles.tag}>
-                        <Text style={styles.tagYazi}>{mod}</Text>
-                      </View>
+                  <View style={styles.adSatir}>
+                    <Text style={styles.ad} numberOfLines={1}>
+                      {hostAd}
+                    </Text>
+                    {oge.host?.is_verified ? (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={13}
+                        color={DOGRULANMIS_MAVI}
+                      />
+                    ) : null}
+                  </View>
+                  {altMetin ? (
+                    <View style={styles.ulkeSatir}>
+                      <Text style={styles.bayrak}>{ulkeBayragi(ulke)}</Text>
+                      <Text style={styles.ulkeYazi} numberOfLines={1}>
+                        {altMetin}
+                      </Text>
                     </View>
                   ) : null}
                 </View>
@@ -157,90 +176,93 @@ const styles = StyleSheet.create({
   wrap: { marginBottom: BoslukTokenlari.lg },
   serit: {
     paddingHorizontal: BoslukTokenlari.lg,
-    gap: BoslukTokenlari.md,
+    gap: BoslukTokenlari.sm,
   },
-  kartPress: { width: KART_W },
+  kartPress: {},
   pressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
   kart: {
-    width: KART_W,
-    height: KART_H,
     borderRadius: YaricapTokenlari.lg,
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(232,64,145,0.35)',
+    borderWidth: 1,
+    borderColor: 'rgba(232,64,145,0.42)',
     backgroundColor: RenkTokenlari.bgElevated,
   },
   ust: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    right: 8,
+    top: 7,
+    left: 7,
+    right: 7,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 4,
   },
   canliBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 7,
+    gap: 3,
+    paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: YaricapTokenlari.pill,
   },
   canliBadgeYazi: {
     ...TipografiTokenlari.micro,
     color: '#fff',
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.4,
   },
   viewer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 7,
+    gap: 2,
+    paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: YaricapTokenlari.pill,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   viewerYazi: {
     ...TipografiTokenlari.micro,
     color: '#fff',
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
   },
   alt: {
     position: 'absolute',
-    left: 10,
-    right: 10,
-    bottom: 10,
-    gap: 3,
+    left: 8,
+    right: 8,
+    bottom: 8,
+    gap: 2,
   },
-  baslik: {
+  adSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ad: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.textOnOverlay,
     fontWeight: '800',
-    fontSize: 13,
-    lineHeight: 17,
+    fontSize: 12.5,
+    lineHeight: 16,
+    flexShrink: 1,
   },
-  host: {
+  ulkeSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  bayrak: {
+    fontSize: 10,
+    lineHeight: 13,
+  },
+  ulkeYazi: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textOnOverlay,
-    opacity: 0.85,
-    fontSize: 11,
-  },
-  tagSatir: { flexDirection: 'row', gap: 4, marginTop: 2 },
-  tag: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: YaricapTokenlari.sm,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-  },
-  tagYazi: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textOnOverlay,
-    fontSize: 9,
-    fontWeight: '700',
+    opacity: 0.8,
+    fontSize: 10,
+    fontWeight: '600',
+    flexShrink: 1,
   },
   bos: {
     marginHorizontal: BoslukTokenlari.lg,

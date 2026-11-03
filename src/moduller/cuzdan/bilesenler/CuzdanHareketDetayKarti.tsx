@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import {
   Modal,
   Pressable,
@@ -18,16 +18,6 @@ import {
   type LedgerSatiri,
 } from '../okuma/CuzdanLedgeriniGetir';
 import type { HediyeGecmisiKaydi } from '../../hediyeler/okuma/HediyeGecmisiniGetir';
-import { CEKIM_ODEME_IS_GUNU } from '../cekim/CekimOdemeBilgisi';
-import {
-  CoinTryKarsiligi,
-  TryYazi,
-} from '../katalog/CoinTryOrani';
-import {
-  BelgePaylasDugmesi,
-  BelgePaylasimPaneli,
-} from '../../belge-paylasim/bilesenler/BelgePaylasimPaneli';
-import { CuzdanHareketBelgesiOlustur } from '../../belge-paylasim/BelgeIcerikDonustur';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -43,17 +33,6 @@ export type CuzdanHareketDetay =
   | {
       tur: 'hediye';
       veri: HediyeGecmisiKaydi;
-    }
-  | {
-      tur: 'cekim';
-      veri: {
-        id: string;
-        diamonds: number;
-        status: string;
-        method: string;
-        created_at: string;
-      };
-      durumEtiket: string;
     };
 
 type Props = {
@@ -97,16 +76,10 @@ function Satir({ etiket, deger }: { etiket: string; deger: string }) {
   );
 }
 
-/** Hareket detay kartı — banka dekontu + PDF/WhatsApp */
+/** Hareket detay kartı — cüzdan hareketi ve hediye kaydı özeti */
 export function CuzdanHareketDetayKarti({ detay, onKapat }: Props) {
   const { t } = useCeviri();
   const locale = DIL_LOCALE_MAP[AktifDil()];
-  const [paylasAcik, setPaylasAcik] = useState(false);
-
-  const belge = useMemo(
-    () => (detay ? CuzdanHareketBelgesiOlustur(detay) : null),
-    [detay],
-  );
 
   if (!detay) return null;
 
@@ -140,7 +113,7 @@ export function CuzdanHareketDetayKarti({ detay, onKapat }: Props) {
       { id: 'saat', etiket: t('cuzdanX.saat'), deger: formatSaat(r.created_at, locale) },
       { id: 'islem_no', etiket: t('cuzdanX.islemNo'), deger: r.id.slice(0, 13).toUpperCase() },
     ];
-  } else if (detay.tur === 'hediye') {
+  } else {
     const h = detay.veri;
     const gonderildi = h.yon === 'gonderilen';
     const kim =
@@ -152,7 +125,6 @@ export function CuzdanHareketDetayKarti({ detay, onKapat }: Props) {
       ? `−${h.coins_spent.toLocaleString(locale)} coin`
       : `+${h.diamonds_earned.toLocaleString(locale)} ${t('cuzdan.birimElmas')}`;
     tutarRenk = gonderildi ? RenkTokenlari.danger : RenkTokenlari.mint;
-    const tryDeger = CoinTryKarsiligi(h.coins_spent);
     ozet = [
       {
         id: 'hediye',
@@ -175,87 +147,49 @@ export function CuzdanHareketDetayKarti({ detay, onKapat }: Props) {
         deger: h.oda?.title ?? t('cuzdan.tire'),
       },
       { id: 'tutar', etiket: t('cuzdanX.tutar'), deger: tutar },
-      {
-        id: 'katalog',
-        etiket: gonderildi
-          ? t('cuzdanX.uiKatalogLabel')
-          : t('cuzdanX.alinanKarsilik'),
-        deger: TryYazi(tryDeger),
-      },
       { id: 'tarih', etiket: t('cuzdanX.tarih'), deger: formatTarih(h.created_at, locale) },
       { id: 'saat', etiket: t('cuzdanX.saat'), deger: formatSaat(h.created_at, locale) },
       { id: 'islem_no', etiket: t('cuzdanX.islemNo'), deger: h.id.slice(0, 13).toUpperCase() },
     ];
-  } else {
-    const c = detay.veri;
-    baslik = t('cuzdanX.elmasCekimi');
-    tutar = `−${c.diamonds.toLocaleString(locale)} ${t('cuzdan.birimElmas')}`;
-    tutarRenk = RenkTokenlari.accent;
-    ozet = [
-      { id: 'islem', etiket: t('cuzdanX.etiketIslem'), deger: t('cuzdanX.cekimTalebi') },
-      { id: 'miktar', etiket: t('cuzdanX.etiketMiktar'), deger: tutar },
-      { id: 'yontem', etiket: t('cuzdanX.etiketYontem'), deger: c.method },
-      { id: 'durum', etiket: t('cuzdanX.etiketDurum'), deger: detay.durumEtiket },
-      {
-        id: 'odeme',
-        etiket: t('cuzdanX.odemeSuresi'),
-        deger: t('cuzdanXExtra.odemeBilgisi', { gun: CEKIM_ODEME_IS_GUNU }),
-      },
-      { id: 'tarih', etiket: t('cuzdanX.tarih'), deger: formatTarih(c.created_at, locale) },
-      { id: 'saat', etiket: t('cuzdanX.saat'), deger: formatSaat(c.created_at, locale) },
-      { id: 'talep_no', etiket: t('cuzdanX.talepNo'), deger: c.id.slice(0, 13).toUpperCase() },
-    ];
   }
 
   return (
-    <>
-      <Modal visible transparent animationType="fade" onRequestClose={onKapat}>
-        <View style={styles.kok}>
-          <Pressable style={styles.perde} onPress={onKapat} />
-          <CamArkaplan
-            intensity={28}
-            style={StyleSheet.absoluteFill}
-            fallbackColor={RenkTokenlari.scrim}
-            pointerEvents="none"
-          />
-          <View style={styles.kartWrap}>
-            <LinearGradient colors={[...RenkTokenlari.gradientCard]} style={styles.kart}>
-              <View style={styles.ust}>
-                <Text style={styles.fisilti}>{t('cuzdanX.islemDekontu')}</Text>
-                <Pressable onPress={onKapat} style={styles.kapat} hitSlop={8}>
-                  <Ionicons name="close" size={18} color={RenkTokenlari.text} />
-                </Pressable>
-              </View>
+    <Modal visible transparent animationType="fade" onRequestClose={onKapat}>
+      <View style={styles.kok}>
+        <Pressable style={styles.perde} onPress={onKapat} />
+        <CamArkaplan
+          intensity={28}
+          style={StyleSheet.absoluteFill}
+          fallbackColor={RenkTokenlari.scrim}
+          pointerEvents="none"
+        />
+        <View style={styles.kartWrap}>
+          <LinearGradient colors={[...RenkTokenlari.gradientCard]} style={styles.kart}>
+            <View style={styles.ust}>
+              <Text style={styles.fisilti}>{t('cuzdanX.islemDekontu')}</Text>
+              <Pressable onPress={onKapat} style={styles.kapat} hitSlop={8}>
+                <Ionicons name="close" size={18} color={RenkTokenlari.text} />
+              </Pressable>
+            </View>
 
-              <Text style={styles.baslik}>{baslik}</Text>
-              <Text style={[styles.tutar, { color: tutarRenk }]}>{tutar}</Text>
+            <Text style={styles.baslik}>{baslik}</Text>
+            <Text style={[styles.tutar, { color: tutarRenk }]}>{tutar}</Text>
 
-              <View style={styles.liste}>
-                {ozet.map((s) => (
-                  <Satir key={s.id} etiket={s.etiket} deger={s.deger} />
-                ))}
-              </View>
+            <View style={styles.liste}>
+              {ozet.map((s) => (
+                <Satir key={s.id} etiket={s.etiket} deger={s.deger} />
+              ))}
+            </View>
 
-              <View style={styles.aksiyonlar}>
-                <BelgePaylasDugmesi
-                  onPress={() => setPaylasAcik(true)}
-                  label={t('cuzdanX.pdfWhatsapp')}
-                />
-                <Pressable onPress={onKapat} style={styles.tamamHit}>
-                  <Text style={styles.tamamYazi}>{t('ortak.kapat')}</Text>
-                </Pressable>
-              </View>
-            </LinearGradient>
-          </View>
+            <View style={styles.aksiyonlar}>
+              <Pressable onPress={onKapat} style={styles.tamamHit}>
+                <Text style={styles.tamamYazi}>{t('ortak.kapat')}</Text>
+              </Pressable>
+            </View>
+          </LinearGradient>
         </View>
-      </Modal>
-
-      <BelgePaylasimPaneli
-        visible={paylasAcik}
-        onKapat={() => setPaylasAcik(false)}
-        icerik={belge}
-      />
-    </>
+      </View>
+    </Modal>
   );
 }
 
@@ -337,7 +271,7 @@ const styles = StyleSheet.create({
   aksiyonlar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     gap: BoslukTokenlari.md,
     marginTop: BoslukTokenlari.sm,
   },

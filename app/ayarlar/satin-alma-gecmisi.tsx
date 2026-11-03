@@ -67,7 +67,7 @@ function kanalEtiket(row: SatinAlmaGecmisSatir, t: CeviriFn): string {
   const c = (row.channel ?? row.store ?? '').toLowerCase();
   if (c === 'apple') return 'App Store';
   if (c === 'google') return 'Google Play';
-  if (c === 'stripe') return t('satinAlma.kanalKart');
+  if (c === 'stripe') return 'Kart';
   if (c === 'manual') return t('satinAlma.kanalManuel');
   return c || '—';
 }

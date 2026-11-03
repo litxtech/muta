@@ -101,14 +101,9 @@ import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/H
 import { MaviTikRozeti } from '../../src/moduller/mesajlasma/bilesenler/MaviTikRozeti';
 import { MesajHizliAksiyonSeridi } from '../../src/moduller/mesajlasma/bilesenler/MesajHizliAksiyonSeridi';
 import { PlatformResmiHesapPaneli } from '../../src/moduller/cuzdan/bilesenler/PlatformResmiHesapPaneli';
-import { AjansPaketTeklifSecSheet } from '../../src/moduller/cuzdan/bilesenler/AjansPaketTeklifSecSheet';
 import { useAjansinSahibiMi } from '../../src/moduller/ajanslar/kancalar/useAjansinSahibiMi';
 import { usePaylasilanDurumOnizleme } from '../../src/moduller/durum/paylasim/usePaylasilanDurumOnizleme';
-import {
-  TakasMahkemeKaraAc,
-  TakasMahkemeKapat,
-} from '../../src/moduller/cuzdan/takas/TakasMahkemeIslemleri';
-import { CuzdanHesabiGarantile } from '../../src/moduller/cuzdan/takas/CuzdanHesabi';
+import { CuzdanHesabiGarantile } from '../../src/moduller/cuzdan/okuma/CuzdanHesabi';
 import { RenkTokenlari } from '../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../src/tasarim-sistemi/TipografiTokenlari';
 import {
@@ -214,7 +209,6 @@ export default function MesajDetayEkrani() {
   const [mutedUntil, setMutedUntil] = useState<string | null>(null);
   const [sessizeAcik, setSessizeAcik] = useState(false);
   const [muzikSecimAcik, setMuzikSecimAcik] = useState(false);
-  const [paketTeklifAcik, setPaketTeklifAcik] = useState(false);
   const [vurguMesajId, setVurguMesajId] = useState<string | null>(null);
   const [eskiYukleniyor, setEskiYukleniyor] = useState(false);
   const [eskiKaldi, setEskiKaldi] = useState(true);
@@ -238,25 +232,6 @@ export default function MesajDetayEkrani() {
     for (const x of mesajlar) m[x.id] = x;
     return m;
   }, [mesajlar]);
-
-  /** Sonrasında aynı paketin teklif kartı gönderilmiş paket talepleri */
-  const karsilananPaketTalepleri = useMemo(() => {
-    const set = new Set<string>();
-    if (!ajansSahibiBen) return set;
-    const teklifler = mesajlar.filter((x) => x.message_type === 'agency_package_offer');
-    for (const x of mesajlar) {
-      if (x.media_meta?.kind !== 'agency_package_request') continue;
-      const anahtar = x.media_meta.package_key;
-      if (
-        teklifler.some(
-          (o) => o.media_meta?.package_key === anahtar && o.created_at > x.created_at,
-        )
-      ) {
-        set.add(x.id);
-      }
-    }
-    return set;
-  }, [ajansSahibiBen, mesajlar]);
 
   const {
     metin,
@@ -1325,7 +1300,6 @@ export default function MesajDetayEkrani() {
     if (!id || id === 'yeni') return;
 
     if (mahkemeMi) {
-      const uyeler = peer?.uyeler ?? [];
       const opts: {
         text: string;
         style?: 'cancel' | 'destructive';
@@ -1336,73 +1310,6 @@ export default function MesajDetayEkrani() {
           onPress: () => setPlatformHesapAcik(true),
         },
       ];
-
-      if (peer?.can_moderate && peer.dispute_id && !mahkemeKapali) {
-        const hedefler = uyeler.filter(
-          (u) => u.rol !== 'yargic' && u.id !== user?.id,
-        );
-        for (const h of hedefler) {
-          opts.push({
-            text: t('mesajSohbet.karaTaraf', { ad: h.display_name || h.username || t('mesajSohbet.taraf') }),
-            style: 'destructive',
-            onPress: () => {
-              Alert.alert(
-                t('mesajSohbet.karaIslem'),
-                t('mesajSohbet.karaAcSoru', { ad: h.display_name || h.username }),
-                [
-                  { text: t('ortak.vazgec'), style: 'cancel' },
-                  {
-                    text: t('mesajSohbet.karaAc'),
-                    style: 'destructive',
-                    onPress: () => {
-                      void (async () => {
-                        const r = await TakasMahkemeKaraAc({
-                          disputeId: peer.dispute_id!,
-                          targetUserId: h.id,
-                          reason:
-                            t('mesajSohbet.karaSebep'),
-                        });
-                        if (!r.ok) Alert.alert(t('mesajSohbet.karaIslem'), r.hata);
-                        else {
-                          Alert.alert(t('mesajSohbet.karaAcildi'), t('mesajSohbet.karaAcildiBody'));
-                          void load();
-                        }
-                      })();
-                    },
-                  },
-                ],
-              );
-            },
-          });
-        }
-        opts.push({
-          text: t('mesajSohbet.mahkemeyiKapat'),
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              t('mesajSohbet.mahkemeyiKapat'),
-              t('mesajSohbet.mahkemeyiKapatSoru'),
-              [
-                { text: t('ortak.vazgec'), style: 'cancel' },
-                {
-                  text: t('ortak.kapat'),
-                  style: 'destructive',
-                  onPress: () => {
-                    void (async () => {
-                      const r = await TakasMahkemeKapat({
-                        disputeId: peer.dispute_id!,
-                        note: t('mesajSohbet.mahkemeKapatNot'),
-                      });
-                      if (!r.ok) Alert.alert(t('ortak.kapat'), r.hata);
-                      else void load();
-                    })();
-                  },
-                },
-              ],
-            );
-          },
-        });
-      }
 
       opts.push(
         {
@@ -1761,7 +1668,6 @@ export default function MesajDetayEkrani() {
                   item.message_type === 'shared_post' && sharedPostYukleniyor
                 }
                 ajansSahibi={ajansSahibiBen}
-                paketTalebiGonderildi={karsilananPaketTalepleri.has(item.id)}
               />
               </View>
               );
@@ -1814,12 +1720,6 @@ export default function MesajDetayEkrani() {
                 onIdPaylas={idPaylas}
                 onOzellikDoldur={ozellikDoldur}
                 onMetinPaylas={(m) => void hizliMetinGonder(m)}
-                onPaketTeklif={
-                  peer?.peer_agency_id
-                    ? () => setPaketTeklifAcik(true)
-                    : undefined
-                }
-                paketTalepMi={!ajansSahibiBen}
               />
             ) : null}
             <MesajDuzenlemeBasligi
@@ -2068,19 +1968,6 @@ export default function MesajDetayEkrani() {
           onClose={() => setMuzikSecimAcik(false)}
           onSec={(track) => void muzikGonder(track)}
         />
-
-        {peer?.peer_agency_id && threadId ? (
-          <AjansPaketTeklifSecSheet
-            visible={paketTeklifAcik}
-            agencyId={peer.peer_agency_id}
-            threadId={threadId}
-            talepMi={!ajansSahibiBen}
-            onClose={() => setPaketTeklifAcik(false)}
-            onGonderildi={() => {
-              void load();
-            }}
-          />
-        ) : null}
       </ModulHataSiniri>
     </Screen>
   );

@@ -1,0 +1,264 @@
+## gorunum
+gorunum.koyuAlt = Night ? controlled neon
+gorunum.neon_sehirAlt = Cyber pink ? mint
+## unvanlar
+unvanlar.kilitliAciklama = This title was locked by an admin; you can?t change it.
+unvanlar.bos = You don?t have any titles yet.
+unvanlar.secilemedi = Couldn?t select title.
+unvanlar.gizlenemedi = Couldn?t hide title.
+## auth
+auth.hesabinVarMi = Already have an account?
+auth.hesabinYokMu = Don't have an account?
+auth.cikisSoru = Sign out on this device?
+auth.twitchBaglaniyor = Connecting to Twitch?
+auth.xBaglaniyor = Connecting to X?
+auth.googleBaglaniyor = Connecting to Google?
+auth.oturumKaldirMesaj = Remove {{ad}} from saved sessions on this device? It will no longer appear on the sign-in screen.
+## profilDuzenle
+profilDuzenle.fotoSilSoru = Delete this photo?
+## mesajlar
+mesajlar.hizliSilBaslik = Delete this share?
+mesajlar.davetOnaySoru = ?Enviar solicitud para unirte a la agencia con este c?digo?\nC?digo: {{kod}}
+## cuzdan
+cuzdan.numaraHazirlaniyor = Preparing number?
+cuzdan.qrIpucu = Scan with camera ? only the recipient's initials are shown for transfers
+## durum
+durum.silOnay = Delete this status?
+durum.gonderiSilBody = This post will be removed. Are you sure?
+durum.moodSoru = How are you feeling?
+durum.neDusunuyorsun = What's on your mind?
+durum.silKalici = Delete this post permanently?
+durum.profilKaldirSoru = ¿Quieres eliminar este perfil?
+## hikaye
+hikaye.silSoru = Eliminar este elemento de la historia?
+## bildirimler
+bildirimler.silSoru = Remove this notification?
+bildirimler.secilenleriSilSoru = Delete {{count}} notifications?
+bildirimler.tumunuSilSoru = Delete every notification in the center?
+## bildirimAyar
+bildirimAyar.osIzinAcik = Allowed ? you can turn it off in system settings
+bildirimAyar.osIzinKapali = Blocked ? enable to receive notifications
+bildirimAyar.osIzinSor = Not asked yet ? tap to enable
+## destek
+destek.bitirSoru = End live support?
+## aiAsistan
+aiAsistan.menuAlt = Find ? list ? ask ? DeepSeek AI
+aiAsistan.alt = Popular/oldest rooms, lives, people search ? tap to open.
+aiAsistan.hosgeldin = Hi! I?m the {{app}} assistant. Try: ?find popular voice rooms?, ?oldest rooms?, ?live streams?, ?search Ali?.
+aiAsistan.placeholder = Find or ask?
+aiAsistan.hata = I couldn?t reply just now. Try again later or use Live Support.
+## aiCeviri
+aiCeviri.gorusmePlaceholder = Type a message?
+## guvenlik
+guvenlik.neGordun = What did you see? (optional)
+## takip
+takip.takiptenCikSoru = ?Quieres dejar de seguir a {{ad}}?
+takip.istekIptalSoru = Do you want to cancel your follow request?
+takip.takipciyiKaldirSoru = Remove {{ad}} from your followers?
+## ajans
+ajans.formSaatler = What hours are you usually active?
+ajans.formYayinTuru = What kind of streams do you do?
+ajans.formOncekiYayin = Have you streamed before?
+ajans.ajansiKapatSoru = Are you sure?
+ajans.ajansaBasvurSoru = Send a membership application to this agency? Your member panel opens when approved.
+ajans.uyelerAltListe = {{count}} creators ? view list
+ajans.ajansNo = N.? agencia
+ajans.islemlerAlt = Coins ? room
+ajans.transferSatir = {{ad}} ? {{coins}} coins ? {{zaman}}
+ajans.canliOperasyonAlt = What is happening in your agency now?
+ajans.izleyiciSatir = {{title}} ? {{count}} viewers
+ajans.dinleyiciSatir = {{ad}} ? {{count}} listeners
+ajans.programSatir = {{kind}} ? {{zaman}}
+ajans.basvuruSatir = @{{user}} ? {{zaman}}\\nStatus: {{status}}
+ajans.etkinlikSatir = {{status}} ? {{kind}} ? {{zaman}}
+ajans.ilerlemeSatir = {{status}} ? {{type}} ? progress {{progress}}/{{target}}
+ajans.hedefSatir = {{cur}}/{{target}} ? %{{pct}}
+ajans.programListeSatir = {{kind}} ? {{status}} ? {{zaman}} ? {{host}}
+ajans.yayinDelta = Directo ?
+ajans.sesDelta = Voz ?
+ajans.oncekiYayinSes = Prev live: {{yayin}} ? Prev voice: {{ses}}
+ajans.uyeRenk = {{count}} members ? {{renk}}
+ajans.profilUyeMeta = Live {{yayin}} ? Voice {{ses}} ? {{coin}} coins/wk
+ajans.davetlerAlt = Code ? QR ? analytics
+ajans.qrTurleriHint = QR types: AGENCY PROFILE / APPLY / EVENT ? deep links open with current navigation.
+ajans.duyurularAltAjans = Announce to members ? push
+ajans.bugunBildirim = Avisos de gesti?n sin leer
+ajans.uyariPasifHostBody = {{name}} lleva 5+ d?as inactivo
+ajans.uyariProgramBaslamadi = Emisi?n programada no iniciada
+ajans.eksikYayin = {{n}} horas de emisi?n
+ajans.turOtomatik = Autom?tico
+ajans.verNedenTamuso = ¿Por qué quieres ser una agencia de Tamuso?
+ajans.yoneticiIptalOnay = ¿Revocar el acceso de gestor?
+## sehir
+sehir.ligPuanBaslik = How do points work?
+sehir.nasilKatilirim = How do I join?
+sehir.destekGeriCekSoru = Remove your support from this city?
+sehir.nasilGuc = How do you gain power?
+## oyun
+oyun.davetBody = {{host}} started a game. Want to join?
+oyun.fwPurchasedTitle = ¿Usar monedas compradas?
+## aiMuzik
+aiMuzik.promptKisaBaslik = What do you want to create?
+aiMuzik.kaliciSilBody = Permanently remove this track?
+aiMuzik.silKaliciSoru = Permanently remove this track?
+aiMuzik.admin.sonucHata =  ? {{n}} failed
+aiMuzik.admin.heroAlt = Search profile ? select ? apply minutes ? instant balance
+aiMuzik.admin.ekleN = Add ? {{n}}
+aiMuzik.admin.eksiltN = Remove ? {{n}}
+aiMuzik.admin.profilAraAlt = Type a letter ? avatar suggestions appear instantly
+aiMuzik.admin.aramaPh = e.g. H or a name?
+aiMuzik.admin.secilenN = Selected ? {{n}}
+## odaMuzik
+odaMuzik.yayinlandi = Published ? appears in the library immediately.
+odaMuzik.formatHint = mp3 ? m4a ? aac ? wav ? ogg ? flac ? webm ? opus ? aiff ? caf (max ~100 MB)
+odaMuzik.sesBilgi = Audio: {{ext}} ? {{path}}
+odaMuzik.desteklenenSes = Supported audio: mp3, m4a, aac, wav, ogg, flac, webm, opus, aiff, caf?
+## fikirler
+fikirler.heroAlt = Got an idea? Share feature ideas and experience improvements with us. We take every piece of feedback seriously.
+fikirler.bugNerede = Where did the issue happen?
+fikirler.bugNe = What were you doing?
+fikirler.bugTekrar = Does it happen again?
+## host
+host.yolSecBaslik = ¿Cómo quieres ser host?
+host.ajansaGecBaslik = ¿Quieres unirte a una agencia?
+host.davetKoduYok = ¿No tienes código? Explora agencias
+## hesapSil
+hesapSil.nedenSiliyorsun = Why are you deleting it?
+## islemHacmi
+islemHacmi.bilgiBaslik = What is transaction volume?
+## ulkeLigi
+ulkeLigi.araPlaceholder = Search countries?
+ulkeLigi.adminAlt = Eligibility ? product points ? promo ? close week
+ulkeLigi.adminPromoHint = PROMOTIONAL only ? not a real purchase
+ulkeLigi.adminHaftaKapatOnay = Takes a weekly snapshot and resets weekly scores. Continue?
+## kisilerAyar
+kisilerAyar.kimlerArayabilir = Who can call me?
+## bildir
+bildir.aciklamaPlaceholder = ?Qu? pas?? S? breve y claro?
+## pk
+pk.davetEttiBaslikli = ?{{baslik}}? invited you to PK
+pk.macDk = {{dk}} min match ? {{sn}}s
+pk.davetSecAlt = Pick a live streamer ? PK starts for 5 min once they accept
+## paylasim
+paylasim.kodAlinamadi = No se pudo obtener el c?digo de invitaci?n. ?Se aplic? la migraci?n 020?
+paylasim.mesajKatil = Join {{ad}} ? voice, stage, and live rooms await.{{kodSatiri}}\n\nDownload: {{url}}
+## sertifikasyon
+sertifikasyon.hediyeSonuc = Added {{eklenen}} ? Dropped {{dusuruldu}} ? {{sureMs}} ms
+sertifikasyon.livekitSonuc = Succeeded {{basarili}} ? Failed {{basarisiz}} ? {{sureMs}} ms
+sertifikasyon.heroEyebrow = Ops ? quality
+sertifikasyon.calisiyor = Running?
+sertifikasyon.hediyeStresAlt = 40-gift queue ? drop rate
+sertifikasyon.guvenlikMerkeziAlt = Incidents ? child safety ? blocks
+## platform
+platform.iletisimAlt = Report ? support ? inappropriate content
+## olusturTab
+olusturTab.duzenAlt = {{duzen}} ? mic stage layout
+## mesajV2
+mesajV2.recording = Recording?
+mesajV2.voicePreviewHint = Listen ? confirm ? send
+mesajV2.sending = Sending?
+mesajV2.pushPhoto = ?? Foto
+mesajV2.pushVideo = ?? Video
+mesajV2.pushVoice = ?? Mensaje de voz
+mesajV2.pushMusic = ?? Music
+mesajV2.pushViewOncePhoto = ?? Photo ? view once
+mesajV2.pushViewOnceVideo = ?? Video ? view once
+## hediye
+hediye.pkKime = PK ? who?
+hediye.kime = ¿A quién?
+## canliYayin
+canliYayin.pkBitirOnay = ¿Terminar el PK?
+canliYayin.yorumSilBody = Remove this comment?
+## mesajSohbet
+mesajSohbet.karaAcSoru = Blacklist will open for {{ad}}.\\nThe account may be suspended / closed. Confirm?
+mesajSohbet.mahkemeyiKapatSoru = The group will close; no new messages. Confirm?
+## sesOda
+sesOda.ayrilSoru = Leave the voice room? Audio will stop.
+sesOda.koltukDusurSoru = Reducing to {{max}} seats will remove {{fazla}} people (most recent) from seats. Continue?
+sesOda.ayrilSoruKisa = Leave the voice room?
+sesOda.odayiKapatSoru = This voice room will close permanently and leave the feed. Are you sure?
+sesOda.koltuktanKalkSoru = Leave the speaker seat and become a listener?
+sesOda.liderligiDevretSoru = {{ad}} will become room owner and take the throne. Continue?
+sesOda.liderligiGeriAlSoru = {{ad}} dejará el liderazgo. El trono volverá a ti. ¿Continuar?
+sesOda.yoneticiKaldirSoru = Remove this user?s room admin rights?
+sesOda.yoneticiYapSoru = Make this user a room admin?
+sesOda.koltukTalebiSoru = ?Enviar solicitud para el asiento {{n}}?
+sesOda.odadanCikarSoru = Remove {{ad}} from the room?
+sesOda.yasaklaSoru = Ban {{ad}} from this room?
+sesOda.hostKoltugaGecSoru = ¿Pasar al asiento {{n}}? El trono se bloquea para los demás.
+sesOda.hostTahtaDonSoru = ¿Volver al trono?
+sesOda.serbestOturSoru = El asiento {{n}} no requiere permiso. ¿Sentarse?
+sesOda.mikIstekSoru = ¿Pedir permiso al propietario de la sala para activar el micrófono?
+sesOda.neYapmakIstersin = What would you like to do?
+## durumX
+durumX.yorumuSilBody = Delete this comment?
+## cuzdanXExtra
+cuzdanXExtra.gonderildiOk = Sent ? {{kim}}
+cuzdanXExtra.alindiOk = Received ? {{kim}}
+## belge
+belge.excelCsvAlt = Date ? time ? transaction ? counterparty
+belge.bakiyeOk = {{tutar}} ? balance {{bakiye}}
+belge.hediyeEtkilesimOzet = {{n}} records ? to / from
+belge.oyunGecmisiOzet = {{n}} sessions ? rank, wins, rewards
+belge.oyunAciklama = Rank {{sira}} ? XP {{xp}} ? Cups {{kupa}}
+belge.durumKazanc = {{durum}} ? win
+belge.oyunSatir = Rank {{sira}} ? {{durum}} ? reward {{odul}} coin ? XP {{xp}}
+belge.admin.ciroAlt = {{donem}} ? Tamuso
+belge.admin.ciroOzet = {{donem}} revenue: {{try}} ? {{coins}} coin ? {{adet}} txns
+belge.admin.kimdenSatir = {{try}} ? {{coins}} coin ? {{adet}}?
+belge.admin.islemSatir = {{try}} ? {{coins}} coin
+belge.admin.yonetimOzetBody = Live status ? users, finance, live, moderation, and feature flags.
+## moderasyon
+moderasyon.odaNeden = Why are you reporting this voice room?
+moderasyon.canliNeden = Why are you reporting this live stream?
+moderasyon.neIcin = What are you reporting?
+## banner
+banner.promoOyunAlt = Most games this week ? {{skor}}
+banner.promoCoinAlt = Most coins this week ? {{skor}}
+banner.placement.FEED_AFTER_POST_4 = Feed tras 4.? post
+banner.placement.FEED_AFTER_POST_6 = Feed tras 6.? post (sala auto)
+banner.placement.FEED_AFTER_POST_8 = Feed tras 8.? post
+banner.placement.FEED_AFTER_POST_10 = Feed tras 10.? post
+banner.placement.FEED_AFTER_POST_14 = Feed tras 14.? post (vivo auto)
+## politikalar
+politikalar.childSafetyKisa = 18+ ? zero tolerance ? no amnesty
+politikalar.communityKisa = UGC zero tolerance ? report ? block
+politikalar.communityGovde = TAMUSO COMMUNITY GUIDELINES\n\nLast updated: 22 September 2026\nVersion: 1.0\n\nTamuso is open to user-generated content (status, comments, messages, voice rooms, live streams).\nZERO TOLERANCE applies to inappropriate content and abuse.\n\n????????????????????????????????\n1. AGE\n????????????????????????????????\nThe Platform is for ages 18 and over only. Underage content or participation is prohibited.\n\n????????????????????????????????\n2. PROHIBITED CONTENT AND BEHAVIOR\n????????????????????????????????\nStrictly prohibited:\n? Harassment, threats, stalking, bullying\n? Hate speech and discrimination\n? Pornographic / sexual exploitation content\n? Non-consensual sexual content\n? Any content related to child sexual abuse (CSAM) ? no amnesty\n? Threats of violence or real-world harm\n? Fraud, phishing, spam\n? Impersonation\n? Sharing personal information without consent (doxxing)\n? Copyright infringement\n? Unlawful content\n? Platform abuse, bots, exploits\n\n????????????????????????????????\n3. MODERATION AND 24 HOURS\n????????????????????????????????\n? Users can use Report / Block tools.\n? Reports enter the moderation queue; our target is review within 24 hours.\n? On violation, content is removed; repeat or severe violations may lead to warning, suspension, or account closure.\n\n????????????????????????????????\n4. CONTACT\n????????????????????????????????\nIn-app: Safety ? Contact Us\nEmail: support@litxtech.com\nLive Support: Settings / Safety\n\nThese guidelines apply together with the Terms of Use and Child Safety Policy.\n
+## odaDuzen
+odaDuzen.floating_glassAlt = Glass grid ? soft halo
+odaDuzen.aurora_stageAlt = Spotlight ? 3 columns
+odaDuzen.orbitAlt = Center podium ? arc seats
+odaDuzen.royal_loungeAlt = VIP lounge ? large seats
+odaDuzen.minimal_stageAlt = Duo focus ? clean
+odaDuzen.spotlight_proAlt = Giant podium ? side support
+odaDuzen.theater_goldAlt = Wide stage ? gold aura
+odaDuzen.arena_crownAlt = Twin wings ? center throne
+odaDuzen.cinematic_wideAlt = Wide frame ? 5 columns
+odaDuzen.soft_mosaicAlt = 3 columns ? large avatars
+odaDuzen.intimate_duoAlt = Dating ? close duo
+odaDuzen.club_stageAlt = Host on top ? equal speaker grid
+odaDuzen.presence_gridAlt = Equal tiles ? no podium
+odaDuzen.party_waveAlt = Big host ? wavy 5 columns
+odaDuzen.party_uAlt = Twin wings ? center host
+odaDuzen.dropin_tilesAlt = Large equal tiles ? instant join
+odaDuzen.greenroom_barAlt = Host strip ? compact audience
+odaDuzen.salon_circleAlt = Warm salon ? large avatars
+## odaTema
+odaTema.neon_auroraAlt = Pink ? magenta aurora
+odaTema.sunset_pulseAlt = Orange ? coral pulse
+odaTema.cyber_mintAlt = Dark base ? mint accent
+odaTema.tropical_nightAlt = Night ocean ? coral
+odaTema.void_emberAlt = Dark space ? ember
+odaTema.club_creamAlt = Open salon ? warm cream
+odaTema.blurple_nightAlt = Dark presence ? violet-blue
+odaTema.spaces_skyAlt = Night sky ? blue accent
+odaTema.party_neonAlt = Live party ? pink neon
+odaTema.greenroom_darkAlt = Black stage ? green accent
+odaTema.salon_warmAlt = Open cream ? orange accent
+## lobi
+lobi.ambientCafeIkili = Caf? chat
+## yayinciK
+yayinciK.programBasvuruProfilUyari = Tu solicitud fue recibida. Para recibir pagos debes completar tu perfil de pago (banco, impuestos, documentos). ¿Quieres completarlo ahora?
+## verify
+verify.cekimOnayBaslik = ¿Crear esta solicitud?
+verify.cekimOnayMetin = Se creará una solicitud de pago para tu saldo disponible. ¿Confirmas?

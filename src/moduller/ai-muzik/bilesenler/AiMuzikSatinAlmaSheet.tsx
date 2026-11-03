@@ -28,8 +28,6 @@ import {
   AiMuzikPaketFiyatYazi,
   AiMuzikPaketSatinAl,
 } from '../islemler/AiMuzikSatinAl';
-import { StripeCheckoutWebSheet } from '../../stripe/bilesenler/StripeCheckoutWebSheet';
-import { StripeSdkOnIsit } from '../../stripe/islemler/StripeSdkOnIsit';
 import type { AiMuzikProduct } from '../tipler';
 import { DakikaEtiket } from '../utils/SureFormat';
 
@@ -60,7 +58,6 @@ export function AiMuzikSatinAlmaSheet({
   const [fiyatlar, setFiyatlar] = useState<Record<string, string>>({});
   const [yukleniyor, setYukleniyor] = useState(false);
   const [satinAliniyor, setSatinAliniyor] = useState<string | null>(null);
-  const [webSheetPkg, setWebSheetPkg] = useState<AiMuzikProduct | null>(null);
 
   const katalogYukle = useCallback(async () => {
     // Önce önbellekli katalog — sheet hemen dolu açılsın
@@ -80,7 +77,6 @@ export function AiMuzikSatinAlmaSheet({
     if (!visible) return;
     setYukleniyor(urunler.length === 0);
     void katalogYukle();
-    StripeSdkOnIsit();
   }, [visible, katalogYukle]);
 
   const satinAl = async (pkg: AiMuzikProduct) => {
@@ -90,17 +86,7 @@ export function AiMuzikSatinAlmaSheet({
       const sonuc = await AiMuzikPaketSatinAl(pkg);
       if (!sonuc.ok) {
         if (sonuc.kod === 'cancel') return;
-        if (sonuc.webSheet) {
-          setWebSheetPkg(pkg);
-          return;
-        }
         Alert.alert(t('aiMuzik.satinAlmaAlert'), sonuc.hata);
-        return;
-      }
-      if (sonuc.method === 'stripe') {
-        onBasarili?.();
-        onClose();
-        Alert.alert(t('aiMuzik.odemeAlindi'), t('aiMuzik.odemeAlindiBody'));
         return;
       }
       onBasarili?.();
@@ -120,7 +106,8 @@ export function AiMuzikSatinAlmaSheet({
       ? t('aiMuzik.kanalIos')
       : Platform.OS === 'android'
         ? t('aiMuzik.kanalAndroid')
-        : t('aiMuzik.kanalWeb');
+        : 'Kart';
+
 
   return (
     <>
@@ -241,25 +228,6 @@ export function AiMuzikSatinAlmaSheet({
         </View>
       </View>
     </TamusoModal>
-
-      <StripeCheckoutWebSheet
-        visible={!!webSheetPkg}
-        catalog="ai_music"
-        productId={webSheetPkg?.product_id}
-        baslik={
-          webSheetPkg
-            ? t('aiMuzik.paketKart', { ad: webSheetPkg.display_name })
-            : t('aiMuzik.kartIleOde')
-        }
-        onClose={() => setWebSheetPkg(null)}
-        onBasarili={() => {
-          setWebSheetPkg(null);
-          onBasarili?.();
-          onClose();
-          Alert.alert(t('aiMuzik.odemeAlindi'), t('aiMuzik.odemeAlindiBody'));
-        }}
-        onHata={(mesaj) => Alert.alert(t('aiMuzik.odeme'), mesaj)}
-      />
     </>
   );
 }

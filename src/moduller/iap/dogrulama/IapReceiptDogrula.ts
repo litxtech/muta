@@ -55,7 +55,9 @@ export async function IapReceiptDogrula(input: {
       return {
         ok: false,
         hata: json.error ?? `Verify ${res.status}`,
-        kesin: res.status === 400 || res.status === 404 || res.status === 409,
+        // 404 = sunucuda paket/edge bulunamadı: makbuz reddi DEĞİL.
+        // Kesin sayılırsa işlem kapatılır ve kullanıcı ödediği coin'i alamaz.
+        kesin: res.status === 400 || res.status === 409,
       };
     }
     return { ok: true, coinsAdded: json.coinsAdded ?? 0 };

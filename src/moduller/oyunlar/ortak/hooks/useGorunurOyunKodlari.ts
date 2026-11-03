@@ -11,9 +11,8 @@ import { OzellikBayragiAktifMiSunucu } from '../../../ozellik-bayraklari/okuma/O
 import { KillSwitchAktifMiSunucu } from '../../../ozellik-bayraklari/okuma/KillSwitchAktifMiSunucu';
 import { listVisibleGameCodes } from '../servisler/OyunKontrolServisi';
 import type { GameCode } from '../tipler/OyunTipleri';
-import { STORM_KING_PAKETTE } from '../../storm-king/StormKingPaket';
 
-const VARSAYILAN_OYUNLAR: GameCode[] = STORM_KING_PAKETTE ? ['fruit_wheel', 'storm_king'] : ['fruit_wheel'];
+const VARSAYILAN_OYUNLAR: GameCode[] = ['fruit_wheel'];
 
 const CANLI_YENILE_MS = 400;
 

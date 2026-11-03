@@ -43,6 +43,7 @@ export function HediyeMagazaBaglamasi({
         coinLocked={yukle.purchaseLocked}
         onCoinBuy={yukle.satinAl}
         onCoinPaketHazirla={yukle.paketleriYenile}
+        coinPaketYenileniyor={yukle.yenileniyor}
         gonderiyor={magaza.gonderiyor}
       />
       {animasyon ? <HediyeAnimasyonKatmani /> : null}

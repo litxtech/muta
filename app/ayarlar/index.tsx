@@ -32,6 +32,7 @@ import { BoslukTokenlari, HeaderTokenlari } from '../../src/tasarim-sistemi/Bosl
 import { useDil } from '../../src/i18n/DilSaglayici';
 import { useCeviri } from '../../src/i18n/useCeviri';
 import { BiyometriAyarSatiri } from '../../src/moduller/kimlik-dogrulama/biyometri/BiyometriAnahtari';
+import { VerifyProfilSatiri } from '../../src/moduller/tamuso-verify/bilesenler/VerifyProfilSatiri';
 
 /** Uygulama tercihleri — kısa hub; gizlilik ayrı ekranda */
 export default function AyarlarEkrani() {
@@ -177,6 +178,11 @@ export default function AyarlarEkrani() {
           </ListeGrubu>
 
           <ListeGrubu title={t('ayarlar.gizlilikGuvenlik')}>
+            <VerifyProfilSatiri
+              onPress={() =>
+                router.push('/cuzdan/yayinci-kazanclari/kimlik-dogrula' as any)
+              }
+            />
             <BiyometriAyarSatiri />
             <ListeSatiri
               icon="eye-off-outline"

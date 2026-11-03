@@ -2,7 +2,7 @@
  * Tamuso Games — paylaşılan oturum / ekonomi / kayıt tipleri.
  */
 
-export type GameCode = 'kozmik_kaskad' | 'zeus' | 'nox_reels' | 'fair_spin' | 'astral_falls' | (string & {});
+export type GameCode = 'fruit_wheel' | (string & {});
 
 export type GameSessionStatus =
   | 'waiting'
@@ -204,11 +204,37 @@ export type CreateGameSessionParams = {
   durationSeconds?: number;
   maxPlayers?: number;
   entryAmount?: number;
+  /** Oyun coinleri yetmezse satın alınan coinlerin kullanılmasına açık onay. */
+  satinCoinOnay?: boolean;
 };
 
 export type JoinGameSessionParams = {
   sessionId: string;
   entryAmount?: number;
+  /** Oyun coinleri yetmezse satın alınan coinlerin kullanılmasına açık onay. */
+  satinCoinOnay?: boolean;
+};
+
+export type OyunCuzdanOnizleme = {
+  ok: boolean;
+  code?: 'ok' | 'insufficient_balance' | 'satin_coin_kapali' | 'invalid_amount' | 'wallet_not_found' | string;
+  amount?: number;
+  from_game_coins?: number;
+  from_bonus_coins?: number;
+  from_purchased_coins?: number;
+  satin_coin_gerekli?: boolean;
+  satin_coin_izinli?: boolean;
+  satin_coin_onayi_gerekli?: boolean;
+  yeterli?: boolean;
+  eksik?: number;
+  game_coins?: number;
+  bonus_coins?: number;
+  purchased_coins?: number;
+  total_coins?: number;
+  game_coins_after?: number;
+  bonus_coins_after?: number;
+  purchased_coins_after?: number;
+  total_coins_after?: number;
 };
 
 export type SubmitGameScoreParams = {

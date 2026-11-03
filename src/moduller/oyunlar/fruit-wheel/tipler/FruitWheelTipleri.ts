@@ -86,4 +86,16 @@ export type ConfirmResult = {
   balance?: number;
   roundId?: string;
   total?: number;
+  plan?: {
+    amount: number;
+    from_game_coins: number;
+    from_bonus_coins: number;
+    from_purchased_coins: number;
+    satin_coin_onayi_gerekli: boolean;
+    game_coins: number;
+    bonus_coins: number;
+    purchased_coins: number;
+    total_coins: number;
+    total_coins_after: number;
+  };
 };

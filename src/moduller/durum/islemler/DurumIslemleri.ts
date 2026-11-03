@@ -98,8 +98,8 @@ export function DurumOyunKazanciPayloadAl(
   const p = oge.payload as Partial<DurumOyunKazanciPayload>;
   if (!p.round_id && p.total_win == null) return null;
   return {
-    game_code: String(p.game_code ?? 'kozmik_kaskad'),
-    game_title: String(p.game_title ?? 'Realm of Storms'),
+    game_code: String(p.game_code ?? 'fruit_wheel'),
+    game_title: String(p.game_title ?? 'Fruit Wheel'),
     round_id: String(p.round_id ?? ''),
     total_win: Number(p.total_win ?? 0),
     base_win: Number(p.base_win ?? p.total_win ?? 0),

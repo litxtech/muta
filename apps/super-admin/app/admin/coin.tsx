@@ -23,8 +23,8 @@ export default function AdminCoinYukleEkrani() {
   return (
     <Screen edges={['top']}>
       <EkranBasligi
-        title="Coin yükle"
-        subtitle="Harf yaz · isim + avatar · yükle"
+        title="Coin işlemleri"
+        subtitle="Coin / ödül coin · bakiye gör · ekle / eksilt"
         fallbackHref="/admin"
       />
       <ScrollView
@@ -34,7 +34,7 @@ export default function AdminCoinYukleEkrani() {
       >
         <AdminKullaniciCoinPaneli
           baslik="Kullanıcı"
-          alt="İsim yazmaya başla — öneriler harfle açılır"
+          alt="İsim yaz · seç · bakiye gör · coin / ödül coin eksilt"
         />
       </ScrollView>
     </Screen>

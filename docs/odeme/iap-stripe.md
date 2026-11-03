@@ -1,9 +1,24 @@
-# IAP + Stripe (satış)
+# Ödeme — yalnızca mağaza içi satın alma (IAP)
 
 ## Kural
-- **iOS dijital coin** → yalnızca App Store IAP (`expo-iap`)
-- **Android** → Play Billing IAP
-- **Web / izinli kanal** → Stripe Checkout (`stripe_enabled`)
+- **iOS dijital coin** → yalnızca App Store IAP (`expo-iap` / StoreKit)
+- **Android** → yalnızca Google Play Billing (`expo-iap`)
+- **Uygulama içinde başka ödeme yolu yoktur.** Stripe, kart formu, harici checkout,
+  ajans/indirimli coin satışı ve web ödeme yedeği **tamamen kaldırıldı**.
+- Web (Vercel) istemcisinde coin satın alma kapalıdır; kullanıcıya
+  "yalnızca mobil uygulamada" bilgisi gösterilir (`cuzdanX.coinYalnizMobil`).
+
+## Kaldırılanlar (tekrar eklenmemeli)
+- `src/moduller/stripe/**` (PaymentSheet + Checkout WebView)
+- `@stripe/stripe-react-native` bağımlılığı ve config plugin
+- Cüzdan "yetkili ajans" indirimli coin şeridi (`YetkiliAjansYukleSeridi`)
+- Sohbet içi ajans paket teklifi / ödeme kartı / fiş kartı
+- `AjansPaketTeklifOde`, `AjansPaketTeklifIslemleri`, `AjansCoinPaketKatalog`
+- AI müzik Stripe yedeği (`AiMuzikSatinAl.ts` artık yalnızca IAP)
+- `expo-dev-client` config plugin (yalnızca production dışı derlemelerde)
+
+Sunucudaki `stripe-*` / `ajans-pay` edge function'ları artık istemciden çağrılmıyor;
+istenirse ayrıca silinebilir.
 
 ## Takas ≠ IAP cash-out (Apple / Google)
 
@@ -39,38 +54,24 @@ Takas TL alanları + IAP soğutma:
 
 ```sql
 update public.feature_flags set enabled = true where key in ('iap_enabled');
--- Stripe web icin:
--- update public.feature_flags set enabled = true where key = 'stripe_enabled';
 ```
 
 ## Edge secrets
 ```
 IAP_SKIP_VERIFY=1          # sandbox; prod'da kaldir + Apple/Google verify ekle
-STRIPE_SECRET_KEY=sk_live_...   # Dashboard → Edge Functions → Secrets (asla mobil .env)
-STRIPE_WEBHOOK_SECRET=whsec_...
-EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...  # yalnız publishable; Payment Sheet için
 ```
 
 Deploy:
 ```
 npx supabase functions deploy iap-receipt-verify --project-ref vdkqrqtrftzhbtquzked
-npx supabase functions deploy stripe-checkout --project-ref vdkqrqtrftzhbtquzked
-npx supabase functions deploy stripe-webhook --project-ref vdkqrqtrftzhbtquzked
 ```
-
-Stripe webhook URL:
-`https://vdkqrqtrftzhbtquzked.supabase.co/functions/v1/stripe-webhook`
-Event: `checkout.session.completed`
 
 ## AI müzik dakikası
 - iOS/Android: App Store / Play IAP → `ai-music-iap-verify` → anında dakika
-- Web / IAP yok + `stripe_enabled`: Stripe Checkout → webhook → `ai_music_stripe_satin_al_onayla`
 - Satın alma geçmişi: Ayarlar → `satin_alma_gecmisim` (coin + AI müzik)
 
 ## Mobil
 - `expo-iap` plugin (`app.config.ts`)
-- `@stripe/stripe-react-native` — uygulama içi PaymentSheet (alttan kart; yeni native build gerekir)
-- Yedek: `StripeCheckoutWebSheet` — Checkout URL uygulama içi WebView bottom sheet (harici tarayıcı yok)
-- Cüzdan → `CoinPaketiSatinAl`
-- AI Müzik → `AiMuzikPaketSatinAl` + alttan sheet
-- Development build gerekir (Expo Go IAP / Stripe native yok)
+- Cüzdan → `CoinPaketiSatinAl` (yalnız IAP)
+- AI Müzik → `AiMuzikPaketSatinAl` (yalnız IAP) + alttan sheet
+- Development build gerekir (Expo Go IAP desteklemez)

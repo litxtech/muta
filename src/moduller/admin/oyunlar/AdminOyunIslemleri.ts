@@ -34,7 +34,7 @@ export async function AdminOyunKapiDurumuGetir(): Promise<AdminOyunKapiDurumu[]>
 }
 
 export async function AdminOyunKontrolGetir(
-  gameCode = 'kozmik_kaskad',
+  gameCode = 'fruit_wheel',
 ): Promise<GameControlConfig | null> {
   const { data, error } = await supabase
     .from('game_control_configs')

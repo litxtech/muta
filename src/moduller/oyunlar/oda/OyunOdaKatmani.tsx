@@ -10,7 +10,6 @@ import { router } from 'expo-router';
 import { registerFruitWheel } from '../fruit-wheel/FruitWheelKayit';
 import { FruitWheelEkrani } from '../fruit-wheel/ekranlar/FruitWheelEkrani';
 import { fruitWheelIsit } from '../fruit-wheel/servisler/FruitWheelApi';
-import { registerStormKing, StormKingScreen } from '../storm-king/StormKingGiris';
 import { OyunBaslatModal } from '../ortak/bilesenler/OyunBaslatModal';
 import { useGorunurOyunKodlari } from '../ortak/hooks/useGorunurOyunKodlari';
 import type { GameCode, GameSession, RoomGameMeta } from '../ortak/tipler/OyunTipleri';
@@ -36,7 +35,7 @@ export type OyunOdaKatmaniProps = {
   bottomGap?: number;
 };
 
-type Phase = 'idle' | 'fruit_wheel' | 'storm_king';
+type Phase = 'idle' | 'fruit_wheel';
 
 export function OyunOdaKatmani({
   roomMeta,
@@ -51,7 +50,6 @@ export function OyunOdaKatmani({
 }: OyunOdaKatmaniProps) {
   useEffect(() => {
     registerFruitWheel();
-    registerStormKing();
   }, []);
 
   const [phase, setPhase] = useState<Phase>('idle');
@@ -65,7 +63,6 @@ export function OyunOdaKatmani({
   useEffect(() => {
     if (phase !== 'idle' || !initialGameCode) return;
     if (initialGameCode === 'fruit_wheel') setPhase('fruit_wheel');
-    if (initialGameCode === 'storm_king') setPhase('storm_king');
   }, [initialGameCode, phase]);
 
   useEffect(() => {
@@ -116,30 +113,20 @@ export function OyunOdaKatmani({
 
   const aktif = startModalVisible || phase !== 'idle';
   const oyunModu = phase !== 'idle';
-  const tamEkran = phase === 'fruit_wheel' || phase === 'storm_king';
+  const tamEkran = phase === 'fruit_wheel';
   const topGap = useMemo(() => {
-    if (phase === 'storm_king') return Math.max(insets.top, 8) + 48;
     if (tamEkran) return Math.max(insets.top, 8);
     const minGap = 56 + Math.max(insets.top * 0.1, 0);
     return Math.max(minGap, Math.round(height * 0.1));
-  }, [height, insets.top, phase, tamEkran]);
-  const bottomGap =
-    phase === 'storm_king'
-      ? 0
-      : tamEkran
-        ? Math.max(insets.bottom, 0)
-        : Math.max(insets.bottom, 8) + 58;
+  }, [height, insets.top, tamEkran]);
+  const bottomGap = tamEkran
+    ? Math.max(insets.bottom, 0)
+    : Math.max(insets.bottom, 8) + 58;
 
   const meyveBaslat = useCallback(() => {
     onGameStarted?.();
     onStartModalClose();
     setPhase('fruit_wheel');
-  }, [onGameStarted, onStartModalClose]);
-
-  const stormBaslat = useCallback(() => {
-    onGameStarted?.();
-    onStartModalClose();
-    setPhase('storm_king');
   }, [onGameStarted, onStartModalClose]);
 
   if (!aktif) return null;
@@ -150,7 +137,7 @@ export function OyunOdaKatmani({
         topGap={topGap}
         bottomGap={bottomGap}
         dibine={tamEkran}
-        kare={phase === 'storm_king'}
+        kare={false}
         oyunModu={oyunModu}
         onGapPress={phase === 'idle' ? onStartModalClose : closeOverlay}
       >
@@ -160,9 +147,6 @@ export function OyunOdaKatmani({
           onBaslatFruitWheel={
             visibleGameCodes.includes('fruit_wheel') ? meyveBaslat : undefined
           }
-          onBaslatStormKing={
-            visibleGameCodes.includes('storm_king') ? stormBaslat : undefined
-          }
           visibleGameCodes={visibleGameCodes}
         />
 
@@ -171,13 +155,6 @@ export function OyunOdaKatmani({
             onClose={closeOverlay}
             onHistory={() => router.push('/oyun/fruit-wheel-gecmis' as never)}
             onRules={() => router.push('/oyun/fruit-wheel-kurallar' as never)}
-          />
-        ) : null}
-        {phase === 'storm_king' ? (
-          <StormKingScreen
-            embedded
-            roomId={roomMeta.roomId}
-            onClose={closeOverlay}
           />
         ) : null}
       </OyunOdaAltKart>

@@ -20,11 +20,6 @@ const SEBEP_ANAHTAR: Record<string, string> = {
   purchase: 'cuzdan.ledgerPurchase',
   coin_purchase: 'cuzdan.ledgerPurchase',
   iap: 'cuzdan.ledgerIap',
-  stripe: 'cuzdan.ledgerStripe',
-  withdraw: 'cuzdan.ledgerWithdraw',
-  withdrawal: 'cuzdan.ledgerWithdraw',
-  withdrawal_hold: 'cuzdan.ledgerWithdrawalHold',
-  withdrawal_refund: 'cuzdan.ledgerWithdrawalRefund',
   agency_commission: 'cuzdan.ledgerAgencyCommission',
   agency_distribution: 'cuzdan.ledgerAgencyDistribution',
   host_earning: 'cuzdan.ledgerHostEarning',
@@ -37,21 +32,11 @@ const SEBEP_ANAHTAR: Record<string, string> = {
   game_entry: 'cuzdan.ledgerGameEntry',
   game_reward: 'cuzdan.ledgerGameReward',
   game_refund: 'cuzdan.ledgerGameRefund',
-  kaskad_bet: 'cuzdan.ledgerKaskadBet',
-  kaskad_win: 'cuzdan.ledgerKaskadWin',
-  kaskad_refund: 'cuzdan.ledgerKaskadRefund',
-  zeus_bet: 'cuzdan.ledgerZeusBet',
-  zeus_win: 'cuzdan.ledgerZeusWin',
-  storm_king_bet: 'cuzdan.ledgerStormKingBet',
-  storm_king_win: 'cuzdan.ledgerStormKingWin',
-  storm_king_refund: 'cuzdan.ledgerStormKingRefund',
-  storm_king_refund_win: 'cuzdan.ledgerStormKingRefundWin',
   live_gift: 'cuzdan.ledgerLiveGift',
   status_gift: 'cuzdan.ledgerStatusGift',
   source_reclass_out: 'cuzdanY.ledgerKaynakAyrimi',
   source_reclass_in: 'cuzdanY.ledgerKaynakAyrimi',
   legacy_source_split: 'cuzdanY.ledgerEskiBakiyeAyrimi',
-  trade_hold_refund: 'cuzdanY.ledgerTakasIadesi',
   fruit_wheel_selection: 'cuzdanY.ledgerMeyveCarkiBahis',
   fruit_wheel_selection_refund: 'cuzdanY.ledgerMeyveCarkiIade',
   fruit_wheel_payout: 'cuzdanY.ledgerMeyveCarkiKazanc',
@@ -62,12 +47,7 @@ const REF_ANAHTAR: Record<string, string> = {
   purchase: 'cuzdan.refPurchase',
   coin_purchase: 'cuzdan.refCoinPurchase',
   iap: 'cuzdan.refIap',
-  stripe: 'cuzdan.refStripe',
-  withdrawal: 'cuzdan.refWithdrawal',
-  withdraw: 'cuzdan.refWithdrawal',
   game_session: 'cuzdan.refGameSession',
-  kaskad_round: 'cuzdan.refKaskadRound',
-  storm_king_spin: 'cuzdan.refStormKing',
   admin: 'cuzdan.refAdmin',
   agency: 'cuzdan.refAgency',
   agency_transfer: 'cuzdan.refAgencyTransfer',
@@ -84,19 +64,16 @@ function sebepKok(reason: string): string {
 export function LedgerSebepEtiketi(reason: string): string {
   const kok = sebepKok(reason);
   const key = SEBEP_ANAHTAR[kok] ?? SEBEP_ANAHTAR[reason];
-  const etiket = key ? (i18n.t(key) as string) : undefined;
-  if (etiket) {
-    const not =
-      reason.includes(':') ? reason.slice(reason.indexOf(':') + 1).trim() : '';
-    return not ? `${etiket} · ${not}` : etiket;
-  }
-  return reason.replace(/_/g, ' ');
+  const not =
+    reason.includes(':') ? reason.slice(reason.indexOf(':') + 1).trim() : '';
+  const etiket = key ? (i18n.t(key) as string) : (i18n.t('cuzdan.ledgerDiger') as string);
+  return not ? `${etiket} · ${not}` : etiket;
 }
 
 export function LedgerRefEtiketi(refType: string | null | undefined): string {
   if (!refType) return i18n.t('cuzdan.tire') as string;
   const key = REF_ANAHTAR[refType];
-  return key ? (i18n.t(key) as string) : refType.replace(/_/g, ' ');
+  return key ? (i18n.t(key) as string) : (i18n.t('cuzdan.ledgerDiger') as string);
 }
 
 export function LedgerBirimEtiketi(currency: string): string {

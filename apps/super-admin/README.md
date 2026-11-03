@@ -62,9 +62,8 @@ doldurulmaz.
 | Katman | Nerede | Davranış |
 | --- | --- | --- |
 | Oturum kapısı | `AdminOturumKapisi` (kök yerleşim) | 118 admin sayfasının tamamını tek yerden korur; oturum yoksa `/giris` |
-| Sekme bağı | `AdminOturumIsareti` (sessionStorage) | Sekme kapanınca oturum düşer; yeniden açılışta zorunlu çıkış |
-| Hareketsizlik | `AdminOturumKapisi` | 20 dk işlem yoksa oturum kapanır |
-| Mutlak süre | `AdminOturumKapisi` | 8 saat sonra her durumda kapanır |
+| Otomatik kapanma | — | **Yok.** Oturum yalnızca "Çıkış" düğmesiyle kapanır |
+| Oturum kalıcılığı | `GuvenliOturumDepolama` | Belirteç kalıcı depoda tutulur; sekme kapanması oturumu düşürmez |
 | Giriş hız sınırı | `AdminGirisKoruma` | 15 dk içinde 5 hatalı deneme → 2 dk kilit, katlanarak 30 dk'ya kadar |
 | Kayıt gizliliği | `AdminKayitGuvenligi` | console çıktısı maskelenir; e-posta/şifre/token hiçbir kayda yazılmaz |
 | Geri tuşu | `AdminGecmisKalkani` | Tarayıcı geri tuşu panelin dışına (önceki siteye) inemez |

@@ -1,26 +1,20 @@
 /**
- * Kişiler kartı — fotoğraf alanı + tema yüzeyinde aksiyon şeridi.
+ * Kişiler kartı — tam boy fotoğraf üzerine bilgi katmanı + aksiyon şeridi.
+ * Tasarım: isim/doğrulanmış, @kullanıcı, ülke, ölçüt satırı, Tanış + arama.
  */
 
 import React, { memo } from 'react';
-import {
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
-  HeaderTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import type { KisilerKesifKarti } from '../tipler';
-import { ulkeBayragi } from '../utils/KisilerYardimcilar';
+import { ulkeBayragi, ulkeGorunenAd } from '../utils/KisilerYardimcilar';
 import { useCeviri } from '../../../i18n/useCeviri';
 import { basHarfler, harfRenkleri } from './KisilerKartYuz';
 
@@ -54,10 +48,15 @@ function KisilerKartIc({
 }: Props) {
   const { t } = useCeviri();
   const bayrak = ulkeBayragi(kart.public_country_code);
+  const ulkeAdi = kart.public_country_code
+    ? ulkeGorunenAd(kart.public_country_code)
+    : null;
   const isim = kart.display_name?.trim() || kart.username || t('ortak.kullanici');
   const kullanici = kart.username ?? '—';
   const sesCoin = coinTamSayi(kart.voice_price);
   const gorCoin = coinTamSayi(kart.video_price);
+  const seviye = coinTamSayi(kart.level);
+  const fiyatVar = showPrices && (sesCoin != null || gorCoin != null);
 
   return (
     <View style={[styles.kart, { width: genislik }]}>
@@ -65,7 +64,7 @@ function KisilerKartIc({
         onPress={() => onProfil(kart.user_id)}
         accessibilityRole="button"
         accessibilityLabel={t('kisilerX.profilA11y', { isim })}
-        style={styles.fotoWrap}
+        style={styles.kok}
       >
         {kart.avatar_url ? (
           <Image
@@ -84,6 +83,13 @@ function KisilerKartIc({
           </LinearGradient>
         )}
 
+        <LinearGradient
+          colors={[...RenkTokenlari.overlayGradient]}
+          locations={[0, 0.52, 1]}
+          style={styles.grad}
+          pointerEvents="none"
+        />
+
         {canli ? (
           <View style={styles.canliRozet} accessibilityLabel={t('kisiler.canliRozet')}>
             <View style={styles.canliNokta} />
@@ -93,61 +99,67 @@ function KisilerKartIc({
           <View style={styles.online} accessibilityLabel={t('kisilerX.cevrimici')} />
         ) : null}
 
-        <LinearGradient
-          colors={[...RenkTokenlari.overlayGradient]}
-          style={styles.grad}
-          pointerEvents="none"
-        />
-
-        <View style={styles.meta} pointerEvents="none">
-          <View style={styles.isimSatir}>
-            <Text style={styles.isim} numberOfLines={1}>
-              {isim}
-            </Text>
-            {kart.is_verified ? (
-              <Ionicons
-                name="checkmark-circle"
-                size={14}
-                color={RenkTokenlari.mint}
-              />
-            ) : null}
-            {bayrak ? <Text style={styles.bayrak}>{bayrak}</Text> : null}
-          </View>
-          <Text style={styles.alt} numberOfLines={1}>
-            @{kullanici}
-            {kart.level != null ? ` · ${t('kisilerX.seviye', { n: kart.level })}` : ''}
-          </Text>
-          {showPrices && (sesCoin != null || gorCoin != null) ? (
-            <View
-              style={styles.fiyatSatir}
-              accessibilityLabel={[
-                sesCoin != null ? t('kisilerX.coinDk', { n: sesCoin }) : null,
-                gorCoin != null ? t('kisilerX.coinDk', { n: gorCoin }) : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            >
-              {sesCoin != null ? (
-                <View style={styles.fiyatParca}>
-                  <Ionicons name="call" size={11} color={RenkTokenlari.mint} />
-                  <Text style={styles.fiyat}>{sesCoin}</Text>
-                </View>
-              ) : null}
-              {gorCoin != null ? (
-                <View style={styles.fiyatParca}>
-                  <Ionicons name="videocam" size={11} color={RenkTokenlari.primarySoft} />
-                  <Text style={styles.fiyat}>{gorCoin}</Text>
-                </View>
-              ) : null}
-              <Text style={styles.fiyatBirim} numberOfLines={1}>
-                {t('kisilerX.coinDkBirim')}
+        <View style={styles.icerik}>
+          <View style={styles.bilgi}>
+            <View style={styles.isimSatir}>
+              <Text style={styles.isim} numberOfLines={1}>
+                {isim}
               </Text>
+              {kart.is_verified ? (
+                <Ionicons
+                  name="checkmark-circle"
+                  size={15}
+                  color={RenkTokenlari.primarySoft}
+                />
+              ) : null}
             </View>
-          ) : null}
+
+            <Text style={styles.kullanici} numberOfLines={1}>
+              @{kullanici}
+            </Text>
+
+            {ulkeAdi ? (
+              <View style={styles.ulkeSatir}>
+                {bayrak ? <Text style={styles.bayrak}>{bayrak}</Text> : null}
+                <Text style={styles.ulke} numberOfLines={1}>
+                  {ulkeAdi}
+                </Text>
+              </View>
+            ) : null}
+
+            {seviye != null || fiyatVar ? (
+              <View
+                style={styles.olcutSatir}
+                accessibilityLabel={[
+                  seviye != null ? t('kisilerX.seviye', { n: seviye }) : null,
+                  sesCoin != null ? t('kisilerX.coinDk', { n: sesCoin }) : null,
+                  gorCoin != null ? t('kisilerX.coinDk', { n: gorCoin }) : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              >
+                {seviye != null ? (
+                  <Olcut icon="person" metin={String(seviye)} />
+                ) : null}
+                {seviye != null && fiyatVar ? <View style={styles.ayrac} /> : null}
+                {fiyatVar && sesCoin != null ? (
+                  <Olcut icon="call" metin={String(sesCoin)} />
+                ) : null}
+                {fiyatVar && sesCoin != null && gorCoin != null ? (
+                  <View style={styles.ayrac} />
+                ) : null}
+                {fiyatVar && gorCoin != null ? (
+                  <Olcut icon="videocam" metin={String(gorCoin)} />
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+
         </View>
       </Pressable>
 
-      <View style={styles.aksiyonlar}>
+      {/* Aksiyonlar profil Pressable'ının dışında: web'de tıklama sızmasın. */}
+      <View style={styles.aksiyonKatman}>
         <Pressable
           onPress={kart.message_enabled ? () => onMesaj(kart.user_id) : undefined}
           disabled={!kart.message_enabled}
@@ -156,27 +168,33 @@ function KisilerKartIc({
           accessibilityState={{ disabled: !kart.message_enabled }}
           hitSlop={BoslukTokenlari.xs}
           style={({ pressed }) => [
-            styles.tanis,
-            { opacity: kart.message_enabled ? (pressed ? 0.7 : 1) : 0.35 },
+            styles.tanisKabuk,
+            { opacity: kart.message_enabled ? (pressed ? 0.72 : 1) : 0.4 },
           ]}
         >
-          <Text style={styles.tanisYazi} numberOfLines={1}>
-            {t('kisiler.tanis')}
-          </Text>
+          <LinearGradient
+            colors={[...RenkTokenlari.gradientPrimary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.tanis}
+          >
+            <Text style={styles.tanisYazi} numberOfLines={1}>
+              {t('kisiler.tanis')}
+            </Text>
+          </LinearGradient>
         </Pressable>
-        <Aksiyon
+
+        <YuvarlakAksiyon
           icon="call"
           label={t('kisilerX.sesliAra')}
           enabled={sesEnabled}
           onPress={() => onSesli(kart.user_id)}
-          tint={RenkTokenlari.mint}
         />
-        <Aksiyon
+        <YuvarlakAksiyon
           icon="videocam"
           label={t('kisilerX.goruntuluAra')}
           enabled={videoEnabled}
           onPress={() => onGoruntulu(kart.user_id)}
-          tint={RenkTokenlari.magenta}
         />
       </View>
     </View>
@@ -190,18 +208,33 @@ function coinTamSayi(deger: number | null): number | null {
   return Math.round(n);
 }
 
-function Aksiyon({
+function Olcut({
+  icon,
+  metin,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  metin: string;
+}) {
+  return (
+    <View style={styles.olcut}>
+      <Ionicons name={icon} size={11} color={RenkTokenlari.primarySoft} />
+      <Text style={styles.olcutYazi} numberOfLines={1}>
+        {metin}
+      </Text>
+    </View>
+  );
+}
+
+function YuvarlakAksiyon({
   icon,
   label,
   enabled,
   onPress,
-  tint,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   enabled: boolean;
   onPress: () => void;
-  tint: string;
 }) {
   return (
     <Pressable
@@ -212,43 +245,70 @@ function Aksiyon({
       accessibilityState={{ disabled: !enabled }}
       hitSlop={BoslukTokenlari.xs}
       style={({ pressed }) => [
-        styles.btn,
-        { opacity: enabled ? (pressed ? 0.7 : 1) : 0.35 },
+        styles.yuvarlakKabuk,
+        { opacity: enabled ? (pressed ? 0.72 : 1) : 0.4 },
       ]}
     >
-      <Ionicons name={icon} size={16} color={tint} />
+      <LinearGradient
+        colors={[...RenkTokenlari.gradientPrimary]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.yuvarlakHalka}
+      >
+        <View style={styles.yuvarlakIc}>
+          <Ionicons name={icon} size={15} color={RenkTokenlari.textOnOverlay} />
+        </View>
+      </LinearGradient>
     </Pressable>
   );
 }
 
 export const KisilerKart = memo(KisilerKartIc);
 
+const YUVARLAK = 34;
+
 const styles = StyleSheet.create({
   kart: {
-    borderRadius: YaricapTokenlari.xl,
+    borderRadius: YaricapTokenlari.lg,
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: RenkTokenlari.border,
     backgroundColor: RenkTokenlari.bgElevated,
   },
-  fotoWrap: {
-    aspectRatio: 0.72,
+  kok: {
+    aspectRatio: 0.68,
+    justifyContent: 'flex-end',
   },
   foto: {
-    ...StyleSheet.absoluteFill,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: '100%',
     height: '100%',
   },
   fotoBos: {
-    ...StyleSheet.absoluteFill,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
   harf: {
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 30,
+    lineHeight: 36,
     fontWeight: '700',
     color: RenkTokenlari.textOnOverlay,
+  },
+  grad: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '72%',
   },
   canliRozet: {
     position: 'absolute',
@@ -287,19 +347,13 @@ const styles = StyleSheet.create({
     borderColor: RenkTokenlari.textOnOverlay,
     zIndex: 2,
   },
-  grad: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '48%',
+  icerik: {
+    padding: BoslukTokenlari.md - 2,
+    // Alt aksiyon katmanı için ayrılan alan (34 buton + 10 boşluk + 8 nefes)
+    paddingBottom: 52,
   },
-  meta: {
-    position: 'absolute',
-    left: BoslukTokenlari.sm,
-    right: BoslukTokenlari.sm,
-    bottom: BoslukTokenlari.sm,
-    gap: 2,
+  bilgi: {
+    gap: 1,
   },
   isimSatir: {
     flexDirection: 'row',
@@ -307,78 +361,106 @@ const styles = StyleSheet.create({
     gap: BoslukTokenlari.xs,
   },
   isim: {
-    ...TipografiTokenlari.caption,
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: '800',
+    letterSpacing: -0.2,
     color: RenkTokenlari.textOnOverlay,
-    fontWeight: '700',
     flexShrink: 1,
   },
-  bayrak: {
-    fontSize: TipografiTokenlari.micro.fontSize,
-  },
-  alt: {
+  kullanici: {
     ...TipografiTokenlari.micro,
+    fontWeight: '500',
+    letterSpacing: 0,
     color: RenkTokenlari.textOnOverlay,
+    opacity: 0.82,
   },
-  fiyatSatir: {
+  ulkeSatir: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'nowrap',
-    gap: 6,
+    gap: 4,
     marginTop: 2,
   },
-  fiyatParca: {
+  bayrak: {
+    fontSize: 12,
+    lineHeight: 15,
+  },
+  ulke: {
+    ...TipografiTokenlari.micro,
+    fontWeight: '600',
+    letterSpacing: 0,
+    color: RenkTokenlari.textOnOverlay,
+    opacity: 0.88,
+    flexShrink: 1,
+  },
+  olcutSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  olcut: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
+    flexShrink: 1,
   },
-  fiyat: {
+  olcutYazi: {
     fontSize: 11,
     lineHeight: 14,
     fontWeight: '700',
     color: RenkTokenlari.textOnOverlay,
   },
-  fiyatBirim: {
-    flexShrink: 1,
-    fontSize: 10,
-    lineHeight: 14,
-    fontWeight: '500',
-    color: RenkTokenlari.textOnOverlay,
-    opacity: 0.9,
+  ayrac: {
+    width: StyleSheet.hairlineWidth,
+    height: 11,
+    backgroundColor: RenkTokenlari.textOnOverlay,
+    opacity: 0.35,
   },
-  aksiyonlar: {
+  aksiyonKatman: {
+    position: 'absolute',
+    left: BoslukTokenlari.md - 2,
+    right: BoslukTokenlari.md - 2,
+    bottom: BoslukTokenlari.md - 2,
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
     alignItems: 'center',
-    paddingVertical: BoslukTokenlari.sm,
-    paddingHorizontal: BoslukTokenlari.sm,
-    gap: BoslukTokenlari.sm,
-    backgroundColor: RenkTokenlari.bgElevated,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: RenkTokenlari.divider,
+    gap: 6,
+  },
+  tanisKabuk: {
+    flex: 1,
+    minWidth: 0,
   },
   tanis: {
-    flex: 1,
-    minHeight: HeaderTokenlari.touchTarget - BoslukTokenlari.sm,
-    paddingHorizontal: BoslukTokenlari.sm,
+    minHeight: 34,
     borderRadius: YaricapTokenlari.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: RenkTokenlari.primary,
+    paddingHorizontal: BoslukTokenlari.sm,
   },
   tanisYazi: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '800',
     color: RenkTokenlari.textOnPrimary,
   },
-  btn: {
-    width: HeaderTokenlari.touchTarget - BoslukTokenlari.sm,
-    height: HeaderTokenlari.touchTarget - BoslukTokenlari.sm,
-    borderRadius: (HeaderTokenlari.touchTarget - BoslukTokenlari.sm) / 2,
+  yuvarlakKabuk: {
+    width: YUVARLAK,
+    height: YUVARLAK,
+  },
+  yuvarlakHalka: {
+    width: YUVARLAK,
+    height: YUVARLAK,
+    borderRadius: YUVARLAK / 2,
+    padding: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: RenkTokenlari.border,
-    backgroundColor: RenkTokenlari.pressFill,
+  },
+  yuvarlakIc: {
+    width: '100%',
+    height: '100%',
+    borderRadius: (YUVARLAK - 2) / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: RenkTokenlari.scrim,
   },
 });

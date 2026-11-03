@@ -12,6 +12,7 @@ import type {
   GameSessionPlayer,
   JoinGameSessionParams,
   LeaderboardEntry,
+  OyunCuzdanOnizleme,
   RpcResult,
   SubmitGameScoreParams,
 } from '../tipler/OyunTipleri';
@@ -24,12 +25,13 @@ export async function createGameSession(
   params: CreateGameSessionParams,
 ): Promise<RpcResult<GameSession>> {
   try {
-    const { data, error } = await oyunRpcRetryIle(() => supabase.rpc('create_game_session', {
+    const { data, error } = await oyunRpcRetryIle(() => supabase.rpc('oyun_oturumu_olustur', {
       p_room_id: params.roomId,
       p_game_code: params.gameCode,
       p_duration_seconds: params.durationSeconds ?? null,
       p_max_players: params.maxPlayers ?? null,
       p_entry_amount: params.entryAmount ?? 0,
+      p_satin_coin_onay: params.satinCoinOnay === true,
     }));
     if (error) {
       GameLogger.error('create_game_session', { hata: error.message });
@@ -64,13 +66,37 @@ export async function aktifOyunOturumuGetir(
   return (data as GameSession | null) ?? null;
 }
 
+/**
+ * Oturuma katılım ücretinin hangi bakiyeden karşılanacağını önizler.
+ * Oyun coinleri yetersizse satın alınan coin onayı gerekip gerekmediğini döner.
+ */
+export async function oyunCuzdanOnizleme(
+  tutar: number,
+): Promise<RpcResult<OyunCuzdanOnizleme>> {
+  try {
+    const { data, error } = await oyunRpcRetryIle(() =>
+      supabase.rpc('cuzdan_oyun_harcama_onizleme', { p_amount: Math.max(0, Math.trunc(tutar)) }),
+    );
+    if (error) {
+      GameLogger.warn('cuzdan_oyun_harcama_onizleme', { hata: error.message });
+      return { ok: false, hata: rpcHata(error) };
+    }
+    return { ok: true, data: data as OyunCuzdanOnizleme };
+  } catch (e) {
+    const hata = oyunHataKullaniciMesaji(e instanceof Error ? e.message : 'onizleme başarısız');
+    GameLogger.warn('cuzdan_oyun_harcama_onizleme', { hata });
+    return { ok: false, hata };
+  }
+}
+
 export async function joinGameSession(
   params: JoinGameSessionParams,
 ): Promise<RpcResult<GameSessionPlayer>> {
   try {
-    const { data, error } = await oyunRpcRetryIle(() => supabase.rpc('join_game_session', {
+    const { data, error } = await oyunRpcRetryIle(() => supabase.rpc('oyun_oturumuna_katil', {
       p_session_id: params.sessionId,
       p_entry_amount: params.entryAmount ?? 0,
+      p_satin_coin_onay: params.satinCoinOnay === true,
     }));
     if (error) {
       GameLogger.error('join_game_session', { hata: error.message });
@@ -156,6 +182,7 @@ export async function finishGameSession(
 export const OyunOturumServisi = {
   createGameSession,
   aktifOyunOturumuGetir,
+  oyunCuzdanOnizleme,
   joinGameSession,
   startGameSession,
   submitGameScore,

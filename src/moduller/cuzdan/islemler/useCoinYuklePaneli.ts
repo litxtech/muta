@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
-import * as Linking from 'expo-linking';
 import { useAuth, useWallet } from '../../../contexts/AuthContext';
 import { useCeviri } from '../../../i18n/useCeviri';
 import { DIL_LOCALE_MAP } from '../../../i18n/diller';
@@ -9,9 +8,11 @@ import { CoinPaketiSatinAl } from '../../iap/islemler/CoinPaketiSatinAl';
 import { IapBaglantisiniIsit } from '../../iap/oturum/IapOturum';
 import { KillSwitchAktifMiSunucu } from '../../ozellik-bayraklari/okuma/KillSwitchAktifMiSunucu';
 import { CoinPaketleriniGetir } from '../okuma/CoinPaketleriniGetir';
-import { COIN_PAKET_FALLBACK } from '../katalog/CoinPaketFallback';
-import { PaketFiyatYazi } from '../katalog/CoinPaketFiyat';
+import { CoinPaketleriAnlikGorunum } from '../katalog/CoinPaketOnbellegi';
+import { PaketFiyatiGosterilebilir, PaketFiyatYazi } from '../katalog/CoinPaketFiyat';
 import {
+  MagazaFiyatAnlikHaritasi,
+  MagazaFiyatDeposunuHazirla,
   MagazaFiyatlariniYukle,
   PaketlereMagazaFiyatiUygula,
 } from '../katalog/MagazaFiyatlariniYukle';
@@ -45,35 +46,61 @@ export function useCoinYuklePaneli() {
   const { upgradeAcik, upgradeKapat, upgradeAc, islemiDene } =
     useMisafirIslemKapisi(isGuest);
   const [acik, setAcik] = useState(false);
-  const [packages, setPackages] = useState<CoinPackage[]>(COIN_PAKET_FALLBACK);
+  const [packages, setPackages] = useState<CoinPackage[]>(
+    CoinPaketleriAnlikGorunum,
+  );
   const [purchaseLocked, setPurchaseLocked] = useState(false);
+  const [yenileniyor, setYenileniyor] = useState(false);
   const magazaYukleniyor = useRef(false);
+  const istekRef = useRef(0);
 
   /** DB paketleri — mağaza fiyatı yok (IAP yalnız panel açıkken) */
-  const paketleriYenile = useCallback(async (magazaFiyat = false) => {
-    void KillSwitchAktifMiSunucu('kill_coin_purchase').then(setPurchaseLocked);
+  const paketleriYenile = useCallback(async (magazaFiyat = true) => {
+    const istek = ++istekRef.current;
+    const gecerli = () => istek === istekRef.current;
+
+    void KillSwitchAktifMiSunucu('kill_coin_purchase').then((v) => {
+      if (gecerli()) setPurchaseLocked(v);
+    });
+
     try {
-      const data = await CoinPaketleriniGetir();
-      if (!data.length) return;
       if (!magazaFiyat) {
-        setPackages(data);
+        const data = await CoinPaketleriniGetir();
+        if (data.length && gecerli()) setPackages(data);
         return;
       }
-      if (magazaYukleniyor.current) {
-        setPackages(data);
-        return;
+
+      // Disk: katalog + son bilinen mağaza fiyatı → panel anında dolu görünür.
+      await Promise.all([
+        MagazaFiyatDeposunuHazirla(),
+        CoinPaketleriniGetir().catch(() => null),
+      ]);
+      if (!gecerli()) return;
+      const diskFiyat = MagazaFiyatAnlikHaritasi();
+      if (diskFiyat) {
+        setPackages((onceki) => PaketlereMagazaFiyatiUygula(onceki, diskFiyat));
       }
+
+      if (magazaYukleniyor.current) return;
       magazaYukleniyor.current = true;
+      setYenileniyor(true);
       try {
-        const fiyatlar = await MagazaFiyatlariniYukle(data);
-        setPackages(PaketlereMagazaFiyatiUygula(data, fiyatlar));
-      } catch {
-        setPackages(data);
+        const data = await CoinPaketleriniGetir();
+        if (!gecerli()) return;
+        const taban =
+          data.length > 0 ? data : CoinPaketleriAnlikGorunum();
+        if (data.length > 0) setPackages(taban);
+        const fiyatlar = await MagazaFiyatlariniYukle(taban);
+        if (!gecerli()) return;
+        if (Object.keys(fiyatlar).length) {
+          setPackages((onceki) => PaketlereMagazaFiyatiUygula(onceki, fiyatlar));
+        }
       } finally {
         magazaYukleniyor.current = false;
+        if (gecerli()) setYenileniyor(false);
       }
     } catch {
-      /* fallback kalır */
+      /* fallback / disk verisi kalır */
     }
   }, []);
 
@@ -103,7 +130,8 @@ export function useCoinYuklePaneli() {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'coin_packages' },
           () => {
-            void paketleriYenile();
+            // Yalnız katalog — canlı/oda ekranında mağaza bağlantısı açılmasın.
+            void paketleriYenile(false);
           },
         )
         .subscribe();
@@ -133,6 +161,10 @@ export function useCoinYuklePaneli() {
           );
           return;
         }
+        if (!PaketFiyatiGosterilebilir(pkg)) {
+          Alert.alert(t('cuzdanX.satinAlma'), t('cuzdanX.fiyatBekle'));
+          return;
+        }
         const toplam = pkg.coins + pkg.bonus_coins;
         const fiyatYazi = PaketFiyatYazi(pkg);
         const kanal =
@@ -140,7 +172,7 @@ export function useCoinYuklePaneli() {
             ? 'App Store'
             : Platform.OS === 'android'
               ? 'Google Play'
-              : t('cuzdanX.kanalStripe');
+              : t('cuzdanX.kanalMagaza');
         const bonus =
           pkg.bonus_coins > 0
             ? t('cuzdanX.bonusSatir', {
@@ -168,18 +200,10 @@ export function useCoinYuklePaneli() {
                     Alert.alert(t('cuzdanX.satinAlma'), sonuc.hata);
                     return;
                   }
-                  if (sonuc.method === 'stripe' && sonuc.url) {
-                    await Linking.openURL(sonuc.url);
-                    return;
-                  }
-                  // Önce sunucu bakiyesini çek — optimistic + eski txn yanıltmasın
-                  try {
-                    await refreshWallet();
-                  } catch {
-                    if (sonuc.coinsAdded != null && sonuc.coinsAdded > 0) {
-                      adjustWallet({ coins: sonuc.coinsAdded });
-                    }
-                  }
+                  // Doğrulama bitti → bakiyeyi beklemeden yansıt, mutabakat arkada.
+                  const eklenecek = sonuc.coinsAdded ?? 0;
+                  if (eklenecek > 0) adjustWallet({ coins: eklenecek });
+                  void refreshWallet();
                   Alert.alert(
                     t('ortak.basarili'),
                     sonuc.coinsAdded != null
@@ -209,6 +233,7 @@ export function useCoinYuklePaneli() {
     ac,
     kapat,
     packages,
+    yenileniyor,
     purchaseLocked,
     satinAl,
     paketleriYenile,

@@ -3131,6 +3131,7 @@ export default function RoomScreen() {
         onClose={coinYukle.kapat}
         upgradeAcik={coinYukle.upgradeAcik}
         upgradeKapat={coinYukle.upgradeKapat}
+        yenileniyor={coinYukle.yenileniyor}
         onPaketleriYenile={coinYukle.paketleriYenile}
       />
 

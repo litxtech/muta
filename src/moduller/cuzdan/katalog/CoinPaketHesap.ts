@@ -2,6 +2,8 @@
  * Coin paket kataloğu — Store Product ID'leri sabittir (App Store / Play).
  * Coin miktarı / bonus / görünürlük admin + Supabase'ten gelir.
  * Gerçek tahsilat fiyatı StoreKit / Play Billing'den okunur (price_try referans).
+ *
+ * 8 kademe: taban coin (orantılı) + kademe bonusu. Kartta toplam gösterilir.
  */
 
 import i18n from '../../../i18n';
@@ -37,12 +39,13 @@ type CoinPaketKademeIc = {
   /** Referans liste (mağaza fiyatı UI'da override eder) */
   priceTry: number;
   priceUsd: number;
+  /** Orantılı taban coin */
   coins: number;
+  /** Kademe bonusu — kartta taban + bonus = toplam gösterilir */
   bonusCoins: number;
-  badgeKey: 'coinPaket.badgePopuler' | null;
+  badgeKey: 'coinPaket.badgePopuler' | 'coinPaket.badgeEnAvantajli' | null;
   badgeLiteral: string | null;
   sortOrder: number;
-  /** Pack 5–8 varsayılan kapalı; admin açar */
   isActiveDefault: boolean;
 };
 
@@ -59,8 +62,18 @@ export type CoinPaketKademe = {
 };
 
 /**
- * Pack 1–4: talimat coin miktarları.
- * Pack 5–8: coin admin panelinden — burada tahmin yok (0).
+ * 8 kademeli tarife.
+ * Oran: 99,99 ₺ = 320 coin → 1 ₺ ≈ 3,20 coin.
+ * Büyük paketlerde taban orantılıdır; üstüne kademe bonusu eklenir.
+ *
+ *  1 Başlangıç  320                 (bonus yok)
+ *  2 Popüler    1.600 + 100   = 1.700   (+%6)
+ *  3 Prestij    3.200 + 300   = 3.500   (+%9)
+ *  4 Max       16.000 + 2.000 = 18.000  (+%12,5)
+ *  5 Plus      25.600 + 4.400 = 30.000  (+%17)
+ *  6 Elite     38.400 + 7.600 = 46.000  (+%20)
+ *  7 Premium   48.000 + 12.000 = 60.000 (+%25)
+ *  8 Ultra    160.000 + 60.000 = 220.000 (+%37,5)
  */
 const COIN_PAKET_KADEMELERI_IC: readonly CoinPaketKademeIc[] = [
   {
@@ -68,7 +81,7 @@ const COIN_PAKET_KADEMELERI_IC: readonly CoinPaketKademeIc[] = [
     titleKey: 'coinPaket.pack1',
     priceTry: 99.99,
     priceUsd: 2.99,
-    coins: 400,
+    coins: 320,
     bonusCoins: 0,
     badgeKey: null,
     badgeLiteral: null,
@@ -78,10 +91,10 @@ const COIN_PAKET_KADEMELERI_IC: readonly CoinPaketKademeIc[] = [
   {
     sku: 'tamuso_coin_pack_2',
     titleKey: 'coinPaket.pack2',
-    priceTry: 489.99,
+    priceTry: 499.99,
     priceUsd: 14.99,
-    coins: 1500,
-    bonusCoins: 0,
+    coins: 1600,
+    bonusCoins: 100,
     badgeKey: 'coinPaket.badgePopuler',
     badgeLiteral: null,
     sortOrder: 2,
@@ -92,8 +105,8 @@ const COIN_PAKET_KADEMELERI_IC: readonly CoinPaketKademeIc[] = [
     titleKey: 'coinPaket.pack3',
     priceTry: 999.99,
     priceUsd: 29.99,
-    coins: 2400,
-    bonusCoins: 0,
+    coins: 3200,
+    bonusCoins: 300,
     badgeKey: null,
     badgeLiteral: null,
     sortOrder: 3,
@@ -104,60 +117,60 @@ const COIN_PAKET_KADEMELERI_IC: readonly CoinPaketKademeIc[] = [
     titleKey: 'coinPaket.pack4',
     priceTry: 4999.99,
     priceUsd: 149.99,
-    coins: 5200,
-    bonusCoins: 0,
+    coins: 16000,
+    bonusCoins: 2000,
     badgeKey: null,
-    badgeLiteral: 'MAX',
+    badgeLiteral: null,
     sortOrder: 4,
     isActiveDefault: true,
   },
   {
     sku: 'tamuso_coin_pack_5',
     titleKey: 'coinPaket.pack5',
-    priceTry: 0,
-    priceUsd: 0,
-    coins: 0,
-    bonusCoins: 0,
+    priceTry: 7999.99,
+    priceUsd: 239.99,
+    coins: 25600,
+    bonusCoins: 4400,
     badgeKey: null,
     badgeLiteral: null,
     sortOrder: 5,
-    isActiveDefault: false,
+    isActiveDefault: true,
   },
   {
     sku: 'tamuso_coin_pack_6',
     titleKey: 'coinPaket.pack6',
-    priceTry: 0,
-    priceUsd: 0,
-    coins: 0,
-    bonusCoins: 0,
+    priceTry: 11999,
+    priceUsd: 359.99,
+    coins: 38400,
+    bonusCoins: 7600,
     badgeKey: null,
     badgeLiteral: null,
     sortOrder: 6,
-    isActiveDefault: false,
+    isActiveDefault: true,
   },
   {
     sku: 'tamuso_coin_pack_7',
     titleKey: 'coinPaket.pack7',
-    priceTry: 0,
-    priceUsd: 0,
-    coins: 0,
-    bonusCoins: 0,
+    priceTry: 14999.99,
+    priceUsd: 449.99,
+    coins: 48000,
+    bonusCoins: 12000,
     badgeKey: null,
     badgeLiteral: null,
     sortOrder: 7,
-    isActiveDefault: false,
+    isActiveDefault: true,
   },
   {
     sku: 'tamuso_coin_pack_8',
     titleKey: 'coinPaket.pack8',
-    priceTry: 0,
-    priceUsd: 0,
-    coins: 0,
-    bonusCoins: 0,
-    badgeKey: null,
+    priceTry: 49999.99,
+    priceUsd: 1499.99,
+    coins: 160000,
+    bonusCoins: 60000,
+    badgeKey: 'coinPaket.badgeEnAvantajli',
     badgeLiteral: null,
     sortOrder: 8,
-    isActiveDefault: false,
+    isActiveDefault: true,
   },
 ] as const;
 

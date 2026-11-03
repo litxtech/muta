@@ -15,6 +15,8 @@ export function fruitWheelOlay(
     | 'rules_open'
     | 'game_exit'
     | 'recover_round'
+    | 'purchased_consent_required'
+    | 'purchased_consent_given'
     | 'game_error',
   props?: Record<string, unknown>,
 ): void {

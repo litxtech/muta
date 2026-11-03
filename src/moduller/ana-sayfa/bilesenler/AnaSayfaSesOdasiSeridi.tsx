@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,9 +32,9 @@ type Props = {
   onTumunuGor?: () => void;
 };
 
-const KART_W = 156;
+const MAKS_ICERIK_W = 480;
 
-/** Yatay ses odası carousel — platform ışıltı + üye avatar önizleme */
+/** Yatay ses odası carousel — neon çerçeve + üye avatar önizleme */
 export function AnaSayfaSesOdasiSeridi({
   ogeler,
   onPress,
@@ -42,6 +43,12 @@ export function AnaSayfaSesOdasiSeridi({
   useTemayaAboneOl();
   const { t } = useCeviri();
   const acik = temaAcikMi(kullaniciTemaKodunuAl());
+  const { width: ekranW } = useWindowDimensions();
+
+  const icerikW = Math.min(ekranW, MAKS_ICERIK_W) - BoslukTokenlari.lg * 2;
+  // Tasarım: iki kart tam, üçüncü kart sağdan görünür (peek)
+  const kartW = Math.max(148, Math.round(icerikW * 0.43));
+  const kartH = Math.round(kartW * 0.98);
 
   if (ogeler.length === 0) {
     return (
@@ -96,54 +103,28 @@ export function AnaSayfaSesOdasiSeridi({
               accessibilityRole="button"
               accessibilityLabel={t('anaSayfa.sesA11y', { baslik: oge.title })}
             >
-              <View
-                style={[
-                  styles.isiltiSarici,
-                  {
-                    borderColor: `${RenkTokenlari.primary}55`,
-                  },
-                ]}
+              <LinearGradient
+                colors={[...RenkTokenlari.gradientPrimary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.cerceve, { width: kartW, minHeight: kartH }]}
               >
-                <LinearGradient
-                  colors={
-                    acik
-                      ? (['#FFFFFF', '#F8EEF5'] as const)
-                      : ([...RenkTokenlari.gradientCard] as [string, string])
-                  }
-                  style={[
-                    styles.kart,
-                    {
-                      borderColor: acik
-                        ? `${RenkTokenlari.primary}40`
-                        : `${RenkTokenlari.primary}55`,
-                    },
-                  ]}
-                >
-                  <View style={styles.ust}>
-                    {oge.host?.level && oge.host.level > 1 ? (
-                      <View style={styles.crown}>
-                        <Text style={styles.crownYazi}>Lv{oge.host.level}</Text>
-                      </View>
-                    ) : (
-                      <View />
-                    )}
-                    {oge.listener_count > 0 ? (
-                      <View style={styles.katilimci}>
-                        <Ionicons
-                          name="people"
-                          size={11}
-                          color={RenkTokenlari.primarySoft}
-                        />
-                        <Text style={styles.katilimciYazi}>
-                          {SayiKisaBicim(oge.listener_count)}
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
+                <View style={styles.kart}>
+                  <LinearGradient
+                    colors={
+                      acik
+                        ? (['#FFFFFF', '#F8EEF5'] as const)
+                        : ([...RenkTokenlari.gradientCard] as [string, string])
+                    }
+                    style={StyleSheet.absoluteFill}
+                  />
 
                   <View style={styles.avatarBlok}>
                     <LinearGradient
-                      colors={[RenkTokenlari.primary, RenkTokenlari.magenta]}
+                      colors={[
+                        RenkTokenlari.primary,
+                        RenkTokenlari.magenta,
+                      ]}
                       style={styles.avatarRing}
                     >
                       <View
@@ -169,38 +150,48 @@ export function AnaSayfaSesOdasiSeridi({
                     </LinearGradient>
                   </View>
 
-                  <Text style={styles.baslik} numberOfLines={2}>
+                  <Text style={styles.baslik} numberOfLines={1}>
                     {oge.title}
                   </Text>
                   <Text style={styles.host} numberOfLines={1}>
-                    {hostAd}
+                    {hostAd.toLocaleUpperCase('tr-TR')}
                   </Text>
-                  <View style={styles.islem}>
-                    <Ionicons name="gift" size={11} color="#F5E6A8" />
-                    <Text style={styles.islemYazi}>
-                      {SayiKisaBicim(oge.hediye_islem ?? 0)}
-                    </Text>
-                    <Ionicons name="game-controller" size={11} color="#C9B6FF" />
-                    <Text style={styles.islemYazi}>
-                      {SayiKisaBicim(oge.oyun_islem ?? 0)}
-                    </Text>
+
+                  <View style={styles.meta}>
+                    <View style={styles.metaOge}>
+                      <Ionicons
+                        name="gift"
+                        size={11}
+                        color={RenkTokenlari.primarySoft}
+                      />
+                      <Text style={styles.metaYazi}>
+                        {SayiKisaBicim(oge.hediye_islem ?? 0)}
+                      </Text>
+                    </View>
+                    {oge.listener_count > 0 ? (
+                      <View style={styles.metaOge}>
+                        <AnaSayfaSesCubuklari
+                          yukseklik={11}
+                          renk={RenkTokenlari.primarySoft}
+                        />
+                        <Text style={styles.metaYazi}>
+                          {SayiKisaBicim(oge.listener_count)}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
 
                   <View style={styles.altSatir}>
                     <OdaUyeAvatarYigini
                       avatarlar={uyeAvatarlari}
-                      max={6}
-                      boyut={18}
-                      overlap={6}
-                      borderColor={RenkTokenlari.bgCard}
-                    />
-                    <AnaSayfaSesCubuklari
-                      yukseklik={14}
-                      renk={RenkTokenlari.primarySoft}
+                      max={5}
+                      boyut={20}
+                      overlap={7}
+                      borderColor={acik ? '#FFFFFF' : RenkTokenlari.bgCard}
                     />
                   </View>
-                </LinearGradient>
-              </View>
+                </View>
+              </LinearGradient>
             </Pressable>
           );
         })}
@@ -216,58 +207,34 @@ const styles = StyleSheet.create({
     gap: BoslukTokenlari.md,
     paddingVertical: 4,
   },
-  kartPress: { width: KART_W },
+  kartPress: {},
   pressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
-  isiltiSarici: {
-    borderRadius: YaricapTokenlari.lg + 1,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
+  cerceve: {
+    borderRadius: YaricapTokenlari.lg,
+    padding: 1.5,
+    shadowColor: RenkTokenlari.primary,
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   kart: {
-    width: KART_W,
-    borderRadius: YaricapTokenlari.lg,
+    flex: 1,
+    borderRadius: YaricapTokenlari.lg - 1.5,
+    overflow: 'hidden',
     padding: BoslukTokenlari.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: 6,
-    minHeight: 168,
-  },
-  ust: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    minHeight: 20,
-  },
-  crown: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: YaricapTokenlari.sm,
-    backgroundColor: 'rgba(240,180,41,0.16)',
-  },
-  crownYazi: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.accent,
-    fontSize: 9,
-    fontWeight: '800',
-  },
-  katilimci: {
-    flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
   },
-  katilimciYazi: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
-    fontWeight: '700',
-    fontSize: 11,
-  },
   avatarBlok: {
     alignItems: 'center',
-    marginVertical: 4,
+    marginTop: 2,
+    marginBottom: 2,
   },
   avatarRing: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     padding: 2.5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -275,7 +242,7 @@ const styles = StyleSheet.create({
   avatarIc: {
     width: '100%',
     height: '100%',
-    borderRadius: 30,
+    borderRadius: 36,
     overflow: 'hidden',
   },
   avatar: {
@@ -287,40 +254,49 @@ const styles = StyleSheet.create({
   avatarHarf: {
     ...TipografiTokenlari.h2,
     color: RenkTokenlari.textOnPrimary,
-    fontSize: 20,
+    fontSize: 22,
   },
   baslik: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.text,
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 14,
     textAlign: 'center',
-    lineHeight: 17,
-  },
-  islem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  islemYazi: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.text,
-    fontWeight: '700',
-    fontSize: 11,
+    lineHeight: 18,
+    marginTop: 2,
   },
   host: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textMuted,
     textAlign: 'center',
-    fontSize: 11,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  meta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 2,
+  },
+  metaOge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.text,
+    fontWeight: '700',
+    fontSize: 10.5,
   },
   altSatir: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    marginTop: 4,
-    gap: 6,
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    marginTop: 'auto',
+    paddingTop: 6,
   },
   bos: {
     marginHorizontal: BoslukTokenlari.lg,

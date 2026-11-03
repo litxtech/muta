@@ -9,8 +9,12 @@ export type CoinSatinAlSonuc =
   | { ok: false; hata: string; kod?: 'kill_switch' | 'rpc' | 'edge' };
 
 /**
- * Edge URL varsa (`EXPO_PUBLIC_IAP_VERIFY_URL`) verify function.
- * Yoksa gelistirme RPC (manual).
+ * Sunucu onayı.
+ * - `manual` (yalnızca __DEV__ fallback): Edge'e GİTMEZ — mağaza makbuzu yok.
+ *   Doğrudan `coin_satin_al_onayla` RPC'si kullanılır (guest/kill-switch kontrolleri RPC'de).
+ *   Önceden Edge'e `store: "manual"` gönderiliyordu; Edge ürünü google_product_id
+ *   ile aradığı için her denemede 404 "Package not found" dönüyordu.
+ * - Apple/Google: makbuz Edge Function'da doğrulanır.
  */
 export async function CoinSatinAlOnayla(input: {
   packageId: string;
@@ -32,9 +36,9 @@ export async function CoinSatinAlOnayla(input: {
     input.idempotencyKey ?? FinansIdempotencyAnahtariOlustur('coin_purchase');
   const store = input.store ?? 'manual';
 
-  if (process.env.EXPO_PUBLIC_IAP_VERIFY_URL) {
+  if (store !== 'manual' && process.env.EXPO_PUBLIC_IAP_VERIFY_URL) {
     const edge = await IapReceiptEdgeIleDogrula({
-      store: store === 'manual' ? 'apple' : store,
+      store,
       productId: input.packageId,
       packageId: input.packageId,
       transactionId: input.providerTxId ?? `${store}_${key}`,
@@ -57,7 +61,7 @@ export async function CoinSatinAlOnayla(input: {
     p_provider_tx_id: input.providerTxId ?? `manual_${key}`,
     p_store: store,
     p_amount_usd: input.amountUsd ?? null,
-    p_receipt: { source: 'client_dev', note: 'Replace with Edge Function verify' },
+    p_receipt: { source: 'client_dev', note: 'Development manual credit' },
   });
 
   if (error) return { ok: false, hata: error.message, kod: 'rpc' };

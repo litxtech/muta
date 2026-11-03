@@ -1,0 +1,20 @@
+profilDuzenle.kullaniciAdiPlaceholder | kullanici_adi | username
+profilDuzenle.telefonPlaceholder | 05xx xxx xx xx | 05xx xxx xx xx
+profilDuzenle.epostaAdresi | E-posta adresi | Email address
+profilDuzenle.ulkeTurkiye | Türkiye | Turkey
+kyc.ulkeVarsayilan | Türkiye | Turkey
+kyc.kamera | Kamera | Camera
+kyc.placeholderEposta | E-posta | Email
+kyc.canlilikKontrolu | Canlılık kontrolü | Liveness check
+verify.baslik | Tamuso Verify | Tamuso Verify
+verify.belgeIdCard | Kimlik Kartı | ID Card
+verify.dogumPlaceholder | YYYY-AA-GG | YYYY-MM-DD
+verify.flas | Flaş | Flash
+satinAlma.durum | Durum | Status
+cuzdanX.bonus | bonus | bonus
+cuzdanX.giris | Giriş | In
+cuzdanX.cikis | Çıkış | Out
+cuzdanX.kanalMagaza | Mağaza | Store
+cuzdanX.taban | {{adet}} taban | {{adet}} base
+cuzdanX.bonusPill | +{{adet}} bonus | +{{adet}} bonus
+cuzdanXExtra.pdfExcel | PDF / Excel | PDF / Excel

@@ -142,7 +142,7 @@ export function BiyometriKilitKapisi() {
 
 const styles = StyleSheet.create({
   perde: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 200,
     elevation: 200,
     backgroundColor: RenkTokenlari.bg,

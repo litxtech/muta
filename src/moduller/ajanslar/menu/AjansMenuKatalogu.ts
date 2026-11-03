@@ -7,7 +7,6 @@ export type AjansMenuGrupId =
   | 'genel'
   | 'operasyon'
   | 'icerik'
-  | 'satis'
   | 'finans'
   | 'yonetim';
 
@@ -34,14 +33,8 @@ const GRUP_MAP: Record<string, AjansMenuGrupId> = {
   program: 'icerik',
   etkinlikler: 'icerik',
   duyurular: 'icerik',
-  'satis-linkleri': 'satis',
-  'satis-takibi': 'satis',
-  'en-cok-alicilar': 'satis',
-  dekontlar: 'satis',
-  faturalar: 'satis',
   islemler: 'finans',
   cuzdan: 'finans',
-  paketler: 'finans',
   destek: 'yonetim',
   guvenlik: 'yonetim',
   dogrulama: 'yonetim',
@@ -52,7 +45,6 @@ export const AJANS_MENU_GRUP_SIRA: AjansMenuGrupId[] = [
   'genel',
   'operasyon',
   'icerik',
-  'satis',
   'finans',
   'yonetim',
 ];
@@ -61,7 +53,6 @@ export const AJANS_MENU_GRUP_BASLIK: Record<AjansMenuGrupId, CeviriAnahtari> = {
   genel: 'ajans.menuGrupGenel',
   operasyon: 'ajans.menuGrupOperasyon',
   icerik: 'ajans.menuGrupIcerik',
-  satis: 'ajans.menuGrupSatis',
   finans: 'ajans.menuGrupFinans',
   yonetim: 'ajans.menuGrupYonetim',
 };

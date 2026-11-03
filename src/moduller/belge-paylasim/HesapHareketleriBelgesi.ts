@@ -16,18 +16,8 @@ import {
   type OyunGecmisiKaydi,
 } from '../oyunlar/ortak/servisler/OyunGecmisiniGetir';
 import type { OyunOyuncuIstatistik } from '../oyunlar/ortak/servisler/OyunIstatistikServisi';
-import { CEKIM_ODEME_BILGISI } from '../cuzdan/cekim/CekimOdemeBilgisi';
 import i18n from '../../i18n';
 import { DilNormalizeEt, DIL_LOCALE_MAP } from '../../i18n/diller';
-
-export type HesapCekimSatiri = {
-  id: string;
-  diamonds: number;
-  status: string;
-  method: string;
-  created_at: string;
-  durumEtiket: string;
-};
 
 export type HesapHareketleriBelgeGirdi = {
   sahipAdi?: string | null;
@@ -36,7 +26,6 @@ export type HesapHareketleriBelgeGirdi = {
   diamonds?: number;
   ledger: LedgerSatiri[];
   hediyeler: HediyeGecmisiKaydi[];
-  cekimler: HesapCekimSatiri[];
   oyunlar?: OyunGecmisiKaydi[];
   oyunOzet?: OyunOyuncuIstatistik | null;
 };
@@ -108,19 +97,12 @@ export function HesapHareketExcelSatirlari(
 ): HesapHareketExcelSatiri[] {
   const satirlar: (HesapHareketExcelSatiri & { _ts: number })[] = [];
   const hediyeVar = girdi.hediyeler.length > 0;
-  const cekimVar = girdi.cekimler.length > 0;
 
   for (const r of girdi.ledger) {
     const kok = r.reason.split(':')[0] ?? r.reason;
     if (
       hediyeVar &&
       (kok.startsWith('gift_') || kok === 'gift_sent' || kok === 'gift_received')
-    ) {
-      continue;
-    }
-    if (
-      cekimVar &&
-      (kok.startsWith('withdraw') || kok === 'withdrawal_hold')
     ) {
       continue;
     }
@@ -174,24 +156,6 @@ export function HesapHareketExcelSatirlari(
         ? i18n.t('belge.gonderildi')
         : i18n.t('belge.alindi'),
       islemNo: h.id.slice(0, 13).toUpperCase(),
-    });
-  }
-
-  for (const c of girdi.cekimler) {
-    const t = tarihParcala(c.created_at);
-    satirlar.push({
-      _ts: new Date(c.created_at).getTime(),
-      tarih: t.tarih,
-      saat: t.saat,
-      islem: i18n.t('belge.elmasCekimTalebi'),
-      aciklama: i18n.t('belge.bankaYontem', { method: c.method }),
-      karsiTaraf: '—',
-      yer: '—',
-      tutar: `−${sayi(c.diamonds)}`,
-      birim: i18n.t('belge.elmasBirim'),
-      bakiyeSonrasi: '—',
-      durum: c.durumEtiket,
-      islemNo: c.id.slice(0, 13).toUpperCase(),
     });
   }
 
@@ -283,23 +247,14 @@ export function HesapHareketleriBelgesiOlustur(
       r.delta > 0 &&
       (r.reason.includes('purchase') ||
         r.reason.includes('iap') ||
-        r.reason.includes('stripe') ||
         r.reason.includes('topup') ||
         r.reason.includes('bonus')),
   ).length;
   const oyunKazanc = girdi.ledger.filter(
-    (r) =>
-      r.delta > 0 &&
-      (r.reason.startsWith('game_reward') ||
-        r.reason.startsWith('kaskad_win') ||
-        r.reason.startsWith('zeus_win')),
+    (r) => r.delta > 0 && r.reason.startsWith('game_reward'),
   ).length;
   const oyunKayip = girdi.ledger.filter(
-    (r) =>
-      r.delta < 0 &&
-      (r.reason.startsWith('game_entry') ||
-        r.reason.startsWith('kaskad_bet') ||
-        r.reason.startsWith('zeus_bet')),
+    (r) => r.delta < 0 && r.reason.startsWith('game_entry'),
   ).length;
 
   const ozetSatirlar: BelgeSatiri[] = [
@@ -394,14 +349,6 @@ export function HesapHareketleriBelgesiOlustur(
     };
   });
 
-  const cekimBolumu: BelgeSatiri[] = girdi.cekimler.slice(0, 40).map((c) => {
-    const t = tarihParcala(c.created_at);
-    return {
-      etiket: `${t.tam} · ${i18n.t('belge.elmas', { n: sayi(c.diamonds) })}`,
-      deger: `${c.durumEtiket} · ${c.method}`,
-    };
-  });
-
   return {
     baslik: i18n.t('belge.hesapHareketleri'),
     altBaslik: `${ad}${kod ? ` · ${kod}` : ''} · Tamuso`,
@@ -430,14 +377,7 @@ export function HesapHareketleriBelgesiOlustur(
           ? oyunBolumu
           : [{ etiket: i18n.t('belge.durum'), deger: i18n.t('belge.henuzOyunYok') }],
       },
-      {
-        baslik: i18n.t('belge.cekimTalepleri'),
-        ozet: i18n.t('belge.cekimTalepOzet', { n: girdi.cekimler.length }),
-        satirlar: cekimBolumu.length
-          ? cekimBolumu
-          : [{ etiket: i18n.t('belge.durum'), deger: i18n.t('belge.henuzCekimYok') }],
-      },
     ],
-    not: i18n.t('belge.belgeNot', { odeme: CEKIM_ODEME_BILGISI() }),
+    not: i18n.t('belge.belgeNot'),
   };
 }

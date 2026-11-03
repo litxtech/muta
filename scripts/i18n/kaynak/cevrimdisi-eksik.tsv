@@ -1,0 +1,55 @@
+cevrimdisi.cevrimdisi	Çevrimdışısın	You're offline
+cevrimdisi.baglandi	Bağlantı yeniden sağlandı	Back online
+cevrimdisi.senkron	Senkronizasyon yapılıyor…	Syncing…
+cevrimdisi.guncel	Tamuso güncel	Tamuso is up to date
+cevrimdisi.senkronHata	Bazı işlemler gönderilemedi	Some actions could not be sent
+cevrimdisi.veriBaslik	Veri ve Çevrimdışı Kullanım	Data and offline use
+cevrimdisi.veriAlt	Önbellek · bekleyen işlemler	Cache · pending actions
+cevrimdisi.onbellek	Önbellek	Cache
+cevrimdisi.medya	Medya	Media
+cevrimdisi.feed	Feed	Feed
+cevrimdisi.story	Story	Stories
+cevrimdisi.mesajlar	Mesajlar	Messages
+cevrimdisi.taslaklar	Taslaklar	Drafts
+cevrimdisi.bekleyen	Bekleyen işlemler	Pending actions
+cevrimdisi.sonSenkron	Son senkronizasyon	Last sync
+cevrimdisi.hic	Henüz yok	Not yet
+cevrimdisi.temizle	Önbelleği Temizle	Clear cache
+cevrimdisi.temizleFeed	Feed önbelleği	Feed cache
+cevrimdisi.temizleStory	Story önbelleği	Story cache
+cevrimdisi.temizleKesfet	Keşfet önbelleği	Explore cache
+cevrimdisi.temizleFoto	Fotoğraf önbelleği	Photo cache
+cevrimdisi.temizleVideo	Video önbelleği	Video cache
+cevrimdisi.taslakKorunur	Taslaklar ve manuel kayıtlar silinmez.	Drafts and saved offline items are kept.
+cevrimdisi.mobilMedya	Mobil veride medya önbellekleme	Cache media on mobile data
+cevrimdisi.videoOnbellek	Video önbellekleme	Video cache
+cevrimdisi.wifi	Yalnızca Wi-Fi	Wi-Fi only
+cevrimdisi.wifiMobil	Wi-Fi + mobil veri	Wi-Fi + mobile data
+cevrimdisi.otomatikPaylas	Taslakları otomatik paylaş	Publish drafts automatically
+cevrimdisi.otomatikPaylasAlt	Kapalıyken paylaşım için onay istenir.	When off, publishing waits for your confirmation.
+cevrimdisi.simdiPaylas	Şimdi paylaş	Share now
+cevrimdisi.taslakKaydedildi	Taslak olarak kaydedildi	Saved as a draft
+cevrimdisi.paylasimaHazir	Paylaşmaya hazır	Ready to share
+cevrimdisi.gonderilecek	Gönderilecek	Waiting to send
+cevrimdisi.bekliyor	Bekliyor	Waiting
+cevrimdisi.yorumGonderilemedi	Yorum gönderilemedi.	Comment could not be sent.
+cevrimdisi.odaBaglanti	Bu oda için bağlantı gerekiyor	This room needs a connection
+cevrimdisi.sonGuncelleme	Son güncelleme: {{zaman}}	Last update: {{zaman}}
+cevrimdisi.saatOnce	{{n}} saat önce	{{n}} hours ago
+cevrimdisi.dkOnce	{{n}} dk önce	{{n}} min ago
+cevrimdisi.azOnce	Az önce	Just now
+cevrimdisi.gunOnce	{{n}} gün önce	{{n}} days ago
+cevrimdisi.bugun	Bugün {{saat}}	Today {{saat}}
+cevrimdisi.catismaSilindi	İçerik sunucuda silinmiş.	This content was deleted on the server.
+cevrimdisi.catismaEngel	Bu hesapla etkileşim kapalı.	You can't interact with this account.
+cevrimdisi.catismaSure	İçeriğin süresi dolmuş.	This content has expired.
+cevrimdisi.catismaHesap	Hesap kullanılamıyor.	This account is unavailable.
+cevrimdisi.catismaSohbet	Sohbet artık yok.	This conversation is gone.
+cevrimdisi.videoBuyuk	Video çevrimdışı kuyruk için çok büyük. Taslak olarak saklandı.	This video is too large for the offline queue. It was saved as a draft.
+cevrimdisi.kesfetEski	Çevrimdışı içerik	Offline content
+cevrimdisi.manuel	Manuel kayıtlar	Saved offline
+cevrimdisi.sonGorulen	Son görülen	Last seen
+cevrimdisi.kaydetCevrimdisi	Çevrimdışı kaydet	Save offline
+cevrimdisi.kaydedildi	Çevrimdışı kaydedildi	Saved offline
+cevrimdisi.zayifAg	Bağlantı yavaş, kayıtlı içerik	Slow connection, showing saved content
+cevrimdisi.diskYetersiz	Yeterli boş alan yok	Not enough free space

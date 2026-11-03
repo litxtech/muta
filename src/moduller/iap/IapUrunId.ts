@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import type { CoinPackage } from '../../../types/models';
+import type { CoinPackage } from '../../types/models';
 
 /**
  * Store product id — Magaza fiyat + satın alma aynı olmalı.

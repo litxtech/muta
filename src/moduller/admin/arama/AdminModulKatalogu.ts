@@ -11,9 +11,20 @@ export type AdminModul = {
   bolum: string;
   /** Menu görünürlüğü için view permission */
   permissionKey: string;
+  /** permissionKey yoksa da görünür kılan alternatif izinler */
+  ekPermissionler?: string[];
   /** Arama için ek anahtar kelimeler */
   anahtarlar?: string[];
 };
+
+/** Menüde gösterilsin mi: ana izin veya alternatif izinlerden biri yeterli. */
+export function AdminModuluGorunurMu(
+  modul: Pick<AdminModul, 'permissionKey' | 'ekPermissionler'>,
+  has: (key: string) => boolean,
+): boolean {
+  if (has(modul.permissionKey)) return true;
+  return (modul.ekPermissionler ?? []).some((k) => has(k));
+}
 
 /** Admin hub + arama katalogu (tek kaynak) */
 /** iOS paketinde ekranı bulunmayan admin modülleri. */
@@ -82,13 +93,42 @@ export const ADMIN_MODULLER: AdminModul[] = ([
   },
   {
     icon: 'id-card-outline',
-    label: 'Kimlik onayı',
-    alt: 'KYC · belge · canlılık · onay/red',
+    label: 'Kimlik onayı (eski)',
+    alt: 'Eski KYC akışı · belge · onay/red',
     href: '/admin/kyc',
     tint: RenkTokenlari.mint,
     bolum: 'İnsanlar',
     permissionKey: 'kyc.view',
-    anahtarlar: ['kyc', 'kimlik', 'belge', 'doğrulama'],
+    anahtarlar: ['kyc', 'eski kimlik akışı'],
+  },
+  {
+    icon: 'shield-checkmark',
+    label: 'Kimlik Doğrulama Merkezi',
+    alt: 'Tamuso Verify · kuyruk · selfie · itiraz · denetim',
+    href: '/admin/kimlik-dogrulama',
+    tint: RenkTokenlari.mint,
+    bolum: 'Güvenlik',
+    permissionKey: 'identity.view',
+    ekPermissionler: ['kyc.view'],
+    anahtarlar: ['verify', 'tamuso verify', 'kimlik doğrulama', 'selfie', 'itiraz', 'belge', 'kyc'],
+  },
+  {
+    icon: 'checkmark-done-circle-outline',
+    label: 'Onaylanan Kullanıcılar',
+    alt: 'Onaylı hesaplar · tüm bilgiler · yeni başvuru kontrolü',
+    href: '/admin/onaylanan-kullanicilar',
+    tint: RenkTokenlari.mint,
+    bolum: 'Güvenlik',
+    permissionKey: 'identity.view',
+    anahtarlar: [
+      'onaylanan',
+      'onaylı kullanıcı',
+      'approved',
+      'yeni başvuru',
+      'başvuru kontrol',
+      'verify',
+      'kimlik onaylı',
+    ],
   },
   {
     icon: 'shield-checkmark-outline',
@@ -99,16 +139,6 @@ export const ADMIN_MODULLER: AdminModul[] = ([
     bolum: 'Güvenlik',
     permissionKey: 'verification.view',
     anahtarlar: ['kyb', 'verification', 'inceleme'],
-  },
-  {
-    icon: 'swap-horizontal-outline',
-    label: 'Coin takas',
-    alt: 'Takas · transfer · aylık limit · onay',
-    href: '/admin/takas',
-    tint: RenkTokenlari.accent,
-    bolum: 'İnsanlar',
-    permissionKey: 'wallet.exchange.view',
-    anahtarlar: ['takas', 'transfer', 'exchange'],
   },
   {
     icon: 'add-circle-outline',
@@ -149,16 +179,6 @@ export const ADMIN_MODULLER: AdminModul[] = ([
     bolum: 'İnsanlar',
     permissionKey: 'wallet.iap.disputes.view',
     anahtarlar: ['itiraz', 'refund', 'chargeback', 'iap'],
-  },
-  {
-    icon: 'color-palette-outline',
-    label: 'Cüzdan yönetimi',
-    alt: 'Simge · tema · bölüm · yayın / geri al',
-    href: '/admin/cuzdan-yonetimi',
-    tint: RenkTokenlari.primarySoft,
-    bolum: 'İnsanlar',
-    permissionKey: 'wallet.ui.manage',
-    anahtarlar: ['wallet ui', 'tema', 'simge'],
   },
   {
     icon: 'cash-outline',
@@ -392,12 +412,12 @@ export const ADMIN_MODULLER: AdminModul[] = ([
   {
     icon: 'game-controller-outline',
     label: 'Oyun yönetimi',
-    alt: 'Aç/kapa · test · Kaskad RTP',
+    alt: 'Aç/kapa · test · RTP',
     href: '/admin/oyunlar',
     tint: RenkTokenlari.accent,
     bolum: 'Ürün',
     permissionKey: 'games.view',
-    anahtarlar: ['oyun', 'zeus', 'kaskad', 'slot'],
+    anahtarlar: ['oyun', 'çark', 'slot'],
   },
   {
     icon: 'flask-outline',
@@ -428,16 +448,6 @@ export const ADMIN_MODULLER: AdminModul[] = ([
     bolum: 'Ürün',
     permissionKey: 'games.algorithm.view',
     anahtarlar: ['meyve', 'karpuz', 'fırtına', 'çarpan', 'sıra', 'saat'],
-  },
-  {
-    icon: 'layers-outline',
-    label: 'Kaskad yönetim',
-    alt: 'RTP · animasyon · kontrol',
-    href: '/admin/kaskad-yonetim',
-    tint: RenkTokenlari.accent,
-    bolum: 'Ürün',
-    permissionKey: 'games.kaskad.view',
-    anahtarlar: ['kaskad', 'cascade'],
   },
   {
     icon: 'checkbox-outline',

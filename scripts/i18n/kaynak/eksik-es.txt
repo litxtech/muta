@@ -1,0 +1,2 @@
+satinAlma.kanalManuel | Manuel | Manual
+cuzdanX.taban | {{adet}} taban | {{adet}} base

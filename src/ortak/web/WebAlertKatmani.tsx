@@ -15,29 +15,60 @@ type WebAlertDurum = {
 };
 
 const dinleyiciler = new Set<(a: WebAlertDurum | null) => void>();
+
+/**
+ * Aynı anda birden çok onay istenirse (ör. bir onayın içinde hata mesajı)
+ * önceki mesaj kaybolmasın diye sıraya alınır.
+ */
+const kuyruk: WebAlertDurum[] = [];
+let aktif: WebAlertDurum | null = null;
 let sira = 0;
 let kuruldu = false;
 
-/** react-native-web Alert.alert boş fonksiyon. Webde gerçek onay kartı açar. */
+function yayinla(durum: WebAlertDurum | null): void {
+  dinleyiciler.forEach((fn) => fn(durum));
+}
+
+function siradakiniAc(): void {
+  if (aktif || kuyruk.length === 0) return;
+  aktif = kuyruk.shift() ?? null;
+  yayinla(aktif);
+}
+
+/**
+ * react-native-web'de `Alert.alert` boş bir fonksiyondur: panelde onay isteyen
+ * her düğme (coin eksilt, sil, onayla, yayınla…) sessizce hiçbir şey yapmıyor
+ * görünür. Bu yama `Alert.alert`'i gerçek bir onay kartına bağlar.
+ *
+ * Kurulum modül yüklenirken kendiliğinden yapılır; böylece uygulama kök
+ * yerleşiminde ayrıca çağırmayı unutmak mümkün değildir.
+ */
 export function WebAlertKur(): void {
   if (Platform.OS !== 'web' || kuruldu) return;
   kuruldu = true;
   Alert.alert = (title, message, buttons) => {
     const liste: WebAlertButton[] =
-      buttons && buttons.length > 0 ? buttons : [{ text: 'OK' }];
-    const durum: WebAlertDurum = {
+      buttons && buttons.length > 0
+        ? [...buttons]
+        : [{ text: 'Tamam', style: 'default' }];
+    kuyruk.push({
       id: ++sira,
       title: title ?? '',
       message: typeof message === 'string' ? message : '',
       buttons: liste,
-    };
-    dinleyiciler.forEach((fn) => fn(durum));
+    });
+    siradakiniAc();
   };
 }
 
+/** Görünen kartı kapatır ve sırada bekleyen varsa onu açar. */
 function kapat(): void {
-  dinleyiciler.forEach((fn) => fn(null));
+  aktif = null;
+  yayinla(null);
+  siradakiniAc();
 }
+
+WebAlertKur();
 
 /** Safari / Chrome — odadan çıkış ve diğer onaylar. */
 export function WebAlertKatmani() {
@@ -46,15 +77,38 @@ export function WebAlertKatmani() {
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     dinleyiciler.add(setDurum);
+    // Katman sonradan bağlandıysa bekleyen kartı hemen göster.
+    if (aktif) setDurum(aktif);
+    else siradakiniAc();
+
     return () => {
       dinleyiciler.delete(setDurum);
+      if (dinleyiciler.size === 0) {
+        // Kök katman sökülürse yarıda kalan onay yeni ekrana taşınmaz.
+        aktif = null;
+        kuyruk.length = 0;
+      }
     };
   }, []);
+
+  // Esc ile vazgeç (web klavye) — düğmeye basılmış sayılmaz.
+  useEffect(() => {
+    if (!durum) return;
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const dinle = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        kapat();
+      }
+    };
+    window.addEventListener('keydown', dinle);
+    return () => window.removeEventListener('keydown', dinle);
+  }, [durum]);
 
   if (Platform.OS !== 'web' || !durum) return null;
 
   return (
-    <View style={styles.perde} accessibilityViewIsModal>
+    <View style={styles.perde} accessibilityViewIsModal accessibilityRole="alert">
       <View style={styles.kart}>
         {durum.title ? <Text style={styles.baslik}>{durum.title}</Text> : null}
         {durum.message ? <Text style={styles.mesaj}>{durum.message}</Text> : null}
@@ -66,15 +120,17 @@ export function WebAlertKatmani() {
               <Pressable
                 key={`${durum.id}-${i}`}
                 accessibilityRole="button"
+                accessibilityLabel={btn.text || 'Tamam'}
                 onPress={() => {
                   const fn = btn.onPress;
                   kapat();
                   fn?.();
                 }}
-                style={[
+                style={({ pressed }) => [
                   styles.buton,
                   destructive && styles.butonDestructive,
                   cancel && styles.butonCancel,
+                  pressed && styles.butonBasili,
                 ]}
               >
                 <Text
@@ -84,7 +140,7 @@ export function WebAlertKatmani() {
                     cancel && styles.yaziCancel,
                   ]}
                 >
-                  {btn.text || 'OK'}
+                  {btn.text || 'Tamam'}
                 </Text>
               </Pressable>
             );
@@ -145,6 +201,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E84091',
     paddingHorizontal: 12,
   },
+  butonBasili: { opacity: 0.85 },
   butonDestructive: {
     backgroundColor: 'rgba(255,59,92,0.16)',
     borderWidth: 1,

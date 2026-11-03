@@ -682,8 +682,8 @@ export default function AdminKullaniciDosyaEkrani() {
 
           <AdminKullaniciCoinPaneli
             userRef={id!}
-            baslik="Coin yÃ¼kle / eksilt / ceza"
-            alt={`Mevcut: ${dosya.cuzdan.coins.toLocaleString('tr-TR')} coin Â· Ceza ihtar da yazar`}
+            baslik="Coin / ödül coin işlemleri"
+            alt="Coin ve ödül coin bakiyesi görünür · ekle / eksilt / ceza"
             onBasarili={() => void yukle()}
           />
 

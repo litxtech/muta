@@ -1,0 +1,12 @@
+cuzdanHareket.baslik	Hesap hareketleri	Wallet activity
+cuzdanHareket.altBaslik	Coin, oyun ve elmas hareketlerin · ay ay	Coin, game and diamond activity · by month
+cuzdanHareket.yukleniyor	Hareketler yükleniyor…	Loading activity…
+cuzdanHareket.yuklenemedi	Hareketler yüklenemedi	Activity could not be loaded
+cuzdanHareket.yenidenDene	Yeniden dene	Try again
+cuzdanHareket.tumAylar	Tüm aylar	All months
+cuzdanHareket.tumBirimler	Tüm birimler	All units
+cuzdanHareket.adet	{{adet}} hareket	{{adet}} entries
+cuzdanHareket.bos	Bu filtreye uygun hareket yok	No entries match this filter
+cuzdanHareket.bilgi	Burada coin, oyun coin'i ve elmas hareketlerin yer alır. Uygun yayıncı kazançları ayrı hesaplanır ve USD olarak ödenir.	This list shows coin, game coin and diamond activity. Eligible creator earnings are calculated separately and paid in USD.
+cuzdanHareket.belgeBaslik	Hesap hareketleri	Wallet activity
+cuzdanHareket.aylikOzet	{{giris}} giriş · {{cikis}} çıkış	{{giris}} in · {{cikis}} out

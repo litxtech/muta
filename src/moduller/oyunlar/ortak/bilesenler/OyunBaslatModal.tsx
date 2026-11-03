@@ -23,7 +23,6 @@ import {
 import type { GameCode } from '../tipler/OyunTipleri';
 import { OyunAuraCerceve } from './OyunAuraCerceve';
 import { useCeviri } from '../../../../i18n/useCeviri';
-import { STORM_KING_KART } from '../../storm-king/StormKingGiris';
 
 const FRUIT_WHEEL_COVER = require('../../../../../assets/oyunlar/fruit-wheel/fw-cover.jpg');
 
@@ -31,7 +30,6 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   onBaslatFruitWheel?: () => void;
-  onBaslatStormKing?: () => void;
   /** Admin'de açık oyun kodları — Fruit Wheel kapalıysa kart boş kalır. */
   visibleGameCodes?: readonly GameCode[];
 };
@@ -40,15 +38,11 @@ export function OyunBaslatModal({
   visible,
   onClose,
   onBaslatFruitWheel,
-  onBaslatStormKing,
   visibleGameCodes,
 }: Props) {
   const { t } = useCeviri();
   const showFruitWheel =
     visibleGameCodes == null ? true : visibleGameCodes.includes('fruit_wheel');
-  const showStormKing =
-    STORM_KING_KART != null &&
-    (visibleGameCodes == null ? true : visibleGameCodes.includes('storm_king'));
 
   if (!visible) return null;
 
@@ -91,21 +85,7 @@ export function OyunBaslatModal({
             onPress={() => onBaslatFruitWheel?.()}
           />
         ) : null}
-        {showStormKing && STORM_KING_KART ? (
-          <OyunPosterKart
-            cover={STORM_KING_KART.kapak}
-            avatar={STORM_KING_KART.karakter}
-            tint={['#12081C', '#E6C36A'] as const}
-            eyebrow="FIRTINA"
-            title={t('stormKing.menuTitle')}
-            body={t('stormKing.menuBody')}
-            meta={t('oyun.soloSunucu')}
-            ctaLabel={t('oyun.oyna')}
-            ctaDisabled={!onBaslatStormKing}
-            onPress={() => onBaslatStormKing?.()}
-          />
-        ) : null}
-        {!showFruitWheel && !showStormKing ? (
+        {!showFruitWheel ? (
           <View style={styles.bosKart}>
             <Text style={styles.bosBaslik}>{t('oyun.acikOyunYok')}</Text>
             <Text style={styles.bosGovde}>{t('oyun.acikOyunYokBody')}</Text>

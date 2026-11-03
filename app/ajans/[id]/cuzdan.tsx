@@ -17,8 +17,8 @@ import { AjansPanelDetayGetir } from '../../../src/moduller/ajanslar/islemler/Aj
 import {
   AjansCuzdanHareketleriGetir,
   type AjansCuzdanHareket,
-  type AjansSatisOzeti,
-} from '../../../src/moduller/ajanslar/islemler/AjansSatisIslemleri';
+  type AjansCuzdanOzeti,
+} from '../../../src/moduller/ajanslar/islemler/AjansCuzdanIslemleri';
 import { CanliCoinSimgesi } from '../../../src/moduller/cuzdan/bilesenler/CanliCoinSimgesi';
 import { RenkTokenlari } from '../../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../src/tasarim-sistemi/TipografiTokenlari';
@@ -34,7 +34,7 @@ const HEDIYE_ESIK = 10_000;
 const HAREKET_LIMIT = 200;
 
 type Donem = 'bugun' | '7' | '30' | 'tumu';
-type Filtre = 'tumu' | 'satis' | 'hediye' | 'dagitim';
+type Filtre = 'tumu' | 'hediye' | 'dagitim';
 
 const DONEMLER: { id: Donem; label: CeviriAnahtari }[] = [
   { id: 'bugun', label: 'ajans.cuzdanDonemBugun' },
@@ -45,7 +45,6 @@ const DONEMLER: { id: Donem; label: CeviriAnahtari }[] = [
 
 const FILTRELER: { id: Filtre; label: CeviriAnahtari }[] = [
   { id: 'tumu', label: 'ajans.cuzdanFiltreTumu' },
-  { id: 'satis', label: 'ajans.cuzdanFiltreSatis' },
   { id: 'hediye', label: 'ajans.cuzdanFiltreHediye' },
   { id: 'dagitim', label: 'ajans.cuzdanFiltreDagitim' },
 ];
@@ -56,11 +55,6 @@ const AKSIYONLAR: {
   label: CeviriAnahtari;
 }[] = [
   { path: 'islemler', icon: 'paper-plane-outline', label: 'ajans.cuzdanAksiyonDagit' },
-  { path: 'paketler', icon: 'pricetags-outline', label: 'ajans.cuzdanAksiyonPaket' },
-  { path: 'satis-takibi', icon: 'checkmark-done-outline', label: 'ajans.cuzdanAksiyonSatis' },
-  { path: 'dekontlar', icon: 'receipt-outline', label: 'ajans.cuzdanAksiyonDekont' },
-  { path: 'faturalar', icon: 'document-text-outline', label: 'ajans.cuzdanAksiyonFatura' },
-  { path: 'en-cok-alicilar', icon: 'trophy-outline', label: 'ajans.cuzdanAksiyonAlici' },
 ];
 
 function sayi(n: number, locale: string) {
@@ -68,7 +62,6 @@ function sayi(n: number, locale: string) {
 }
 
 function nedenGrup(reason: string): Filtre {
-  if (reason === 'package_sale') return 'satis';
   if (reason === 'sale_volume_gift' || reason === 'sale_volume_gift_backfill') {
     return 'hediye';
   }
@@ -78,8 +71,6 @@ function nedenGrup(reason: string): Filtre {
 
 function nedenEtiket(reason: string, t: (k: CeviriAnahtari) => string): string {
   switch (reason) {
-    case 'package_sale':
-      return t('ajans.cuzdanNedenSatis');
     case 'sale_volume_gift':
     case 'sale_volume_gift_backfill':
       return t('ajans.cuzdanNedenHediye');
@@ -92,8 +83,6 @@ function nedenEtiket(reason: string, t: (k: CeviriAnahtari) => string): string {
 
 function nedenIkon(reason: string): keyof typeof Ionicons.glyphMap {
   switch (reason) {
-    case 'package_sale':
-      return 'cart-outline';
     case 'sale_volume_gift':
     case 'sale_volume_gift_backfill':
       return 'gift-outline';
@@ -137,7 +126,7 @@ export default function AjansCuzdanEkrani() {
   const id = useAjansRouteId();
   const [ajansAd, setAjansAd] = useState<string | null>(null);
   const [wallet, setWallet] = useState<
-    (AjansSatisOzeti['cuzdan'] & { updated_at?: string }) | null
+    (AjansCuzdanOzeti & { updated_at?: string }) | null
   >(null);
   const [hareketler, setHareketler] = useState<AjansCuzdanHareket[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -397,17 +386,7 @@ export default function AjansCuzdanEkrani() {
 
           <AjansBolumBaslik>{t('ajans.cuzdanHizli')}</AjansBolumBaslik>
           <View style={styles.aksiyonSatir}>
-            {AKSIYONLAR.slice(0, 3).map((a) => (
-              <Aksiyon
-                key={a.path}
-                icon={a.icon}
-                label={t(a.label)}
-                onPress={() => git(a.path)}
-              />
-            ))}
-          </View>
-          <View style={styles.aksiyonSatir}>
-            {AKSIYONLAR.slice(3).map((a) => (
+            {AKSIYONLAR.map((a) => (
               <Aksiyon
                 key={a.path}
                 icon={a.icon}
@@ -456,21 +435,6 @@ export default function AjansCuzdanEkrani() {
                 <Text style={styles.gunBaslik}>{g.baslik}</Text>
                 <AjansKart>
                   {g.satirlar.map((h, i) => {
-                    const meta = (h.meta ?? {}) as Record<string, unknown>;
-                    const alt =
-                      h.reason === 'package_sale'
-                        ? [
-                            meta.buyer_name,
-                            meta.amount_try != null
-                              ? `${Number(meta.amount_try).toLocaleString(locale)} ₺`
-                              : null,
-                            meta.coins_sold != null
-                              ? `${sayi(Number(meta.coins_sold), locale)} coin`
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')
-                        : '';
                     const pozitif = h.delta > 0;
                     return (
                       <View
@@ -491,7 +455,6 @@ export default function AjansCuzdanEkrani() {
                           <Text style={styles.hareketBaslik}>
                             {nedenEtiket(h.reason, t)}
                           </Text>
-                          {alt ? <Text style={styles.hareketAlt}>{alt}</Text> : null}
                           <Text style={styles.hareketMeta}>
                             {new Date(h.created_at).toLocaleTimeString(locale, {
                               hour: '2-digit',
@@ -761,10 +724,6 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.body,
     color: RenkTokenlari.text,
     fontWeight: '700',
-  },
-  hareketAlt: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textMuted,
   },
   hareketMeta: {
     ...TipografiTokenlari.micro,

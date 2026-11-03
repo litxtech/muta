@@ -21,8 +21,6 @@ export type OyunGecmisiKaydi = {
 
 const OYUN_AD_FALLBACK: Record<string, string> = {
   match3: 'Kristal Savaşı (kaldırıldı)',
-  kozmik_kaskad: 'Kozmik Kaskad',
-  zeus: 'ZEUS',
 };
 
 const DURUM_ETIKET: Record<string, string> = {

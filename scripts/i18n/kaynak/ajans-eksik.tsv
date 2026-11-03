@@ -1,0 +1,93 @@
+ajans.izinSatisLink	Satış linki oluştur	Create sale links
+ajans.izinSatisGor	Satış takibini gör	View sales tracking
+ajans.izinSatisIncele	Satışı geçerli/geçersiz işaretle	Mark sales valid/invalid
+ajans.izinFaturaYonet	Fatura oluştur / düzenle	Create / edit invoices
+ajans.menuAc	Ajans menüsü	Agency menu
+ajans.menuAlt	Bölümler · işlemler · ayarlar	Sections · ops · settings
+ajans.menuGrupGenel	Genel	General
+ajans.menuGrupOperasyon	Operasyon	Operations
+ajans.menuGrupIcerik	İçerik	Content
+ajans.menuGrupFinans	Finans	Finance
+ajans.menuGrupYonetim	Yönetim	Admin
+ajans.ozetBolum	Özet	Overview
+ajans.verMerkez	Doğrulama Merkezi	Verification Center
+ajans.verAjansDogrulama	Ajans Doğrulaması	Agency verification
+ajans.verKimlik	Kimlik	Identity
+ajans.verAdres	Adres	Address
+ajans.verSirket	Şirket	Company
+ajans.verEkBelge	Ek Belge	Extra document
+ajans.verDurumOk	Doğrulandı	Verified
+ajans.verDurumBekliyor	Bekliyor	Pending
+ajans.verDurumInceleniyor	İnceleniyor	Under review
+ajans.verDurumYeniden	Yeniden gönderilmeli	Resubmission required
+ajans.verBelgeYukle	Belge yükle	Upload document
+ajans.verBelgeBildirim	Belge işleme bildirimi	Document processing notice
+ajans.verBelgeBildirimBody	Kimlik/adres belgeleri yalnızca ajans doğrulaması için incelenir. Erişim yetkili doğrulama ekibiyle sınırlıdır. Saklama süresi politika ayarlarına göre yönetilir. Detaylar için gizlilik politikasına bakın.	Identity/address documents are reviewed only for agency verification. Access is limited to authorized reviewers. Retention follows policy settings. See the privacy policy for details.
+ajans.verKamera	Kamera	Camera
+ajans.verGaleri	Galeri	Gallery
+ajans.verDosya	Dosya / PDF	File / PDF
+ajans.verIzinKamera	Kamera izni gerekli	Camera permission required
+ajans.verIzinGaleri	Galeri izni gerekli	Gallery permission required
+ajans.verOnizleme	Belgeyi kontrol et	Review document
+ajans.verOnizlemeBody	Göndermeden önce belgenin okunabilir olduğundan emin olun.	Make sure the document is readable before submitting.
+ajans.verBelgeAlindi	Belgeniz alındı. İnceleme sonrası bilgilendirileceksiniz.	Document received. You will be notified after review.
+ajans.verYuklenemedi	Yüklenemedi	Could not load
+ajans.verYetkiliAd	Yetkili adı	Authorized first name
+ajans.verYetkiliSoyad	Yetkili soyadı	Authorized last name
+ajans.verAjansTuru	Ajans türü	Agency type
+ajans.verBireysel	Bireysel	Individual
+ajans.verKurumsal	Şirket / Kurumsal	Company
+ajans.verWhatsapp	WhatsApp	WhatsApp
+ajans.verSehir	Şehir	City
+ajans.verAdresAlan	Adres	Address
+ajans.verWebsite	Web sitesi (opsiyonel)	Website (optional)
+ajans.verNedenTamuso	Neden Tamuso ajansı olmak istiyorsunuz?	Why do you want to be a Tamuso agency?
+ajans.verNetwork	Mevcut ajans / creator network	Existing agency / creator network
+ajans.verReferral	Davet / referral kodu	Invite / referral code
+ajans.verDiller	Diller (virgülle)	Languages (comma-separated)
+ajans.verUlkeler	Çalışılacak ülkeler (virgülle)	Target countries (comma-separated)
+ajans.rayCuzdan	Ajans cüzdanı	Agency wallet
+ajans.yoneticiAtaBaslik	Yönetici ata	Assign manager
+ajans.yoneticiAtaPh	Kullanıcı adı	Username
+ajans.yoneticiAta	Yönetici yap	Make manager
+ajans.yoneticiAtandi	Bu kişi artık ajansı yönetebilir.	This person can now manage the agency.
+ajans.yoneticiIptal	Yetkiyi kaldır	Revoke access
+ajans.yoneticiIptalOnay	Yönetici yetkisi kaldırılsın mı?	Revoke manager access?
+ajans.yoneticiKaldirildi	Yönetici yetkisi kaldırıldı.	Manager access revoked.
+ajans.yoneticiler	Yöneticiler	Managers
+ajans.yoneticiRol	Yönetici	Manager
+ajans.cuzdanBaslik	Ajans cüzdanı	Agency wallet
+ajans.cuzdanAlt	Bakiye, dönem ve hareketler	Balance, period and ledger
+ajans.cuzdanCoin	Ajans coin	Agency coins
+ajans.cuzdanDagitim	Dağıtım bakiyesi	Distribution balance
+ajans.cuzdanSatilanEtiket	Satılan coin	Coins sold
+ajans.cuzdanHediyeKalan	Sonraki 1000 hediye için: {{n}} coin	Until next 1,000 gift: {{n}} coins
+ajans.cuzdanHediyeKural	Her 10.000 coin satışta ajansa 1.000 coin hediye.	Every 10,000 coins sold → 1,000 coins gift to the agency.
+ajans.cuzdanHediyeIlerleme	Hediye ilerlemesi	Gift progress
+ajans.cuzdanHediyeKazanildi	{{n}} hediye kazanıldı	{{n}} gifts earned
+ajans.cuzdanBakiyeSonrasi	Bakiye {{n}}	Balance {{n}}
+ajans.cuzdanHareketler	Hareketler	Ledger
+ajans.cuzdanHareketBos	Henüz hareket yok.	No ledger entries yet.
+ajans.cuzdanNedenHediye	Satış hacmi hediyesi	Sales volume gift
+ajans.cuzdanNedenDagitim	Üyeye coin dağıtımı	Member coin distribution
+ajans.cuzdanDonemBugun	Bugün	Today
+ajans.cuzdanDonem7	7 gün	7 days
+ajans.cuzdanDonem30	30 gün	30 days
+ajans.cuzdanDonemTumu	Tümü	All
+ajans.cuzdanDun	Dün	Yesterday
+ajans.cuzdanGiren	Giren	In
+ajans.cuzdanCikan	Çıkan	Out
+ajans.cuzdanNet	Net	Net
+ajans.cuzdanElmas	Elmas	Diamonds
+ajans.cuzdanHizli	Hızlı işlemler	Shortcuts
+ajans.cuzdanAksiyonDagit	Coin dağıt	Send coins
+ajans.cuzdanFiltreTumu	Tümü	All
+ajans.cuzdanFiltreHediye	Hediye	Gifts
+ajans.cuzdanFiltreDagitim	Dağıtım	Distribution
+ajans.cuzdanHareketBosFiltre	Bu filtrede hareket yok.	No entries for this filter.
+ajans.cuzdanBirimCoin	Coin	Coins
+ajans.cuzdanBirimDagitim	Dağıtım	Distribution
+ajans.cuzdanBirimElmas	Elmas	Diamonds
+ajans.cuzdanHareketLimit	Son {{n}} hareket gösteriliyor.	Showing the latest {{n}} entries.
+ajans.cuzdanGuncelleme	Güncellendi {{zaman}}	Updated {{zaman}}
+ajans.cuzdanHediyeEsik	{{done}} / {{total}}	{{done}} / {{total}}

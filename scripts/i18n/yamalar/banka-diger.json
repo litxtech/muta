@@ -1,0 +1,36 @@
+{
+  "es": {
+    "profilDuzenle.kapakAlaniYok": "El campo de portada aún no está disponible (migration 016).",
+    "cuzdan.ledgerBonus": "Bono",
+    "cuzdan.tire": "—",
+    "cuzdan.qrKoduA11y": "Código QR de la cartera",
+    "cuzdan.coinSatinAlmaKapali": "La compra de monedas está cerrada (kill switch).",
+    "kyc.ipucuIkamet": "País donde vives actualmente (p. ej. Turquía)",
+    "kyc.ipucuUyruk": "Ciudadanía que figura en tu pasaporte o ID (p. ej. Turquía)",
+    "verify.baslik": "Tamuso Verify",
+    "verify.flas": "Flash",
+    "satinAlma.kanalManuel": "Manual",
+    "cuzdanX.bonus": "bono",
+    "cuzdanX.taban": "{{adet}} base",
+    "cuzdanX.bonusPill": "+{{adet}} bono",
+    "cuzdanX.uiKatalogLabel": "Valor de catálogo",
+    "cuzdanX.uiLanguageNote": "Los importes mostrados son un resumen del catálogo de artículos virtuales de la app; no es un pago en dinero real.",
+    "cuzdanX.oturumGerekli": "Inicio de sesión requerido"
+  },
+  "fr": {
+    "profilDuzenle.fotograflar": "Photos",
+    "cuzdan.ledgerDiger": "Transaction",
+    "cuzdan.ledgerBonus": "Bonus",
+    "cuzdan.tire": "—",
+    "kyc.belge": "Document",
+    "verify.baslik": "Tamuso Verify",
+    "verify.flas": "Flash",
+    "cuzdanX.kaynak": "Source",
+    "cuzdanX.tarih": "Date"
+  },
+  "ar": {
+    "cuzdan.tire": "—",
+    "verify.baslik": "Tamuso Verify",
+    "verify.dogumPlaceholder": "YYYY-MM-DD"
+  }
+}

@@ -1,0 +1,157 @@
+aiMuzik.agHatasi	src\moduller\ai-muzik\islemler\AiMuzikApi.ts:292	message: e instanceof Error ? e.message : i18n.t('aiMuzik.agHatasi'),
+aiMuzik.ayarlanamadi	src\moduller\ai-muzik\islemler\AiMuzikApi.ts:368	hata: e instanceof Error ? e.message : i18n.t('aiMuzik.ayarlanamadi'),
+aiMuzik.expoGoDesteklemez	src\moduller\ai-muzik\islemler\AiMuzikIapSatinAl.ts:110	hata: i18n.t('aiMuzik.expoGoDesteklemez'),
+aiMuzik.iapKapali	src\moduller\ai-muzik\islemler\AiMuzikIapSatinAl.ts:99	return { ok: false, hata: i18n.t('aiMuzik.iapKapali'), kod: 'flag' };
+aiMuzik.iapModuluYok	src\moduller\ai-muzik\islemler\AiMuzikIapSatinAl.ts:124	hata: e instanceof Error ? e.message : i18n.t('aiMuzik.iapModuluYok'),
+aiMuzik.iapSadeceMobil	src\moduller\ai-muzik\islemler\AiMuzikIapSatinAl.ts:102	return { ok: false, hata: i18n.t('aiMuzik.iapSadeceMobil'), kod: 'store' };
+aiMuzik.iapSadeceMobil	src\moduller\ai-muzik\islemler\AiMuzikSatinAl.ts:23	return { ok: false, hata: i18n.t('aiMuzik.iapSadeceMobil'), kod: 'store' };
+aiMuzik.kapakYuklenemedi	src\moduller\ai-muzik\islemler\AiMuzikApi.ts:645	return { ok: false, hata: e instanceof Error ? e.message : i18n.t('aiMuzik.kapakYuklenemedi') };
+aiMuzik.kirpmaBasarisiz	src\moduller\ai-muzik\islemler\AiMuzikApi.ts:662	return { ok: false, hata: e instanceof Error ? e.message : i18n.t('aiMuzik.kirpmaBasarisiz') };
+aiMuzik.oturumGerekli	src\moduller\ai-muzik\islemler\AiMuzikApi.ts:250	if (!jwt) return { ok: false, error: 'UNAUTHORIZED', message: i18n.t('aiMuzik.oturumGerekli') };
+aiMuzik.oturumGerekli	src\moduller\ai-muzik\islemler\AiMuzikIapSatinAl.ts:38	if (!jwt) return { ok: false, hata: i18n.t('aiMuzik.oturumGerekli') };
+aiMuzik.ozellikKapali	src\moduller\ai-muzik\islemler\AiMuzikIapSatinAl.ts:96	return { ok: false, hata: i18n.t('aiMuzik.ozellikKapali'), kod: 'flag' };
+aiMuzik.referansYuklenemedi	src\moduller\ai-muzik\islemler\AiMuzikApi.ts:707	hata: e instanceof Error ? e.message : i18n.t('aiMuzik.referansYuklenemedi'),
+aiMuzik.satinAlmaGeciciKapali	src\moduller\ai-muzik\islemler\AiMuzikIapSatinAl.ts:91	hata: i18n.t('aiMuzik.satinAlmaGeciciKapali'),
+aiMuzik.satinAlmaIptalHata	src\moduller\ai-muzik\islemler\AiMuzikIapSatinAl.ts:197	const msg = err?.message ?? i18n.t('aiMuzik.satinAlmaIptalHata');
+aiMuzik.satinAlmaIslenemedi	src\moduller\ai-muzik\islemler\AiMuzikIapSatinAl.ts:190	hata: e instanceof Error ? e.message : i18n.t('aiMuzik.satinAlmaIslenemedi'),
+aiMuzik.storeBaglantisiYok	src\moduller\ai-muzik\islemler\AiMuzikIapSatinAl.ts:147	hata: e instanceof Error ? e.message : i18n.t('aiMuzik.storeBaglantisiYok'),
+aiMuzik.storeUrunuYok	src\moduller\ai-muzik\islemler\AiMuzikIapSatinAl.ts:208	hata: i18n.t('aiMuzik.storeUrunuYok', { sku }),
+aiMuzik.topluIslemBasarisiz	src\moduller\ai-muzik\islemler\AiMuzikApi.ts:419	hata: e instanceof Error ? e.message : i18n.t('aiMuzik.topluIslemBasarisiz'),
+aiMuzik.uretimBasarisizMesaj	src\moduller\ai-muzik\islemler\AiMuzikApi.ts:283	message: String(json.message ?? i18n.t('aiMuzik.uretimBasarisizMesaj')),
+aiMuzik.urlOlusturulamadi	src\moduller\ai-muzik\islemler\AiMuzikApi.ts:636	if (!url) return { ok: false, hata: i18n.t('aiMuzik.urlOlusturulamadi') };
+aiMuzik.yeniParca	src\ekranlar\ai-muzik\AiMuzikStudyoEkrani.tsx:346	title: sonuc.title || t('aiMuzik.yeniParca', { defaultValue: 'Yeni Parça' }),
+ajans.gorusmeAdmin	apps\super-admin\app\admin\ajans-odalari.tsx:53	title={t('ajans.gorusmeAdmin')}
+ajans.gorusmeForceEnd	apps\super-admin\app\admin\ajans-odalari.tsx:81	accessibilityLabel={t('ajans.gorusmeForceEnd')}
+ajans.gorusmeForceEnd	apps\super-admin\app\admin\ajans-odalari.tsx:84	<Text style={styles.link}>{t('ajans.gorusmeForceEnd')}</Text>
+ajans.gorusmeForceEnd	apps\super-admin\app\admin\ajans-odalari.tsx:99	accessibilityLabel={t('ajans.gorusmeForceEnd')}
+ajans.gorusmePlatformBitti	apps\super-admin\app\admin\ajans-odalari.tsx:110	<Text style={styles.tehlike}>{t('ajans.gorusmePlatformBitti')}</Text>
+ajans.gorusmeSebep	apps\super-admin\app\admin\ajans-odalari.tsx:92	placeholder={t('ajans.gorusmeSebep')}
+ajans.gorusmeSebep	apps\super-admin\app\admin\ajans-odalari.tsx:94	accessibilityLabel={t('ajans.gorusmeSebep')}
+ajans.sertifikaAdmin	apps\super-admin\app\admin\ajans-sertifika.tsx:80	title={t('ajans.sertifikaAdmin')}
+ajans.sertifikaAdminCoin	apps\super-admin\app\admin\ajans-sertifika.tsx:90	{alan(t('ajans.sertifikaAdminCoin'), coin, setCoin)}
+ajans.sertifikaAdminDakika	apps\super-admin\app\admin\ajans-sertifika.tsx:89	{alan(t('ajans.sertifikaAdminDakika'), dakika, setDakika)}
+ajans.sertifikaAdminHediye	apps\super-admin\app\admin\ajans-sertifika.tsx:91	{alan(t('ajans.sertifikaAdminHediye'), hediye, setHediye)}
+ajans.sertifikaAdminKaydet	apps\super-admin\app\admin\ajans-sertifika.tsx:92	<AjansCta label={t('ajans.sertifikaAdminKaydet')} onPress={() => void kaydet()} />
+ajans.sertifikaAdminUyeler	apps\super-admin\app\admin\ajans-sertifika.tsx:88	{alan(t('ajans.sertifikaAdminUyeler'), uyeler, setUyeler)}
+auth.ulkeAra	app\profil-duzenle\index.tsx:657	placeholder={t('auth.ulkeAra')}
+bildirimler.izinVer	src\moduller\bildirimler\kayit\BildirimIzniIste.ts:160	text: i18n.t('bildirimler.izinVer'),
+bildirimler.mesajBaslik	src\moduller\bildirimler\kayit\BildirimIzniIste.ts:146	i18n.t('bildirimler.mesajBaslik'),
+bildirimler.mesajBodyAndroid	src\moduller\bildirimler\kayit\BildirimIzniIste.ts:149	: i18n.t('bildirimler.mesajBodyAndroid'),
+bildirimler.mesajBodyIos	src\moduller\bildirimler\kayit\BildirimIzniIste.ts:148	? i18n.t('bildirimler.mesajBodyIos')
+bildirimler.simdiDegil	src\moduller\bildirimler\kayit\BildirimIzniIste.ts:152	text: i18n.t('bildirimler.simdiDegil'),
+cuzdanX.ajansFisBaslik	src\moduller\mesajlasma\bilesenler\MesajSabitBar.tsx:22	if (m.message_type === 'agency_package_receipt') return t('cuzdanX.ajansFisBaslik');
+cuzdanX.ajansFisBaslik	src\moduller\mesajlasma\yardimcilar\MesajYanitOzetMetin.ts:27	return t('cuzdanX.ajansFisBaslik');
+cuzdanX.ajansTeklifKart	src\moduller\mesajlasma\bilesenler\MesajSabitBar.tsx:21	if (m.message_type === 'agency_package_offer') return t('cuzdanX.ajansTeklifKart');
+cuzdanX.ajansTeklifKart	src\moduller\mesajlasma\yardimcilar\MesajYanitOzetMetin.ts:25	return t('cuzdanX.ajansTeklifKart');
+cuzdanX.coinExpoGo	src\moduller\iap\islemler\IapIleCoinSatinAl.ts:188	hata: i18n.t('cuzdanX.coinExpoGo'),
+cuzdanX.coinSatinAlmaKapali	src\moduller\iap\islemler\IapIleCoinSatinAl.ts:178	hata: i18n.t('cuzdanX.coinSatinAlmaKapali'),
+cuzdanX.iapKapaliFlag	src\moduller\iap\islemler\IapIleCoinSatinAl.ts:183	return { ok: false, hata: i18n.t('cuzdanX.iapKapaliFlag'), kod: 'flag' };
+cuzdanX.satinAlmaIstekBasarisiz	src\moduller\iap\islemler\IapIleCoinSatinAl.ts:486	: i18n.t('cuzdanX.satinAlmaIstekBasarisiz'),
+cuzdanX.storeBaglantisiYokNative	src\moduller\iap\islemler\IapIleCoinSatinAl.ts:218	: i18n.t('cuzdanX.storeBaglantisiYokNative'),
+durumX.baglantiyiPaylas	src\moduller\durum\paylasim\bilesenler\GonderiPaylasSheet.tsx:251	accessibilityLabel={t('durumX.baglantiyiPaylas')}
+durumX.baglantiyiPaylas	src\moduller\durum\paylasim\bilesenler\GonderiPaylasSheet.tsx:254	<Text style={styles.hikayeYazi}>{t('durumX.baglantiyiPaylas')}</Text>
+fikirler.coinOdul	app\fikirler\[id].tsx:202	? t('fikirler.coinOdul', {
+fikirler.destegiKaldir	app\fikirler\[id].tsx:168	? t('fikirler.destegiKaldir')
+fikirler.detayAlt	app\fikirler\[id].tsx:87	subtitle={t('fikirler.detayAlt')}
+fikirler.ekipAdi	app\fikirler\[id].tsx:183	<Text style={styles.bolum}>{t('fikirler.ekipAdi')}</Text>
+fikirler.ekipAdi	app\fikirler\[id].tsx:187	<Text style={styles.rozetYazi}>{t('fikirler.ekipAdi')}</Text>
+fikirler.fikriDestekle	app\fikirler\[id].tsx:169	: t('fikirler.fikriDestekle')}
+fikirler.hayataGecirildiAlt	app\fikirler\[id].tsx:131	{t('fikirler.hayataGecirildiAlt')}
+fikirler.hayataGecirildiBanner	app\fikirler\[id].tsx:128	{t('fikirler.hayataGecirildiBanner')}
+fikirler.katkiOdulu	app\fikirler\[id].tsx:197	<Text style={styles.bolum}>{t('fikirler.katkiOdulu')}</Text>
+fikirler.katkiciRozeti	app\fikirler\[id].tsx:207	: t('fikirler.katkiciRozeti')}
+fikirler.katkidaBulundu	app\fikirler\[id].tsx:134	<Text style={styles.katki}>{t('fikirler.katkidaBulundu')}</Text>
+fikirler.kisiDestekliyor	app\fikirler\[id].tsx:172	{t('fikirler.kisiDestekliyor', {
+fikirler.yuklenemedi	app\fikirler\[id].tsx:47	setHata(e instanceof Error ? e.message : t('fikirler.yuklenemedi'));
+hikaye.videoYukleniyor	src\moduller\hikaye\islemler\HikayeMedyasiYukle.ts:171	title: i18n.t('hikaye.videoYukleniyor', {
+kyc.bekleyenBasvuru	src\moduller\kyc\islemler\KycBasvuru.ts:93	return { ok: false, hata: i18n.t('kyc.bekleyenBasvuru') };
+kyc.canlilikTamamlanmali	src\moduller\kyc\islemler\KycBasvuru.ts:54	return { ok: false, hata: i18n.t('kyc.canlilikTamamlanmali') };
+kyc.geciciArkaZorunlu	src\moduller\kyc\islemler\KycBasvuru.ts:57	return { ok: false, hata: i18n.t('kyc.geciciArkaZorunlu') };
+kyc.kimlikArkaZorunlu	src\moduller\kyc\islemler\KycBasvuru.ts:63	return { ok: false, hata: i18n.t('kyc.kimlikArkaZorunlu') };
+kyc.kycGonderilemedi	src\moduller\kyc\islemler\KycBasvuru.ts:101	hata: e instanceof Error ? e.message : i18n.t('kyc.kycGonderilemedi'),
+kyc.yuklemeBasarisiz	src\moduller\kyc\islemler\KycBasvuru.ts:41	if (!up.ok) throw new Error(up.hata ?? i18n.t('kyc.yuklemeBasarisiz'));
+lobi.alertDolu	app\lobi\[id].tsx:86	Alert.alert(t('lobi.alertDolu'), kapasite.hata);
+lobi.alertGiris	app\lobi\[id].tsx:112	t('lobi.alertGiris'),
+lobi.alertGiris	app\lobi\[id].tsx:127	Alert.alert(t('lobi.alertGiris'), t('lobi.oturumGerekli'));
+lobi.alertLobi	app\lobi\[id].tsx:152	t('lobi.alertLobi'),
+lobi.alertOda	app\lobi\[id].tsx:133	Alert.alert(t('lobi.alertOda'), yetki.hata ?? t('lobi.odaYok'));
+lobi.baslik	app\lobi\[id].tsx:225	{oda?.title ?? t('lobi.baslik')}
+lobi.bekleyen	app\lobi\[id].tsx:256	: t('lobi.bekleyen', { count: kisiler.length })}
+lobi.bos	app\lobi\[id].tsx:255	? t('lobi.bos')
+lobi.odaLobisi	app\lobi\[id].tsx:239	<Text style={styles.ortaBaslik}>{t('lobi.odaLobisi')}</Text>
+lobi.odaLobisiAlt	app\lobi\[id].tsx:240	<Text style={styles.ortaAlt}>{t('lobi.odaLobisiAlt')}</Text>
+lobi.oturumGerekli	src\moduller\ses-odalari\islemler\OdaKoltukSayisiniAyarla.ts:37	return { ok: false, hata: i18n.t('lobi.oturumGerekli') };
+lobi.sesOdasinaGir	app\lobi\[id].tsx:284	<Text style={styles.ctaYazi}>{t('lobi.sesOdasinaGir')}</Text>
+medyaYukle.documentPickerYok	src\ortak\medya\DocumentPickerHazirMi.ts:42	hata: i18n.t('medyaYukle.documentPickerYok'),
+medyaYukle.dosyaBos	src\ortak\medya\DepoyaMedyaYukle.ts:251	return { ok: false, hata: i18n.t('medyaYukle.dosyaBos') };
+medyaYukle.dosyaBos	src\ortak\medya\VideoSikistir.ts:247	return { ok: false, hata: i18n.t('medyaYukle.dosyaBos'), uri: kaynak };
+medyaYukle.dosyaOkunamadi	src\ortak\medya\DepoyaMedyaYukle.ts:149	throw new Error(i18n.t('medyaYukle.dosyaOkunamadi', { status: response.status }));
+medyaYukle.dosyaSeciciBuildYok	src\ortak\medya\DocumentPickerHazirMi.ts:32	hata: i18n.t('medyaYukle.dosyaSeciciBuildYok'),
+medyaYukle.dosyaSecilemedi	src\ortak\medya\DocumentPickerHazirMi.ts:93	hata: e instanceof Error ? e.message : i18n.t('medyaYukle.dosyaSecilemedi'),
+medyaYukle.mimeReddedildi	src\ortak\medya\DepoyaMedyaYukle.ts:306	? i18n.t('medyaYukle.mimeReddedildi', { type: contentType })
+medyaYukle.yuklemeBasarisiz	src\ortak\medya\DepoyaMedyaYukle.ts:315	hata: e instanceof Error ? e.message : i18n.t('medyaYukle.yuklemeBasarisiz'),
+odaX.odaBulunamadi	src\moduller\oda-lobisi\islemler\OdaGirisKontrolleri.ts:19	if (!yedek.data) return { ok: false, hata: i18n.t('odaX.odaBulunamadi') };
+odaX.odaBulunamadi	src\moduller\oda-lobisi\islemler\OdaGirisKontrolleri.ts:23	if (!data) return { ok: false, hata: i18n.t('odaX.odaBulunamadi') };
+odaX.odaDolu	src\moduller\oda-lobisi\islemler\OdaGirisKontrolleri.ts:34	return { ok: false, hata: i18n.t('odaX.odaDolu') };
+odaX.odaKapali	src\moduller\oda-lobisi\islemler\OdaGirisKontrolleri.ts:20	if (!yedek.data.is_live) return { ok: false, hata: i18n.t('odaX.odaKapali') };
+odaX.odaKapali	src\moduller\oda-lobisi\islemler\OdaGirisKontrolleri.ts:24	if (!data.is_live) return { ok: false, hata: i18n.t('odaX.odaKapali') };
+ortak.goruntule	app\kullanici\[id].tsx:265	text: t('ortak.goruntule'),
+ortak.profil	src\moduller\ses-odalari\bilesenler\OdaProfilKartiPaneli.tsx:99	const ad = displayName?.trim() || username?.trim() || t('ortak.profil');
+paylasim.baglanti	app\paylas\[kod].tsx:60	Alert.alert(t('paylasim.baglanti'), t('paylasim.linkAcilamadi'));
+paylasim.davetEtiket	app\paylas\[kod].tsx:79	? t('paylasim.davetEtiket', { kod: davet })
+paylasim.heroAlt	app\paylas\[kod].tsx:86	<Text style={styles.heroAlt}>{t('paylasim.heroAlt')}</Text>
+paylasim.ileIndir	app\paylas\[kod].tsx:100	title={t('paylasim.ileIndir', { title: onerilen.title })}
+paylasim.uygulamayaDevam	app\paylas\[kod].tsx:137	<Text style={styles.anaYazi}>{t('paylasim.uygulamayaDevam')}</Text>
+paylasim.uygulamayiIndir	app\paylas\[kod].tsx:76	title={t('paylasim.uygulamayiIndir')}
+profil.bulunamadi	app\kullanici\[id].tsx:319	{t('profil.bulunamadi')}
+profil.gonderilerGizli	app\kullanici\[id].tsx:637	<Text style={styles.gizliMetin}>{t('profil.gonderilerGizli')}</Text>
+profil.hesapKapatildiAlt	app\kullanici\[id].tsx:343	{t('profil.hesapKapatildiAlt')}
+profil.hesapSilindi	app\kullanici\[id].tsx:203	? t('profil.hesapSilindi')
+profil.hesapSilindi	app\kullanici\[id].tsx:341	<Text style={styles.ad}>{t('profil.hesapSilindi')}</Text>
+profil.paylasimYokKullanici	app\kullanici\[id].tsx:632	bosMetin={t('profil.paylasimYokKullanici')}
+profil.yuklenen	app\kullanici\[id].tsx:558	label={t('profil.yuklenen')}
+profilDuzenle.adSoyadMin	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:65	return { ok: false, hata: i18n.t('profilDuzenle.adSoyadMin') };
+profilDuzenle.adSoyadUzun	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:68	return { ok: false, hata: i18n.t('profilDuzenle.adSoyadUzun') };
+profilDuzenle.dogumYyyyAaGg	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:126	return { ok: false, hata: i18n.t('profilDuzenle.dogumYyyyAaGg') };
+profilDuzenle.epostaGecerli	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:237	return { ok: false, hata: i18n.t('profilDuzenle.epostaGecerli') };
+profilDuzenle.epostaOnayLink	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:243	mesaj: i18n.t('profilDuzenle.epostaOnayLink'),
+profilDuzenle.gecersizCinsiyet	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:112	return { ok: false, hata: i18n.t('profilDuzenle.gecersizCinsiyet') };
+profilDuzenle.hakkindaMax	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:87	return { ok: false, hata: i18n.t('profilDuzenle.hakkindaMax') };
+profilDuzenle.kullaniciAdiKural	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:78	hata: i18n.t('profilDuzenle.kullaniciAdiKural'),
+profilDuzenle.kullaniciAdiVeyaTelefonAlinmis	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:194	hata: i18n.t('profilDuzenle.kullaniciAdiVeyaTelefonAlinmis'),
+profilDuzenle.profilGuncellenemedi	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:199	if (!rpcData) return { ok: false, hata: i18n.t('profilDuzenle.profilGuncellenemedi') };
+profilDuzenle.profilGuncellenemedi	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:210	: i18n.t('profilDuzenle.profilGuncellenemedi');
+profilDuzenle.telefonOrnek	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:100	return { ok: false, hata: i18n.t('profilDuzenle.telefonOrnek') };
+profilDuzenle.ulkeGecersiz	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:143	hata: i18n.t('profilDuzenle.ulkeGecersiz'),
+profilDuzenle.ulkeSecilemez	src\moduller\kullanici-profili\islemler\ProfilGuncelle.ts:189	return { ok: false, hata: i18n.t('profilDuzenle.ulkeSecilemez') };
+sehir.adayOl	app\sehir\secim\[id].tsx:234	<GradientButton title={t('sehir.adayOl')} onPress={adayOl} loading={busy} />
+sehir.adayOldun	app\sehir\secim\[id].tsx:168	Alert.alert(t('sehir.adayOldun'), t('sehir.adayOldunBody'));
+sehir.adaylikAlert	app\sehir\secim\[id].tsx:165	Alert.alert(t('sehir.adaylikAlert'), sonuc.hata);
+sehir.adaylikBildirisi	app\sehir\secim\[id].tsx:229	label={t('sehir.adaylikBildirisi')}
+sehir.canliGidisat	app\sehir\secim\[id].tsx:244	{t('sehir.canliGidisat')}
+sehir.henuzAdayYok	app\sehir\secim\[id].tsx:252	title={t('sehir.henuzAdayYok')}
+sehir.ilkAdaySen	app\sehir\secim\[id].tsx:253	body={t('sehir.ilkAdaySen')}
+sehir.kalanSure	app\sehir\secim\[id].tsx:149	pieces.push(t('sehir.kalanSure', { sure: kalanSure(data.election.ends_at, t) }));
+sehir.oyAlert	app\sehir\secim\[id].tsx:177	Alert.alert(t('sehir.oyAlert'), t('sehir.zatenOy'));
+sehir.oyAlert	app\sehir\secim\[id].tsx:185	Alert.alert(t('sehir.oyAlert'), sonuc.hata);
+sehir.oyVer	app\sehir\secim\[id].tsx:298	<Text style={styles.voteBtnText}>{t('sehir.oyVer')}</Text>
+sehir.oyYuzde	app\sehir\secim\[id].tsx:286	{t('sehir.oyYuzde', {
+sehir.oyunKaydedildiSuffix	app\sehir\secim\[id].tsx:246	{myVote ? t('sehir.oyunKaydedildiSuffix') : ''}
+sehir.oyunuKullanSuffix	app\sehir\secim\[id].tsx:245	{canVote && !myVote ? t('sehir.oyunuKullanSuffix') : ''}
+sehir.secilenLider	app\sehir\secim\[id].tsx:214	<Text style={styles.winnerLabel}>{t('sehir.secilenLider')}</Text>
+sehir.secimYok	app\sehir\secim\[id].tsx:207	<BosDurum icon="alert-circle-outline" title={t('sehir.secimYok')} body={hata} />
+sehir.sureDk	app\sehir\secim\[id].tsx:65	return t('sehir.sureDk', { dk: m });
+sehir.sureDoldu	app\sehir\secim\[id].tsx:60	if (ms <= 0) return t('sehir.sureDoldu');
+sehir.sureGunSa	app\sehir\secim\[id].tsx:63	if (h > 24) return t('sehir.sureGunSa', { g: Math.floor(h / 24), sa: h % 24 });
+sehir.sureSaDk	app\sehir\secim\[id].tsx:64	if (h > 0) return t('sehir.sureSaDk', { sa: h, dk: m });
+sehir.vaatPlaceholder	app\sehir\secim\[id].tsx:232	placeholder={t('sehir.vaatPlaceholder')}
+sesOda.aciklamaMax120	src\moduller\ses-odalari\islemler\OdaBilgileriniGuncelle.ts:36	return { ok: false, hata: i18n.t('sesOda.aciklamaMax120') };
+sesOda.baslikBosOlmaz	src\moduller\ses-odalari\islemler\OdaBilgileriniGuncelle.ts:23	if (!t) return { ok: false, hata: i18n.t('sesOda.baslikBosOlmaz') };
+sesOda.baslikMax40	src\moduller\ses-odalari\islemler\OdaBilgileriniGuncelle.ts:24	if (t.length > 40) return { ok: false, hata: i18n.t('sesOda.baslikMax40') };
+sesOda.fotoSeciciBuildYok	src\moduller\ses-odalari\islemler\OdaKapakMedyasiYukle.ts:21	hata: i18n.t('sesOda.fotoSeciciBuildYok'),
+sesOda.guncellenecekAlanYok	src\moduller\ses-odalari\islemler\OdaBilgileriniGuncelle.ts:60	return { ok: false, hata: i18n.t('sesOda.guncellenecekAlanYok') };
+sesOda.kapakYuklenemediKisa	src\moduller\ses-odalari\islemler\OdaKapakMedyasiYukle.ts:82	hata: e instanceof Error ? e.message : i18n.t('sesOda.kapakYuklenemediKisa'),
+sesOda.koltukGuncellenemedi	src\moduller\ses-odalari\islemler\OdaKoltukSayisiniAyarla.ts:42	return { ok: false, hata: msg || i18n.t('sesOda.koltukGuncellenemedi') };
+sesOda.medyaDeposuHazirDegil	src\moduller\ses-odalari\islemler\OdaKapakMedyasiYukle.ts:72	? i18n.t('sesOda.medyaDeposuHazirDegil')
+sesOda.sadeceHostKoltuk	src\moduller\ses-odalari\islemler\OdaKoltukSayisiniAyarla.ts:34	return { ok: false, hata: i18n.t('sesOda.sadeceHostKoltuk') };
+webview.gecersizBaglantiBody	src\moduller\mesajlasma\islemler\MesajLinkAc.ts:114	i18n.t('webview.gecersizBaglantiBody'),

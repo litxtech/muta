@@ -1,17 +1,10 @@
 /**
- * Kişiler keşif üstü — canlı yayın ve şehir şeritleri.
+ * Kişiler keşif üstü — canlı yayın ve çevrimiçi kişi şeritleri.
  * Veri yoksa bölüm çizilmez.
  */
 
 import React, { useMemo } from 'react';
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
@@ -22,7 +15,6 @@ import {
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useCeviri } from '../../../i18n/useCeviri';
 import type { KisilerKesifKarti } from '../tipler';
-import type { SehirYukselen } from '../../sehirler/islemler/SehirModernIslemleri';
 import { basHarfler, harfRenkleri } from './KisilerKartYuz';
 
 export type CanliOzet = {
@@ -36,93 +28,87 @@ export type CanliOzet = {
 
 type Props = {
   canlilar: CanliOzet[];
-  sehirler: SehirYukselen[];
   cevrimiciler: KisilerKesifKarti[];
   vurguCanli: boolean;
   onlineOnly: boolean;
   aramaMetni: string;
   onProfil: (userId: string) => void;
   onCanli: (sessionId: string) => void;
-  onSehir: (cityId: string) => void;
 };
 
 export function KisilerKesfetSeritleri({
   canlilar,
-  sehirler,
   cevrimiciler,
   vurguCanli,
   onlineOnly,
-  aramaMetni,
   onProfil,
   onCanli,
-  onSehir,
 }: Props) {
   const { t } = useCeviri();
-  const q = aramaMetni.trim().toLocaleLowerCase();
-
-  const sehirSirasi = useMemo(() => {
-    if (!q) return sehirler;
-    const uyan = sehirler.filter((s) => s.name.toLocaleLowerCase().includes(q));
-    const diger = sehirler.filter((s) => !s.name.toLocaleLowerCase().includes(q));
-    return [...uyan, ...diger];
-  }, [q, sehirler]);
 
   const canliGoster = canlilar.length > 0 || vurguCanli;
-  const sehirGoster = sehirSirasi.length > 0;
   const aktifGoster = !onlineOnly && cevrimiciler.length > 0;
 
-  if (!canliGoster && !sehirGoster && !aktifGoster) return null;
-
-  const canliBlok = canliGoster ? (
-    <View style={styles.blok}>
-      <Text style={styles.baslik}>{t('kisiler.suAnCanli')}</Text>
-      {canlilar.length === 0 ? (
-        <Text style={styles.bos}>{t('kisiler.bosCanli')}</Text>
-      ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.satir}
-        >
-          {canlilar.map((c) => (
-            <Pressable
-              key={c.id}
-              style={styles.canliKart}
-              onPress={() => onCanli(c.id)}
-              accessibilityRole="button"
-              accessibilityLabel={`${t('kisiler.canliRozet')}, ${c.ad}`}
+  const canliBlok = useMemo(
+    () =>
+      canliGoster ? (
+        <View style={styles.blok}>
+          <View style={styles.baslikSatir}>
+            <Ionicons name="radio" size={14} color={RenkTokenlari.danger} />
+            <Text style={styles.baslik}>{t('kisiler.suAnCanli')}</Text>
+          </View>
+          {canlilar.length === 0 ? (
+            <Text style={styles.bos}>{t('kisiler.bosCanli')}</Text>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.satir}
             >
-              {c.avatar ? (
-                <Image source={{ uri: c.avatar }} style={styles.canliFoto} />
-              ) : (
-                <LinearGradient colors={harfRenkleri(c.hostId)} style={styles.canliFoto}>
-                  <Text style={styles.harf}>{basHarfler(c.ad)}</Text>
-                </LinearGradient>
-              )}
-              <View style={styles.canliRozet}>
-                <View style={styles.canliNokta} />
-                <Text style={styles.canliYazi}>{t('kisiler.canliRozet')}</Text>
-              </View>
-              <Text style={styles.ad} numberOfLines={1}>
-                {c.ad}
-              </Text>
-              {c.baslik ? (
-                <Text style={styles.alt} numberOfLines={1}>
-                  {c.baslik}
-                </Text>
-              ) : null}
-              <Text style={styles.alt}>{t('kisiler.izleyici', { n: c.izleyici })}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      )}
-    </View>
-  ) : null;
+              {canlilar.map((c) => (
+                <Pressable
+                  key={c.id}
+                  style={styles.canliKart}
+                  onPress={() => onCanli(c.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t('kisiler.canliRozet')}, ${c.ad}`}
+                >
+                  {c.avatar ? (
+                    <Image source={{ uri: c.avatar }} style={styles.canliFoto} />
+                  ) : (
+                    <LinearGradient colors={harfRenkleri(c.hostId)} style={styles.canliFoto}>
+                      <Text style={styles.harf}>{basHarfler(c.ad)}</Text>
+                    </LinearGradient>
+                  )}
+                  <View style={styles.canliRozet}>
+                    <View style={styles.canliNokta} />
+                    <Text style={styles.canliYazi}>{t('kisiler.canliRozet')}</Text>
+                  </View>
+                  <Text style={styles.ad} numberOfLines={1}>
+                    {c.ad}
+                  </Text>
+                  {c.baslik ? (
+                    <Text style={styles.alt} numberOfLines={1}>
+                      {c.baslik}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.alt}>{t('kisiler.izleyici', { n: c.izleyici })}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      ) : null,
+    [canliGoster, canlilar, onCanli, t],
+  );
 
   const aktifBlok = aktifGoster ? (
     <View style={styles.blok}>
-      <Text style={styles.baslik}>{t('kisilerX.cevrimici')}</Text>
+      <View style={styles.baslikSatir}>
+        <Ionicons name="ellipse" size={9} color={RenkTokenlari.mint} />
+        <Text style={styles.baslik}>{t('kisilerX.cevrimici')}</Text>
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -157,32 +143,7 @@ export function KisilerKesfetSeritleri({
     </View>
   ) : null;
 
-  const sehirBlok = sehirGoster ? (
-    <View style={styles.blok}>
-      <Text style={styles.baslik}>{t('kisiler.sehirleriKesfet')}</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.satir}
-      >
-        {sehirSirasi.map((s) => (
-          <Pressable
-            key={s.id}
-            style={styles.sehir}
-            onPress={() => onSehir(s.id)}
-            accessibilityRole="button"
-            accessibilityLabel={s.name}
-          >
-            <Ionicons name="business" size={14} color={RenkTokenlari.primarySoft} />
-            <Text style={styles.sehirAd} numberOfLines={1}>
-              {s.name}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-    </View>
-  ) : null;
+  if (!canliGoster && !aktifGoster) return null;
 
   return (
     <View style={styles.kok}>
@@ -190,13 +151,11 @@ export function KisilerKesfetSeritleri({
         <>
           {canliBlok}
           {aktifBlok}
-          {sehirBlok}
         </>
       ) : (
         <>
           {aktifBlok}
           {canliBlok}
-          {sehirBlok}
         </>
       )}
     </View>
@@ -210,6 +169,11 @@ const styles = StyleSheet.create({
   },
   blok: {
     gap: BoslukTokenlari.sm,
+  },
+  baslikSatir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   baslik: {
     ...TipografiTokenlari.caption,
@@ -313,23 +277,5 @@ const styles = StyleSheet.create({
     color: RenkTokenlari.text,
     textAlign: 'center',
     width: 72,
-  },
-  sehir: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    minHeight: 36,
-    paddingHorizontal: BoslukTokenlari.md,
-    borderRadius: YaricapTokenlari.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: RenkTokenlari.border,
-    backgroundColor: RenkTokenlari.bgElevated,
-    maxWidth: 180,
-  },
-  sehirAd: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.text,
-    fontWeight: '600',
-    flexShrink: 1,
   },
 });

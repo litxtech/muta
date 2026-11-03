@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <title>%WEB_TITLE%</title>
+    <meta name="robots" content="noindex, nofollow, noarchive" />
+    <meta name="theme-color" content="#080811" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+    <style id="tamuso-admin-kabuk">
+      /*
+       * Panelin mobil tabanı. Amaç: yerleşim cihazın gerçek genişliğinde
+       * kalsın ve hiçbir katman sayfayı sağa taşırmasın.
+       */
+      html,
+      body,
+      #root {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        min-width: 0;
+        background: #080811;
+        height: 100%;
+      }
+      /* Mobil tarayıcı çubuğu açılıp kapanırken yükseklik doğru kalsın. */
+      @supports (height: 100dvh) {
+        html,
+        body,
+        #root {
+          height: 100dvh;
+        }
+      }
+      body {
+        overflow: hidden;
+        overscroll-behavior: none;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      #root {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        position: relative;
+        overflow: hidden;
+      }
+      /* Flex satırlarındaki form alanları min-content (≈217px) altına inemiyordu. */
+      input,
+      textarea,
+      select {
+        min-width: 0;
+        max-width: 100%;
+        font-family: inherit;
+      }
+      img,
+      svg,
+      canvas,
+      video {
+        max-width: 100%;
+      }
+      /* iOS Safari 16px altındaki alanlara odaklanınca sayfayı zoom'lar. */
+      @media (pointer: coarse) {
+        input,
+        textarea,
+        select {
+          font-size: 16px !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>
+      <h1>Tamuso Yönetim</h1>
+      <p>Bu konsol yalnızca yetkili personel içindir. JavaScript gerekir.</p>
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>

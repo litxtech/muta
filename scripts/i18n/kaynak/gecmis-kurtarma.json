@@ -1,0 +1,12 @@
+{
+  "es": {
+    "sehir.nasilCalisir": "¿Cómo funciona?"
+  },
+  "ar": {
+    "kisilerAyar.ucretsizHakBaslik": "حق المكالمات المجانية",
+    "kisilerAyar.ucretsizHakKaldi": "المتبقي: {{sure}}",
+    "gorusme.coinAzaliyorKisa": "العملات تنفد · حزمة",
+    "kisilerX.ucretsizHak": "حق مجاني",
+    "kisilerX.ucretsizHakKaldi": "{{sure}} مجاني متبقٍ"
+  }
+}

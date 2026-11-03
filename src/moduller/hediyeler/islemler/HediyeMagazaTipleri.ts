@@ -8,8 +8,10 @@ export type CoinYuklePaneliDurumu = {
   kapat: () => void;
   packages: CoinPackage[];
   purchaseLocked: boolean;
+  /** Mağaza fiyatları yenileniyor */
+  yenileniyor?: boolean;
   satinAl: (pkg: CoinPackage) => void;
-  paketleriYenile?: () => void;
+  paketleriYenile?: (magazaFiyat?: boolean) => Promise<void>;
   upgradeAcik: boolean;
   upgradeKapat: () => void;
   upgradeAc: () => void;

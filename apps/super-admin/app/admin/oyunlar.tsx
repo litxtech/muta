@@ -437,14 +437,6 @@ export default function AdminOyunlarEkrani() {
                     {detayKod === c.game_code ? 'Detayı gizle' : 'Ekonomi / detay'}
                   </Text>
                 </Pressable>
-                {c.game_code === 'kozmik_kaskad' ? (
-                  <Pressable
-                    onPress={() => router.push('/admin/kaskad-yonetim' as any)}
-                    style={AdminStil.aksiyon}
-                  >
-                    <Text style={AdminStil.aksiyonYazi}>Kaskad RTP</Text>
-                  </Pressable>
-                ) : null}
                 {c.game_code === 'zeus' ? (
                   <Pressable
                     onPress={() =>
@@ -570,22 +562,6 @@ export default function AdminOyunlarEkrani() {
         ) : null}
 
         <Text style={AdminStil.sectionLabel}>Araçlar</Text>
-        <Pressable
-          style={AdminStil.kart}
-          onPress={() => router.push('/admin/oyun-test' as any)}
-        >
-          <Text style={AdminStil.kartBaslik}>Oyun testi</Text>
-          <Text style={AdminStil.kartAlt}>
-            Odasız · coin’siz denetim (Kaskad / Zeus / NOX)
-          </Text>
-        </Pressable>
-        <Pressable
-          style={AdminStil.kart}
-          onPress={() => router.push('/admin/kaskad-yonetim' as any)}
-        >
-          <Text style={AdminStil.kartBaslik}>Realm of Storms yönetimi</Text>
-          <Text style={AdminStil.kartAlt}>RTP · math · refund · müzik</Text>
-        </Pressable>
         <Pressable
           style={AdminStil.kart}
           onPress={() => router.push('/admin/oyun-algoritma?oyun=zeus' as any)}

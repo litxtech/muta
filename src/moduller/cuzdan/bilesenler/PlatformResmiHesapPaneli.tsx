@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -16,7 +16,7 @@ import { MaviTikRozeti } from '../../mesajlasma/bilesenler/MaviTikRozeti';
 import {
   PlatformResmiHesaplariListele,
   type PlatformResmiHesap,
-} from '../takas/TakasMahkemeIslemleri';
+} from '../../mesajlasma/okuma/PlatformResmiHesaplar';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -31,7 +31,7 @@ type Props = {
   onKapat: () => void;
 };
 
-/** Yargıç / mavi tik tıklanınca platform resmi hesapları */
+/** YargÄ±Ã§ / mavi tik tÄ±klanÄ±nca platform resmi hesaplarÄ± */
 export function PlatformResmiHesapPaneli({ acik, onKapat }: Props) {
   const { t } = useCeviri();
   const insets = useSafeAreaInsets();
@@ -62,8 +62,8 @@ export function PlatformResmiHesapPaneli({ acik, onKapat }: Props) {
               <Ionicons name="shield-checkmark" size={22} color="#fff" />
             </LinearGradient>
             <View style={{ flex: 1 }}>
-              <Text style={styles.baslik}>{t('takas.resmiHesapBaslik')}</Text>
-              <Text style={styles.alt}>{t('takas.resmiHesapAlt')}</Text>
+              <Text style={styles.baslik}>{t('resmiHesap.baslik')}</Text>
+              <Text style={styles.alt}>{t('resmiHesap.alt')}</Text>
             </View>
             <Pressable onPress={onKapat} hitSlop={10}>
               <Ionicons name="close" size={22} color={RenkTokenlari.textMuted} />
@@ -75,7 +75,7 @@ export function PlatformResmiHesapPaneli({ acik, onKapat }: Props) {
           ) : (
             <ScrollView style={{ maxHeight: 360 }}>
               {liste.length === 0 ? (
-                <Text style={styles.bos}>{t('takas.resmiHesapBos')}</Text>
+                <Text style={styles.bos}>{t('resmiHesap.bos')}</Text>
               ) : (
                 liste.map((h) => {
                   const avatar = MedyaUriGuvenli(h.avatar_url);
@@ -96,7 +96,7 @@ export function PlatformResmiHesapPaneli({ acik, onKapat }: Props) {
                         <MaviTikRozeti size={16} />
                       </View>
                       <Text style={styles.meta} numberOfLines={1}>
-                        {h.is_platform_yargic ? t('takas.yargicEtiket') : ''}
+                        {h.is_platform_yargic ? t('resmiHesap.yargicEtiket') : ''}
                         {h.username ? `@${h.username}` : h.public_user_id ?? ''}
                       </Text>
                     </View>
