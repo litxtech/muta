@@ -40,7 +40,6 @@ import {
   BelgePaylasimPaneli,
 } from '../../../../../src/moduller/belge-paylasim/bilesenler/BelgePaylasimPaneli';
 import { AdminKullaniciCoinPaneli } from '../../../../../src/moduller/admin/bilesenler/AdminKullaniciCoinPaneli';
-import { AdminKullaniciHesapDegeriPaneli } from '../../../../../src/moduller/admin/bilesenler/AdminKullaniciHesapDegeriPaneli';
 import {
   AdminKullaniciUnvanlari,
   AdminUnvanGeriAl,
@@ -684,14 +683,6 @@ export default function AdminKullaniciDosyaEkrani() {
             userRef={id!}
             baslik="Coin / ödül coin işlemleri"
             alt="Coin ve ödül coin bakiyesi görünür · ekle / eksilt / ceza"
-            onBasarili={() => void yukle()}
-          />
-
-          <AdminKullaniciHesapDegeriPaneli
-            userRef={id!}
-            mevcut={stats?.account_value ?? 0}
-            etiket={stats?.account_value_label}
-            override={stats?.account_value_override === true}
             onBasarili={() => void yukle()}
           />
 

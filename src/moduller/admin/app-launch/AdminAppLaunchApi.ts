@@ -313,6 +313,5 @@ export async function uploadAsset(
   });
   if (!yukleme.ok) throw new Error(yukleme.hata);
 
-  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(yukleme.path);
-  return { url: urlData.publicUrl, path: yukleme.path };
+  return { url: yukleme.publicUrl, path: yukleme.path };
 }

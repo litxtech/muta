@@ -17,6 +17,7 @@ import { HostBasvurusuOlustur } from '../../hostlar/islemler/HostBasvuruIslemler
 import { AjansDavetMesajindanKoduCikar } from '../../ajanslar/yardimcilar/AjansDavetMesajindanKoduCikar';
 import { AjansDavetHttpsUrlOlustur } from '../../paylasim-linkleri/PaylasimUrl';
 import { MedyaUriGuvenli } from '../yardimcilar/MedyaUriGecerliMi';
+import { useOzelMedyaUri } from '../../../ortak/medya/useOzelMedyaUri';
 import { MesajYanitOzetMetin } from '../yardimcilar/MesajYanitOzetMetin';
 import { DurumVideoOnizleme } from '../../durum/bilesenler/DurumVideoOnizleme';
 import { PaylasilanGonderiKarti } from '../../durum/paylasim/bilesenler/PaylasilanGonderiKarti';
@@ -151,7 +152,8 @@ export function MesajBaloncugu({
   const queued = item._localStatus === 'queued';
   const sending = item._localStatus === 'sending' || queued;
   const failed = item._localStatus === 'failed';
-  const safeMediaUri = MedyaUriGuvenli(item.media_url);
+  const ozelMedya = useOzelMedyaUri(item.view_once ? null : item.media_url);
+  const safeMediaUri = MedyaUriGuvenli(ozelMedya.uri);
   const isImage = item.message_type === 'image' && !!safeMediaUri;
   const isVideo = item.message_type === 'video' && !!safeMediaUri;
   const isVoice = item.message_type === 'voice';
@@ -161,6 +163,7 @@ export function MesajBaloncugu({
   const isBrokenMedia =
     (item.message_type === 'image' || item.message_type === 'video' || item.message_type === 'file') &&
     !safeMediaUri &&
+    !ozelMedya.bekliyor &&
     !isViewOnce;
   const isMedya = isImage || isVideo;
   const isSystem = item.message_type === 'system';
@@ -595,6 +598,24 @@ export function MesajBaloncugu({
         />
         {metaSatiri(false)}
       </Pressable>,
+    );
+  }
+
+  if (
+    ozelMedya.bekliyor &&
+    (item.message_type === 'image' || item.message_type === 'video')
+  ) {
+    return (
+      <View
+        style={[
+          styles.medyaKart,
+          mine ? styles.medyaMine : styles.medyaTheirs,
+          hiza,
+          styles.videoFull,
+        ]}
+      >
+        <ActivityIndicator color="rgba(255,255,255,0.75)" />
+      </View>
     );
   }
 

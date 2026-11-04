@@ -223,7 +223,7 @@ export function profileRead(token, profileId) {
   return select(
     token,
     'user_profile_stats',
-    `select=user_id,followers_count,following_count,posts_count,likes_count,charm_level,vip_level,account_value,account_value_label,gifter_rank,recharge_rank&user_id=eq.${profileId}`,
+    `select=user_id,followers_count,following_count,posts_count,likes_count,charm_level,vip_level,gifter_rank,recharge_rank&user_id=eq.${profileId}`,
     'profile:stats',
   );
 }

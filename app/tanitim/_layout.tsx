@@ -1,7 +1,10 @@
-import { Stack } from 'expo-router';
+import { Platform } from 'react-native';
+import { Redirect, Stack } from 'expo-router';
 
-/** Web tanıtım sitesi. Dil, ülkeye göre kabukta seçilir. */
+/** Web tanıtım sitesi. Dil, ülkeye göre kabukta seçilir. Uygulamada açılmaz. */
 export default function TanitimYerlesim() {
+  if (Platform.OS !== 'web') return <Redirect href="/" />;
+
   return (
     <Stack
       screenOptions={{

@@ -92,8 +92,7 @@ export async function ProfilMedyasiUriIleYukle(
       };
     }
 
-    const { data: pub } = supabase.storage.from('profile-media').getPublicUrl(up.path);
-    const url = `${pub.publicUrl}?t=${Date.now()}`;
+    const url = `${up.publicUrl}?t=${Date.now()}`;
     const column = tur === 'avatar' ? 'avatar_url' : 'cover_url';
 
     const { error: dbErr } = await supabase

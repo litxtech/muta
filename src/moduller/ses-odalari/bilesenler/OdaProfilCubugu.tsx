@@ -7,6 +7,7 @@ import React, { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ProfilAvatarKucuk } from '../../canli-sohbet/bilesenler/ProfilAvatarKucuk';
+import { PremiumAvatarCercevesi } from '../../kullanici-profili/avatar-cerceve/PremiumAvatarCercevesi';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { useCeviri } from '../../../i18n/useCeviri';
 
@@ -62,14 +63,25 @@ function OdaProfilCubuguInner({
       >
         <View style={styles.ic}>
           <View style={styles.parlama} pointerEvents="none" />
-          <View style={styles.avatarRing}>
-            <ProfilAvatarKucuk
-              size={28}
-              displayName={displayName}
-              username={username}
-              avatarUrl={avatarUrl}
-            />
-          </View>
+          {seviye != null ? (
+            <PremiumAvatarCercevesi level={seviye} size={28} variant="kucuk">
+              <ProfilAvatarKucuk
+                size={28}
+                displayName={displayName}
+                username={username}
+                avatarUrl={avatarUrl}
+              />
+            </PremiumAvatarCercevesi>
+          ) : (
+            <View style={styles.avatarRing}>
+              <ProfilAvatarKucuk
+                size={28}
+                displayName={displayName}
+                username={username}
+                avatarUrl={avatarUrl}
+              />
+            </View>
+          )}
           <View style={styles.metin}>
             <Text style={styles.ad} numberOfLines={1}>
               {ad}

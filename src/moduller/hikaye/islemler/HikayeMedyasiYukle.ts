@@ -12,6 +12,7 @@ import i18n from '../../../i18n';
 import * as FileSystem from 'expo-file-system/legacy';
 import { VIDEO_SIKISTIRMA_SONRASI_MAX_BYTES } from '../../../ortak/medya/VideoPaylasimSabitleri';
 import { Video1080eSikistir } from '../../../ortak/medya/VideoSikistir';
+import { R2YuklemeAdresiAl } from '../../../ortak/medya/R2Depo';
 import { HIKAYE_BUCKET, HIKAYE_VIDEO_MAX_BYTES } from '../sabitler';
 import type { HikayeMedyaTuru } from '../tipler';
 import { HikayeDosyaBoyutuBayt } from './HikayeVideoKirp';
@@ -72,7 +73,7 @@ async function videoStreamYukle(opts: {
   path: string;
   mime?: string | null;
   maxBytes: number;
-}): Promise<{ ok: true } | { ok: false; hata: string } | { ok: false; fallback: true }> {
+}): Promise<{ ok: true; url: string } | { ok: false; hata: string } | { ok: false; fallback: true }> {
   try {
     const bayt = await HikayeDosyaBoyutuBayt(opts.uri);
     if (bayt != null && bayt > opts.maxBytes) {
@@ -92,6 +93,29 @@ async function videoStreamYukle(opts: {
       return { ok: false, fallback: true };
     }
 
+    const ext = MedyaUzantisiCoz(opts.uri, opts.mime, 'mp4');
+    const contentType = GuvenliMimeTipi(opts.mime, ext, 'video');
+
+    const r2 = await R2YuklemeAdresiAl(supabase, {
+      bucket: HIKAYE_BUCKET,
+      path: opts.path,
+      contentType,
+    });
+    if (r2) {
+      try {
+        const r2Sonuc = await FileSystem.uploadAsync(r2.uploadUrl, opts.uri, {
+          httpMethod: 'PUT',
+          uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+          headers: { 'Content-Type': r2.contentType },
+        });
+        if (r2Sonuc.status >= 200 && r2Sonuc.status < 300) {
+          return { ok: true, url: r2.publicUrl };
+        }
+      } catch {
+        /* Supabase yoluna düş */
+      }
+    }
+
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -100,8 +124,6 @@ async function videoStreamYukle(opts: {
     const anon = OrtamDegiskenleri.supabaseAnonAnahtari;
     if (!token || !base || !anon) return { ok: false, fallback: true };
 
-    const ext = MedyaUzantisiCoz(opts.uri, opts.mime, 'mp4');
-    const contentType = GuvenliMimeTipi(opts.mime, ext, 'video');
     const uploadUrl = `${base}/storage/v1/object/${HIKAYE_BUCKET}/${opts.path}`;
 
     const sonuc = await FileSystem.uploadAsync(uploadUrl, opts.uri, {
@@ -116,7 +138,8 @@ async function videoStreamYukle(opts: {
     });
 
     if (sonuc.status >= 200 && sonuc.status < 300) {
-      return { ok: true };
+      const url = publicUrlOlustur(opts.path);
+      return url ? { ok: true, url } : { ok: false, fallback: true };
     }
 
     const govde =
@@ -147,10 +170,12 @@ export async function HikayeYerelMedyaYukle(input: {
   onSikistirma?: (pct: number) => void;
 }): Promise<HikayeMedyaSecimSonucu> {
   try {
-    const uid = (await supabase.auth.getUser()).data.user?.id;
+    const [oturum, ban] = await Promise.all([
+      supabase.auth.getSession(),
+      uploadBanKontrol(),
+    ]);
+    const uid = oturum.data.session?.user?.id;
     if (!uid) return { ok: false, hata: i18n.t('ortak.oturumYok') };
-
-    const ban = await uploadBanKontrol();
     if (ban) return { ok: false, hata: ban };
 
     let uri = input.uri;
@@ -224,21 +249,7 @@ export async function HikayeYerelMedyaYukle(input: {
         maxBytes,
       });
       if (stream.ok === true) {
-        const url = publicUrlOlustur(path);
-        if (!url) {
-          if (uploadId) {
-            try {
-              // eslint-disable-next-line @typescript-eslint/no-require-imports
-              const { UploadActivityHata } = require('../../tamuso-activity/entegrasyon/UploadActivityBagla') as {
-                UploadActivityHata: (id: string) => Promise<void>;
-              };
-              void UploadActivityHata(uploadId);
-            } catch {
-              /* ignore */
-            }
-          }
-          return { ok: false, hata: i18n.t('hikaye.gecersizAdres') };
-        }
+        const url = stream.url;
         if (uploadId) {
           try {
             // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -300,7 +311,7 @@ export async function HikayeYerelMedyaYukle(input: {
       return { ok: false, hata: up.hata };
     }
 
-    const url = publicUrlOlustur(up.path);
+    const url = up.depo === 'r2' ? up.publicUrl : publicUrlOlustur(up.path);
     if (!url) {
       if (uploadId) {
         try {

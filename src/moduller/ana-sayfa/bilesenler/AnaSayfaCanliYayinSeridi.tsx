@@ -18,12 +18,16 @@ import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
   BoslukTokenlari,
+  GolgeTokenlari,
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { SayiKisaBicim } from '../../../tasarim-sistemi/premium/SeviyeXpHesap';
+import { kullaniciTemaKodunuAl, temaAcikMi } from '../../../tasarim-sistemi/tema/TemaDurumu';
 import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
-import { useCeviri, type CeviriAnahtari } from '../../../i18n/useCeviri';
-import { ulkeAdi, ulkeBayragi } from '../sabitler/UlkeEtiketleri';
+import { useCeviri } from '../../../i18n/useCeviri';
+import { ulkeBayragi } from '../sabitler/UlkeEtiketleri';
+import { PremiumAvatarCercevesi } from '../../kullanici-profili/avatar-cerceve/PremiumAvatarCercevesi';
+import { AvatarCerceveBasamagi } from '../../kullanici-profili/avatar-cerceve/AvatarCerceveVarliklari';
 
 type Props = {
   ogeler: FeedOggesi[];
@@ -31,28 +35,22 @@ type Props = {
   onTumunuGor?: () => void;
 };
 
-const MODE_KEY: Record<string, CeviriAnahtari> = {
-  party: 'modlar.parti',
-  dating: 'modlar.flort',
-  karaoke: 'modlar.karaoke',
-  game: 'modlar.oyun',
-  private: 'modlar.ozel',
-  solo: 'modlar.tekli',
-  pk: 'pk.baslik',
-};
-
 const DOGRULANMIS_MAVI = '#3D9BFF';
 const MAKS_ICERIK_W = 480;
+const AVATAR = 52;
+/** Küçük çerçeve kutusu 40 / 0.74 ≈ 54 px; eski 52 px halkayla aynı yeri kaplar. */
+const CERCEVELI_AVATAR = 40;
 
-/** Yatay canlı yayın carousel — 3 kart görünür (tasarım: üçlü ızgara) */
+/** Yatay canlı yayın şeridi — beyaz kart: avatar, ad, canlı durumu, CANLI etiketi */
 export function AnaSayfaCanliYayinSeridi({ ogeler, onPress, onTumunuGor }: Props) {
   useTemayaAboneOl();
   const { t } = useCeviri();
+  const acik = temaAcikMi(kullaniciTemaKodunuAl());
   const { width: ekranW } = useWindowDimensions();
 
   const icerikW = Math.min(ekranW, MAKS_ICERIK_W) - BoslukTokenlari.lg * 2;
-  const kartW = Math.max(96, Math.floor((icerikW - BoslukTokenlari.sm * 2) / 3));
-  const kartH = Math.round(kartW * 1.2);
+  // İki kart tam, üçüncüsü kenardan görünür
+  const kartW = Math.max(220, Math.round((icerikW - BoslukTokenlari.sm) / 2));
 
   if (ogeler.length === 0) {
     return (
@@ -62,9 +60,14 @@ export function AnaSayfaCanliYayinSeridi({ ogeler, onPress, onTumunuGor }: Props
           emoji="🔥"
           onTumunuGor={onTumunuGor}
         />
-        <View style={styles.bos}>
-          <Text style={styles.bosBaslik}>{t('anaSayfa.canliBosBaslik')}</Text>
-          <Text style={styles.bosAlt}>{t('anaSayfa.canliBosAlt')}</Text>
+        <View style={[styles.bos, acik && GolgeTokenlari.card]}>
+          <View style={styles.bosIkon}>
+            <Ionicons name="videocam-outline" size={20} color={RenkTokenlari.primary} />
+          </View>
+          <View style={styles.bosMetin}>
+            <Text style={styles.bosBaslik}>{t('anaSayfa.canliBosBaslik')}</Text>
+            <Text style={styles.bosAlt}>{t('anaSayfa.canliBosAlt')}</Text>
+          </View>
         </View>
       </View>
     );
@@ -84,84 +87,80 @@ export function AnaSayfaCanliYayinSeridi({ ogeler, onPress, onTumunuGor }: Props
         decelerationRate="fast"
       >
         {ogeler.map((oge, i) => {
-          const kapak = MedyaUriGuvenli(oge.cover_url);
+          const avatar =
+            MedyaUriGuvenli(oge.host?.avatar_url) ?? MedyaUriGuvenli(oge.cover_url);
           const hostAd =
             oge.host?.display_name?.trim() ||
             (oge.host?.username ? `@${oge.host.username}` : t('anaSayfa.yayinci'));
-          const modKey = oge.mode ? MODE_KEY[oge.mode] : null;
-          const mod = modKey ? t(modKey) : null;
+          const harf = (hostAd.replace('@', '')[0] ?? 'T').toUpperCase();
           const ulke = oge.host?.country_code ?? null;
-          const ulkeMetni = ulkeAdi(ulke);
-          const altMetin = ulkeMetni || mod;
+          const seviye = oge.host?.level;
+          const foto = avatar ? (
+            <Image source={{ uri: avatar }} style={styles.avatar} />
+          ) : (
+            <LinearGradient
+              colors={[...RenkTokenlari.gradientPrimary]}
+              style={[styles.avatar, styles.avatarOrta]}
+            >
+              <Text style={styles.harf}>{harf}</Text>
+            </LinearGradient>
+          );
 
           return (
             <Pressable
               key={`${oge.id}-${i}`}
               onPress={() => onPress(oge)}
-              style={({ pressed }) => [styles.kartPress, pressed && styles.pressed]}
+              style={({ pressed }) => [pressed && styles.pressed]}
               accessibilityRole="button"
               accessibilityLabel={t('anaSayfa.canliA11y', { baslik: oge.title })}
             >
-              <View style={[styles.kart, { width: kartW, height: kartH }]}>
-                {kapak ? (
-                  <Image source={{ uri: kapak }} style={StyleSheet.absoluteFill} />
+              <View
+                style={[
+                  styles.kart,
+                  { width: kartW },
+                  acik && GolgeTokenlari.card,
+                ]}
+              >
+                {AvatarCerceveBasamagi(seviye) != null ? (
+                  <PremiumAvatarCercevesi level={seviye} size={CERCEVELI_AVATAR} variant="kucuk">
+                    {foto}
+                  </PremiumAvatarCercevesi>
                 ) : (
                   <LinearGradient
-                    colors={[...RenkTokenlari.gradientPlaceholder]}
-                    start={{ x: 0.1, y: 0 }}
-                    end={{ x: 0.9, y: 1 }}
-                    style={StyleSheet.absoluteFill}
-                  />
-                )}
-                <LinearGradient
-                  colors={[...RenkTokenlari.overlayGradient]}
-                  locations={[0.2, 0.55, 1]}
-                  style={StyleSheet.absoluteFill}
-                />
-
-                <View style={styles.ust}>
-                  <LinearGradient
-                    colors={[RenkTokenlari.live, RenkTokenlari.magenta]}
+                    colors={[RenkTokenlari.primary, RenkTokenlari.magenta]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={styles.canliBadge}
+                    style={styles.halka}
                   >
-                    <AnaSayfaCanliNokta boyut={5} renk="#fff" nabiz={false} />
-                    <Text style={styles.canliBadgeYazi}>
-                      {t('anaSayfa.canliRozet')}
-                    </Text>
-                  </LinearGradient>
-                  {oge.listener_count > 0 ? (
-                    <View style={styles.viewer}>
-                      <Ionicons name="eye" size={10} color="#fff" />
-                      <Text style={styles.viewerYazi}>
-                        {SayiKisaBicim(oge.listener_count)}
-                      </Text>
+                    <View style={[styles.avatarIc, { backgroundColor: RenkTokenlari.bgElevated }]}>
+                      {foto}
                     </View>
-                  ) : null}
-                </View>
+                  </LinearGradient>
+                )}
 
-                <View style={styles.alt}>
+                <View style={styles.metin}>
                   <View style={styles.adSatir}>
                     <Text style={styles.ad} numberOfLines={1}>
                       {hostAd}
                     </Text>
                     {oge.host?.is_verified ? (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={13}
-                        color={DOGRULANMIS_MAVI}
-                      />
+                      <Ionicons name="checkmark-circle" size={13} color={DOGRULANMIS_MAVI} />
                     ) : null}
                   </View>
-                  {altMetin ? (
-                    <View style={styles.ulkeSatir}>
-                      <Text style={styles.bayrak}>{ulkeBayragi(ulke)}</Text>
-                      <Text style={styles.ulkeYazi} numberOfLines={1}>
-                        {altMetin}
-                      </Text>
-                    </View>
-                  ) : null}
+                  <View style={styles.durumSatir}>
+                    <AnaSayfaCanliNokta boyut={6} renk={RenkTokenlari.live} nabiz={false} />
+                    <Text style={styles.durumYazi} numberOfLines={1}>
+                      {oge.listener_count > 0
+                        ? `${SayiKisaBicim(oge.listener_count)} · ${t('chain.canliYayinda')}`
+                        : t('chain.canliYayinda')}
+                    </Text>
+                    {ulke ? <Text style={styles.bayrak}>{ulkeBayragi(ulke)}</Text> : null}
+                  </View>
+                </View>
+
+                <View style={styles.rozet}>
+                  <Ionicons name="radio-outline" size={12} color={RenkTokenlari.primary} />
+                  <Text style={styles.rozetYazi}>{t('chain.canliEtiket')}</Text>
                 </View>
               </View>
             </Pressable>
@@ -176,63 +175,50 @@ const styles = StyleSheet.create({
   wrap: { marginBottom: BoslukTokenlari.lg },
   serit: {
     paddingHorizontal: BoslukTokenlari.lg,
+    paddingVertical: 4,
     gap: BoslukTokenlari.sm,
   },
-  kartPress: {},
   pressed: { opacity: 0.92, transform: [{ scale: 0.98 }] },
   kart: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingLeft: 12,
+    paddingRight: 10,
     borderRadius: YaricapTokenlari.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(232,64,145,0.42)',
     backgroundColor: RenkTokenlari.bgElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: RenkTokenlari.border,
   },
-  ust: {
-    position: 'absolute',
-    top: 7,
-    left: 7,
-    right: 7,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 4,
+  halka: {
+    width: AVATAR,
+    height: AVATAR,
+    borderRadius: AVATAR / 2,
+    padding: 2,
   },
-  canliBadge: {
-    flexDirection: 'row',
+  avatarIc: {
+    flex: 1,
+    borderRadius: AVATAR / 2,
+    overflow: 'hidden',
+  },
+  avatar: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarOrta: {
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  harf: {
+    ...TipografiTokenlari.h2,
+    color: RenkTokenlari.textOnPrimary,
+    fontSize: 20,
+  },
+  metin: {
+    flex: 1,
+    minWidth: 0,
     gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: YaricapTokenlari.pill,
-  },
-  canliBadgeYazi: {
-    ...TipografiTokenlari.micro,
-    color: '#fff',
-    fontSize: 8.5,
-    fontWeight: '800',
-    letterSpacing: 0.4,
-  },
-  viewer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: YaricapTokenlari.pill,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  viewerYazi: {
-    ...TipografiTokenlari.micro,
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: '700',
-  },
-  alt: {
-    position: 'absolute',
-    left: 8,
-    right: 8,
-    bottom: 8,
-    gap: 2,
   },
   adSatir: {
     flexDirection: 'row',
@@ -240,29 +226,45 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ad: {
-    ...TipografiTokenlari.caption,
-    color: RenkTokenlari.textOnOverlay,
+    ...TipografiTokenlari.body,
+    color: RenkTokenlari.text,
     fontWeight: '800',
-    fontSize: 12.5,
-    lineHeight: 16,
+    fontSize: 15,
     flexShrink: 1,
   },
-  ulkeSatir: {
+  durumSatir: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
   },
-  bayrak: {
-    fontSize: 10,
-    lineHeight: 13,
-  },
-  ulkeYazi: {
+  durumYazi: {
     ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textOnOverlay,
-    opacity: 0.8,
-    fontSize: 10,
+    color: RenkTokenlari.textMuted,
+    fontSize: 11.5,
     fontWeight: '600',
     flexShrink: 1,
+  },
+  bayrak: {
+    fontSize: 11,
+    lineHeight: 14,
+  },
+  rozet: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    height: 24,
+    borderRadius: YaricapTokenlari.pill,
+    backgroundColor: 'rgba(214,46,130,0.1)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(214,46,130,0.3)',
+  },
+  rozetYazi: {
+    ...TipografiTokenlari.micro,
+    color: RenkTokenlari.primary,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
   bos: {
     marginHorizontal: BoslukTokenlari.lg,
@@ -270,9 +272,20 @@ const styles = StyleSheet.create({
     borderRadius: YaricapTokenlari.lg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: RenkTokenlari.border,
-    backgroundColor: RenkTokenlari.bgCard,
-    gap: 4,
+    backgroundColor: RenkTokenlari.bgElevated,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
+  bosIkon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(214,46,130,0.1)',
+  },
+  bosMetin: { flex: 1, gap: 2 },
   bosBaslik: {
     ...TipografiTokenlari.h2,
     color: RenkTokenlari.text,

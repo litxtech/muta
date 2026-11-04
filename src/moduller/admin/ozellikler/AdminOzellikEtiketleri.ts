@@ -74,11 +74,6 @@ export const ADMIN_OZELLIK_GRUPLARI: AdminOzellikGrubu[] = [
     baslik: 'Cüzdan / Ödeme',
     flagKeys: [
       'iap_enabled',
-      'transaction_volume_enabled',
-      'transaction_volume_profile_enabled',
-      'transaction_volume_tiers_enabled',
-      'transaction_volume_leaderboard_enabled',
-      'transaction_volume_effects_enabled',
     ],
   },
   {
@@ -203,7 +198,6 @@ export const ADMIN_OZELLIK_GRUPLARI: AdminOzellikGrubu[] = [
       'kill_ai_music_generation',
       'kill_ai_assistant',
       'kill_live_chat_translation',
-      'kill_transaction_volume_display',
       'kill_country_league_display',
       'kill_people_discovery',
       'kill_people_paid_calls',
@@ -519,26 +513,6 @@ const OZELLIK_METINLERI: Record<string, AdminOzellikMetni> = {
     aciklama:
       'DM, canlı yayın, ses odası ve görüşme mesajlarında otomatik çeviri (üstte hedef dil, altta orijinal).',
   },
-  transaction_volume_enabled: {
-    baslik: 'İşlem hacmi',
-    aciklama: 'İşlem hacmi sistemini (özet, kart, ayarlar) tamamen açar veya kapatır.',
-  },
-  transaction_volume_profile_enabled: {
-    baslik: 'İşlem hacmi profil kartı',
-    aciklama: 'Profil ekranlarındaki İşlem Hacmi kartını gösterir veya gizler.',
-  },
-  transaction_volume_tiers_enabled: {
-    baslik: 'İşlem hacmi kademeleri',
-    aciklama: 'Kademe (tier) etiketi, rozet ve ilerleme gösterimini açar.',
-  },
-  transaction_volume_leaderboard_enabled: {
-    baslik: 'İşlem hacmi liderliği',
-    aciklama: 'İşlem hacmi liderlik tablosunu ve katılım anahtarını açar.',
-  },
-  transaction_volume_effects_enabled: {
-    baslik: 'İşlem hacmi efektleri',
-    aciklama: 'Kademe çerçeve ve görsel efektlerinin gösterimini açar.',
-  },
   people_discovery_enabled: {
     baslik: 'Kişiler keşfi',
     aciklama: 'Kişiler sayfasını ve tüm keşif girişlerini açar veya kapatır (master).',
@@ -649,10 +623,6 @@ const KILL_METINLERI: Record<string, AdminOzellikMetni> = {
   kill_live_chat_translation: {
     baslik: 'Sohbet çevirisini durdur',
     aciklama: 'Canlı/oda/DM/görüşme çevirisini acil kapatır.',
-  },
-  kill_transaction_volume_display: {
-    baslik: 'İşlem hacmi gösterimini durdur',
-    aciklama: 'Acil durumda profil ve detaydaki işlem hacmi kartlarını gizler.',
   },
   kill_country_league_display: {
     baslik: 'Ülke ligi gösterimini durdur',

@@ -1,6 +1,5 @@
 import { supabase } from '../../../lib/supabase';
 import i18n from '../../../i18n';
-import { OrtamDegiskenleri } from '../../../yapilandirma/OrtamDegiskenleri';
 import { GaleriAc } from '../../../ortak/medya/ImagePickerHazirMi';
 import {
   DepoyaMedyaYukle,
@@ -41,14 +40,11 @@ export async function FikirGorseliSecVeYukle(opts?: {
     });
     if (!up.ok) return { ok: false, hata: up.hata };
 
-    const base = OrtamDegiskenleri.supabaseUrl?.replace(/\/$/, '') ?? '';
-    const public_url = `${base}/storage/v1/object/public/feedback-media/${up.path}`;
-
     return {
       ok: true,
       ek: {
         storage_path: up.path,
-        public_url,
+        public_url: up.publicUrl,
         mime_type: up.contentType,
       },
     };

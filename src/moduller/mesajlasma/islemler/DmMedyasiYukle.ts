@@ -119,10 +119,12 @@ export async function DmMedyaUriYukle(
   | { ok: false; hata: string }
 > {
   try {
-    const uid = (await supabase.auth.getUser()).data.user?.id;
+    const [oturum, ban] = await Promise.all([
+      supabase.auth.getSession(),
+      uploadBanKontrol(),
+    ]);
+    const uid = oturum.data.session?.user?.id;
     if (!uid) return { ok: false, hata: i18n.t('ortak.oturumYok') };
-
-    const ban = await uploadBanKontrol();
     if (!ban.ok) return ban;
 
     const ext = MedyaUzantisiCoz(
@@ -139,14 +141,14 @@ export async function DmMedyaUriYukle(
       mime: item.mimeType,
       tur: item.tur,
       upsert: false,
+      depo: 'r2',
     });
 
     if (!up.ok) return { ok: false, hata: up.hata };
 
-    const { data: pub } = supabase.storage.from('dm-media').getPublicUrl(up.path);
     return {
       ok: true,
-      url: pub?.publicUrl || publicUrl(up.path),
+      url: up.publicUrl || publicUrl(up.path),
       messageType: item.tur,
     };
   } catch (e) {

@@ -7,12 +7,11 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BackHandler, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { registerFruitWheel } from '../fruit-wheel/FruitWheelKayit';
 import { FruitWheelEkrani } from '../fruit-wheel/ekranlar/FruitWheelEkrani';
 import { fruitWheelIsit } from '../fruit-wheel/servisler/FruitWheelApi';
 import { OyunBaslatModal } from '../ortak/bilesenler/OyunBaslatModal';
 import { useGorunurOyunKodlari } from '../ortak/hooks/useGorunurOyunKodlari';
-import type { GameCode, GameSession, RoomGameMeta } from '../ortak/tipler/OyunTipleri';
+import type { GameCode, RoomGameMeta } from '../ortak/tipler/OyunTipleri';
 import { OyunOdaAltKart } from './OyunOdaAltKart';
 
 export type OyunOdaKatmaniProps = {
@@ -24,8 +23,6 @@ export type OyunOdaKatmaniProps = {
   onStartModalClose: () => void;
   /** Oyun oturumu başlayınca (modal kapansa bile dock gizli kalsın) */
   onGameStarted?: () => void;
-  inviteSession?: GameSession | null;
-  onInviteDismiss?: () => void;
   onOverlayClosed?: () => void;
   /** Disaridan verilirse yeniden fetch edilmez (oda zaten yuklemis olabilir). */
   visibleGameCodes?: readonly GameCode[];
@@ -42,16 +39,10 @@ export function OyunOdaKatmani({
   startModalVisible,
   onStartModalClose,
   onGameStarted,
-  inviteSession,
-  onInviteDismiss,
   onOverlayClosed,
   visibleGameCodes: visibleGameCodesProp,
   initialGameCode,
 }: OyunOdaKatmaniProps) {
-  useEffect(() => {
-    registerFruitWheel();
-  }, []);
-
   const [phase, setPhase] = useState<Phase>('idle');
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -75,12 +66,6 @@ export function OyunOdaKatmani({
   });
   const visibleGameCodes = visibleGameCodesProp ?? gorunurHook.codes;
   const visibilityReady = visibleGameCodesProp != null || !gorunurHook.loading;
-
-  useEffect(() => {
-    if (!inviteSession) return;
-    if (!visibilityReady) return;
-    onInviteDismiss?.();
-  }, [inviteSession, visibilityReady, onInviteDismiss]);
 
   const closeOverlay = useCallback(() => {
     setPhase('idle');

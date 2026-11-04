@@ -19,13 +19,6 @@ import {
   type AjansPanelDetay,
 } from '../../../src/moduller/ajanslar/islemler/AjansPanelIslemleri';
 import {
-  AjansAkademiEkle,
-  AjansAkademiListesi,
-  AjansFormGetir,
-  AjansFormKaydet,
-  AjansKanalHazirla,
-  AjansKanalListesi,
-  AjansOdulTanimla,
   AjansStaffListesi,
   AjansStaffYetkiAyarla,
   AjansYoneticiAta,
@@ -44,16 +37,7 @@ import type { CeviriAnahtari } from '../../../src/i18n/useCeviri';
 const YONETICI_TOGGLE_KODLARI: Array<{ code: string; labelKey: CeviriAnahtari }> = [
   { code: 'agency.manage_members', labelKey: 'ajans.izinUyeleriYonet' },
   { code: 'agency.manage_applications', labelKey: 'ajans.izinBasvurulariYonet' },
-  { code: 'agency.manage_announcements', labelKey: 'ajans.izinDuyuruGonder' },
-  { code: 'agency.manage_events', labelKey: 'ajans.izinEtkinlikOlustur' },
-  { code: 'agency.manage_schedule', labelKey: 'ajans.izinProgramYonet' },
   { code: 'agency.view_analytics', labelKey: 'ajans.izinAnalitikGor' },
-  { code: 'agency.view_finance', labelKey: 'ajans.izinIslemleriGor' },
-  { code: 'agency.manage_coin_operations', labelKey: 'ajans.izinCoinIslemi' },
-  { code: 'agency.manage_sale_links', labelKey: 'ajans.izinSatisLink' },
-  { code: 'agency.view_sales', labelKey: 'ajans.izinSatisGor' },
-  { code: 'agency.review_sales', labelKey: 'ajans.izinSatisIncele' },
-  { code: 'agency.manage_invoices', labelKey: 'ajans.izinFaturaYonet' },
   { code: 'agency.manage_profile', labelKey: 'ajans.izinProfilDegistir' },
   { code: 'agency.manage_support', labelKey: 'ajans.izinDestekGor' },
 ];
@@ -70,9 +54,6 @@ export default function AjansAyarlarEkrani() {
   const [staff, setStaff] = useState<Array<Record<string, unknown>>>([]);
   const [seciliStaff, setSeciliStaff] = useState<string | null>(null);
   const [yoneticiAd, setYoneticiAd] = useState('');
-  const [akademi, setAkademi] = useState<Array<Record<string, unknown>>>([]);
-  const [akademiBaslik, setAkademiBaslik] = useState('');
-  const [kanallar, setKanallar] = useState<Array<Record<string, unknown>>>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -87,14 +68,7 @@ export default function AjansAyarlarEkrani() {
       setUlke(d.agency.country ?? '');
       setAciklama(d.agency.description ?? '');
       setKurallar(d.rules?.body ?? '');
-      const [s, a, k] = await Promise.all([
-        AjansStaffListesi(id).catch(() => []),
-        AjansAkademiListesi(id).catch(() => []),
-        AjansKanalListesi(id).catch(() => []),
-      ]);
-      setStaff(s);
-      setAkademi(a);
-      setKanallar(k);
+      setStaff(await AjansStaffListesi(id).catch(() => []));
     } catch {
       setDetay(null);
     } finally {
@@ -307,124 +281,6 @@ export default function AjansAyarlarEkrani() {
             })}
           </View>
         ) : null}
-      </AjansKart>
-
-      <AjansBolumBaslik>{t('ajans.kanallarBolum')}</AjansBolumBaslik>
-      <AjansKart>
-        <AjansCta
-          label={t('ajans.kanallariHazirla')}
-          onPress={() => {
-            void (async () => {
-              const r = await AjansKanalHazirla(id);
-              if (!r.ok) Alert.alert(t('ajans.alertKanal'), r.hata);
-              else {
-                setKanallar(r.kanallar);
-                Alert.alert(t('ajans.tamam'), t('ajans.kanallarHazir'));
-              }
-            })();
-          }}
-        />
-        {kanallar.map((k) => (
-          <AjansListeSatir
-            key={String(k.id)}
-            title={String(k.channel_kind)}
-            subtitle={String(k.thread_id ?? '')}
-            onPress={() =>
-              k.thread_id && router.push(`/mesaj/${k.thread_id}` as any)
-            }
-          />
-        ))}
-      </AjansKart>
-
-      <AjansBolumBaslik>{t('ajans.akademiBolum')}</AjansBolumBaslik>
-      <AjansKart>
-        <AjansInput
-          value={akademiBaslik}
-          onChangeText={setAkademiBaslik}
-          placeholder={t('ajans.phRehberBaslik')}
-        />
-        <AjansCta
-          label={t('ajans.ekleBaslangic')}
-          onPress={() => {
-            void (async () => {
-              const r = await AjansAkademiEkle({
-                agencyId: id,
-                category: 'baslangic',
-                title: akademiBaslik.trim() || t('ajans.baslangicRehberi'),
-                body: t('ajans.baslangicRehberBody'),
-              });
-              if (!r.ok) Alert.alert(t('ajans.alertAkademi'), r.hata);
-              else {
-                setAkademiBaslik('');
-                await yukle();
-              }
-            })();
-          }}
-        />
-        {akademi.map((a) => (
-          <AjansListeSatir
-            key={String(a.id)}
-            title={String(a.title)}
-            subtitle={`${a.category}${a.completed ? t('ajans.tamamlandiSuffix') : ''}`}
-          />
-        ))}
-      </AjansKart>
-
-      <AjansBolumBaslik>{t('ajans.basvuruFormuBolum')}</AjansBolumBaslik>
-      <AjansKart>
-        <AjansCta
-          label={t('ajans.varsayilanFormKaydet')}
-          onPress={() => {
-            void (async () => {
-              const r = await AjansFormKaydet({
-                agencyId: id,
-                title: t('ajans.hostBasvuruFormu'),
-                fields: [
-                  {
-                    field_type: 'short_text',
-                    label: t('ajans.formSaatler'),
-                    required: true,
-                    sort_order: 1,
-                  },
-                  {
-                    field_type: 'single_choice',
-                    label: t('ajans.formYayinTuru'),
-                    options: [t('ajans.formSecSohbet'), t('ajans.formSecMuzik'), t('ajans.formSecOyun')],
-                    required: true,
-                    sort_order: 2,
-                  },
-                  {
-                    field_type: 'yes_no',
-                    label: t('ajans.formOncekiYayin'),
-                    required: false,
-                    sort_order: 3,
-                  },
-                ],
-              });
-              if (!r.ok) Alert.alert(t('ajans.form'), r.hata);
-              else {
-                const f = await AjansFormGetir(id);
-                Alert.alert(t('ajans.tamam'), t('ajans.alanKaydedildi', { count: f.fields?.length ?? 0 }));
-              }
-            })();
-          }}
-        />
-        <AjansCta
-          ghost
-          label={t('ajans.odulTanimla')}
-          onPress={() => {
-            void (async () => {
-              const r = await AjansOdulTanimla({
-                agencyId: id,
-                rewardType: 'badge',
-                title: t('ajans.ajansYildizi'),
-                description: t('ajans.aktifHostOdulu'),
-              });
-              if (!r.ok) Alert.alert(t('ajans.alertOdul'), r.hata);
-              else Alert.alert(t('ajans.tamam'), t('ajans.odulTanimlandi'));
-            })();
-          }}
-        />
       </AjansKart>
 
       <AjansBolumBaslik>{t('ajans.kurallarBolum')}</AjansBolumBaslik>

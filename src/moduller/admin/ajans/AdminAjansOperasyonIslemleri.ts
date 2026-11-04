@@ -1,18 +1,10 @@
 import { supabase } from '../../../lib/supabase';
 
 export const AJANS_OZELLIK_KILITLERI = [
-  { key: 'sale_links', label: 'Satış linkleri' },
-  { key: 'sales_ops', label: 'Satış takibi' },
-  { key: 'coin_transfer', label: 'Coin transfer' },
   { key: 'invites', label: 'Davetler' },
   { key: 'applications', label: 'Başvurular' },
-  { key: 'invoices', label: 'Faturalar' },
-  { key: 'packages', label: 'Paketler' },
-  { key: 'announcements', label: 'Duyurular' },
   { key: 'rooms', label: 'Ses odaları' },
   { key: 'live', label: 'Canlı yayın' },
-  { key: 'gift_earn', label: 'Satış hediyesi' },
-  { key: 'wallet_ops', label: 'Cüzdan işlemleri' },
 ] as const;
 
 export type AjansOzellikKey = (typeof AJANS_OZELLIK_KILITLERI)[number]['key'];
@@ -39,22 +31,8 @@ export type AdminAjansOperasyonOzeti = {
       locked_at?: string;
     }>;
   };
-  sales: Array<Record<string, unknown>>;
-  links: Array<Record<string, unknown>>;
   invites: Array<Record<string, unknown>>;
   sanctions: Array<Record<string, unknown>>;
-  top_buyers: Array<{
-    buyer_id?: string | null;
-    buyer_name?: string;
-    toplam_try?: number;
-    toplam_coin?: number;
-    islem_adet?: number;
-  }>;
-  ciro: {
-    toplam_try?: number;
-    toplam_coin?: number;
-    islem_adet?: number;
-  };
 };
 
 function rpcHata(error: { message?: string } | null): never {
@@ -152,19 +130,6 @@ export async function AdminAjansYaptirimKaldir(
   const { error } = await supabase.rpc('admin_ajans_yaptirim_kaldir', {
     p_sanction_id: sanctionId,
     p_note: note ?? null,
-  });
-  if (error) rpcHata(error);
-}
-
-export async function AdminAjansSatisLinkiAktiflik(input: {
-  agencyId: string;
-  linkId: string;
-  isActive: boolean;
-}): Promise<void> {
-  const { error } = await supabase.rpc('admin_ajans_satis_linki_aktiflik', {
-    p_agency_id: input.agencyId,
-    p_id: input.linkId,
-    p_is_active: input.isActive,
   });
   if (error) rpcHata(error);
 }

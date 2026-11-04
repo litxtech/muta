@@ -5,6 +5,7 @@ import {
   VIDEO_ATLA_MAX_MBPS,
   VIDEO_HEDEF_MAX_EDGE,
   VIDEO_MIN_MB_FOR_COMPRESS,
+  VIDEO_SIKISTIRMA_AKTIF,
 } from './VideoPaylasimSabitleri';
 
 export type VideoSikistirSonuc =
@@ -27,6 +28,8 @@ type Opts = {
   hizliAtla?: boolean;
   /** Biliniyorsa atlama kararı daha isabetli (bitrate hesabı). */
   durationMs?: number | null;
+  /** VIDEO_SIKISTIRMA_AKTIF=false iken de sıkıştır (Supabase boyut sınırı yedeği) */
+  zorla?: boolean;
 };
 
 let nativeUyariLoglandi = false;
@@ -205,7 +208,7 @@ export function Video1080OnIsit(
   uri: string,
   opts?: Pick<Opts, 'durationMs' | 'maxEdge'>,
 ): void {
-  if (Platform.OS === 'web') return;
+  if (Platform.OS === 'web' || !VIDEO_SIKISTIRMA_AKTIF) return;
   const kaynak = (uri ?? '').trim();
   if (!kaynak || onIsitMap.has(kaynak)) return;
   const p = sikistirIc(kaynak, {
@@ -255,6 +258,11 @@ export async function Video1080eSikistir(
       mime: 'video/mp4',
       skipped: true,
     };
+  }
+
+  if (!VIDEO_SIKISTIRMA_AKTIF && !opts?.zorla) {
+    opts?.onProgress?.(1);
+    return { ok: false, hata: 'sikistirma_kapali', uri: kaynak };
   }
 
   const hazir = onIsitMap.get(kaynak);

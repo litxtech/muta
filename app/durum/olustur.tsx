@@ -18,6 +18,8 @@ import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { GradientButton } from '../../src/components/GradientButton';
 import { ModulHataSiniri } from '../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { ImagePickerOnIsit } from '../../src/ortak/medya/ImagePickerHazirMi';
+import { R2Isit } from '../../src/ortak/medya/R2Depo';
+import { supabase } from '../../src/lib/supabase';
 import { KlavyeGuvenliAlan } from '../../src/bilesenler/klavye/KlavyeGuvenliAlan';
 import { useKlavyeYuksekligi } from '../../src/bilesenler/klavye/useKlavyeYuksekligi';
 import { useAuth } from '../../src/contexts/AuthContext';
@@ -61,6 +63,7 @@ export default function DurumOlusturEkrani() {
   useEffect(() => {
     // Video seçiminde izin dialog’u picker’dan önce gelmesin
     ImagePickerOnIsit({ izinIste: true });
+    R2Isit(supabase);
   }, []);
 
   const MOODLAR: { kod: string; etiket: string; emoji: string }[] = [

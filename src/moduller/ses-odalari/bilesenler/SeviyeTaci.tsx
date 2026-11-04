@@ -1,9 +1,8 @@
 /**
- * Oda / sohbet — küçük avatarı saran kompakt taç halkası.
+ * Oda / sohbet — avatarı saran seviye çerçevesi.
  */
 import React from 'react';
-import { View } from 'react-native';
-import { AvatarTacHalkasi } from '../../kullanici-profili/bilesenler/AvatarTacHalkasi';
+import { PremiumAvatarCercevesi } from '../../kullanici-profili/avatar-cerceve/PremiumAvatarCercevesi';
 
 type Props = {
   level: number;
@@ -21,7 +20,7 @@ const BOY: Record<'sm' | 'md' | 'lg', number> = {
   lg: 72,
 };
 
-/** Avatarı saran seviye tacı — children zorunlu (avatarla bütün) */
+/** Avatarı saran seviye çerçevesi — children zorunlu (avatarla bütün) */
 export function SeviyeTaci({
   level,
   size = 'sm',
@@ -30,33 +29,15 @@ export function SeviyeTaci({
   avatarBoy,
   children,
 }: Props) {
-  const boy = avatarBoy ?? BOY[size];
-  const gecerli = !!level && level >= 1;
-
-  if (!gecerli || gizli) {
-    return (
-      <View
-        style={{
-          width: boy,
-          height: boy,
-          borderRadius: boy / 2,
-          overflow: 'hidden',
-        }}
-      >
-        {children}
-      </View>
-    );
-  }
-
   return (
-    <AvatarTacHalkasi
-      size={boy}
+    <PremiumAvatarCercevesi
+      size={avatarBoy ?? BOY[size]}
       level={level}
-      yogunluk="oda"
       gizli={gizli}
-      animasyonlu={animasyonluMu}
+      variant={size === 'sm' ? 'kucuk' : 'orta'}
+      disableAnimation={!animasyonluMu}
     >
       {children}
-    </AvatarTacHalkasi>
+    </PremiumAvatarCercevesi>
   );
 }

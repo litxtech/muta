@@ -4,6 +4,7 @@ import {
   BackHandler,
   DeviceEventEmitter,
   FlatList,
+  Image,
   Linking,
   Platform,
   Pressable,
@@ -46,7 +47,14 @@ import {
   AnaSayfaFiltreCipleri,
   type FeedFiltre,
   type FeedFiltreOgesi,
+  type FeedKategoriBaglantisi,
 } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaFiltreCipleri';
+import { PerformansHeroKart } from '../../src/moduller/tamuso-chain/bilesenler/PerformansHeroKart';
+import {
+  PerformansAkisiGetir,
+  PerformansOneCikanGetir,
+} from '../../src/moduller/tamuso-chain/islemler/PerformansIslemleri';
+import type { PerformansOgesi } from '../../src/moduller/tamuso-chain/tipler';
 import { AnaSayfaAramaCubugu } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaAramaCubugu';
 import { AnaSayfaUlkeCipleri } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaUlkeCipleri';
 import { AnaSayfaAramaOnerileri } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaAramaOnerileri';
@@ -69,7 +77,6 @@ import {
 } from '../../src/moduller/canli-yayin/navigasyon/CanliYayinaGit';
 import {
   AnaSayfaCekmeceMenu,
-  AnaSayfaProfilMenuDugmesi,
   type AnaSayfaMenuOgesi,
 } from '../../src/moduller/ana-sayfa/bilesenler/AnaSayfaCekmeceMenu';
 import { CihazPushTokeniniKaydet } from '../../src/moduller/bildirimler/kayit/CihazPushTokeniniKaydet';
@@ -120,6 +127,11 @@ const REALTIME_DEBOUNCE_MS = 6_000;
 
 /** Ana sayfa ızgarası — tasarımdaki 3'lü kolon */
 const IZGARA_KOLON = 3;
+
+const TAMUSO_LOGO = require('../../assets/icon.png');
+
+/** Ana sayfa Chain karuseli — öne çıkan + en yeniler */
+const PERFORMANS_KARUSEL_LIMIT = 10;
 
 function feedAyniMi(a: FeedOggesi[], b: FeedOggesi[]): boolean {
   if (a.length !== b.length) return false;
@@ -189,6 +201,30 @@ export default function HomeScreen() {
   const [ilkHazir, setIlkHazir] = useState(false);
   const loadNesil = useRef(0);
   const listeRef = useRef<FlatList<FeedBannerRow<FeedIzgaraOgesi>>>(null);
+  const [performanslar, setPerformanslar] = useState<PerformansOgesi[]>([]);
+  const [performansYukleniyor, setPerformansYukleniyor] = useState(true);
+  const [ekranOdakli, setEkranOdakli] = useState(true);
+  const [heroGorunur, setHeroGorunur] = useState(true);
+  const heroAltY = useRef(0);
+
+  const performansYukle = useCallback(async () => {
+    const [one, akis] = await Promise.allSettled([
+      PerformansOneCikanGetir(),
+      PerformansAkisiGetir(PERFORMANS_KARUSEL_LIMIT),
+    ]);
+    // İkisi de başarısızsa eldeki liste kalır
+    if (one.status === 'fulfilled' || akis.status === 'fulfilled') {
+      const ilk = one.status === 'fulfilled' ? one.value : null;
+      const digerleri =
+        akis.status === 'fulfilled'
+          ? akis.value.filter((p) => p.id !== ilk?.id)
+          : [];
+      setPerformanslar(
+        (ilk ? [ilk, ...digerleri] : digerleri).slice(0, PERFORMANS_KARUSEL_LIMIT),
+      );
+    }
+    setPerformansYukleniyor(false);
+  }, []);
 
   useEffect(() => {
     let iptal = false;
@@ -340,8 +376,10 @@ export default function HomeScreen() {
       odakli.current = true;
       kaydiriyor.current = false;
       setMenuAcik(false);
+      setEkranOdakli(true);
       // Oda/profil dönüşünde spinner açma — sessiz yenile
       void load(ilkYuklemeBitti.current ? 'sessiz' : 'ilk');
+      void performansYukle();
       void bildirimYenile();
       const timer = setInterval(() => {
         // Offline oda/canlı (is_live filter kaçırır) — TTL cache'i kırıp taze çek
@@ -352,6 +390,7 @@ export default function HomeScreen() {
       }, YENILE_MS);
       return () => {
         odakli.current = false;
+        setEkranOdakli(false);
         kaydiriyor.current = false;
         // Nesli artır: iptal olan istek finally'de boş ekranı boyamasın.
         // loading'i burada false yapmak, feed boşken boş durum kartını bir kare gösterir.
@@ -359,7 +398,7 @@ export default function HomeScreen() {
         setRefreshing(false);
         clearInterval(timer);
       };
-    }, [load, bildirimYenile]),
+    }, [load, bildirimYenile, performansYukle]),
   );
 
   /** Ana tab’a tekrar bas → feed en üste */
@@ -590,17 +629,46 @@ export default function HomeScreen() {
         etiket: t('odalar.canli'),
         icon: 'videocam',
         sayi: yayinSayisi,
-        tint: RenkTokenlari.primarySoft,
+        tint: RenkTokenlari.primary,
       },
       {
         kod: 'ses',
-        etiket: t('anaSayfa.filtreSes'),
+        etiket: t('chain.sesliOdalar'),
         icon: 'headset',
         sayi: sesSayisi,
-        tint: RenkTokenlari.mint,
+        tint: RenkTokenlari.magenta,
       },
     ],
     [sesSayisi, yayinSayisi, t],
+  );
+
+  const kategoriOncesi = useMemo<FeedKategoriBaglantisi[]>(
+    () =>
+      OzellikBayragiAktifMi('people_discovery_enabled')
+        ? [
+            {
+              anahtar: 'kisiler',
+              etiket: t('kisiler.baslik'),
+              icon: 'people',
+              tint: RenkTokenlari.primary,
+              onPress: () => router.push('/kisiler' as any),
+            },
+          ]
+        : [],
+    [t, bayrakSurum],
+  );
+
+  const kategoriSonrasi = useMemo<FeedKategoriBaglantisi[]>(
+    () => [
+      {
+        anahtar: 'ajanslar',
+        etiket: t('chain.ajanslar'),
+        icon: 'layers',
+        tint: RenkTokenlari.violet,
+        onPress: () => router.push('/ajans' as any),
+      },
+    ],
+    [t],
   );
 
   const feedCanliyaGit = useCallback((oge: FeedOggesi): boolean => {
@@ -677,35 +745,36 @@ export default function HomeScreen() {
               alt: t('anaSayfa.bosSahneAlt'),
             };
 
-  const listHeader = useMemo(() => {
-    const ustChrome = (
-      <View style={[styles.ustChrome, { paddingTop: insets.top + BoslukTokenlari.sm }]}>
-        <View style={styles.ustAksiyon}>
-          <AnaSayfaProfilMenuDugmesi
+  // Bölümler ayrı memo'lanır: kaydırırken hero görünürlüğü değişince yalnızca
+  // performans alanı yeniden çizilir (aynı element referansı React'te atlanır).
+  const ustChrome = useMemo(
+    () => (
+      <View style={[styles.ustChrome, { paddingTop: insets.top + BoslukTokenlari.xs }]}>
+        <View style={styles.markaSatir}>
+          <Pressable
             onPress={() => setMenuAcik(true)}
-            avatarUrl={profile?.avatar_url}
-            harf={
-              profile?.display_name?.trim()?.[0] ||
-              profile?.username?.trim()?.[0] ||
-              '?'
-            }
-          />
-          <View style={styles.aramaEsnek}>
-            <AnaSayfaAramaCubugu
-              gomulu
-              deger={arama}
-              onDegisti={setArama}
-              placeholder={t('anaSayfa.aramaPlaceholder')}
-              onSubmit={() => {
-                if (arama.trim()) router.push('/kesfet' as any);
-              }}
+            style={styles.marka}
+            accessibilityRole="button"
+            accessibilityLabel={t('chain.menuAc')}
+          >
+            <Image source={TAMUSO_LOGO} style={styles.logo} />
+            <Text style={styles.markaYazi}>Tamuso</Text>
+          </Pressable>
+          <View style={styles.markaSag}>
+            <BildirimZiliDugmesi
+              sayi={okunmamis}
+              onPress={() => router.push('/bildirimler' as any)}
             />
           </View>
-          <BildirimZiliDugmesi
-            sayi={okunmamis}
-            onPress={() => router.push('/bildirimler' as any)}
-          />
         </View>
+        <AnaSayfaAramaCubugu
+          deger={arama}
+          onDegisti={setArama}
+          placeholder={t('anaSayfa.aramaPlaceholder')}
+          onSubmit={() => {
+            if (arama.trim()) router.push('/kesfet' as any);
+          }}
+        />
         {eskiVeri ? (
           <Text style={styles.eskiNot}>
             {eskiNeden === 'zayif'
@@ -743,69 +812,93 @@ export default function HomeScreen() {
           }}
         />
 
-        <View style={styles.filtreSatir}>
-          {OzellikBayragiAktifMi('people_discovery_enabled') ? (
-            <Pressable
-              onPress={() => router.push('/kisiler' as any)}
-              style={styles.kisilerCip}
-              accessibilityRole="button"
-              accessibilityLabel={t('kisiler.baslik')}
-            >
-              <LinearGradient
-                colors={[RenkTokenlari.magenta, RenkTokenlari.primary]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.kisilerCipIc}
-              >
-                <Ionicons name="people" size={13} color="#fff" />
-                <Text style={styles.kisilerCipYazi}>{t('kisiler.baslik')}</Text>
-              </LinearGradient>
-            </Pressable>
-          ) : null}
-          <View style={{ flex: 1, marginLeft: -BoslukTokenlari.lg + 4 }}>
-            <AnaSayfaFiltreCipleri ogeler={filtreler} secili={filtre} onSec={setFiltre} />
-          </View>
-        </View>
+        <AnaSayfaFiltreCipleri
+          ogeler={filtreler}
+          secili={filtre}
+          onSec={setFiltre}
+          oncekiBaglantilar={kategoriOncesi}
+          sonrakiBaglantilar={kategoriSonrasi}
+        />
 
         <AnaSayfaUlkeCipleri secili={ulke} onSec={setUlke} />
 
         <TamusoBanner placement="HOME_TOP" screen="HOME" compact />
       </View>
-    );
+    ),
+    [
+      insets.top,
+      profile?.id,
+      okunmamis,
+      arama,
+      t,
+      filtreler,
+      filtre,
+      ulke,
+      eskiVeri,
+      eskiZaman,
+      eskiNeden,
+      kategoriOncesi,
+      kategoriSonrasi,
+    ],
+  );
 
-    if ((!ilkHazir || loading) && feed.length === 0) {
-      return (
-        <View>
-          {ustChrome}
-          <AnaSayfaIskelet satir={3} />
-        </View>
-      );
-    }
+  const heroAktif = ekranOdakli && heroGorunur && !menuAcik;
+  const performansAc = useCallback(
+    (p: PerformansOgesi) => router.push(`/performans/izle?id=${p.id}` as any),
+    [],
+  );
+  const performansPaylas = useCallback(
+    () => router.push('/performans/paylas' as any),
+    [],
+  );
+  const performansSiralama = useCallback(
+    () => router.push('/performans/siralama' as any),
+    [],
+  );
+  const performansAlani = useMemo(
+    () => (
+      <View
+        onLayout={(e) => {
+          const { y, height } = e.nativeEvent.layout;
+          heroAltY.current = y + height;
+        }}
+      >
+        <PerformansHeroKart
+          ogeler={performanslar}
+          yukleniyor={performansYukleniyor}
+          aktif={heroAktif}
+          onAc={performansAc}
+          onPaylas={performansPaylas}
+          onSiralama={performansSiralama}
+        />
+      </View>
+    ),
+    [
+      performanslar,
+      performansYukleniyor,
+      heroAktif,
+      performansAc,
+      performansPaylas,
+      performansSiralama,
+    ],
+  );
 
-    if (filtre !== 'tumu') {
-      return (
-        <View>
-          {ustChrome}
-          {sonGezilenGorunum.length > 0 ? (
-            <AnaSayfaSonGezilenSeridi
-              ogeler={sonGezilenGorunum}
-              onPress={sonGezilenAc}
-            />
-          ) : null}
-        </View>
-      );
-    }
+  const sonGezilenSeridi = useMemo(
+    () =>
+      sonGezilenGorunum.length > 0 ? (
+        <AnaSayfaSonGezilenSeridi
+          ogeler={sonGezilenGorunum}
+          onPress={sonGezilenAc}
+        />
+      ) : null,
+    [sonGezilenGorunum, sonGezilenAc],
+  );
 
-    return (
-      <View>
-        {ustChrome}
+  const altBolum = useMemo(
+    () => (
+      <>
         <HikayeTepsi enabled={OzellikBayragiAktifMi('stories_enabled')} />
-        {sonGezilenGorunum.length > 0 ? (
-          <AnaSayfaSonGezilenSeridi
-            ogeler={sonGezilenGorunum}
-            onPress={sonGezilenAc}
-          />
-        ) : null}
+        {sonGezilenSeridi}
         <AnaSayfaCanliYayinSeridi
           ogeler={canliOgeler}
           onPress={feedOgeAc}
@@ -819,33 +912,47 @@ export default function HomeScreen() {
         {izgara.length > 0 ? (
           <AnaSayfaPremiumBolumBasligi baslik={t('durum.sanaOzel')} emoji="✨" />
         ) : null}
+      </>
+    ),
+    // bayrakSurum: OzellikBayragiAktifMi sonucu değişince yeniden çiz
+    [sonGezilenSeridi, canliOgeler, sesOgeler, feedOgeAc, izgara.length, t, bayrakSurum],
+  );
+
+  const listHeader = useMemo(() => {
+    if ((!ilkHazir || loading) && feed.length === 0) {
+      return (
+        <View>
+          {ustChrome}
+          <AnaSayfaIskelet satir={3} />
+        </View>
+      );
+    }
+
+    if (filtre !== 'tumu') {
+      return (
+        <View>
+          {ustChrome}
+          {sonGezilenSeridi}
+        </View>
+      );
+    }
+
+    return (
+      <View>
+        {ustChrome}
+        {performansAlani}
+        {altBolum}
       </View>
     );
   }, [
-    insets.top,
-    profile?.avatar_url,
-    profile?.display_name,
-    profile?.username,
-    profile?.id,
-    okunmamis,
-    arama,
-    t,
-    filtreler,
-    filtre,
-    ulke,
-    loading,
     ilkHazir,
+    loading,
     feed.length,
-    sonGezilenGorunum,
-    sonGezilenAc,
-    canliOgeler,
-    sesOgeler,
-    feedOgeAc,
-    izgara.length,
-    bayrakSurum,
-    eskiVeri,
-    eskiZaman,
-    eskiNeden,
+    filtre,
+    ustChrome,
+    performansAlani,
+    sonGezilenSeridi,
+    altBolum,
   ]);
 
   return (
@@ -906,6 +1013,12 @@ export default function HomeScreen() {
                 updateCellsBatchingPeriod={120}
                 removeClippedSubviews
                 scrollEventThrottle={48}
+                onScroll={(e) => {
+                  const alt = heroAltY.current;
+                  if (alt <= 0) return;
+                  const gorunur = e.nativeEvent.contentOffset.y < alt - 80;
+                  setHeroGorunur((onceki) => (onceki === gorunur ? onceki : gorunur));
+                }}
                 onScrollBeginDrag={() => {
                   kaydiriyor.current = true;
                 }}
@@ -921,7 +1034,10 @@ export default function HomeScreen() {
                 refreshControl={
                   <RefreshControl
                     refreshing={refreshing}
-                    onRefresh={() => void load('pull')}
+                    onRefresh={() => {
+                      void load('pull');
+                      void performansYukle();
+                    }}
                     tintColor={RenkTokenlari.primary}
                     progressViewOffset={insets.top}
                   />
@@ -1051,38 +1167,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: BoslukTokenlari.lg,
     paddingBottom: 6,
   },
-  ustAksiyon: {
+  markaSatir: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: BoslukTokenlari.sm,
-    gap: 4,
-    backgroundColor: 'transparent',
-  },
-  aramaEsnek: {
-    flex: 1,
-    minWidth: 0,
-  },
-  filtreSatir: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    justifyContent: 'space-between',
     paddingLeft: BoslukTokenlari.lg,
+    paddingRight: BoslukTokenlari.sm,
+    paddingBottom: BoslukTokenlari.xs,
   },
-  kisilerCip: {
-    marginRight: 4,
-  },
-  kisilerCipIc: {
+  marka: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    height: 34,
-    paddingHorizontal: 12,
-    borderRadius: YaricapTokenlari.pill,
+    gap: 10,
+    flexShrink: 1,
   },
-  kisilerCipYazi: {
-    ...TipografiTokenlari.micro,
-    color: '#fff',
-    fontWeight: '700',
+  logo: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+  },
+  markaYazi: {
+    color: RenkTokenlari.text,
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  markaSag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   list: {
     paddingHorizontal: BoslukTokenlari.lg,

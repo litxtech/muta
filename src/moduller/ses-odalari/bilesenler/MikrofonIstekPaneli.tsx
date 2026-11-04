@@ -21,6 +21,7 @@ import {
 import { MikrofonIstegiYanitla } from '../mikrofon/MikrofonIstegiYanitla';
 import { OdaIzinAyarla } from '../islemler/OdaIzinAyarla';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
+import { PremiumAvatarCercevesi } from '../../kullanici-profili/avatar-cerceve/PremiumAvatarCercevesi';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -264,20 +265,26 @@ export function MikrofonIstekPaneli({
                         : t('sesOda.ilkBosKoltuk');
                   return (
                     <View key={istek.id} style={styles.satir}>
-                      {MedyaUriGuvenli(istek.profile?.avatar_url) ? (
-                        <Image
-                          source={{
-                            uri: MedyaUriGuvenli(istek.profile?.avatar_url)!,
-                          }}
-                          style={styles.avatar}
-                        />
-                      ) : (
-                        <View style={[styles.avatar, styles.avatarBos]}>
-                          <Text style={styles.harf}>
-                            {ad.charAt(0).toLocaleUpperCase(locale)}
-                          </Text>
-                        </View>
-                      )}
+                      <PremiumAvatarCercevesi
+                        level={istek.profile?.level}
+                        size={32}
+                        variant="kucuk"
+                      >
+                        {MedyaUriGuvenli(istek.profile?.avatar_url) ? (
+                          <Image
+                            source={{
+                              uri: MedyaUriGuvenli(istek.profile?.avatar_url)!,
+                            }}
+                            style={styles.avatar}
+                          />
+                        ) : (
+                          <View style={[styles.avatar, styles.avatarBos]}>
+                            <Text style={styles.harf}>
+                              {ad.charAt(0).toLocaleUpperCase(locale)}
+                            </Text>
+                          </View>
+                        )}
+                      </PremiumAvatarCercevesi>
                       <View style={styles.metin}>
                         <Text style={styles.ad} numberOfLines={1}>
                           {ad}

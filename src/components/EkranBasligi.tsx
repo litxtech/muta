@@ -6,7 +6,6 @@ import { YonluIkon } from './YonluIkon';
 import { RenkTokenlari } from '../tasarim-sistemi/RenkTokenlari';
 import { BoslukTokenlari, HeaderTokenlari } from '../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import i18n from '../i18n';
-import { OzellikBilgiDugmesi, type BilgiKonusu } from '../bilesenler/bilgi/OzellikBilgiDugmesi';
 
 type Hiza = 'start' | 'center';
 
@@ -28,8 +27,6 @@ export type TamusoScreenHeaderProps = {
   divider?: boolean;
   compact?: boolean;
   align?: Hiza;
-  /** Başlık yanında (?) açıklama düğmesi — mevcut işlevi anlatır. */
-  bilgi?: BilgiKonusu;
 };
 
 type EkranBasligiProps = {
@@ -47,8 +44,6 @@ type EkranBasligiProps = {
   fallbackHref?: Href;
   border?: boolean;
   transparent?: boolean;
-  /** Başlık yanında (?) açıklama düğmesi. */
-  bilgi?: BilgiKonusu;
 };
 
 function cevir(anahtar: string, yedek: string) {
@@ -102,7 +97,6 @@ export function TamusoScreenHeader({
   divider = false,
   compact = false,
   align = 'start',
-  bilgi,
 }: TamusoScreenHeaderProps) {
   const geriBas = onBack ?? (() => guvenliGeriDon(fallbackHref));
   const menuSol = !back && !!onMenu;
@@ -141,16 +135,26 @@ export function TamusoScreenHeader({
     </Pressable>
   ) : null;
 
+  // Alt başlıkta blok iki satır olur; satır ortalanınca geri oku başlığın değil,
+  // başlık+alt başlığın ortasına düşer. Üste hizalayıp başlığı 44'lük dokunma
+  // kutusunun merkezine indiriyoruz (negatif margin yok).
+  const ustHizali = !!subtitle;
   const metin = (
     <View
-      style={[styles.metin, ortali && styles.metinOrta]}
-      pointerEvents={ortali && !bilgi ? 'none' : 'auto'}
+      style={[
+        styles.metin,
+        ortali && styles.metinOrta,
+        ustHizali && (compact ? styles.metinUstCompact : styles.metinUst),
+      ]}
+      pointerEvents={ortali ? 'none' : 'auto'}
     >
       <View style={styles.baslikSatir}>
         <Text
           style={[styles.title, compact && styles.titleCompact, ortali && styles.ortaliMetin]}
           numberOfLines={1}
           ellipsizeMode="tail"
+          maxFontSizeMultiplier={1.4}
+          accessibilityRole="header"
         >
           {title}
         </Text>
@@ -161,13 +165,13 @@ export function TamusoScreenHeader({
             </Text>
           </View>
         ) : null}
-        {bilgi ? <OzellikBilgiDugmesi konu={bilgi} /> : null}
       </View>
       {subtitle ? (
         <Text
           style={[styles.sub, ortali && styles.ortaliMetin]}
-          numberOfLines={2}
+          numberOfLines={1}
           ellipsizeMode="tail"
+          maxFontSizeMultiplier={1.4}
         >
           {subtitle}
         </Text>
@@ -193,12 +197,20 @@ export function TamusoScreenHeader({
         divider && !transparent && styles.wrapDivider,
       ]}
     >
-      <View style={styles.satir}>
+      <View style={[styles.satir, ustHizali && styles.satirUst]}>
         {ortali ? (
           <>
-            <View style={styles.yan}>{sol}</View>
+            <View style={[styles.yan, sol ? styles.yanDolu : styles.yanBos]}>{sol}</View>
             {metin}
-            <View style={[styles.yan, styles.yanSon]}>{sag}</View>
+            <View
+              style={[
+                styles.yan,
+                styles.yanSon,
+                sag ? styles.yanDolu : styles.yanBos,
+              ]}
+            >
+              {sag}
+            </View>
           </>
         ) : (
           <>
@@ -224,7 +236,6 @@ export function EkranBasligi({
   fallbackHref = '/(tabs)/profile',
   border = false,
   transparent = false,
-  bilgi,
 }: EkranBasligiProps) {
   return (
     <TamusoScreenHeader
@@ -237,7 +248,6 @@ export function EkranBasligi({
       divider={border}
       transparent={transparent}
       align={alignment}
-      bilgi={bilgi}
     />
   );
 }
@@ -247,6 +257,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: HeaderTokenlari.horizontal,
     paddingTop: HeaderTokenlari.paddingTop,
     paddingBottom: HeaderTokenlari.paddingBottom,
+    // Dekoratif ambient katmanlar başlığın üstüne çizilmesin.
+    zIndex: 2,
+    backgroundColor: 'transparent',
   },
   wrapCompact: {
     paddingTop: 0,
@@ -262,6 +275,16 @@ const styles = StyleSheet.create({
     minHeight: HeaderTokenlari.minHeight,
     gap: BoslukTokenlari.xs,
   },
+  satirUst: {
+    alignItems: 'flex-start',
+  },
+  metinUst: {
+    paddingTop: (HeaderTokenlari.touchTarget - HeaderTokenlari.titleLineHeight) / 2,
+  },
+  metinUstCompact: {
+    paddingTop:
+      (HeaderTokenlari.touchTarget - HeaderTokenlari.compactTitleLineHeight) / 2,
+  },
   hit: {
     width: HeaderTokenlari.touchTarget,
     height: HeaderTokenlari.touchTarget,
@@ -274,6 +297,13 @@ const styles = StyleSheet.create({
     minWidth: 0,
     alignItems: 'flex-start',
     justifyContent: 'center',
+  },
+  yanDolu: {
+    flex: 1,
+  },
+  yanBos: {
+    flex: 0,
+    width: 0,
   },
   yanSon: {
     alignItems: 'flex-end',

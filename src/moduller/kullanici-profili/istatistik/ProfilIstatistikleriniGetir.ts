@@ -17,11 +17,6 @@ export type KullaniciProfilIstatistikleri = {
   vip_level: number;
   agency_id: string | null;
   host_status: string;
-  account_value: number;
-  account_value_label: string;
-  account_value_override?: boolean;
-  account_value_version?: number;
-  account_value_updated_at?: string | null;
 };
 
 const STATS_SELECT = [
@@ -41,11 +36,6 @@ const STATS_SELECT = [
   'vip_level',
   'agency_id',
   'host_status',
-  'account_value',
-  'account_value_label',
-  'account_value_override',
-  'account_value_version',
-  'account_value_updated_at',
 ].join(', ');
 
 /** Profil acilisinda SUM/COUNT yok — denormalized satir */

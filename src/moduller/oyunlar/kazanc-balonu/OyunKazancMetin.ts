@@ -30,12 +30,13 @@ export function KazancCoin(tutar: number): string {
   }
 }
 
+/** Uygulamada yalnızca Meyve Oyunu var; diğer oyun kodlu eski duyurular gösterilmez. */
+export const KAZANC_OYUN_KODU = 'fruit_wheel';
+
 export function KazancOyunAdi(
-  gameCode: string,
-  gameTitle: string,
+  _gameCode: string,
+  _gameTitle: string,
   meyveAdi: string,
 ): string {
-  if (gameCode === 'fruit_wheel') return meyveAdi;
-  const baslik = gameTitle?.trim();
-  return baslik || gameCode;
+  return meyveAdi;
 }

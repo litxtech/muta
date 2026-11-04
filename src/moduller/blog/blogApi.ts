@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { R2YuklemeAdresiAl } from '../../ortak/medya/R2Depo';
 import { CihazKimliginiGetir } from '../kimlik-dogrulama/oturum/CihazKimliginiGetir';
 import { blogHtmlTemizle } from './blogHtmlTemizle';
 import { slugYap } from './blogSlug';
@@ -649,11 +650,31 @@ export async function blogGorselYukle(
   const uzanti = video ? 'mp4' : web ? 'webp' : (gelenMime.includes('png') ? 'png' : 'jpg');
   const mime = video ? 'video/mp4' : web ? 'image/webp' : gelenMime;
   const yol = `${tur}/${slugYap(ad) || 'gorsel'}-${Date.now()}.${uzanti}`;
-  const { error } = await supabase.storage.from('blog-gorseller').upload(yol, blob, {
+  let r2Url: string | null = null;
+  const adres = await R2YuklemeAdresiAl(supabase, {
+    bucket: 'blog-gorseller',
+    path: yol,
     contentType: mime,
-    upsert: false,
   });
-  if (error) hata(error, 'Görsel yüklenemedi');
+  if (adres) {
+    try {
+      const res = await fetch(adres.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': adres.contentType },
+        body: blob,
+      });
+      if (res.ok) r2Url = adres.publicUrl;
+    } catch {
+      /* Supabase Storage'a düş */
+    }
+  }
+  if (!r2Url) {
+    const { error } = await supabase.storage.from('blog-gorseller').upload(yol, blob, {
+      contentType: mime,
+      upsert: false,
+    });
+    if (error) hata(error, 'Görsel yüklenemedi');
+  }
   await supabase.from('blog_media').insert({
     path: yol,
     filename: yol.split('/').pop(),
@@ -662,6 +683,7 @@ export async function blogGorselYukle(
     alt_text: ad,
     kind: tur === 'authors' ? 'author' : tur === 'video' ? 'video' : 'image',
   });
+  if (r2Url) return r2Url;
   const { data } = supabase.storage.from('blog-gorseller').getPublicUrl(yol);
   return data.publicUrl;
 }

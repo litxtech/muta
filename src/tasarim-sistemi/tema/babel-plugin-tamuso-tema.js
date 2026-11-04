@@ -1,17 +1,26 @@
 /**
- * StyleSheet.create({ ... }) → StyleSheet.create(() => ({ ... }))
+ * StyleSheet.create({ ... }) → require('<tema>/TemaliStil').temaliStil(() => ({ ... }))
  * + PascalCase bilesenlere useTemayaAboneOl() enjekte eder.
+ *
+ * Fabrika dogrudan temaliStil'e verilir; StyleSheet.create yamasina guvenilmez.
+ * Expo Router grup layout'larini ((tabs)/_layout vb.) kok _layout'tan once
+ * yukler. O modullerin import zinciri yama kurulmadan calisir ve yamasiz
+ * StyleSheet.create(fn) fonksiyonu aynen dondurur: tum stiller undefined olur.
  */
 const nodePath = require('path');
 
 module.exports = function tamusoTemaBabel({ types: t }) {
   const HOOK = 'useTemayaAboneOl';
 
-  function hookSource(filename) {
-    const target = nodePath.join(__dirname, 'useTemayaAboneOl');
+  function temaModulYolu(filename, modul) {
+    const target = nodePath.join(__dirname, modul);
     let rel = nodePath.relative(nodePath.dirname(filename), target).replace(/\\/g, '/');
     if (!rel.startsWith('.')) rel = `./${rel}`;
     return rel;
+  }
+
+  function hookSource(filename) {
+    return temaModulYolu(filename, 'useTemayaAboneOl');
   }
 
   function skipFile(filename) {
@@ -156,8 +165,25 @@ module.exports = function tamusoTemaBabel({ types: t }) {
         if (!callee.get('property').isIdentifier({ name: 'create' })) return;
         const arg = path.node.arguments[0];
         if (!arg) return;
-        if (t.isArrowFunctionExpression(arg) || t.isFunctionExpression(arg)) return;
-        path.node.arguments[0] = t.arrowFunctionExpression([], arg);
+        const fabrika =
+          t.isArrowFunctionExpression(arg) || t.isFunctionExpression(arg)
+            ? arg
+            : t.arrowFunctionExpression([], arg);
+        if (!state.filename) {
+          path.node.arguments[0] = fabrika;
+          return;
+        }
+        path.replaceWith(
+          t.callExpression(
+            t.memberExpression(
+              t.callExpression(t.identifier('require'), [
+                t.stringLiteral(temaModulYolu(state.filename, 'TemaliStil')),
+              ]),
+              t.identifier('temaliStil'),
+            ),
+            [fabrika],
+          ),
+        );
       },
       FunctionDeclaration(path, state) {
         if (skipFile(state.filename)) return;

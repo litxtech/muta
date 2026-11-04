@@ -254,16 +254,10 @@ function KokIcerik() {
           <Stack.Screen name="ajans/[id]/basvurular" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/davetler" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/ekipler" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/[id]/program" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/[id]/etkinlikler" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/[id]/duyurular" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/gorevler" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/analitik" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/[id]/islemler" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/[id]/cuzdan" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/ayarlar" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/destek" options={{ animation: 'slide_from_right' }} />
-          <Stack.Screen name="ajans/[id]/guvenlik" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ajans/[id]/dogrulama" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="host/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="sehir/index" options={{ animation: 'slide_from_right' }} />
@@ -297,6 +291,14 @@ function KokIcerik() {
             name="durum/[id]"
             options={{ animation: 'fade', presentation: 'fullScreenModal' }}
           />
+          <Stack.Screen name="performans/[id]" options={{ animation: 'fade_from_bottom' }} />
+          <Stack.Screen name="performans/siralama" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="performans/paylas" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="performans/sozlesme" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen
+            name="performans/izle"
+            options={{ animation: 'fade', contentStyle: { backgroundColor: '#000' } }}
+          />
           <Stack.Screen
             name="hikaye/olustur"
             options={{ animation: 'slide_from_bottom', presentation: 'fullScreenModal' }}
@@ -317,6 +319,11 @@ function KokIcerik() {
           <Stack.Screen name="paylasim/index" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="paylas/[kod]" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="ayarlar/index" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="ayarlar/hakkinda" options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen
+            name="ayarlar/iletisim-teknolojileri"
+            options={{ animation: 'slide_from_right' }}
+          />
           <Stack.Screen
             name="ayarlar/veri-cevrimdisi"
             options={{ animation: 'slide_from_right' }}

@@ -9,7 +9,7 @@ import {
   AjansKpiHucre,
   AjansListeSatir,
 } from '../../../src/moduller/ajanslar/bilesenler/AjansAltEkranKabuk';
-import { useAjansRouteId, ajansHref } from '../../../src/moduller/ajanslar/kancalar/useAjansRouteId';
+import { useAjansRouteId } from '../../../src/moduller/ajanslar/kancalar/useAjansRouteId';
 import {
   AjansCanliOperasyonGetir,
   type AjansCanliOperasyon,
@@ -17,11 +17,8 @@ import {
 import { RenkTokenlari } from '../../../src/tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../src/tasarim-sistemi/TipografiTokenlari';
 import { useCeviri } from '../../../src/i18n/useCeviri';
-import { DIL_LOCALE_MAP } from '../../../src/i18n/diller';
-
 export default function AjansCanliEkrani() {
-  const { t, dil } = useCeviri();
-  const locale = DIL_LOCALE_MAP[dil];
+  const { t } = useCeviri();
   const id = useAjansRouteId();
   const [data, setData] = useState<AjansCanliOperasyon | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -126,25 +123,6 @@ export default function AjansCanliEkrani() {
               })}
               trailing={<Text style={styles.link}>{t('ajans.alertOda')}</Text>}
               onPress={() => router.push(`/room/${r.room_id}` as any)}
-            />
-          ))
-        )}
-      </AjansKart>
-
-      <AjansBolumBaslik>{t('ajans.yaklasanProgram')}</AjansBolumBaslik>
-      <AjansKart>
-        {(data?.yaklasan_programlar ?? []).length === 0 ? (
-          <AjansHint>{t('ajans.planlanmisProgramYok')}</AjansHint>
-        ) : (
-          data!.yaklasan_programlar.map((p) => (
-            <AjansListeSatir
-              key={p.id}
-              title={p.title}
-              subtitle={t('ajans.programSatir', {
-                kind: p.kind,
-                zaman: new Date(p.starts_at).toLocaleString(locale),
-              })}
-              onPress={() => router.push(ajansHref(id, 'program') as any)}
             />
           ))
         )}

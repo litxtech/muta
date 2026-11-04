@@ -12,6 +12,7 @@ export type MikrofonIstegi = {
     display_name: string | null;
     username: string | null;
     avatar_url: string | null;
+    level?: number | null;
     vip_level?: number | null;
   } | null;
 };
@@ -31,7 +32,7 @@ export async function MikrofonIstekleriniGetir(
   const { data, error } = await supabase
     .from('room_mic_requests')
     .select(
-      'id, room_id, user_id, status, created_at, requested_seat_index, istek_turu, profile:profiles(display_name, username, avatar_url)',
+      'id, room_id, user_id, status, created_at, requested_seat_index, istek_turu, profile:profiles(display_name, username, avatar_url, level)',
     )
     .eq('room_id', odaId)
     .eq('status', 'pending')
@@ -54,7 +55,7 @@ export async function MikrofonIstekleriniGetir(
   if (eksikIds.length > 0) {
     const { data: profiller } = await supabase
       .from('profiles')
-      .select('id, display_name, username, avatar_url')
+      .select('id, display_name, username, avatar_url, level')
       .in('id', eksikIds);
     if (profiller?.length) {
       const pMap = new Map(
@@ -64,6 +65,7 @@ export async function MikrofonIstekleriniGetir(
             display_name: (p.display_name as string | null) ?? null,
             username: (p.username as string | null) ?? null,
             avatar_url: (p.avatar_url as string | null) ?? null,
+            level: (p.level as number | null) ?? null,
           },
         ]),
       );

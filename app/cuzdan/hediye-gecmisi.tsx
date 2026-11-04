@@ -96,7 +96,6 @@ export default function HediyeGecmisiEkrani() {
           title={t('cuzdanHediye.baslik')}
           subtitle={t('cuzdanHediye.altBaslik')}
           fallbackHref="/(tabs)/wallet"
-          bilgi="hediye"
           right={
             <Pressable
               onPress={() => router.push('/(tabs)/wallet' as any)}

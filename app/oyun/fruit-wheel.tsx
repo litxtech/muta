@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useCeviri } from '../../src/i18n/useCeviri';
 import { FruitWheelEkrani } from '../../src/moduller/oyunlar/fruit-wheel/ekranlar/FruitWheelEkrani';
-import { registerFruitWheel } from '../../src/moduller/oyunlar/fruit-wheel/FruitWheelKayit';
 import { useGorunurOyunKodlari } from '../../src/moduller/oyunlar/ortak/hooks/useGorunurOyunKodlari';
 import { koyuSahneKilidiCik, koyuSahneKilidiGir } from '../../src/tasarim-sistemi/tema/TemaDurumu';
 
@@ -15,7 +14,6 @@ export default function FruitWheelSayfa() {
   const kapali = !gorunur.loading && !gorunur.isVisible('fruit_wheel');
 
   useEffect(() => {
-    registerFruitWheel();
     koyuSahneKilidiGir();
     return () => {
       koyuSahneKilidiCik();

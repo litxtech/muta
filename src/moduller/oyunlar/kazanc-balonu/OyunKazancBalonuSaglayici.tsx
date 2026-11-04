@@ -7,6 +7,7 @@ import { OyunKazancBalonu } from './OyunKazancBalonu';
 import { OyunKazancOdaSecici } from './OyunKazancOdaSecici';
 import { OyunKazanciAc } from './OyunKazancinaGit';
 import type { OyunKazancDuyurusu } from './OyunKazancDuyuruTipleri';
+import { KAZANC_OYUN_KODU } from './OyunKazancMetin';
 
 type RawRow = {
   id: string;
@@ -112,11 +113,13 @@ export function OyunKazancBalonuSaglayici() {
           event: 'INSERT',
           schema: 'public',
           table: 'oyun_kazanc_duyurulari',
+          filter: `game_code=eq.${KAZANC_OYUN_KODU}`,
         },
         (payload: { new: Record<string, unknown> }) => {
           if (!yuzeyRef.current) return;
           const row = payload.new as unknown as RawRow;
           if (!row?.id || !row.win_amount) return;
+          if (row.game_code !== KAZANC_OYUN_KODU) return;
           const win = Number(row.win_amount) || 0;
           if (win < MIN_WIN) return;
           const simdi = Date.now();

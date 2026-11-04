@@ -26,15 +26,56 @@ export type FeedFiltreOgesi = {
   tint: string;
 };
 
+/** Filtre değil, başka ekrana giden kategori (Kişiler, Ajanslar) */
+export type FeedKategoriBaglantisi = {
+  anahtar: string;
+  etiket: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  tint: string;
+  onPress: () => void;
+};
+
 type Props = {
   ogeler: FeedFiltreOgesi[];
   secili: FeedFiltre;
   onSec: (kod: FeedFiltre) => void;
+  oncekiBaglantilar?: FeedKategoriBaglantisi[];
+  sonrakiBaglantilar?: FeedKategoriBaglantisi[];
 };
 
-export function AnaSayfaFiltreCipleri({ ogeler, secili, onSec }: Props) {
+export function AnaSayfaFiltreCipleri({
+  ogeler,
+  secili,
+  onSec,
+  oncekiBaglantilar,
+  sonrakiBaglantilar,
+}: Props) {
   useTemayaAboneOl();
   const acik = temaAcikMi(kullaniciTemaKodunuAl());
+
+  const baglantiCipi = (b: FeedKategoriBaglantisi) => (
+    <Pressable
+      key={b.anahtar}
+      onPress={b.onPress}
+      accessibilityRole="button"
+      accessibilityLabel={b.etiket}
+      style={({ pressed }) => [styles.cipDis, pressed && styles.basili]}
+    >
+      <View
+        style={[
+          styles.cip,
+          styles.cipPasif,
+          {
+            backgroundColor: acik ? RenkTokenlari.bgElevated : RenkTokenlari.bgCard,
+            borderColor: RenkTokenlari.border,
+          },
+        ]}
+      >
+        <Ionicons name={b.icon} size={14} color={b.tint} />
+        <Text style={styles.yazi}>{b.etiket}</Text>
+      </View>
+    </Pressable>
+  );
 
   return (
     <Animated.View entering={FadeIn.duration(260)}>
@@ -43,6 +84,7 @@ export function AnaSayfaFiltreCipleri({ ogeler, secili, onSec }: Props) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.satir}
       >
+        {oncekiBaglantilar?.map(baglantiCipi)}
         {ogeler.map((oge) => {
           const aktif = oge.kod === secili;
           return (
@@ -89,6 +131,7 @@ export function AnaSayfaFiltreCipleri({ ogeler, secili, onSec }: Props) {
             </Pressable>
           );
         })}
+        {sonrakiBaglantilar?.map(baglantiCipi)}
       </ScrollView>
     </Animated.View>
   );
@@ -107,26 +150,32 @@ const styles = StyleSheet.create({
   cip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
+    gap: 7,
+    height: 38,
+    paddingHorizontal: 16,
     borderRadius: YaricapTokenlari.pill,
     borderWidth: StyleSheet.hairlineWidth,
   },
   cipAktif: {
     borderColor: 'transparent',
     shadowColor: RenkTokenlari.primary,
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
-  cipPasif: {},
+  cipPasif: {
+    shadowColor: '#2A1840',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
   yazi: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.text,
     fontWeight: '700',
-    fontSize: 12.5,
+    fontSize: 13.5,
   },
   yaziAktif: {
     color: RenkTokenlari.textOnPrimary,

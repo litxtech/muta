@@ -43,3 +43,6 @@ verify_jwt = true
 [functions.canli-kesit]
 verify_jwt = true
 
+[functions.r2-yukle]
+verify_jwt = true
+

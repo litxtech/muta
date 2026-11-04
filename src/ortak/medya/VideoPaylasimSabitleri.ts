@@ -1,8 +1,10 @@
 /**
- * Platform geneli video paylaşım — hızlı 1080p sıkıştırma.
- * HW encoder (auto) + arka plan; süre sınırı yok.
- * Zaten ≤1080 ve makul bitrate ise encode atlanır (anında paylaş).
+ * Platform geneli video paylaşım — orijinal kalite, boyut sınırı yok.
+ * Video yeniden encode edilmez; dosya diskten akıtılarak yüklenir.
  */
+
+/** false → Video1080eSikistir orijinal dosyayı döndürür (kalite sınırı yok) */
+export const VIDEO_SIKISTIRMA_AKTIF = false;
 
 /** Uzun kenar üst sınırı (4K → 1080) */
 export const VIDEO_HEDEF_MAX_EDGE = 1080;
@@ -31,9 +33,13 @@ export const VIDEO_ATLA_MAX_MBPS = 14;
 export const VIDEO_MIN_MB_FOR_COMPRESS = 20;
 
 /**
- * Sıkıştırma sonrası güvenlik tavanı (storage).
+ * Supabase Storage tek istek sınırı (proje ayarı 50 MB) — R2 kullanılamazsa
+ * bunun üstündeki video yüklemeden önce sıkıştırılır.
  */
-export const VIDEO_SIKISTIRMA_SONRASI_MAX_BYTES = 500 * 1024 * 1024;
+export const SUPABASE_VIDEO_MAX_BYTES = 48 * 1024 * 1024;
+
+/** Video boyut tavanı — sınır yok */
+export const VIDEO_SIKISTIRMA_SONRASI_MAX_BYTES = Number.POSITIVE_INFINITY;
 
 /** Kamera kayıt üst süresi (sn) — pratik tavan; galeride limit yok */
 export const VIDEO_KAMERA_MAX_SN = 3600;

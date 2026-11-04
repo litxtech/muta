@@ -36,14 +36,14 @@ const EMPTY: GizlilikAyarlari = {
   hide_level: false,
   hide_topup_coin: false,
   hide_prestige: false,
-  hide_account_value: false,
   hide_crown: false,
   hide_online_status: false,
   hide_followers: false,
   hide_following: false,
   hide_status_posts: false,
-  hide_game_stats: false,
   is_private: false,
+  search_profile_visible: true,
+  search_posts_visible: true,
 };
 
 const ULKE_EMPTY: UlkeKatkisiAyarlari = {
@@ -116,19 +116,6 @@ export default function GizlilikAyarlariEkrani() {
               degerler={privacy}
               onDegistir={(k, v) => void degistir(k, v)}
               thumbColor={palet.bgElevated}
-            />
-          </ListeGrubu>
-
-          <ListeGrubu title={t('gizlilik.islemHacmiBolum')}>
-            <Text style={[styles.hint, { color: palet.textMuted }]}>
-              {t('gizlilik.islemHacmiHint')}
-            </Text>
-            <ListeSatiri
-              icon="diamond-outline"
-              label={t('gizlilik.islemHacmiGorunurluk')}
-              value={t('gizlilik.ayarla')}
-              onPress={() => router.push('/islem-hacmi' as any)}
-              last
             />
           </ListeGrubu>
 

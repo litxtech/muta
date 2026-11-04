@@ -18,6 +18,9 @@ type Props = {
   durationMs: number;
   trim: HikayeVideoTrim;
   onChange: (trim: HikayeVideoTrim) => void;
+  /** Seçilebilecek en uzun pencere (ms). Verilmezse tüm video. */
+  maxMs?: number;
+  baslik?: string;
 };
 
 const MIN_MS = 500;
@@ -31,15 +34,16 @@ function snYazi(ms: number): string {
 }
 
 /**
- * Sürüklemeli video kırpma — pencere tüm videoyu kapsar (süre limiti yok).
+ * Sürüklemeli video kırpma — varsayılan pencere tüm videoyu kapsar; maxMs ile sınırlanabilir.
  */
-export function HikayeVideoKirpici({ durationMs, trim, onChange }: Props) {
+export function HikayeVideoKirpici({ durationMs, trim, onChange, maxMs, baslik }: Props) {
   const { t } = useCeviri();
   const [barW, setBarW] = useState(300);
 
   const kaynakMs = Math.max(1000, durationMs > 0 ? durationMs : 30_000);
   const toplam = kaynakMs;
-  const maxPencere = toplam;
+  const maxPencere =
+    maxMs != null && maxMs > MIN_MS ? Math.min(toplam, maxMs) : toplam;
 
   const start = Math.min(Math.max(0, trim.startMs), Math.max(0, toplam - MIN_MS));
   const end = Math.min(
@@ -150,7 +154,7 @@ export function HikayeVideoKirpici({ durationMs, trim, onChange }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.baslik}>{t('hikaye.videoKirp')}</Text>
+      <Text style={styles.baslik}>{baslik ?? t('hikaye.videoKirp')}</Text>
       <Text style={styles.sure}>{sureMetin}</Text>
       <View
         style={styles.bar}

@@ -1,6 +1,6 @@
 ﻿import { supabase } from '../../../lib/supabase';
 import { OrtamDegiskenleri } from '../../../yapilandirma/OrtamDegiskenleri';
-import { GaleriAc } from '../../../ortak/medya/ImagePickerHazirMi';
+import { GaleriAc, KameraAc } from '../../../ortak/medya/ImagePickerHazirMi';
 import {
   DepoyaMedyaYukle,
   MedyaUzantisiCoz,
@@ -12,64 +12,95 @@ export type DurumMedyaTuru = 'image' | 'video';
 /** Galeri â†’ status-media bucket (hÄ±zlÄ± public URL) */
 export async function DurumMedyasiSecVeYukle(
   tur: DurumMedyaTuru,
-  opts?: { onYuklemeBasladi?: () => void },
+  opts?: { onYuklemeBasladi?: () => void; kaynak?: 'galeri' | 'kamera' },
 ): Promise<
-  | { ok: true; url: string; mediaType: DurumMedyaTuru }
+  | { ok: true; url: string; mediaType: DurumMedyaTuru; durationMs?: number | null }
   | { ok: false; hata: string; iptal?: boolean }
 > {
   try {
-    const secim = await GaleriAc({
-      mediaTypes: tur === 'video' ? ['videos'] : ['images'],
-      // SÃ¼re limiti yok â€” 1080p sÄ±kÄ±ÅŸtÄ±rma
-    });
+    const mediaTypes: ('videos' | 'images')[] = tur === 'video' ? ['videos'] : ['images'];
+    const secim =
+      opts?.kaynak === 'kamera'
+        ? await KameraAc({ mediaTypes })
+        : await GaleriAc({
+            mediaTypes,
+            // SÃ¼re limiti yok â€” 1080p sÄ±kÄ±ÅŸtÄ±rma
+          });
     if (!secim.ok) return secim;
 
     const basladi = opts?.onYuklemeBasladi;
     if (typeof basladi === 'function') basladi();
 
     const asset = secim.asset;
-    const uid = (await supabase.auth.getUser()).data.user?.id;
-    if (!uid) return { ok: false, hata: i18n.t('ortak.oturumYok') };
+    const up = await DurumYerelMedyaYukle({
+      uri: asset.uri,
+      mime: asset.mimeType,
+      tur,
+    });
+    if (!up.ok) return up;
+    return {
+      ok: true,
+      url: up.url,
+      mediaType: tur,
+      durationMs:
+        typeof asset.duration === 'number' && Number.isFinite(asset.duration)
+          ? Math.round(asset.duration)
+          : null,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      hata: e instanceof Error ? e.message : i18n.t('durumX.yuklemeBasarisiz'),
+    };
+  }
+}
 
+/** Cihazdaki hazır dosya (ör. kırpılmış video) → status-media */
+export async function DurumYerelMedyaYukle(girdi: {
+  uri: string;
+  mime?: string | null;
+  tur: DurumMedyaTuru;
+}): Promise<{ ok: true; url: string } | { ok: false; hata: string }> {
+  try {
     const { YaptirimAktifMi } = await import(
       '../../medya-yukleme/AdminSesOdasiIslemleri'
     );
-    if (await YaptirimAktifMi('upload_ban')) {
+    const [oturum, yasakli] = await Promise.all([
+      supabase.auth.getSession(),
+      YaptirimAktifMi('upload_ban'),
+    ]);
+    const uid = oturum.data.session?.user?.id;
+    if (!uid) return { ok: false, hata: i18n.t('ortak.oturumYok') };
+    if (yasakli) {
       return { ok: false, hata: i18n.t('durumX.uploadBan') };
     }
 
     const ext = MedyaUzantisiCoz(
-      asset.uri,
-      asset.mimeType,
-      tur === 'video' ? 'mp4' : 'jpg',
+      girdi.uri,
+      girdi.mime ?? undefined,
+      girdi.tur === 'video' ? 'mp4' : 'jpg',
     );
     const path = `${uid}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const up = await DepoyaMedyaYukle(supabase, {
       bucket: 'status-media',
       path,
-      uri: asset.uri,
-      mime: asset.mimeType,
-      tur,
+      uri: girdi.uri,
+      mime: girdi.mime ?? undefined,
+      tur: girdi.tur,
       upsert: false,
-      // video â†’ DepoyaMedyaYukle iÃ§inde 1080p
     });
 
     if (!up.ok) return { ok: false, hata: up.hata };
 
-    const { data: pub } = supabase.storage.from('status-media').getPublicUrl(up.path);
     const base = OrtamDegiskenleri.supabaseUrl?.replace(/\/$/, '');
     const url =
-      pub?.publicUrl ||
+      up.publicUrl ||
       `${base}/storage/v1/object/public/status-media/${up.path}`;
     if (typeof url !== 'string' || !/^https?:\/\//i.test(url.trim())) {
       return { ok: false, hata: i18n.t('durumX.gecersizAdres') };
     }
-    return {
-      ok: true,
-      url: url.trim(),
-      mediaType: tur,
-    };
+    return { ok: true, url: url.trim() };
   } catch (e) {
     return {
       ok: false,

@@ -47,9 +47,6 @@ import { AjansProfilRozeti } from '../../src/moduller/ajanslar/bilesenler/AjansP
 import { ProfilSosyalAlani } from '../../src/moduller/takip/bilesenler/ProfilSosyalAlani';
 import { KullaniciGuvenlikMenusu } from '../../src/moduller/moderasyon/bilesenler/KullaniciGuvenlikMenusu';
 import { PrestigeRozetSatiri } from '../../src/moduller/vip/bilesenler/PrestigeRozetSatiri';
-import { HesapDegeriRozeti } from '../../src/moduller/kullanici-profili/bilesenler/HesapDegeriRozeti';
-import { IslemHacmiKart } from '../../src/moduller/islem-hacmi/bilesenler/IslemHacmiKart';
-import { useIslemHacmi } from '../../src/moduller/islem-hacmi/kancalar/useIslemHacmi';
 import {
   GizlilikAyarlariniKullaniciIcinGetir,
   type GizlilikAyarlari,
@@ -96,14 +93,14 @@ const EMPTY_PRIVACY: GizlilikAyarlari = {
   hide_level: false,
   hide_topup_coin: false,
   hide_prestige: false,
-  hide_account_value: false,
   hide_crown: false,
   hide_online_status: false,
   hide_followers: false,
   hide_following: false,
   hide_status_posts: false,
-  hide_game_stats: false,
   is_private: false,
+  search_profile_visible: true,
+  search_posts_visible: true,
 };
 
 export default function KullaniciProfilEkrani() {
@@ -125,11 +122,6 @@ export default function KullaniciProfilEkrani() {
   const [buyut, setBuyut] = useState<{ uri: string; tur: 'avatar' | 'cover' } | null>(
     null,
   );
-  const islemHacmi = useIslemHacmi({
-    mode: user?.id === id ? 'own' : 'public',
-    userId: id,
-    aktif: !!id && !isGuest,
-  });
   const magaza = useHediyeMagaza();
   const hikayeOzet = useHikayeProfilOzet(id);
   const sesOdasiArka = !!useAktifSesOdasi()?.arkaPlanda;
@@ -224,7 +216,6 @@ export default function KullaniciProfilEkrani() {
   const gosterAjans = kendi || !privacy.hide_agency;
   const gosterTopup = kendi || !privacy.hide_topup_coin;
   const gosterSeviye = kendi || !privacy.hide_level;
-  const gosterHesapDegeri = kendi || !privacy.hide_account_value;
   const gosterTac = !privacy.hide_crown;
   const gosterTakipci = kendi || !privacy.hide_followers;
   const gosterTakip = kendi || !privacy.hide_following;
@@ -266,13 +257,11 @@ export default function KullaniciProfilEkrani() {
         onPress: () => router.push(`/durum/${oge.id}` as any),
       },
     ];
-    if (oge.post_kind !== 'game_win') {
-      buttons.push({
+    buttons.push(
+      {
         text: t('ortak.duzenle'),
         onPress: () => router.push(`/durum/duzenle?id=${oge.id}` as any),
-      });
-    }
-    buttons.push(
+      },
       {
         text: t('ortak.kaldir'),
         style: 'destructive',
@@ -362,6 +351,20 @@ export default function KullaniciProfilEkrani() {
                 bio={profil.bio?.trim() || null}
                 verified={!!profil.is_verified}
                 ajansSahibi={ajansSahibi}
+                ajansSlot={
+                  gosterAjans && ajansUyelik?.agency ? (
+                    <AjansProfilRozeti
+                      varyant="uye"
+                      ajans={ajansUyelik.agency}
+                      sahip={ajansSahibi || ajansUyelik.role === 'owner'}
+                      onPress={() =>
+                        router.push(
+                          `/ajans/profil/${ajansUyelik.agency!.id}` as any,
+                        )
+                      }
+                    />
+                  ) : null
+                }
                 titleId={
                   gosterPrestige ? profil.selected_title_id ?? null : null
                 }
@@ -478,35 +481,6 @@ export default function KullaniciProfilEkrani() {
                 }
               >
                 <View style={styles.rozetBlok}>
-                  {(gosterHesapDegeri && stats) || islemHacmi.gorunur ? (
-                    <View style={styles.rozetSatir}>
-                      {gosterHesapDegeri && stats ? (
-                        <View style={styles.rozetHucre}>
-                          <HesapDegeriRozeti
-                            value={Number(stats.account_value) || 0}
-                            label={stats.account_value_label}
-                            kompakt={islemHacmi.gorunur}
-                          />
-                        </View>
-                      ) : null}
-
-                      {islemHacmi.gorunur ? (
-                        <View style={styles.rozetHucre}>
-                          <IslemHacmiKart
-                            mode={kendi ? 'own' : 'public'}
-                            data={islemHacmi.veri}
-                            kompakt={!!(gosterHesapDegeri && stats)}
-                            onPress={
-                              kendi
-                                ? () => router.push('/islem-hacmi' as any)
-                                : undefined
-                            }
-                          />
-                        </View>
-                      ) : null}
-                    </View>
-                  ) : null}
-
                   {gosterPrestige && stats ? (
                     <PrestigeRozetSatiri
                       vipLevel={Number(stats.vip_level) || 0}
@@ -576,21 +550,6 @@ export default function KullaniciProfilEkrani() {
                     />
                   ) : null}
                 </View>
-
-                {gosterAjans && ajansUyelik?.agency ? (
-                  <View style={styles.ajansWrap}>
-                    <AjansProfilRozeti
-                      varyant="uye"
-                      ajans={ajansUyelik.agency}
-                      tamGenislik
-                      onPress={() =>
-                        router.push(
-                          `/ajans/profil/${ajansUyelik.agency!.id}` as any,
-                        )
-                      }
-                    />
-                  </View>
-                ) : null}
 
                 {!kendi ? (
                   <View style={styles.aksiyonlar}>
@@ -755,19 +714,6 @@ const styles = StyleSheet.create({
     gap: BoslukTokenlari.sm,
     alignItems: 'stretch',
   },
-  rozetSatir: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: BoslukTokenlari.sm,
-    marginTop: 10,
-    width: '100%',
-  },
-  rozetHucre: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-    minWidth: 0,
-  },
   odaWrap: {
     paddingHorizontal: BoslukTokenlari.lg,
     marginTop: BoslukTokenlari.md,
@@ -807,10 +753,6 @@ const styles = StyleSheet.create({
   metricL: {
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textMuted,
-  },
-  ajansWrap: {
-    marginHorizontal: BoslukTokenlari.lg,
-    marginTop: BoslukTokenlari.lg,
   },
   aksiyonlar: {
     marginHorizontal: BoslukTokenlari.lg,

@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
   FlatList,
   Image,
   Modal,
@@ -15,6 +16,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKlavyeYuksekligi } from '../../../bilesenler/klavye/useKlavyeYuksekligi';
+import {
+  tabBarOverlayAc,
+  tabBarOverlayKapat,
+} from '../../../components/tab-navigasyon/TabBarOverlay';
 import { ProfilAvatarKucuk } from '../../canli-sohbet/bilesenler/ProfilAvatarKucuk';
 import {
   DurumYorumBegeniToggle,
@@ -53,6 +58,13 @@ type Props = {
 
 type YerelYorum = DurumYorum & { yerelDurum?: 'bekliyor' | 'hata' };
 
+/**
+ * Android'de Modal ayrı pencere açar; edge-to-edge zorunlu olduğundan pencere
+ * klavyeyle küçülmez ve keyboardDid* olayları yalnız activity kökünden gelir.
+ * Panel orada ekran katmanı olarak çizilir; yoksa yorum kutusu klavyenin altında kalır.
+ */
+const ANDROID_KATMAN = Platform.OS === 'android';
+
 type Satir =
   | { kind: 'root'; yorum: YerelYorum; yanitlar: YerelYorum[] }
   | { kind: 'reply'; yorum: YerelYorum; rootId: string };
@@ -79,6 +91,9 @@ export function DurumYorumPaneli({
   const [medyaBusy, setMedyaBusy] = useState(false);
   const [bildirYorum, setBildirYorum] = useState<DurumYorum | null>(null);
   const [lightboxUri, setLightboxUri] = useState<string | null>(null);
+  const listeRef = useRef<FlatList<Satir>>(null);
+  /** Gönderilen yorum; liste güncellenince görünür alana kaydırılır */
+  const [kaydirHedef, setKaydirHedef] = useState<{ id: string | null } | null>(null);
 
   const yukle = async () => {
     setYukleniyor(true);
@@ -99,6 +114,21 @@ export function DurumYorumPaneli({
   useEffect(() => {
     if (visible) void yukle();
   }, [visible, statusId]);
+
+  const kapatRef = useRef(onClose);
+  kapatRef.current = onClose;
+  useEffect(() => {
+    if (!ANDROID_KATMAN || !visible) return;
+    tabBarOverlayAc();
+    const geri = BackHandler.addEventListener('hardwareBackPress', () => {
+      kapatRef.current();
+      return true;
+    });
+    return () => {
+      geri.remove();
+      tabBarOverlayKapat();
+    };
+  }, [visible]);
 
   useEffect(() => {
     let iptal = false;
@@ -143,6 +173,22 @@ export function DurumYorumPaneli({
     }
     return out;
   }, [yorumlar]);
+
+  useEffect(() => {
+    if (!kaydirHedef) return;
+    const index = kaydirHedef.id
+      ? satirlar.findIndex((s) => s.yorum.id === kaydirHedef.id)
+      : -1;
+    const zamanlayici = setTimeout(() => {
+      setKaydirHedef(null);
+      if (index >= 0) {
+        listeRef.current?.scrollToIndex({ index, viewPosition: 1, animated: true });
+      } else {
+        listeRef.current?.scrollToEnd({ animated: true });
+      }
+    }, 80);
+    return () => clearTimeout(zamanlayici);
+  }, [satirlar, kaydirHedef]);
 
   const gonderilebilir = !!metin.trim() || !!medyaUrl;
 
@@ -189,12 +235,14 @@ export function DurumYorumPaneli({
       setMetin('');
       setMedyaUrl(null);
       setYanitHedef(null);
+      setKaydirHedef({ id: yerelId });
       return;
     }
     setMetin('');
     setMedyaUrl(null);
     setYanitHedef(null);
     await yukle();
+    setKaydirHedef({ id: r.id ?? null });
     onChanged?.();
   };
 
@@ -373,14 +421,7 @@ export function DurumYorumPaneli({
     );
   };
 
-  return (
-    <>
-      <Modal
-        visible={visible}
-        animationType="slide"
-        transparent
-        onRequestClose={onClose}
-      >
+  const panel = (
         <View style={styles.overlay}>
           <Pressable style={styles.backdrop} onPress={onClose} />
           <View
@@ -417,9 +458,14 @@ export function DurumYorumPaneli({
               />
             ) : (
               <FlatList
+                ref={listeRef}
                 data={satirlar}
                 keyExtractor={(i) => i.yorum.id}
+                style={styles.liste}
                 contentContainerStyle={styles.list}
+                onScrollToIndexFailed={() =>
+                  listeRef.current?.scrollToEnd({ animated: true })
+                }
                 keyboardShouldPersistTaps="handled"
                 keyboardDismissMode="on-drag"
                 ListEmptyComponent={
@@ -502,7 +548,22 @@ export function DurumYorumPaneli({
             </View>
           </View>
         </View>
-      </Modal>
+  );
+
+  return (
+    <>
+      {ANDROID_KATMAN ? (
+        visible ? <View style={styles.katman}>{panel}</View> : null
+      ) : (
+        <Modal
+          visible={visible}
+          animationType="slide"
+          transparent
+          onRequestClose={onClose}
+        >
+          {panel}
+        </Modal>
+      )}
 
       {bildirYorum ? (
         <KullaniciGuvenlikMenusu
@@ -527,7 +588,17 @@ export function DurumYorumPaneli({
 }
 
 const styles = StyleSheet.create({
+  katman: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    zIndex: 50,
+    elevation: 50,
+  },
   overlay: { flex: 1, justifyContent: 'flex-end' },
+  liste: { flexGrow: 0, flexShrink: 1 },
   backdrop: {
     position: 'absolute',
     left: 0,
@@ -539,6 +610,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   sheet: {
+    flexShrink: 1,
     maxHeight: '82%',
     minHeight: '52%',
     backgroundColor: RenkTokenlari.bgElevated,

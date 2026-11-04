@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -30,19 +29,8 @@ import {
   profilXOverlayBtnStyle,
 } from '../../src/moduller/kullanici-profili/bilesenler/ProfilXBaslik';
 import { useHikayeProfilOzet } from '../../src/moduller/hikaye/kancalar/useHikayeProfilOzet';
-import {
-  OyunOyuncuIstatistikGetir,
-  type OyunOyuncuIstatistik,
-} from '../../src/moduller/oyunlar/ortak/servisler/OyunIstatistikServisi';
-import { useGorunurOyunKodlari } from '../../src/moduller/oyunlar/ortak/hooks/useGorunurOyunKodlari';
 import { KillSwitchAktifMi, OzellikBayragiAktifMi } from '../../src/moduller/ozellik-bayraklari/OzellikBayragiAktifMi';
 import { PrestigeRozetSatiri } from '../../src/moduller/vip/bilesenler/PrestigeRozetSatiri';
-import { HesapDegeriRozeti } from '../../src/moduller/kullanici-profili/bilesenler/HesapDegeriRozeti';
-import { IslemHacmiKart } from '../../src/moduller/islem-hacmi/bilesenler/IslemHacmiKart';
-import { IslemHacmiGorunurlukSheet } from '../../src/moduller/islem-hacmi/bilesenler/IslemHacmiGorunurlukSheet';
-import { useIslemHacmi } from '../../src/moduller/islem-hacmi/kancalar/useIslemHacmi';
-import { IslemHacmiAyarlariniKaydet } from '../../src/moduller/islem-hacmi/islemler/IslemHacmiApi';
-import type { IslemHacmiGorunurluk } from '../../src/moduller/islem-hacmi/tipler';
 import { UlkeKatkisiKart } from '../../src/moduller/ulke-ligi/bilesenler/UlkeKatkisiKart';
 import { BenimUlkeKatkiGetir } from '../../src/moduller/ulke-ligi/islemler/UlkeLigiApi';
 import type { BenimUlkeKatkisi } from '../../src/moduller/ulke-ligi/tipler';
@@ -80,14 +68,14 @@ const EMPTY_PRIVACY: GizlilikAyarlari = {
   hide_level: false,
   hide_topup_coin: false,
   hide_prestige: false,
-  hide_account_value: false,
   hide_crown: false,
   hide_online_status: false,
   hide_followers: false,
   hide_following: false,
   hide_status_posts: false,
-  hide_game_stats: false,
   is_private: false,
+  search_profile_visible: true,
+  search_posts_visible: true,
 };
 
 /** Profil — X tarzı hibrit header + Tamuso rozetleri */
@@ -98,52 +86,20 @@ export default function ProfileScreen() {
   const { refreshWallet } = useWallet();
   const { uyelik: ajansUyelik, yukleniyor: ajansYukleniyor } = useAjansUyeligi(!isGuest);
   const [upgradeAcik, setUpgradeAcik] = useState(false);
-  const [oyunKartAcik, setOyunKartAcik] = useState(false);
   const [stats, setStats] = useState<KullaniciProfilIstatistikleri | null>(null);
   const [privacy, setPrivacy] = useState<GizlilikAyarlari>(EMPTY_PRIVACY);
-  const [oyunStats, setOyunStats] = useState<OyunOyuncuIstatistik | null>(null);
   const [buyut, setBuyut] = useState<{
     uri: string;
     tur: 'avatar' | 'cover';
   } | null>(null);
   const [durumlar, setDurumlar] = useState<DurumOggesi[]>([]);
   const [durumYukleniyor, setDurumYukleniyor] = useState(true);
-  const [hacimGorunurlukAcik, setHacimGorunurlukAcik] = useState(false);
-  const islemHacmi = useIslemHacmi({
-    mode: 'own',
-    userId: user?.id,
-    aktif: !isGuest && !!user?.id,
-  });
   const [ulkeKatki, setUlkeKatki] = useState<BenimUlkeKatkisi | null>(null);
   const ulkeLigiAcik =
     OzellikBayragiAktifMi('country_league_enabled') &&
     !KillSwitchAktifMi('kill_country_league_display');
-  const oyunPlatformAcik =
-    OzellikBayragiAktifMi('games_enabled') && !KillSwitchAktifMi('kill_games');
-  const { anyVisible: oyunGorunur } = useGorunurOyunKodlari({
-    enabled: oyunPlatformAcik,
-  });
-  const oyunProfiliAcik = oyunPlatformAcik && oyunGorunur;
   const hikayeOzet = useHikayeProfilOzet(user?.id);
   const ajansSahibi = useAjansSahibiMi(user?.id);
-
-  const hacimGorunurlukSec = (v: IslemHacmiGorunurluk) => {
-    setHacimGorunurlukAcik(false);
-    const b = islemHacmi.benim;
-    if (!b || v === b.visibility) return;
-    void IslemHacmiAyarlariniKaydet({
-      visibility: v,
-      show_badge: b.show_badge,
-      show_frame: b.show_frame,
-      show_effect: b.show_effect,
-      show_in_leaderboard: b.show_in_leaderboard !== false,
-    }).then((r) => {
-      if (!r.ok) {
-        Alert.alert(t('islemHacmi.baslik'), r.hata ?? t('ortak.kaydedilemedi'));
-      }
-      islemHacmi.yenile();
-    });
-  };
 
   useFocusEffect(
     useCallback(() => {
@@ -174,19 +130,12 @@ export default function ProfileScreen() {
       ProfilIstatistikleriniGetir(user.id)
         .then(setStats)
         .catch(() => setStats(null));
-      if (oyunProfiliAcik) {
-        OyunOyuncuIstatistikGetir(user.id)
-          .then(setOyunStats)
-          .catch(() => setOyunStats(null));
-      } else {
-        setOyunStats(null);
-      }
       setDurumYukleniyor(true);
       DurumKullanicisiniGetir(user.id, 48)
         .then(setDurumlar)
         .catch(() => setDurumlar([]))
         .finally(() => setDurumYukleniyor(false));
-    }, [user?.id, refreshProfile, patchProfile, oyunProfiliAcik, isGuest, ulkeLigiAcik]),
+    }, [user?.id, refreshProfile, patchProfile, isGuest, ulkeLigiAcik]),
   );
 
   const medyaTikla = (tur: 'avatar' | 'cover') => {
@@ -258,6 +207,29 @@ export default function ProfileScreen() {
             bio={bio}
             verified={!!profile?.is_verified}
             ajansSahibi={ajansSahibi}
+            ajansSlot={
+              isGuest || ajansYukleniyor ? null : ajansUyelik.role === 'pending' ? (
+                <AjansProfilRozeti
+                  varyant="beklemede"
+                  ajans={ajansUyelik.agency}
+                  onPress={() => router.push('/ajans/uye' as any)}
+                />
+              ) : ajansUyelik.agency ? (
+                <AjansProfilRozeti
+                  varyant="uye"
+                  ajans={ajansUyelik.agency}
+                  sahip={ajansSahibi || ajansUyelik.role === 'owner'}
+                  onPress={() =>
+                    router.push(`/ajans/profil/${ajansUyelik.agency!.id}` as any)
+                  }
+                />
+              ) : (
+                <AjansProfilRozeti
+                  varyant="basvur"
+                  onPress={() => router.push('/ajans' as any)}
+                />
+              )
+            }
             titleId={
               privacy.hide_prestige
                 ? null
@@ -338,30 +310,6 @@ export default function ProfileScreen() {
             }
           >
             <View style={styles.rozetBlok}>
-              {(stats && !privacy.hide_account_value) || islemHacmi.gorunur ? (
-                <View style={styles.rozetSatir}>
-                  {stats && !privacy.hide_account_value ? (
-                    <View style={styles.rozetHucre}>
-                      <HesapDegeriRozeti
-                        value={Number(stats.account_value) || 0}
-                        label={stats.account_value_label}
-                        kompakt={islemHacmi.gorunur}
-                      />
-                    </View>
-                  ) : null}
-                  {islemHacmi.gorunur ? (
-                    <View style={styles.rozetHucre}>
-                      <IslemHacmiKart
-                        mode="own"
-                        data={islemHacmi.benim}
-                        kompakt={!!(stats && !privacy.hide_account_value)}
-                        onPress={() => router.push('/islem-hacmi' as any)}
-                        onMenu={() => setHacimGorunurlukAcik(true)}
-                      />
-                    </View>
-                  ) : null}
-                </View>
-              ) : null}
               {stats && !privacy.hide_prestige ? (
                 <PrestigeRozetSatiri
                   vipLevel={Number(stats.vip_level) || 0}
@@ -384,32 +332,6 @@ export default function ProfileScreen() {
 
             <TamusoBanner placement="PROFILE_TOP" screen="PROFILE" compact />
 
-            <View style={styles.aksiyonlar}>
-              {!isGuest && !ajansYukleniyor && ajansUyelik.role === 'pending' ? (
-                <AjansProfilRozeti
-                  varyant="beklemede"
-                  ajans={ajansUyelik.agency}
-                  tamGenislik
-                  onPress={() => router.push('/ajans/uye' as any)}
-                />
-              ) : !isGuest && !ajansYukleniyor && ajansUyelik.agency ? (
-                <AjansProfilRozeti
-                  varyant="uye"
-                  ajans={ajansUyelik.agency}
-                  tamGenislik
-                  onPress={() =>
-                    router.push(`/ajans/profil/${ajansUyelik.agency!.id}` as any)
-                  }
-                />
-              ) : !isGuest && !ajansYukleniyor ? (
-                <AjansProfilRozeti
-                  varyant="basvur"
-                  tamGenislik
-                  onPress={() => router.push('/ajans' as any)}
-                />
-              ) : null}
-            </View>
-
             <TamusoBanner placement="PROFILE_MIDDLE" screen="PROFILE" compact />
 
             <View style={styles.kisayolSatiri}>
@@ -425,25 +347,6 @@ export default function ProfileScreen() {
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color={RenkTokenlari.textDim} />
               </Pressable>
-
-              {oyunProfiliAcik && !privacy.hide_game_stats ? (
-                <Pressable
-                  onPress={() => setOyunKartAcik(true)}
-                  style={({ pressed }) => [styles.kisayolButon, pressed && styles.pressed]}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('profilTab.oyunProfili')}
-                >
-                  <Ionicons
-                    name="game-controller-outline"
-                    size={18}
-                    color={RenkTokenlari.mint}
-                  />
-                  <Text style={styles.kisayolMetin} numberOfLines={1}>
-                    {t('profilTab.oyun')}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={16} color={RenkTokenlari.textDim} />
-                </Pressable>
-              ) : null}
             </View>
 
             <View style={styles.metrics}>
@@ -506,24 +409,10 @@ export default function ProfileScreen() {
           }}
         />
 
-        <OyunProfilKartModal
-          visible={oyunKartAcik && oyunProfiliAcik}
-          stats={oyunStats}
-          onKapat={() => setOyunKartAcik(false)}
-        />
-
         <ProfilMedyaBuyutucu
           uri={buyut?.uri ?? null}
           tur={buyut?.tur}
           onKapat={() => setBuyut(null)}
-        />
-        <IslemHacmiGorunurlukSheet
-          visible={hacimGorunurlukAcik}
-          secili={
-            (islemHacmi.benim?.visibility ?? 'TIER_ONLY') as IslemHacmiGorunurluk
-          }
-          onSec={hacimGorunurlukSec}
-          onKapat={() => setHacimGorunurlukAcik(false)}
         />
       </ModulHataSiniri>
     </Screen>
@@ -555,111 +444,6 @@ function Metric({
   );
 }
 
-function OyunProfilKartModal({
-  visible,
-  stats,
-  onKapat,
-}: {
-  visible: boolean;
-  stats: OyunOyuncuIstatistik | null;
-  onKapat: () => void;
-}) {
-  const { t } = useCeviri();
-  const hucreler = [
-    {
-      id: 'kupa',
-      etiket: t('profilTab.kupa'),
-      deger: formatSayi(stats?.trophies ?? 0),
-      tint: RenkTokenlari.accent,
-    },
-    {
-      id: 'oyun_xp',
-      etiket: t('profilTab.oyunXp'),
-      deger: formatSayi(stats?.xp ?? 0),
-      tint: RenkTokenlari.violet,
-    },
-    {
-      id: 'mac',
-      etiket: t('profilTab.mac'),
-      deger: String(stats?.totalGames ?? 0),
-      tint: RenkTokenlari.text,
-    },
-    {
-      id: 'galibiyet',
-      etiket: t('profil.galibiyet'),
-      deger: String(stats?.wins ?? 0),
-      tint: RenkTokenlari.mint,
-    },
-    {
-      id: 'en_yuksek',
-      etiket: t('profilTab.enYuksek'),
-      deger: formatSayi(stats?.highestScore ?? 0),
-      tint: RenkTokenlari.accent,
-    },
-    {
-      id: 'combo',
-      etiket: t('profilTab.combo'),
-      deger: `×${stats?.highestCombo ?? 0}`,
-      tint: RenkTokenlari.violet,
-    },
-  ] as const;
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onKapat}
-      statusBarTranslucent
-    >
-      <Pressable style={styles.oyunModalMaske} onPress={onKapat}>
-        <Pressable
-          style={styles.oyunModalKart}
-          onPress={(e) => e.stopPropagation()}
-          accessibilityLabel={t('profilTab.oyunProfili')}
-        >
-          <View style={styles.walletUst}>
-            <View style={styles.walletSol}>
-              <Text style={styles.walletBaslik}>{t('profilTab.oyunProfili')}</Text>
-              <Text style={[styles.walletAlt, { color: RenkTokenlari.accent }]}>
-                {stats?.leagueLabel ?? t('sehir.lig')}
-              </Text>
-            </View>
-            <Pressable
-              onPress={onKapat}
-              hitSlop={10}
-              accessibilityLabel={t('ortak.kapat')}
-              style={styles.oyunModalKapat}
-            >
-              <Ionicons name="close" size={18} color={RenkTokenlari.textMuted} />
-            </Pressable>
-          </View>
-
-          <View style={styles.oyunModalGrid}>
-            {hucreler.map((h) => (
-              <View key={h.id} style={[styles.walletBakiyeKart, styles.oyunModalHucre]}>
-                <View style={[styles.walletDot, { backgroundColor: h.tint }]} />
-                <View style={styles.walletBakiyeCopy}>
-                  <Text style={styles.walletBakiyeEtiket}>{h.etiket}</Text>
-                  <Text style={styles.walletBakiyeDeger} numberOfLines={1}>
-                    {h.deger}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-
-          <Text style={styles.oyunModalAlt}>
-            {(stats?.totalGames ?? 0) > 0
-              ? t('profilTab.galibiyetOrani', { oran: stats?.winRate ?? 0 })
-              : t('profilTab.oyunIpucu')}
-          </Text>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
 const styles = StyleSheet.create({
   scroll: {
     paddingBottom: YUZEN_TAB_ICERIK_BOSLUGU,
@@ -679,25 +463,6 @@ const styles = StyleSheet.create({
   },
   rozetBlok: {
     paddingHorizontal: BoslukTokenlari.lg,
-    gap: BoslukTokenlari.sm,
-    alignItems: 'stretch',
-  },
-  rozetSatir: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: BoslukTokenlari.sm,
-    marginTop: 10,
-    width: '100%',
-  },
-  rozetHucre: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-    minWidth: 0,
-  },
-  aksiyonlar: {
-    paddingHorizontal: BoslukTokenlari.lg,
-    paddingTop: BoslukTokenlari.md,
     gap: BoslukTokenlari.sm,
     alignItems: 'stretch',
   },
@@ -727,47 +492,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: RenkTokenlari.text,
   },
-  walletUst: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: BoslukTokenlari.sm,
-  },
-  walletSol: { flex: 1, gap: 2, minWidth: 0 },
-  walletBaslik: {
-    ...TipografiTokenlari.body,
-    fontWeight: '700',
-    color: RenkTokenlari.text,
-  },
-  walletAlt: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
-  },
-  walletBakiyeKart: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: BoslukTokenlari.sm,
-    paddingVertical: 10,
-    paddingHorizontal: BoslukTokenlari.md,
-    borderRadius: YaricapTokenlari.md,
-    backgroundColor: RenkTokenlari.surface,
-  },
-  walletDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  walletBakiyeCopy: { flex: 1, minWidth: 0, gap: 1 },
-  walletBakiyeEtiket: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textDim,
-  },
-  walletBakiyeDeger: {
-    ...TipografiTokenlari.body,
-    fontWeight: '800',
-    color: RenkTokenlari.text,
-  },
   metrics: {
     flexDirection: 'row',
     marginHorizontal: BoslukTokenlari.lg,
@@ -789,42 +513,6 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.micro,
     color: RenkTokenlari.textDim,
     fontSize: 9,
-  },
-  oyunModalMaske: {
-    flex: 1,
-    backgroundColor: 'rgba(8,6,14,0.72)',
-    justifyContent: 'center',
-    paddingHorizontal: BoslukTokenlari.xl,
-  },
-  oyunModalKart: {
-    padding: BoslukTokenlari.md,
-    borderRadius: YaricapTokenlari.lg,
-    backgroundColor: RenkTokenlari.bgCard,
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.28)',
-    gap: BoslukTokenlari.md,
-  },
-  oyunModalKapat: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: RenkTokenlari.surface,
-  },
-  oyunModalGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: BoslukTokenlari.sm,
-  },
-  oyunModalHucre: {
-    flexGrow: 0,
-    flexBasis: '47%',
-    maxWidth: '48%',
-  },
-  oyunModalAlt: {
-    ...TipografiTokenlari.micro,
-    color: RenkTokenlari.textMuted,
   },
   guestCta: {
     paddingHorizontal: BoslukTokenlari.lg,

@@ -36,6 +36,7 @@ export type KesfetAramaCanli = {
   host_display_name: string | null;
   host_username: string | null;
   host_avatar_url: string | null;
+  host_level: number | null;
 };
 
 export type AnaSayfaKesfetAramaSonuc = {
@@ -50,6 +51,7 @@ type HostEmbed = {
   display_name: string | null;
   username: string | null;
   avatar_url: string | null;
+  level?: number | null;
 };
 
 type OdaSatir = {
@@ -156,7 +158,7 @@ async function canlilariAra(q: string, limit: number): Promise<KesfetAramaCanli[
   if (hostIds.length > 0) {
     const { data: hostlar, error: hostErr } = await supabase
       .from('profiles')
-      .select('id, display_name, username, avatar_url')
+      .select('id, display_name, username, avatar_url, level')
       .in('id', hostIds);
     if (hostErr) {
       console.warn('[KESFET_ARA] live hosts', hostErr.message);
@@ -177,6 +179,7 @@ async function canlilariAra(q: string, limit: number): Promise<KesfetAramaCanli[
       host_display_name: host?.display_name ?? null,
       host_username: host?.username ?? null,
       host_avatar_url: host?.avatar_url ?? null,
+      host_level: host?.level ?? null,
     };
   });
 

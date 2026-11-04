@@ -52,7 +52,6 @@ const KATEGORI_TR: Record<string, string> = {
   STORIES: 'Hikâyeler',
   CONTENT: 'İçerik',
   GAMES: 'Oyunlar',
-  CREATOR_STUDIO: 'Creator Studio',
   ECONOMY: 'Ekonomi',
   FEATURE_FLAGS: 'Özellik bayrakları',
   NOTIFICATIONS: 'Bildirimler',

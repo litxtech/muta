@@ -81,13 +81,9 @@ export const AdminGirisLobisiIslemleri = {
 
     if (!yukleme.ok) throw new Error(yukleme.hata);
 
-    const { data: urlData } = supabase.storage
-      .from(GIRIS_LOBISI_BUCKET)
-      .getPublicUrl(yukleme.path);
-
     const { data, error } = await supabase.rpc('admin_giris_lobisi_medya_ekle', {
       p_tur: input.tur,
-      p_public_url: urlData.publicUrl,
+      p_public_url: yukleme.publicUrl,
       p_storage_path: yukleme.path,
       p_mime_type: yukleme.contentType ?? input.mime ?? null,
       p_eskiyi_sil: true,

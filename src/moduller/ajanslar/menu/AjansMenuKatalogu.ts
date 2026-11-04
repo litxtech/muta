@@ -3,12 +3,7 @@ import type { CeviriAnahtari } from '../../../i18n/useCeviri';
 import { AJANS_BOLUMLER } from '../bilesenler/AjansBolumRayi';
 import { ajansHref } from '../kancalar/useAjansRouteId';
 
-export type AjansMenuGrupId =
-  | 'genel'
-  | 'operasyon'
-  | 'icerik'
-  | 'finans'
-  | 'yonetim';
+export type AjansMenuGrupId = 'genel' | 'operasyon' | 'yonetim';
 
 export type AjansMenuOgesi = {
   key: string;
@@ -21,8 +16,6 @@ export type AjansMenuOgesi = {
 
 const GRUP_MAP: Record<string, AjansMenuGrupId> = {
   ozet: 'genel',
-  gorusmeler: 'genel',
-  sertifika: 'genel',
   canli: 'genel',
   uyeler: 'genel',
   analitik: 'genel',
@@ -30,30 +23,16 @@ const GRUP_MAP: Record<string, AjansMenuGrupId> = {
   davetler: 'operasyon',
   ekipler: 'operasyon',
   gorevler: 'operasyon',
-  program: 'icerik',
-  etkinlikler: 'icerik',
-  duyurular: 'icerik',
-  islemler: 'finans',
-  cuzdan: 'finans',
   destek: 'yonetim',
-  guvenlik: 'yonetim',
   dogrulama: 'yonetim',
   ayarlar: 'yonetim',
 };
 
-export const AJANS_MENU_GRUP_SIRA: AjansMenuGrupId[] = [
-  'genel',
-  'operasyon',
-  'icerik',
-  'finans',
-  'yonetim',
-];
+export const AJANS_MENU_GRUP_SIRA: AjansMenuGrupId[] = ['genel', 'operasyon', 'yonetim'];
 
 export const AJANS_MENU_GRUP_BASLIK: Record<AjansMenuGrupId, CeviriAnahtari> = {
   genel: 'ajans.menuGrupGenel',
   operasyon: 'ajans.menuGrupOperasyon',
-  icerik: 'ajans.menuGrupIcerik',
-  finans: 'ajans.menuGrupFinans',
   yonetim: 'ajans.menuGrupYonetim',
 };
 

@@ -11,7 +11,6 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useCeviri } from '../../../i18n/useCeviri';
-import { OzellikBilgiDugmesi } from '../../../bilesenler/bilgi/OzellikBilgiDugmesi';
 
 type Props = {
   canliSayisi: number;
@@ -40,20 +39,25 @@ export function CanliYayinMarkaBasligi({ canliSayisi, onGeri }: Props) {
           </Pressable>
         ) : null}
         <View style={styles.markaBlok}>
-          <Text style={styles.fisilti}>{t('canliYayin.fisilti')}</Text>
+          <Text style={styles.fisilti} numberOfLines={1}>
+            {t('canliYayin.fisilti')}
+          </Text>
           <View style={styles.baslikSatir}>
             <Text style={styles.baslik} numberOfLines={1} ellipsizeMode="tail">
               {t('canliYayin.baslik')}
             </Text>
-            <OzellikBilgiDugmesi konu="canli" />
           </View>
-          <Text style={styles.slogan}>{t('canliYayin.slogan')}</Text>
+          <Text style={styles.slogan} numberOfLines={2} ellipsizeMode="tail">
+            {t('canliYayin.slogan')}
+          </Text>
         </View>
         <View style={styles.canliRozet}>
           <AnaSayfaCanliNokta boyut={6} />
           <View style={styles.canliMetin}>
             <Text style={styles.canliSayi}>{canliSayisi}</Text>
-            <Text style={styles.canliEtiket}>{t('canliYayin.canliEtiket')}</Text>
+            <Text style={styles.canliEtiket} numberOfLines={1}>
+              {t('canliYayin.canliEtiket')}
+            </Text>
           </View>
         </View>
       </View>
@@ -126,6 +130,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: YaricapTokenlari.pill,
     minWidth: 64,
+    // Uzun çevirilerde rozet küçülüp başlığı ezmesin.
+    flexShrink: 0,
   },
   canliMetin: {
     gap: 2,

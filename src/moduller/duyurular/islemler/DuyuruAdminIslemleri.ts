@@ -168,7 +168,6 @@ export async function AdminDuyuruMedyaYukle(input: {
   });
   if (!yukleme.ok) return yukleme;
   input.onProgress?.(0.7);
-  const { data: pub } = supabase.storage.from('announcement-media').getPublicUrl(yukleme.path);
   let thumbPath: string | null = null;
   let thumbUrl: string | null = null;
   if (input.thumbnailUri) {
@@ -183,14 +182,14 @@ export async function AdminDuyuruMedyaYukle(input: {
     });
     if (t.ok) {
       thumbPath = t.path;
-      thumbUrl = supabase.storage.from('announcement-media').getPublicUrl(t.path).data.publicUrl;
+      thumbUrl = t.publicUrl;
     }
   }
   const { data, error } = await supabase.rpc('admin_duyuru_medya_kaydet', {
     p_announcement_id: input.announcementId,
     p_kind: input.kind,
     p_path: yukleme.path,
-    p_public_url: pub.publicUrl,
+    p_public_url: yukleme.publicUrl,
     p_mime: yukleme.contentType,
     p_bytes: 0,
     p_duration_ms: input.durationMs ?? null,

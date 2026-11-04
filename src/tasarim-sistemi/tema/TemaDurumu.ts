@@ -21,9 +21,12 @@ type TemaGlobal = typeof globalThis & {
 
 const dinleyiciler = new Set<Dinleyici>();
 
-/** Soguk acilis — AsyncStorage gelene kadar koyu */
+/** Kayitli tercih yokken uygulanan gorunum. Koyu tema ayarlardan secilebilir. */
+export const VARSAYILAN_TEMA: TemaKodu = 'acik';
+
+/** Soguk acilis — AsyncStorage gelene kadar varsayilan (acik) */
 try {
-  Appearance.setColorScheme('dark');
+  Appearance.setColorScheme('light');
 } catch {
   /* eski native */
 }
@@ -36,7 +39,7 @@ export function paletiKoddanAl(kod: TemaKodu): RenkPaleti {
 function mutAl(): TemaMut {
   const g = globalThis as TemaGlobal;
   return (g.__tamusoTemaDurumu ??= {
-    aktifKod: 'koyu',
+    aktifKod: VARSAYILAN_TEMA,
     paletOnbellek: null,
     koyuSahneKilit: 0,
     cacheDoldurma: null,

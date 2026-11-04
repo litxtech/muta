@@ -28,25 +28,25 @@ type BolumSabit = {
 
 export const AJANS_BOLUMLER: BolumSabit[] = [
   { key: 'ozet', labelKey: 'ajans.ozetBolum', icon: 'grid-outline', path: '' },
-  { key: 'gorusmeler', labelKey: 'ajans.gorusmeBolum', icon: 'videocam-outline', path: 'gorusmeler' },
-  { key: 'sertifika', labelKey: 'ajans.sertifikaBaslik', icon: 'ribbon-outline', path: 'sertifika' },
   { key: 'canli', labelKey: 'ajans.kpiCanli', icon: 'radio-outline', path: 'canli' },
   { key: 'uyeler', labelKey: 'ajans.uyeler', icon: 'people-outline', path: 'uyeler' },
   { key: 'basvurular', labelKey: 'ajans.basvuruVarsayilan', icon: 'mail-outline', path: 'basvurular' },
   { key: 'davetler', labelKey: 'ajans.hizliDavet', icon: 'person-add-outline', path: 'davetler' },
   { key: 'ekipler', labelKey: 'ajans.rayEkip', icon: 'git-network-outline', path: 'ekipler' },
-  { key: 'program', labelKey: 'ajans.programBaslik', icon: 'calendar-outline', path: 'program' },
-  { key: 'etkinlikler', labelKey: 'ajans.hizliEtkinlik', icon: 'sparkles-outline', path: 'etkinlikler' },
-  { key: 'duyurular', labelKey: 'ajans.hizliDuyuru', icon: 'megaphone-outline', path: 'duyurular' },
   { key: 'gorevler', labelKey: 'ajans.rayGorev', icon: 'checkbox-outline', path: 'gorevler' },
   { key: 'analitik', labelKey: 'ajans.analitik', icon: 'stats-chart-outline', path: 'analitik' },
-  { key: 'islemler', labelKey: 'ajans.rayIslem', icon: 'wallet-outline', path: 'islemler' },
-  { key: 'cuzdan', labelKey: 'ajans.rayCuzdan', icon: 'cash-outline', path: 'cuzdan' },
   { key: 'destek', labelKey: 'ajans.rayDestek', icon: 'help-buoy-outline', path: 'destek' },
-  { key: 'guvenlik', labelKey: 'ajans.rayGuvenlik', icon: 'shield-checkmark-outline', path: 'guvenlik' },
   { key: 'dogrulama', labelKey: 'ajans.verMerkez', icon: 'finger-print-outline', path: 'dogrulama' },
   { key: 'ayarlar', labelKey: 'ajans.ayarlar', icon: 'settings-outline', path: 'ayarlar' },
 ];
+
+const ACIK_BOLUM_YOLLARI = new Set(AJANS_BOLUMLER.map((b) => b.path));
+
+/** Sunucunun döndürdüğü href uygulamada var olan bir bölüme mi gidiyor */
+export function AjansBolumYoluAcikMi(href: string | null | undefined): boolean {
+  if (href == null) return false;
+  return ACIK_BOLUM_YOLLARI.has(href.split('/')[0] ?? '');
+}
 
 export function AjansBolumRayi({
   agencyId,
@@ -103,9 +103,6 @@ export function AjansBolumRayi({
     </View>
   );
 }
-
-/** Geriye uyumluluk */
-export { AjansBolumRayi as AjansBolumGrid };
 
 const styles = StyleSheet.create({
   wrap: {

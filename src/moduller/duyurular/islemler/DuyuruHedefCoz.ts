@@ -46,7 +46,7 @@ export function DuyuruHedefCoz(
     case 'AGENCY':
       return idGuvenli ? `/ajans/${id}` : null;
     case 'GAME':
-      return idGuvenli ? `/oyun/${id}` : null;
+      return id === 'fruit-wheel' || id === 'fruit_wheel' ? '/oyun/fruit-wheel' : null;
     case 'WEBVIEW':
     case 'EXTERNAL_URL': {
       const url = (dest.url ?? '').trim();

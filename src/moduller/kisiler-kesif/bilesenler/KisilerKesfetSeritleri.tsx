@@ -16,6 +16,11 @@ import {
 import { useCeviri } from '../../../i18n/useCeviri';
 import type { KisilerKesifKarti } from '../tipler';
 import { basHarfler, harfRenkleri } from './KisilerKartYuz';
+import { PremiumAvatarCercevesi } from '../../kullanici-profili/avatar-cerceve/PremiumAvatarCercevesi';
+import { AvatarCerceveBasamagi } from '../../kullanici-profili/avatar-cerceve/AvatarCerceveVarliklari';
+
+/** Küçük çerçeve kutusu 52 / 0.74 ≈ 70 px; 72 px'lik sütuna sığar. */
+const CERCEVELI_FOTO = 52;
 
 export type CanliOzet = {
   id: string;
@@ -117,6 +122,20 @@ export function KisilerKesfetSeritleri({
       >
         {cevrimiciler.map((k) => {
           const ad = k.display_name?.trim() || k.username || t('ortak.kullanici');
+          const cerceveli = AvatarCerceveBasamagi(k.level) != null;
+          const foto = k.avatar_url ? (
+            <Image
+              source={{ uri: k.avatar_url }}
+              style={cerceveli ? styles.cerceveFoto : styles.aktifFoto}
+            />
+          ) : (
+            <LinearGradient
+              colors={harfRenkleri(k.user_id)}
+              style={cerceveli ? styles.cerceveFoto : styles.aktifFoto}
+            >
+              <Text style={styles.harfKucuk}>{basHarfler(ad)}</Text>
+            </LinearGradient>
+          );
           return (
             <Pressable
               key={k.user_id}
@@ -125,14 +144,21 @@ export function KisilerKesfetSeritleri({
               accessibilityRole="button"
               accessibilityLabel={t('kisilerX.profilA11y', { isim: ad })}
             >
-              {k.avatar_url ? (
-                <Image source={{ uri: k.avatar_url }} style={styles.aktifFoto} />
+              {cerceveli ? (
+                <PremiumAvatarCercevesi
+                  level={k.level}
+                  size={CERCEVELI_FOTO}
+                  variant="kucuk"
+                  durumGostergesi={<View style={styles.onlineCerceveli} />}
+                >
+                  {foto}
+                </PremiumAvatarCercevesi>
               ) : (
-                <LinearGradient colors={harfRenkleri(k.user_id)} style={styles.aktifFoto}>
-                  <Text style={styles.harfKucuk}>{basHarfler(ad)}</Text>
-                </LinearGradient>
+                <>
+                  {foto}
+                  <View style={styles.online} />
+                </>
               )}
-              <View style={styles.online} />
               <Text style={styles.aktifAd} numberOfLines={1}>
                 {ad}
               </Text>
@@ -265,6 +291,23 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 48,
     right: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: RenkTokenlari.mint,
+    borderWidth: 1.5,
+    borderColor: RenkTokenlari.bg,
+  },
+  cerceveFoto: {
+    width: CERCEVELI_FOTO,
+    height: CERCEVELI_FOTO,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  onlineCerceveli: {
+    position: 'absolute',
+    top: 48,
+    left: 48,
     width: 10,
     height: 10,
     borderRadius: 5,

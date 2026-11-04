@@ -14,7 +14,10 @@ import { Screen } from '../../../src/components/Screen';
 import { EkranBasligi, guvenliGeriDon } from '../../../src/components/EkranBasligi';
 import { ModulHataSiniri } from '../../../src/ortak/hata-sinirlari/ModulHataSiniri';
 import { AjansAtmosfer } from '../../../src/moduller/ajanslar/bilesenler/AjansAtmosfer';
-import { AjansBolumRayi } from '../../../src/moduller/ajanslar/bilesenler/AjansBolumRayi';
+import {
+  AjansBolumRayi,
+  AjansBolumYoluAcikMi,
+} from '../../../src/moduller/ajanslar/bilesenler/AjansBolumRayi';
 import {
   AjansCekmeceMenu,
   AjansMenuDugmesi,
@@ -88,8 +91,8 @@ export default function AjansKontrolMerkeziEkrani() {
         AjansSeviyeProgressGetir(id).catch(() => null),
       ]);
       setKpi(k);
-      setBugun(b);
-      setUyarilar(u);
+      setBugun({ ...b, maddeler: b.maddeler.filter((m) => AjansBolumYoluAcikMi(m.href)) });
+      setUyarilar(u.filter((x) => !x.href || AjansBolumYoluAcikMi(x.href)));
       setSeviye(s);
     } catch (e) {
       setHata(e instanceof Error ? e.message : t('ajans.yuklenemedi'));
@@ -184,21 +187,6 @@ export default function AjansKontrolMerkeziEkrani() {
                     : undefined
                 }
               />
-
-              <AjansKart>
-                <AjansListeSatir
-                  title={t('ajans.gorusmeMerkez')}
-                  subtitle={t('ajans.gorusmeBolum')}
-                  onPress={() => router.push(ajansHref(id, 'gorusmeler') as any)}
-                />
-                {izinler?.role === 'OWNER' ? (
-                  <AjansListeSatir
-                    title={t('ajans.sertifikaBaslik')}
-                    subtitle={t('ajans.sertifikaAlt')}
-                    onPress={() => router.push(ajansHref(id, 'sertifika') as any)}
-                  />
-                ) : null}
-              </AjansKart>
 
               {seviye ? (
                 <AjansKart>

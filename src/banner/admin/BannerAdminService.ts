@@ -108,10 +108,6 @@ export const BannerAdminService = {
 
     if (!result.ok) throw new Error(result.hata);
 
-    const { data } = supabase.storage
-      .from(BANNER_STORAGE_BUCKET)
-      .getPublicUrl(result.path);
-
-    return { url: data.publicUrl, path: result.path };
+    return { url: result.publicUrl, path: result.path };
   },
 };

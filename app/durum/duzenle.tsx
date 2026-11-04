@@ -4,15 +4,20 @@ import {
   Alert,
   Image,
   Keyboard,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useEventListener } from 'expo';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import { Screen } from '../../src/components/Screen';
 import { EkranBasligi } from '../../src/components/EkranBasligi';
 import { GradientButton } from '../../src/components/GradientButton';
@@ -35,6 +40,69 @@ import {
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useCeviri } from '../../src/i18n/useCeviri';
 import { MesajComposerLinkOnizleme } from '../../src/moduller/mesajlasma/bilesenler/MesajComposerLinkOnizleme';
+
+function DuzenleVideo({
+  uri,
+  style,
+  etiketOynat,
+  etiketDuraklat,
+}: {
+  uri: string;
+  style: StyleProp<ViewStyle>;
+  etiketOynat: string;
+  etiketDuraklat: string;
+}) {
+  const [oynuyor, setOynuyor] = useState(false);
+  const player = useVideoPlayer(uri, (p) => {
+    p.loop = true;
+  });
+  useEventListener(player, 'playingChange', ({ isPlaying }) => setOynuyor(isPlaying));
+
+  useFocusEffect(
+    useCallback(
+      () => () => {
+        try {
+          player.pause();
+        } catch {
+          /* oynatıcı serbest bırakıldı */
+        }
+      },
+      [player],
+    ),
+  );
+
+  const oynatDurdur = () => {
+    Keyboard.dismiss();
+    try {
+      if (player.playing) player.pause();
+      else player.play();
+    } catch {
+      /* native oynatıcı henüz hazır değil */
+    }
+  };
+
+  return (
+    <Pressable
+      style={style}
+      onPress={oynatDurdur}
+      accessibilityRole="button"
+      accessibilityLabel={oynuyor ? etiketDuraklat : etiketOynat}
+    >
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        nativeControls={false}
+        playsInline
+        pointerEvents="none"
+        {...(Platform.OS === 'android' ? { surfaceType: 'textureView' as const } : null)}
+      />
+      {!oynuyor ? (
+        <Ionicons name="play-circle" size={48} color="rgba(255,255,255,0.85)" />
+      ) : null}
+    </Pressable>
+  );
+}
 
 export default function DurumDuzenleEkrani() {
   const { t } = useCeviri();
@@ -135,21 +203,14 @@ export default function DurumDuzenleEkrani() {
                 style={[styles.onizleme, klavyeAcik && styles.onizlemeKucuk]}
                 onPress={Keyboard.dismiss}
               >
-                {oge.media_type === 'video' ? (
-                  <View
-                    style={[
-                      styles.img,
-                      styles.videoPlaceholder,
-                      klavyeAcik && styles.imgKucuk,
-                    ]}
-                  >
-                    <Ionicons
-                      name="play-circle"
-                      size={48}
-                      color="rgba(255,255,255,0.8)"
-                    />
-                  </View>
-                ) : DurumMedyaHttpsMi(oge.media_url) ? (
+                {oge.media_type === 'video' && DurumMedyaHttpsMi(oge.media_url) ? (
+                  <DuzenleVideo
+                    uri={oge.media_url.trim()}
+                    style={[styles.img, styles.videoPlaceholder, klavyeAcik && styles.imgKucuk]}
+                    etiketOynat={t('chain.oynat')}
+                    etiketDuraklat={t('chain.duraklat')}
+                  />
+                ) : DurumMedyaHttpsMi(oge.media_url) && oge.media_type !== 'video' ? (
                   <Image
                     source={{ uri: oge.media_url.trim() }}
                     style={[styles.img, klavyeAcik && styles.imgKucuk]}

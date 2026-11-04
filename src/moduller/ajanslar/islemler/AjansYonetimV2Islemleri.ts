@@ -64,13 +64,6 @@ export type AjansCanliOperasyon = {
     username: string | null;
     avatar_url: string | null;
   }>;
-  yaklasan_programlar: Array<{
-    id: string;
-    title: string;
-    starts_at: string;
-    kind: string;
-    host_id: string | null;
-  }>;
   ozet: { cevrimici: number; canli: number; ses: number };
 };
 
@@ -139,7 +132,6 @@ export async function AjansCanliOperasyonGetir(
     cevrimici: d?.cevrimici ?? [],
     canli_yayinlar: d?.canli_yayinlar ?? [],
     ses_odalari: d?.ses_odalari ?? [],
-    yaklasan_programlar: d?.yaklasan_programlar ?? [],
     ozet: d?.ozet ?? { cevrimici: 0, canli: 0, ses: 0 },
   };
 }
@@ -308,15 +300,6 @@ export async function AjansStaffListesi(agencyId: string) {
   return (data as Array<Record<string, unknown>>) ?? [];
 }
 
-export async function AjansAuditListesi(agencyId: string, limit = 50) {
-  const { data, error } = await supabase.rpc('ajans_audit_listesi', {
-    p_agency_id: agencyId,
-    p_limit: limit,
-  });
-  if (error) rpcHata(error);
-  return (data as Array<Record<string, unknown>>) ?? [];
-}
-
 export async function AjansEkipListesi(agencyId: string) {
   const { data, error } = await supabase.rpc('ajans_ekip_listesi', {
     p_agency_id: agencyId,
@@ -350,90 +333,6 @@ export async function AjansEkipUyeEkle(teamId: string, userId: string) {
   });
   if (error) return { ok: false as const, hata: error.message };
   return { ok: true as const };
-}
-
-export async function AjansProgramListesi(agencyId: string) {
-  const { data, error } = await supabase.rpc('ajans_program_listesi', {
-    p_agency_id: agencyId,
-  });
-  if (error) rpcHata(error);
-  return (data as Array<Record<string, unknown>>) ?? [];
-}
-
-export async function AjansProgramOlustur(input: {
-  agencyId: string;
-  title: string;
-  kind: string;
-  startsAt: string;
-  endsAt?: string;
-  hostId?: string;
-  note?: string;
-}) {
-  const { data, error } = await supabase.rpc('ajans_program_olustur', {
-    p_agency_id: input.agencyId,
-    p_title: input.title,
-    p_kind: input.kind,
-    p_starts_at: input.startsAt,
-    p_ends_at: input.endsAt ?? null,
-    p_host_id: input.hostId ?? null,
-    p_note: input.note ?? null,
-  });
-  if (error) return { ok: false as const, hata: error.message };
-  return { ok: true as const, id: (data as { id?: string })?.id };
-}
-
-export async function AjansEtkinlikListesi(agencyId: string) {
-  const { data, error } = await supabase.rpc('ajans_etkinlik_listesi', {
-    p_agency_id: agencyId,
-  });
-  if (error) rpcHata(error);
-  return (data as Array<Record<string, unknown>>) ?? [];
-}
-
-export async function AjansEtkinlikOlustur(input: {
-  agencyId: string;
-  title: string;
-  description?: string;
-  startsAt: string;
-  kind?: string;
-  status?: string;
-}) {
-  const { data, error } = await supabase.rpc('ajans_etkinlik_olustur', {
-    p_agency_id: input.agencyId,
-    p_title: input.title,
-    p_description: input.description ?? '',
-    p_starts_at: input.startsAt,
-    p_kind: input.kind ?? 'room',
-    p_status: input.status ?? 'SCHEDULED',
-  });
-  if (error) return { ok: false as const, hata: error.message };
-  return { ok: true as const, id: (data as { id?: string })?.id };
-}
-
-export async function AjansDuyuruListesi(agencyId: string) {
-  const { data, error } = await supabase.rpc('ajans_duyuru_listesi', {
-    p_agency_id: agencyId,
-  });
-  if (error) rpcHata(error);
-  return (data as Array<Record<string, unknown>>) ?? [];
-}
-
-export async function AjansDuyuruOlustur(input: {
-  agencyId: string;
-  title: string;
-  body: string;
-  audience?: string;
-  sendPush?: boolean;
-}) {
-  const { data, error } = await supabase.rpc('ajans_duyuru_olustur', {
-    p_agency_id: input.agencyId,
-    p_title: input.title,
-    p_body: input.body,
-    p_audience: input.audience ?? 'all',
-    p_send_push: input.sendPush ?? false,
-  });
-  if (error) return { ok: false as const, hata: error.message };
-  return { ok: true as const, id: (data as { id?: string })?.id };
 }
 
 export async function AjansGorevListesi(agencyId: string) {
@@ -488,20 +387,6 @@ export async function AjansHedefOlustur(input: {
   return { ok: true as const, id: (data as { id?: string })?.id };
 }
 
-export async function AjansOzelOdaKur(input: {
-  agencyId: string;
-  title: string;
-  hostId?: string;
-}) {
-  const { data, error } = await supabase.rpc('ajans_ozel_oda_kur', {
-    p_agency_id: input.agencyId,
-    p_title: input.title,
-    p_host_id: input.hostId ?? null,
-  });
-  if (error) return { ok: false as const, hata: error.message };
-  return { ok: true as const, room_id: (data as { room_id?: string })?.room_id };
-}
-
 export async function AjansAnalitikGetir(
   agencyId: string,
   from?: string,
@@ -522,52 +407,6 @@ export async function AjansSeviyeProgressGetir(agencyId: string) {
   });
   if (error) rpcHata(error);
   return data as Record<string, unknown>;
-}
-
-export async function AjansAkademiListesi(agencyId: string) {
-  const { data, error } = await supabase.rpc('ajans_akademi_listesi', {
-    p_agency_id: agencyId,
-  });
-  if (error) rpcHata(error);
-  return (data as Array<Record<string, unknown>>) ?? [];
-}
-
-export async function AjansAkademiEkle(input: {
-  agencyId: string;
-  category: string;
-  title: string;
-  body?: string;
-}) {
-  const { data, error } = await supabase.rpc('ajans_akademi_ekle', {
-    p_agency_id: input.agencyId,
-    p_category: input.category,
-    p_title: input.title,
-    p_body: input.body ?? '',
-  });
-  if (error) return { ok: false as const, hata: error.message };
-  return { ok: true as const, id: (data as { id?: string })?.id };
-}
-
-export async function AjansFormGetir(agencyId: string) {
-  const { data, error } = await supabase.rpc('ajans_form_getir', {
-    p_agency_id: agencyId,
-  });
-  if (error) rpcHata(error);
-  return data as { form: unknown; fields: Array<Record<string, unknown>> };
-}
-
-export async function AjansFormKaydet(input: {
-  agencyId: string;
-  title: string;
-  fields: Array<Record<string, unknown>>;
-}) {
-  const { error } = await supabase.rpc('ajans_form_kaydet', {
-    p_agency_id: input.agencyId,
-    p_title: input.title,
-    p_fields: input.fields,
-  });
-  if (error) return { ok: false as const, hata: error.message };
-  return { ok: true as const };
 }
 
 export async function AjansDestekListesi(agencyId: string) {
@@ -592,60 +431,12 @@ export async function AjansDestekOlustur(input: {
   return { ok: true as const, id: (data as { id?: string })?.id };
 }
 
-export async function AjansGuvenlikListesi(agencyId: string) {
-  const { data, error } = await supabase.rpc('ajans_guvenlik_listesi', {
-    p_agency_id: agencyId,
-  });
-  if (error) rpcHata(error);
-  return (data as Array<Record<string, unknown>>) ?? [];
-}
-
-export async function AjansGuvenlikAck(eventId: string) {
-  const { error } = await supabase.rpc('ajans_guvenlik_ack', {
-    p_event_id: eventId,
-  });
-  if (error) return { ok: false as const, hata: error.message };
-  return { ok: true as const };
-}
-
-export async function AjansKanalHazirla(agencyId: string) {
-  const { data, error } = await supabase.rpc('ajans_kanal_hazirla', {
-    p_agency_id: agencyId,
-  });
-  if (error) return { ok: false as const, hata: error.message, kanallar: [] as Array<Record<string, unknown>> };
-  return { ok: true as const, kanallar: (data as Array<Record<string, unknown>>) ?? [] };
-}
-
-export async function AjansKanalListesi(agencyId: string) {
-  const { data, error } = await supabase.rpc('ajans_kanal_listesi', {
-    p_agency_id: agencyId,
-  });
-  if (error) rpcHata(error);
-  return (data as Array<Record<string, unknown>>) ?? [];
-}
-
 export async function AjansDavetAnalitik(agencyId: string) {
   const { data, error } = await supabase.rpc('ajans_davet_analitik', {
     p_agency_id: agencyId,
   });
   if (error) rpcHata(error);
   return data as Record<string, unknown>;
-}
-
-export async function AjansOdulTanimla(input: {
-  agencyId: string;
-  rewardType: string;
-  title: string;
-  description?: string;
-}) {
-  const { data, error } = await supabase.rpc('ajans_odul_tanimla', {
-    p_agency_id: input.agencyId,
-    p_reward_type: input.rewardType,
-    p_title: input.title,
-    p_description: input.description ?? '',
-  });
-  if (error) return { ok: false as const, hata: error.message };
-  return { ok: true as const, id: (data as { id?: string })?.id };
 }
 
 export function saniyeSaatMetni(saniye: number): string {

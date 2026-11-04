@@ -241,6 +241,12 @@ export default function AyarlarEkrani() {
               icon="people-outline"
               label={t('ayarlar.toplulukKurallari')}
               onPress={() => router.push('/politika/community_rules' as any)}
+            />
+            <ListeSatiri
+              icon="information-circle-outline"
+              label={t('ayarlar.hakkinda')}
+              value={t('ayarlar.hakkindaAlt')}
+              onPress={() => router.push('/ayarlar/hakkinda' as any)}
               last
             />
           </ListeGrubu>

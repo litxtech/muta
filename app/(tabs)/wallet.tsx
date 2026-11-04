@@ -53,8 +53,6 @@ import {
 } from '../../src/tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { DIL_LOCALE_MAP } from '../../src/i18n/diller';
 import { useCeviri } from '../../src/i18n/useCeviri';
-import { OzellikBilgiDugmesi } from '../../src/bilesenler/bilgi/OzellikBilgiDugmesi';
-
 /** Cüzdanda gösterilen son hareket sayısı; tamamı /cuzdan/hareketler ekranında. */
 const SON_HAREKET_LIMIT = 4;
 
@@ -237,7 +235,6 @@ export default function WalletScreen() {
               <Text style={styles.baslik} numberOfLines={1} ellipsizeMode="tail">
                 {t('cuzdanY.cuzdanim')}
               </Text>
-              <OzellikBilgiDugmesi konu="cuzdan" />
             </View>
           </View>
           <Pressable

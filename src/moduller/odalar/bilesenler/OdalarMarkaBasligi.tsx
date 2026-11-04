@@ -8,7 +8,6 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useCeviri } from '../../../i18n/useCeviri';
-import { OzellikBilgiDugmesi } from '../../../bilesenler/bilgi/OzellikBilgiDugmesi';
 
 type Props = {
   canliSayisi: number;
@@ -21,20 +20,25 @@ export function OdalarMarkaBasligi({ canliSayisi }: Props) {
     <View style={styles.wrap}>
       <View style={styles.ust}>
         <View style={styles.markaBlok}>
-          <Text style={styles.fisilti}>{t('odalar.fisilti')}</Text>
+          <Text style={styles.fisilti} numberOfLines={1}>
+            {t('odalar.fisilti')}
+          </Text>
           <View style={styles.baslikSatir}>
             <Text style={styles.baslik} numberOfLines={1} ellipsizeMode="tail">
               {t('odalar.canliOdalar')}
             </Text>
-            <OzellikBilgiDugmesi konu="sesliOda" />
           </View>
-          <Text style={styles.slogan}>{t('odalar.slogan')}</Text>
+          <Text style={styles.slogan} numberOfLines={2} ellipsizeMode="tail">
+            {t('odalar.slogan')}
+          </Text>
         </View>
         <View style={styles.canliRozet}>
           <AnaSayfaCanliNokta boyut={6} />
           <View style={styles.canliMetin}>
             <Text style={styles.canliSayi}>{canliSayisi}</Text>
-            <Text style={styles.canliEtiket}>{t('odalar.canli')}</Text>
+            <Text style={styles.canliEtiket} numberOfLines={1}>
+              {t('odalar.canli')}
+            </Text>
           </View>
         </View>
       </View>
@@ -98,6 +102,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: YaricapTokenlari.pill,
     minWidth: 64,
+    flexShrink: 0,
   },
   canliMetin: {
     gap: 2,

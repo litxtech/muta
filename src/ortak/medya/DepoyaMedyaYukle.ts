@@ -3,8 +3,19 @@
  * Supabase Storage bunu reddeder. ArrayBuffer + açık contentType kullan.
  */
 
+import { Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 import i18n from '../../i18n';
-import { VIDEO_SIKISTIRMA_SONRASI_MAX_BYTES } from './VideoPaylasimSabitleri';
+import { OrtamDegiskenleri } from '../../yapilandirma/OrtamDegiskenleri';
+import {
+  R2BaytYukle,
+  R2YuklemeAdresiAl,
+  type R2Istemcisi,
+} from './R2Depo';
+import {
+  SUPABASE_VIDEO_MAX_BYTES,
+  VIDEO_SIKISTIRMA_SONRASI_MAX_BYTES,
+} from './VideoPaylasimSabitleri';
 import { Video1080eSikistir } from './VideoSikistir';
 
 const SES_UZANTILARI = [
@@ -165,11 +176,33 @@ export type DepoyaYukleGirdi = {
   /** false → 1080p sıkıştırmayı atla (varsayılan: video için açık) */
   sikistir?: boolean;
   onSikistirma?: (pct: number) => void;
+  /**
+   * 'supabase' → R2'yi atla. Sunucu tarafı dosyayı storage.objects üzerinden
+   * doğruluyorsa gerekli (ör. canlı kesit yayınla).
+   * 'r2' → yalnızca R2; herkese açık Supabase'e düşmez (ör. özel DM medyası).
+   */
+  depo?: 'otomatik' | 'supabase' | 'r2';
 };
 
 export type DepoyaYukleSonuc =
-  | { ok: true; path: string; contentType: string }
+  | { ok: true; path: string; contentType: string; publicUrl: string; depo: 'r2' | 'supabase' }
   | { ok: false; hata: string };
+
+type DepoIstemcisi = R2Istemcisi & {
+  auth: {
+    getSession: () => Promise<{ data: { session: { access_token: string } | null } }>;
+  };
+  storage: {
+    from: (bucket: string) => {
+      upload: (
+        path: string,
+        body: Uint8Array,
+        opts: { contentType: string; upsert: boolean },
+      ) => Promise<{ error: { message: string } | null }>;
+      getPublicUrl: (path: string) => { data: { publicUrl: string } };
+    };
+  };
+};
 
 /** ISO BMFF HEIC/HEIF — uzantı/mime yalan söylese bile yakala */
 function HeicBaytMi(bytes: Uint8Array): boolean {
@@ -212,21 +245,135 @@ async function HeicJpegCevir(uri: string): Promise<string | null> {
   }
 }
 
+function VideoCokBuyukHatasi(bayt: number, limit: number): string {
+  return i18n.t('hikaye.videoCokBuyuk', {
+    mb: Math.max(1, Math.round(bayt / (1024 * 1024))),
+    limit: Math.max(1, Math.round(limit / (1024 * 1024))),
+  });
+}
+
 /**
- * Supabase Storage yükleme — doğru Content-Type ile.
+ * Video: dosya JS belleğine alınmadan diskten akıtılır (boyut sınırı yok, hızlı).
+ * null → bellek yoluna düş (dosya okunamadı / oturum yok).
+ */
+async function VideoDisktenYukle(
+  supabase: DepoIstemcisi,
+  girdi: DepoyaYukleGirdi,
+  uri: string,
+  mime: string | null | undefined,
+): Promise<DepoyaYukleSonuc | null> {
+  const ext = MedyaUzantisiCoz(uri, mime, 'mp4');
+  const contentType = GuvenliMimeTipi(mime, ext, 'video');
+
+  const [bilgi, adres] = await Promise.all([
+    FileSystem.getInfoAsync(uri).catch(() => null),
+    girdi.depo !== 'supabase'
+      ? R2YuklemeAdresiAl(supabase, { bucket: girdi.bucket, path: girdi.path, contentType })
+      : Promise.resolve(null),
+  ]);
+  if (!bilgi?.exists) return null;
+  const boyut = typeof bilgi.size === 'number' ? bilgi.size : null;
+  if (boyut === 0) return { ok: false, hata: i18n.t('medyaYukle.dosyaBos') };
+  const limit = girdi.maxBytes ?? VIDEO_SIKISTIRMA_SONRASI_MAX_BYTES;
+  if (boyut != null && boyut > limit) {
+    return { ok: false, hata: VideoCokBuyukHatasi(boyut, limit) };
+  }
+
+  if (adres) {
+    try {
+      const r = await FileSystem.uploadAsync(adres.uploadUrl, uri, {
+        httpMethod: 'PUT',
+        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+        headers: { 'Content-Type': adres.contentType },
+      });
+      if (r.status >= 200 && r.status < 300) {
+        return {
+          ok: true,
+          path: girdi.path,
+          contentType: adres.contentType,
+          publicUrl: adres.publicUrl,
+          depo: 'r2',
+        };
+      }
+    } catch {
+      /* Supabase yoluna düş */
+    }
+  }
+  if (girdi.depo === 'r2') {
+    return { ok: false, hata: i18n.t('medyaYukle.yuklemeBasarisiz') };
+  }
+
+  let yuklenecekUri = uri;
+  let yuklenecekTip = contentType;
+  let yuklenecekYol = girdi.path;
+  if (boyut != null && boyut > SUPABASE_VIDEO_MAX_BYTES && girdi.sikistir !== false) {
+    const sik = await Video1080eSikistir(uri, {
+      zorla: true,
+      hizliAtla: false,
+      onProgress: girdi.onSikistirma,
+    });
+    const yeni = sik.ok && sik.compressed
+      ? await FileSystem.getInfoAsync(sik.uri).catch(() => null)
+      : null;
+    const yeniBoyut = yeni?.exists && typeof yeni.size === 'number' ? yeni.size : null;
+    if (!yeni?.exists || yeniBoyut == null || yeniBoyut > SUPABASE_VIDEO_MAX_BYTES) {
+      return {
+        ok: false,
+        hata: VideoCokBuyukHatasi(yeniBoyut ?? boyut, SUPABASE_VIDEO_MAX_BYTES),
+      };
+    }
+    yuklenecekUri = sik.uri;
+    yuklenecekTip = 'video/mp4';
+    yuklenecekYol = girdi.path.replace(/\.(mov|m4v|webm)$/i, '.mp4');
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const base = OrtamDegiskenleri.supabaseUrl?.replace(/\/$/, '');
+  const anon = OrtamDegiskenleri.supabaseAnonAnahtari;
+  if (!session?.access_token || !base || !anon) return null;
+
+  const r = await FileSystem.uploadAsync(
+    `${base}/storage/v1/object/${girdi.bucket}/${yuklenecekYol}`,
+    yuklenecekUri,
+    {
+      httpMethod: 'POST',
+      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: anon,
+        'Content-Type': yuklenecekTip,
+        'x-upsert': girdi.upsert ? 'true' : 'false',
+      },
+    },
+  );
+  if (r.status >= 200 && r.status < 300) {
+    return {
+      ok: true,
+      path: yuklenecekYol,
+      contentType: yuklenecekTip,
+      publicUrl: supabase.storage.from(girdi.bucket).getPublicUrl(yuklenecekYol).data.publicUrl,
+      depo: 'supabase',
+    };
+  }
+  const govde = typeof r.body === 'string' ? r.body : '';
+  if (/payload too large|"413"|maximum allowed size|exceeded the maximum/i.test(govde)) {
+    return {
+      ok: false,
+      hata: VideoCokBuyukHatasi(boyut ?? SUPABASE_VIDEO_MAX_BYTES + 1, SUPABASE_VIDEO_MAX_BYTES),
+    };
+  }
+  return { ok: false, hata: govde.slice(0, 200) || i18n.t('medyaYukle.yuklemeBasarisiz') };
+}
+
+/**
+ * Medya yükleme — doğru Content-Type ile.
+ * Resim/video R2 bucket listesindeyse Cloudflare R2'ye, değilse (veya R2 başarısızsa)
+ * Supabase Storage'a gider.
  */
 export async function DepoyaMedyaYukle(
-  supabase: {
-    storage: {
-      from: (bucket: string) => {
-        upload: (
-          path: string,
-          body: Uint8Array,
-          opts: { contentType: string; upsert: boolean },
-        ) => Promise<{ error: { message: string } | null }>;
-      };
-    };
-  },
+  supabase: DepoIstemcisi,
   girdi: DepoyaYukleGirdi,
 ): Promise<DepoyaYukleSonuc> {
   const tur = girdi.tur ?? 'image';
@@ -235,7 +382,6 @@ export async function DepoyaMedyaYukle(
   let path = girdi.path;
 
   try {
-    // Platform geneli: tüm videolar 1080p'ye sıkıştırılır (4K dahil)
     if (tur === 'video' && girdi.sikistir !== false) {
       const sik = await Video1080eSikistir(uri, {
         onProgress: girdi.onSikistirma,
@@ -244,6 +390,11 @@ export async function DepoyaMedyaYukle(
         uri = sik.uri;
         mime = sik.mime;
       }
+    }
+
+    if (tur === 'video' && Platform.OS !== 'web' && /^file:\/\//i.test(uri)) {
+      const akis = await VideoDisktenYukle(supabase, girdi, uri, mime);
+      if (akis) return akis;
     }
 
     let bytes = await YerelDosyayiBaytOku(uri);
@@ -290,14 +441,31 @@ export async function DepoyaMedyaYukle(
       };
     }
 
-    const { error } = await supabase.storage.from(girdi.bucket).upload(
-      path,
-      bytes,
-      {
+    if (girdi.depo !== 'supabase' && (tur === 'image' || tur === 'video')) {
+      const adres = await R2YuklemeAdresiAl(supabase, {
+        bucket: girdi.bucket,
+        path,
         contentType,
-        upsert: girdi.upsert ?? false,
-      },
-    );
+      });
+      if (adres && (await R2BaytYukle(adres, bytes))) {
+        return {
+          ok: true,
+          path,
+          contentType: adres.contentType,
+          publicUrl: adres.publicUrl,
+          depo: 'r2',
+        };
+      }
+    }
+    if (girdi.depo === 'r2') {
+      return { ok: false, hata: i18n.t('medyaYukle.yuklemeBasarisiz') };
+    }
+
+    const depo = supabase.storage.from(girdi.bucket);
+    const { error } = await depo.upload(path, bytes, {
+      contentType,
+      upsert: girdi.upsert ?? false,
+    });
 
     if (error) {
       return {
@@ -308,7 +476,13 @@ export async function DepoyaMedyaYukle(
       };
     }
 
-    return { ok: true, path, contentType };
+    return {
+      ok: true,
+      path,
+      contentType,
+      publicUrl: depo.getPublicUrl(path).data.publicUrl,
+      depo: 'supabase',
+    };
   } catch (e) {
     return {
       ok: false,

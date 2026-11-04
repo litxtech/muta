@@ -407,7 +407,7 @@ const ES: TanitimMetin = {
     { baslik: 'País y ciudad', metin: 'Páginas de país, ciudades y liga de ciudades.' },
     { baslik: 'Rankings', metin: 'Clasificación de directos y participación.' },
     { baslik: 'Coins', metin: 'Saldo dentro de la app para regalos, llamadas y juegos.' },
-    { baslik: 'Ruleta de frutas', metin: 'Ruleta en vivo con ocho frutas. El resultado lo fija el servidor.' },
+    { baslik: 'Rueda de frutas', metin: 'Rueda en vivo con ocho frutas. El resultado lo fija el servidor.' },
     { baslik: 'Música IA y estudio', metin: 'Creación musical y estudio de emisión.' },
     { baslik: 'Agencia y host', metin: 'Herramientas de agencia y solicitud de host.' },
     { baslik: 'Avisos', metin: 'Avisos de la plataforma.' },
@@ -419,14 +419,14 @@ const ES: TanitimMetin = {
     'El coin es el saldo dentro de Tamuso. Se usa en videollamadas, regalos y juegos. La recarga se hace en la app.',
   coinMaddeler: [
     'El coin es un saldo interno, no un medio de pago.',
-    'Se usa en regalos, llamadas y la ruleta de frutas.',
+    'Se usa en regalos, llamadas y la rueda de frutas.',
     'Los precios no están en esta página. El importe actual se ve en la app.',
     'Los paquetes de agencia siguen el flujo de venta de esa agencia.',
   ],
   coinButon: 'Sobre los coins',
   meyveBaslik: 'Juego de frutas',
   meyveAlt:
-    'Fruit Wheel es una ruleta en vivo de ocho frutas. La hora, el cierre y el resultado dependen del servidor.',
+    'Fruit Wheel es una rueda en vivo de ocho frutas. La hora, el cierre y el resultado dependen del servidor.',
   meyveMaddeler: [
     'Con la ronda abierta, los coins pueden ir a una o varias frutas.',
     'Cuando la ronda cierra, la elección no cambia.',

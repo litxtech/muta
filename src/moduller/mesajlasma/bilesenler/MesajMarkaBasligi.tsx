@@ -22,9 +22,15 @@ export function MesajMarkaBasligi({ altYazi, sohbetSayisi, onYeniSohbet }: Props
     <View style={styles.wrap}>
       <View style={styles.ust}>
         <View style={styles.markaBlok}>
-          <Text style={styles.fisilti}>{t('mesajlar.fisilti')}</Text>
-          <Text style={styles.baslik}>{t('mesajlar.baslik')}</Text>
-          <Text style={styles.alt}>{altYazi}</Text>
+          <Text style={styles.fisilti} numberOfLines={1}>
+            {t('mesajlar.fisilti')}
+          </Text>
+          <Text style={styles.baslik} numberOfLines={1} ellipsizeMode="tail">
+            {t('mesajlar.baslik')}
+          </Text>
+          <Text style={styles.alt} numberOfLines={2} ellipsizeMode="tail">
+            {altYazi}
+          </Text>
         </View>
         <Pressable
           onPress={onYeniSohbet}
@@ -42,7 +48,9 @@ export function MesajMarkaBasligi({ altYazi, sohbetSayisi, onYeniSohbet }: Props
       {sohbetSayisi > 0 ? (
         <View style={styles.sayac}>
           <View style={styles.accent} />
-          <Text style={styles.sayacYazi}>{t('mesajlar.aktifSohbet')}</Text>
+          <Text style={styles.sayacYazi} numberOfLines={1}>
+            {t('mesajlar.aktifSohbet')}
+          </Text>
           <Text style={styles.sayacSayi}>{sohbetSayisi}</Text>
         </View>
       ) : null}

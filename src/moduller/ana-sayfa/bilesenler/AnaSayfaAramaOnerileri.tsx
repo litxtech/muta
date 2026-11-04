@@ -27,6 +27,11 @@ import { kullaniciTemaKodunuAl, temaAcikMi } from '../../../tasarim-sistemi/tema
 import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl';
 import { DogrulanmisTik } from '../../kullanici-profili/bilesenler/DogrulanmisTik';
 import { useCeviri } from '../../../i18n/useCeviri';
+import { PremiumAvatarCercevesi } from '../../kullanici-profili/avatar-cerceve/PremiumAvatarCercevesi';
+import { AvatarCerceveBasamagi } from '../../kullanici-profili/avatar-cerceve/AvatarCerceveVarliklari';
+
+/** Küçük çerçeve kutusu 28 / 0.74 ≈ 38 px; 36 px'lik satır avatarıyla aynı hizada kalır. */
+const CERCEVELI_AVATAR = 28;
 
 type Props = {
   sorgu: string;
@@ -212,7 +217,31 @@ export function AnaSayfaAramaOnerileri({
                   accessibilityRole="button"
                   accessibilityLabel={t('anaSayfa.canliA11y', { baslik: c.title })}
                 >
-                  {kapak ? (
+                  {AvatarCerceveBasamagi(c.host_level) != null ? (
+                    <PremiumAvatarCercevesi
+                      level={c.host_level}
+                      size={CERCEVELI_AVATAR}
+                      variant="kucuk"
+                    >
+                      {kapak ? (
+                        <Image source={{ uri: kapak }} style={styles.cerceveFoto} />
+                      ) : (
+                        <View
+                          style={[
+                            styles.cerceveFoto,
+                            styles.avatarBos,
+                            { backgroundColor: `${RenkTokenlari.danger}33` },
+                          ]}
+                        >
+                          <Text
+                            style={[styles.avatarHarf, { color: RenkTokenlari.danger }]}
+                          >
+                            {harf}
+                          </Text>
+                        </View>
+                      )}
+                    </PremiumAvatarCercevesi>
+                  ) : kapak ? (
                     <Image source={{ uri: kapak }} style={styles.avatar} />
                   ) : (
                     <View
@@ -418,6 +447,10 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+  },
+  cerceveFoto: {
+    width: CERCEVELI_AVATAR,
+    height: CERCEVELI_AVATAR,
   },
   avatarBos: {
     alignItems: 'center',

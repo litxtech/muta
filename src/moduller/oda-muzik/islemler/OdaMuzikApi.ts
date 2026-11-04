@@ -388,10 +388,7 @@ export async function MusicAdminCoverYukle(): Promise<{
     upsert: false,
   });
   if (!yukleme.ok) throw new Error(yukleme.hata);
-  const { data: urlData } = supabase.storage
-    .from(MUSIC_COVER_BUCKET)
-    .getPublicUrl(yukleme.path);
-  return { coverUrl: urlData.publicUrl, storagePath: yukleme.path };
+  return { coverUrl: yukleme.publicUrl, storagePath: yukleme.path };
 }
 
 export function msMetni(ms: number | null | undefined) {

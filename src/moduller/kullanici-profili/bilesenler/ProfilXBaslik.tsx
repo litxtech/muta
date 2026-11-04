@@ -21,6 +21,7 @@ import { TakipSayaciniFormatla } from '../../takip/TakipSayacFormat';
 import { DogrulanmisTik } from './DogrulanmisTik';
 import { AjansSahipRozeti } from '../../ajanslar/bilesenler/AjansSahipRozeti';
 import { ProfilAvatarCerceve } from './ProfilAvatarCerceve';
+import { AvatarCerceveBasamagi } from '../avatar-cerceve/AvatarCerceveVarliklari';
 import { ProfilOnizlemeGorseli } from './ProfilOnizlemeGorseli';
 import { useCeviri } from '../../../i18n/useCeviri';
 import { UserTitleBadge } from '../../unvanlar/bilesenler/UserTitleBadge';
@@ -29,8 +30,6 @@ import { OzellikBayragiAktifMi } from '../../ozellik-bayraklari/OzellikBayragiAk
 import { useUnvanKatalog } from '../../unvanlar/kancalar/useUnvanKatalog';
 import { HikayeCanliHalka } from '../../hikaye/bilesenler/HikayeCanliHalka';
 import { HikayeOnizlemeGorselMi } from '../../hikaye/yardimcilar/HikayeAvatarDaireUri';
-import { OzellikBilgiDugmesi } from '../../../bilesenler/bilgi/OzellikBilgiDugmesi';
-
 export const PROFIL_X_COVER_H = 150;
 export const PROFIL_X_AVATAR = 76;
 
@@ -97,6 +96,7 @@ export function ProfilXBaslik({
   /** Story varken avatar yerine gösterilecek önizleme */
   storyPreviewUri = null,
   isimYani,
+  ajansSlot,
   children,
 }: {
   coverUri: string | null;
@@ -141,6 +141,8 @@ export function ProfilXBaslik({
   storyPreviewUri?: string | null;
   /** İsim satırının sağı — cazibe ünvanı */
   isimYani?: ReactNode;
+  /** Kullanıcı adı / ID altında ajans etiketi; verilince ayrı sahip rozeti çizilmez */
+  ajansSlot?: ReactNode;
   children?: ReactNode;
 }) {
   const { t, i18n, dil } = useCeviri();
@@ -165,6 +167,7 @@ export function ProfilXBaslik({
   const avatarGosterUri =
     hasStory && storyOnizleme ? storyOnizleme : safeAvatarUri;
   const avatarPx = Math.round(PROFIL_X_AVATAR * 3);
+  const cerceveVar = !tacGizli && AvatarCerceveBasamagi(level) != null;
 
   const avatarPlaceholder = (
     <LinearGradient
@@ -182,7 +185,7 @@ export function ProfilXBaslik({
       onPress={onAvatarPress}
       onLongPress={onAvatarLongPress}
       delayLongPress={280}
-      style={[styles.avatarWrap, !hasStory && styles.avatarWrapKenar]}
+      style={[styles.avatarWrap, !hasStory && !cerceveVar && styles.avatarWrapKenar]}
       accessibilityLabel={
         hasStory
           ? t('hikaye.kullaniciHikayeA11y', { ad: displayName })
@@ -274,7 +277,7 @@ export function ProfilXBaslik({
           <View style={styles.avatarHit}>
             <ProfilAvatarCerceve
               size={PROFIL_X_AVATAR}
-              level={Number(level) || 1}
+              level={level}
               gizli={tacGizli}
             >
               {avatarIcerik}
@@ -294,14 +297,19 @@ export function ProfilXBaslik({
           {verified ? <DogrulanmisTik size={18} /> : null}
           {title ? <UserTitleBadge title={title} size="NORMAL" /> : null}
           {isimYani}
-          <OzellikBilgiDugmesi konu="profil" style={styles.isimBilgi} />
         </View>
-        {ajansSahibi ? <AjansSahipRozeti /> : null}
         {username ? (
           <Text style={styles.username}>@{username}</Text>
         ) : null}
         {publicUserId != null && String(publicUserId).length > 0 ? (
           <Text style={styles.publicId}>ID {publicUserId}</Text>
+        ) : null}
+        {ajansSlot ? (
+          <View style={styles.ajansSlot}>{ajansSlot}</View>
+        ) : ajansSahibi ? (
+          <View style={styles.ajansSlot}>
+            <AjansSahipRozeti compact />
+          </View>
         ) : null}
         {guestBadge ? (
           <View style={styles.guestBadge}>
@@ -525,9 +533,6 @@ const styles = StyleSheet.create({
     gap: 6,
     maxWidth: '100%',
   },
-  isimBilgi: {
-    flexShrink: 0,
-  },
   name: {
     ...TipografiTokenlari.title,
     color: RenkTokenlari.text,
@@ -546,6 +551,10 @@ const styles = StyleSheet.create({
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.accent,
     fontWeight: '700',
+  },
+  ajansSlot: {
+    marginTop: BoslukTokenlari.sm,
+    maxWidth: '100%',
   },
   guestBadge: {
     marginTop: 4,

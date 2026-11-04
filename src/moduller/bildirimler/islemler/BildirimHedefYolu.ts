@@ -154,9 +154,9 @@ export function BildirimHedefYolu(input: {
     // şimdilik owner_id yoksa deep_link alanına güven.
   }
 
-  const meeting = str('meeting_id');
-  if (meeting && (type.startsWith('agency_meeting') || input.category === 'agency')) {
-    return `/ajans/gorusme/${meeting}`;
+  if (type.startsWith('agency_meeting')) {
+    const meetingAgency = str('agency_id');
+    return meetingAgency ? `/ajans/${meetingAgency}` : '/ajans';
   }
 
   const room = str('room_id');
@@ -188,10 +188,9 @@ export function BildirimHedefYolu(input: {
   if (type === 'agency_host_approved') return '/ajans/uye';
   const agency = str('agency_id');
   if (type === 'agency_host_apply' && agency) return `/ajans/${agency}/basvurular`;
-  if (type === 'agency_announcement' && agency) return `/ajans/${agency}/duyurular`;
+  if ((type === 'agency_announcement' || type === 'agency_sale_gift') && agency) return `/ajans/${agency}`;
   if (type === 'agency_host_rejected') return '/ajans';
   if (type === 'support_reply') return '/destek';
-  if (type === 'agency_sale_gift' && agency) return `/ajans/${agency}/cuzdan`;
   if (type === 'agency_support_reply' && agency) return `/ajans/${agency}/destek`;
   if (
     type === 'trade_offer_new' ||

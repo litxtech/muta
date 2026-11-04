@@ -122,7 +122,6 @@ export default function PkEkrani() {
         <EkranBasligi
           title={t('pk.baslik')}
           subtitle={t('pk.alt')}
-          bilgi="pk"
         />
         <FlatList
           data={maclar}

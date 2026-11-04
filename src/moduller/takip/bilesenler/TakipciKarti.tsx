@@ -13,6 +13,7 @@ import { TakipButonu } from './TakipButonu';
 import type { TakipKullaniciKarti } from '../TakipTipleri';
 import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi';
 import { DogrulanmisTik } from '../../kullanici-profili/bilesenler/DogrulanmisTik';
+import { PremiumAvatarCercevesi } from '../../kullanici-profili/avatar-cerceve/PremiumAvatarCercevesi';
 import { useCeviri } from '../../../i18n/useCeviri';
 
 type Props = {
@@ -45,16 +46,18 @@ export function TakipciKarti({
       accessibilityRole="button"
       accessibilityLabel={ad}
     >
-      {avatar ? (
-        <Image source={{ uri: avatar }} style={styles.avatar} />
-      ) : (
-        <LinearGradient
-          colors={[...RenkTokenlari.gradientPrimary]}
-          style={styles.avatar}
-        >
-          <Text style={styles.harf}>{(ad[0] ?? 'K').toUpperCase()}</Text>
-        </LinearGradient>
-      )}
+      <PremiumAvatarCercevesi level={kart.level} size={48} variant="kucuk">
+        {avatar ? (
+          <Image source={{ uri: avatar }} style={styles.avatar} />
+        ) : (
+          <LinearGradient
+            colors={[...RenkTokenlari.gradientPrimary]}
+            style={styles.avatar}
+          >
+            <Text style={styles.harf}>{(ad[0] ?? 'K').toUpperCase()}</Text>
+          </LinearGradient>
+        )}
+      </PremiumAvatarCercevesi>
       <View style={styles.copy}>
         <View style={styles.adSatir}>
           <Text style={styles.ad} numberOfLines={1}>

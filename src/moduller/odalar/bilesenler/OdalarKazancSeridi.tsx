@@ -15,6 +15,12 @@ import { MedyaUriGuvenli } from '../../mesajlasma/yardimcilar/MedyaUriGecerliMi'
 import { OyunKazancOdaSecici } from '../../oyunlar/kazanc-balonu/OyunKazancOdaSecici';
 import { OyunKazanciAc } from '../../oyunlar/kazanc-balonu/OyunKazancinaGit';
 import type { OyunKazancDuyurusu } from '../../oyunlar/kazanc-balonu/OyunKazancDuyuruTipleri';
+import {
+  KAZANC_OYUN_KODU,
+  KazancCarpani,
+  KazancCoin,
+  KazancOyunAdi,
+} from '../../oyunlar/kazanc-balonu/OyunKazancMetin';
 import { OyunAuraCerceve } from '../../oyunlar/ortak/bilesenler/OyunAuraCerceve';
 
 const PENCERE_MS = 24 * 60 * 60 * 1000;
@@ -46,6 +52,7 @@ async function satirlariOku(): Promise<OyunKazancDuyurusu[]> {
   let { data, error } = await supabase
     .from('oyun_kazanc_duyurulari')
     .select(tam)
+    .eq('game_code', KAZANC_OYUN_KODU)
     .gte('created_at', since)
     .order('created_at', { ascending: false })
     .limit(LIMIT);
@@ -56,10 +63,11 @@ async function satirlariOku(): Promise<OyunKazancDuyurusu[]> {
       .select(
         'id, user_id, room_id, game_code, game_title, win_amount, bet_amount, round_id, created_at',
       )
+      .eq('game_code', KAZANC_OYUN_KODU)
       .gte('created_at', since)
       .order('created_at', { ascending: false })
       .limit(LIMIT);
-    data = yedek.data;
+    data = yedek.data as typeof data;
     error = yedek.error;
   }
   if (error || !data?.length) return [];
@@ -110,7 +118,12 @@ export function OdalarKazancSeridi() {
       .channel(topic)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'oyun_kazanc_duyurulari' },
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'oyun_kazanc_duyurulari',
+          filter: `game_code=eq.${KAZANC_OYUN_KODU}`,
+        },
         () => {
           void yukle();
         },

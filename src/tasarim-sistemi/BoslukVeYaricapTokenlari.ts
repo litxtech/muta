@@ -26,8 +26,9 @@ export const screenPaddingHorizontal = BoslukTokenlari.lg;
 export const HeaderTokenlari = {
   horizontal: screenPaddingHorizontal,
   paddingTop: BoslukTokenlari.xs,
-  paddingBottom: BoslukTokenlari.md,
-  minHeight: 44,
+  paddingBottom: BoslukTokenlari.sm,
+  /** Başlık + alt başlık bloğu (26 + 2 + 18) bu satıra sığar; header iki satıra büyümez. */
+  minHeight: 48,
   touchTarget: 44,
   iconSize: 24,
   backHitSlop: 8,

@@ -19,7 +19,6 @@ import {
   AdminAjansKazancCezasi,
   AdminAjansOperasyonOzetiGetir,
   AdminAjansOzellikKilidi,
-  AdminAjansSatisLinkiAktiflik,
   AdminAjansYaptirimKaldir,
   type AdminAjansOperasyonOzeti,
 } from './AdminAjansOperasyonIslemleri';
@@ -27,11 +26,7 @@ import { AdminStil, SayiKisa } from '../bilesenler/AdminStil';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 
-type Sekme = 'kontrol' | 'satis' | 'linkler' | 'davetler' | 'yaptirim';
-
-function sayi(n: number) {
-  return new Intl.NumberFormat('tr-TR').format(n);
-}
+type Sekme = 'kontrol' | 'davetler' | 'yaptirim';
 
 export function AdminAjansOperasyonPaneli({
   agencyId,
@@ -115,8 +110,6 @@ export function AdminAjansOperasyonPaneli({
         {(
           [
             ['kontrol', 'Kontrol'],
-            ['satis', 'Satış'],
-            ['linkler', 'Linkler'],
             ['davetler', 'Davet'],
             ['yaptirim', 'Ceza'],
           ] as const
@@ -141,11 +134,6 @@ export function AdminAjansOperasyonPaneli({
           {Number(ozet.locks?.earnings_penalty_pct ?? 0) > 0
             ? ` · Ceza %${ozet.locks?.earnings_penalty_pct}`
             : ''}
-        </Text>
-        <Text style={AdminStil.kartAlt}>
-          Ciro {sayi(Number(ozet.ciro?.toplam_try ?? 0))} ₺ ·{' '}
-          {sayi(Number(ozet.ciro?.toplam_coin ?? 0))} coin ·{' '}
-          {Number(ozet.ciro?.islem_adet ?? 0)} işlem
         </Text>
       </View>
 
@@ -275,8 +263,8 @@ export function AdminAjansOperasyonPaneli({
             </Text>
             <Text style={AdminStil.kartAlt}>
               {frozen
-                ? ozet.locks?.wallet_frozen_reason || 'Transfer / satış ops kilitli'
-                : 'Coin transfer, satış hediyesi ve finansal ops durur'}
+                ? ozet.locks?.wallet_frozen_reason || 'Bakiye işlemleri kilitli'
+                : 'Ajans bakiyesindeki tüm işlemler durur'}
             </Text>
           </Pressable>
 
@@ -413,93 +401,6 @@ export function AdminAjansOperasyonPaneli({
               <Text style={AdminStil.aksiyonYazi}>Notu kaydet</Text>
             </Pressable>
           </View>
-        </>
-      ) : null}
-
-      {sekme === 'satis' ? (
-        <>
-          <Text style={AdminStil.sectionLabel}>
-            Satışlar ({ozet.sales?.length ?? 0})
-          </Text>
-          {(ozet.top_buyers ?? []).length > 0 ? (
-            <View style={AdminStil.kart}>
-              <Text style={AdminStil.kartBaslik}>En çok alanlar</Text>
-              {(ozet.top_buyers ?? []).slice(0, 8).map((b, i) => (
-                <Text key={`${b.buyer_id ?? b.buyer_name}-${i}`} style={styles.meta}>
-                  {i + 1}. {b.buyer_name} · {sayi(Number(b.toplam_coin ?? 0))} coin ·{' '}
-                  {sayi(Number(b.toplam_try ?? 0))} ₺
-                </Text>
-              ))}
-            </View>
-          ) : null}
-          {(ozet.sales ?? []).length === 0 ? (
-            <View style={AdminStil.kart}>
-              <Text style={AdminStil.kartAlt}>Satış yok</Text>
-            </View>
-          ) : (
-            (ozet.sales ?? []).map((s) => (
-              <View key={String(s.id)} style={AdminStil.kart}>
-                <Text style={AdminStil.kartBaslik} numberOfLines={1}>
-                  {String(s.package_title ?? 'Paket')} ·{' '}
-                  {String(s.payment_status ?? '')}
-                </Text>
-                <Text style={AdminStil.kartAlt}>
-                  {String(
-                    s.buyer_display_name || s.buyer_label || s.buyer_email || 'Alıcı',
-                  )}{' '}
-                  · {sayi(Number(s.amount_try ?? 0))} ₺ ·{' '}
-                  {sayi(Number(s.coins ?? 0))} coin
-                </Text>
-                <Text style={styles.meta}>
-                  {s.created_at
-                    ? new Date(String(s.created_at)).toLocaleString('tr-TR')
-                    : ''}
-                  {s.receipt_url || s.receipt_payload ? ' · Dekont var' : ''}
-                </Text>
-              </View>
-            ))
-          )}
-        </>
-      ) : null}
-
-      {sekme === 'linkler' ? (
-        <>
-          <Text style={AdminStil.sectionLabel}>
-            Satış linkleri ({ozet.links?.length ?? 0})
-          </Text>
-          {(ozet.links ?? []).length === 0 ? (
-            <View style={AdminStil.kart}>
-              <Text style={AdminStil.kartAlt}>Link yok</Text>
-            </View>
-          ) : (
-            (ozet.links ?? []).map((l) => (
-              <View key={String(l.id)} style={AdminStil.kart}>
-                <Text style={AdminStil.kartBaslik}>{String(l.title ?? l.code)}</Text>
-                <Text style={AdminStil.kartAlt}>
-                  {String(l.code)} · {String(l.selling_platform)} ·{' '}
-                  {Number(l.click_count ?? 0)} tık ·{' '}
-                  {l.is_active ? 'Aktif' : 'Kapalı'}
-                </Text>
-                <Pressable
-                  style={AdminStil.aksiyon}
-                  disabled={busy}
-                  onPress={() =>
-                    void calistir(() =>
-                      AdminAjansSatisLinkiAktiflik({
-                        agencyId,
-                        linkId: String(l.id),
-                        isActive: !l.is_active,
-                      }),
-                    )
-                  }
-                >
-                  <Text style={AdminStil.aksiyonYazi}>
-                    {l.is_active ? 'Linki kapat' : 'Linki aç'}
-                  </Text>
-                </Pressable>
-              </View>
-            ))
-          )}
         </>
       ) : null}
 

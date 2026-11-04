@@ -5,6 +5,7 @@
 import React, { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TamusoModal } from '../../../bilesenler/yuzey/TamusoModal';
 import type { Room } from '../../../types/models';
@@ -154,6 +155,28 @@ function OdaBilgiPaneliInner({
           <Satir key={s.id} etiket={s.etiket} deger={s.deger} />
         ))}
 
+        <Pressable
+          style={styles.iletisimSatir}
+          onPress={() => {
+            onClose();
+            requestAnimationFrame(() =>
+              router.push('/ayarlar/iletisim-teknolojileri' as never),
+            );
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t('bilgi.iletisimTeknolojileri')}
+        >
+          <Ionicons
+            name="git-network-outline"
+            size={16}
+            color="rgba(167,139,250,0.95)"
+          />
+          <Text style={styles.iletisimYazi} numberOfLines={1}>
+            {t('bilgi.iletisimTeknolojileri')}
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color="rgba(247,242,232,0.5)" />
+        </Pressable>
+
         {canCloseRoom && onOdayiKapat ? (
           <Pressable
             style={styles.kapatOda}
@@ -234,6 +257,25 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     textAlign: 'right',
     maxWidth: '62%',
+  },
+  iletisimSatir: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: 'rgba(167,139,250,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.30)',
+  },
+  iletisimYazi: {
+    ...TipografiTokenlari.caption,
+    color: '#F7F2E8',
+    fontWeight: '700',
+    flex: 1,
+    minWidth: 0,
   },
   kapatOda: {
     marginTop: 12,

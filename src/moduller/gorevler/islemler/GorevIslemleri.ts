@@ -37,18 +37,6 @@ export async function GorevIlerlemelerimiGetir(): Promise<GorevIlerleme[]> {
   return (data as GorevIlerleme[]) ?? [];
 }
 
-export async function GorevIlerlet(missionCode: string, delta = 1) {
-  if (!(await OzellikBayragiAktifMiSunucu('missions_enabled'))) {
-    return { ok: false as const, hata: i18n.t('platform.gorevKapaliBody') };
-  }
-  const { error } = await supabase.rpc('gorev_ilerlet', {
-    p_mission_code: missionCode,
-    p_delta: delta,
-  });
-  if (error) return { ok: false as const, hata: error.message };
-  return { ok: true as const };
-}
-
 export async function GorevOdulAl(missionCode: string) {
   if (!(await OzellikBayragiAktifMiSunucu('missions_enabled'))) {
     return { ok: false as const, hata: i18n.t('platform.gorevKapaliBody') };

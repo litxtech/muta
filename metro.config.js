@@ -19,16 +19,12 @@ const blockExtras = [
   /[\\/]agent-transcripts[\\/].*/,
   /eas-.*\.log$/,
   /\.log$/,
-  /[\\/]docs[\\/]_i18n.*/,
-  /[\\/]docs[\\/]odeme[\\/].*/,
+  /[\\/]docs[\\/].*/,
+  /[\\/]raporlar[\\/].*/,
   // iOS binary'sinden çıkarılan arşiv ekranları ve ayrı admin web uygulaması derlemesi
   /[\\/]archive[\\/].*/,
   /[\\/]apps[\\/]super-admin[\\/]dist[\\/].*/,
   /[\\/]apps[\\/]super-admin[\\/]\.expo[\\/].*/,
-  /COUNTRY_LEAGUE_.*\.md$/,
-  /HEADER_AUDIT\.md$/,
-  /I18N_.*\.md$/,
-  /MESSAGING_V2_.*\.md$/,
 ];
 const existing = config.resolver.blockList;
 if (Array.isArray(existing)) {

@@ -101,6 +101,5 @@ export async function AdminPolitikaGorselSecVeYukle(
     upsert: false,
   });
   if (!result.ok) throw new Error(result.hata);
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(result.path);
-  return data.publicUrl;
+  return result.publicUrl;
 }

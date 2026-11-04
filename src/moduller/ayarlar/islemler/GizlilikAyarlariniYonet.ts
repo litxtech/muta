@@ -13,13 +13,11 @@ export type GizlilikAyarlari = {
   hide_level: boolean;
   hide_topup_coin: boolean;
   hide_prestige: boolean;
-  hide_account_value: boolean;
   hide_crown: boolean;
   hide_online_status: boolean;
   hide_followers: boolean;
   hide_following: boolean;
   hide_status_posts: boolean;
-  hide_game_stats: boolean;
   is_private: boolean;
   search_profile_visible: boolean;
   search_posts_visible: boolean;
@@ -36,20 +34,18 @@ const DEFAULTS: GizlilikAyarlari = {
   hide_level: false,
   hide_topup_coin: false,
   hide_prestige: false,
-  hide_account_value: false,
   hide_crown: false,
   hide_online_status: false,
   hide_followers: false,
   hide_following: false,
   hide_status_posts: false,
-  hide_game_stats: false,
   is_private: false,
   search_profile_visible: true,
   search_posts_visible: true,
 };
 
 const SELECT_ALANLARI =
-  'hide_recharge_rank, hide_gifter_rank, hide_current_room, hide_last_seen, hide_agency, hide_gift_collection, hide_top_supporter, hide_level, hide_topup_coin, hide_prestige, hide_account_value, hide_crown, hide_online_status, hide_followers, hide_following, hide_status_posts, hide_game_stats, is_private, search_profile_visible, search_posts_visible';
+  'hide_recharge_rank, hide_gifter_rank, hide_current_room, hide_last_seen, hide_agency, hide_gift_collection, hide_top_supporter, hide_level, hide_topup_coin, hide_prestige, hide_crown, hide_online_status, hide_followers, hide_following, hide_status_posts, is_private, search_profile_visible, search_posts_visible';
 
 function satirdanAyarlar(data: Partial<GizlilikAyarlari> | null): GizlilikAyarlari {
   const ayar = { ...DEFAULTS, ...(data ?? {}) };
@@ -190,16 +186,6 @@ export const PROFIL_GOSTERGE_ANAHTARLARI: GizlilikAnahtar[] = [
     key: 'hide_crown',
     labelKey: 'gizlilik.hideCrown',
     aciklamaKey: 'gizlilik.hideCrownAlt',
-  },
-  {
-    key: 'hide_account_value',
-    labelKey: 'gizlilik.hideAccountValue',
-    aciklamaKey: 'gizlilik.hideAccountValueAlt',
-  },
-  {
-    key: 'hide_game_stats',
-    labelKey: 'gizlilik.hideGameStats',
-    aciklamaKey: 'gizlilik.hideGameStatsAlt',
   },
 ];
 

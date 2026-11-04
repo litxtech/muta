@@ -42,10 +42,9 @@ export async function TaslakSimdiPaylas(
       tur: mediaType,
     });
     if (!up.ok) return { ok: false, hata: up.hata };
-    const { data: pub } = supabase.storage.from('status-media').getPublicUrl(up.path);
     const base = OrtamDegiskenleri.supabaseUrl?.replace(/\/$/, '');
     mediaUrl =
-      pub?.publicUrl || `${base}/storage/v1/object/public/status-media/${up.path}`;
+      up.publicUrl || `${base}/storage/v1/object/public/status-media/${up.path}`;
   } else if (httpsMi(video) || httpsMi(gorsel)) {
     mediaType = httpsMi(video) ? 'video' : 'image';
     mediaUrl = httpsMi(video) ? video : gorsel;

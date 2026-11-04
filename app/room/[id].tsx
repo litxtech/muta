@@ -2784,6 +2784,28 @@ export default function RoomScreen() {
                     <Text style={styles.ustMenuYazi}>{t('bildir.baslik')}</Text>
                   </Pressable>
                 ) : null}
+                <Pressable
+                  onPress={() => {
+                    setUstAracAcik(false);
+                    requestAnimationFrame(() =>
+                      router.push('/ayarlar/iletisim-teknolojileri' as never),
+                    );
+                  }}
+                  style={styles.ustMenuSatir}
+                  accessibilityLabel={t('bilgi.iletisimTeknolojileri')}
+                  accessibilityRole="button"
+                >
+                  <View style={styles.ustIconBtn}>
+                    <MaterialCommunityIcons
+                      name="access-point-network"
+                      size={18}
+                      color="rgba(167,139,250,0.95)"
+                    />
+                  </View>
+                  <Text style={styles.ustMenuYazi} numberOfLines={1}>
+                    {t('bilgi.iletisimTeknolojileri')}
+                  </Text>
+                </Pressable>
               </Pressable>
             </Pressable>
           </Modal>

@@ -1,24 +1,8 @@
 /**
- * Tamuso Games — paylaşılan oturum / ekonomi / kayıt tipleri.
+ * Tamuso — Meyve Oyunu (fruit_wheel) paylaşılan kontrol / oda tipleri.
  */
 
 export type GameCode = 'fruit_wheel' | (string & {});
-
-export type GameSessionStatus =
-  | 'waiting'
-  | 'countdown'
-  | 'playing'
-  | 'finished'
-  | 'cancelled';
-
-export type GamePlayerStatus =
-  | 'joined'
-  | 'ready'
-  | 'playing'
-  | 'finished'
-  | 'disconnected'
-  | 'dnf'
-  | 'left';
 
 export type EconomyMode =
   | 'NORMAL'
@@ -26,25 +10,6 @@ export type EconomyMode =
   | 'LOW_REWARD'
   | 'NO_REWARD'
   | 'MAINTENANCE';
-
-export type PlayerTier =
-  | 'NEW'
-  | 'NORMAL'
-  | 'ACTIVE'
-  | 'VIP'
-  | 'EXPERT'
-  | 'RESTRICTED';
-
-export type LeagueTierCode =
-  | 'bronze'
-  | 'silver'
-  | 'gold'
-  | 'platinum'
-  | 'diamond'
-  | 'master'
-  | 'legend';
-
-export type LeagueDivision = 1 | 2 | 3;
 
 export type GameControlConfig = {
   id: string;
@@ -86,164 +51,11 @@ export type GameControlOverride = {
   reason: string | null;
 };
 
-export type EffectiveEconomyPolicy = {
-  mode: EconomyMode;
-  minEntry: number;
-  maxEntry: number;
-  rewardMultiplier: number;
-  xpMultiplier: number;
-  trophyMultiplier: number;
-  rewardFactor: number;
-  newPlayerProtection: boolean;
-  dailyRewardCap: number;
-  playerDailyRewardCap: number;
-  isEnabled: boolean;
-};
-
-export type ConfigSnapshot = {
-  mode: EconomyMode;
-  entry: number;
-  rewardMultiplier: number;
-  xpMultiplier: number;
-  trophyMultiplier: number;
-  rewardFactor: number;
-  newPlayerProtection: boolean;
-  dailyRewardCap: number;
-  playerDailyRewardCap: number;
-  version: string;
-  capturedAt: string;
-};
-
-export type GameDefinition = {
-  code: GameCode;
-  name: string;
-  description: string;
-  minPlayers: number;
-  maxPlayers: number;
-  defaultDurationSeconds: number;
-  economy: boolean;
-  leaderboard: boolean;
-  multiplayer: boolean;
-  version: string;
-};
-
-export type GameSession = {
-  id: string;
-  game_code: GameCode;
-  room_id: string;
-  host_user_id: string;
-  seed: number;
-  status: GameSessionStatus;
-  max_players: number;
-  duration_seconds: number;
-  started_at: string | null;
-  ends_at: string | null;
-  finished_at: string | null;
-  config_snapshot: ConfigSnapshot | null;
-  created_at: string;
-};
-
-export type GameSessionPlayer = {
-  id: string;
-  session_id: string;
-  user_id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  status: GamePlayerStatus;
-  score: number;
-  combo_max: number;
-  move_count: number;
-  final_rank: number | null;
-  joined_at: string;
-  finished_at: string | null;
-  disconnected_at: string | null;
-};
-
-export type LeaderboardEntry = {
-  userId: string;
-  displayName: string;
-  avatarUrl: string | null;
-  score: number;
-  comboMax: number;
-  rank: number;
-  xpEarned?: number;
-  trophyChange?: number;
-  coinReward?: number;
-};
-
-export type GameRealtimeEvent =
-  | { type: 'player_joined'; player: GameSessionPlayer }
-  | { type: 'player_left'; userId: string }
-  | { type: 'countdown_started'; endsAt: string }
-  | { type: 'game_started'; startedAt: string; endsAt: string; seed: number }
-  | {
-      type: 'score_update';
-      userId: string;
-      score: number;
-      comboMax: number;
-      moveCount: number;
-    }
-  | { type: 'combo'; userId: string; combo: number }
-  | { type: 'leader_changed'; userId: string; displayName: string; score: number }
-  | { type: 'player_finished'; userId: string; score: number }
-  | {
-      type: 'game_finished';
-      rankings: LeaderboardEntry[];
-    };
-
 export type RoomGameMeta = {
   roomId: string;
   roomName: string;
   participantCount: number;
   micEnabled: boolean;
-};
-
-export type CreateGameSessionParams = {
-  roomId: string;
-  gameCode: GameCode;
-  durationSeconds?: number;
-  maxPlayers?: number;
-  entryAmount?: number;
-  /** Oyun coinleri yetmezse satın alınan coinlerin kullanılmasına açık onay. */
-  satinCoinOnay?: boolean;
-};
-
-export type JoinGameSessionParams = {
-  sessionId: string;
-  entryAmount?: number;
-  /** Oyun coinleri yetmezse satın alınan coinlerin kullanılmasına açık onay. */
-  satinCoinOnay?: boolean;
-};
-
-export type OyunCuzdanOnizleme = {
-  ok: boolean;
-  code?: 'ok' | 'insufficient_balance' | 'satin_coin_kapali' | 'invalid_amount' | 'wallet_not_found' | string;
-  amount?: number;
-  from_game_coins?: number;
-  from_bonus_coins?: number;
-  from_purchased_coins?: number;
-  satin_coin_gerekli?: boolean;
-  satin_coin_izinli?: boolean;
-  satin_coin_onayi_gerekli?: boolean;
-  yeterli?: boolean;
-  eksik?: number;
-  game_coins?: number;
-  bonus_coins?: number;
-  purchased_coins?: number;
-  total_coins?: number;
-  game_coins_after?: number;
-  bonus_coins_after?: number;
-  purchased_coins_after?: number;
-  total_coins_after?: number;
-};
-
-export type SubmitGameScoreParams = {
-  sessionId: string;
-  score: number;
-  moveCount: number;
-  highestCombo: number;
-  specialTilesUsed?: number;
-  boardHash?: string;
 };
 
 export type RpcResult<T> =

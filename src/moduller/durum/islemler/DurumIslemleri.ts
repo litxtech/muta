@@ -3,7 +3,7 @@ import { uuidGecerliMi } from '../../cevrimdisi/saf/Uuid';
 import type { DurumMuzikPayload } from '../../ai-muzik/tipler';
 import i18n from '../../../i18n';
 
-export type DurumPostKind = 'media' | 'game_win' | 'music' | 'agency_invite';
+export type DurumPostKind = 'media' | 'music' | 'agency_invite' | 'performance';
 
 export type DurumAjansDavetPayload = {
   agency_id: string;
@@ -12,17 +12,6 @@ export type DurumAjansDavetPayload = {
   uye_sayisi: number;
   islem_hacmi: number;
   dakika: number;
-};
-
-export type DurumOyunKazanciPayload = {
-  game_code: string;
-  game_title: string;
-  round_id: string;
-  total_win: number;
-  base_win: number;
-  bet_amount: number;
-  total_multiplier: number;
-  win_tier: string;
 };
 
 export type DurumOggesi = {
@@ -38,7 +27,7 @@ export type DurumOggesi = {
   view_count: number;
   share_count?: number;
   post_kind: DurumPostKind;
-  payload: DurumOyunKazanciPayload | Record<string, unknown> | null;
+  payload: Record<string, unknown> | null;
   created_at: string;
   display_name: string;
   username: string | null;
@@ -91,24 +80,6 @@ export function DurumSesPayloadAl(
   return { duration_ms: Number.isFinite(ms) ? Math.max(0, ms) : 0 };
 }
 
-export function DurumOyunKazanciPayloadAl(
-  oge: DurumOggesi,
-): DurumOyunKazanciPayload | null {
-  if (oge.post_kind !== 'game_win' || !oge.payload) return null;
-  const p = oge.payload as Partial<DurumOyunKazanciPayload>;
-  if (!p.round_id && p.total_win == null) return null;
-  return {
-    game_code: String(p.game_code ?? 'fruit_wheel'),
-    game_title: String(p.game_title ?? 'Fruit Wheel'),
-    round_id: String(p.round_id ?? ''),
-    total_win: Number(p.total_win ?? 0),
-    base_win: Number(p.base_win ?? p.total_win ?? 0),
-    bet_amount: Number(p.bet_amount ?? 0),
-    total_multiplier: Number(p.total_multiplier ?? 1),
-    win_tier: String(p.win_tier ?? 'STORM'),
-  };
-}
-
 export function DurumAjansDavetPayloadAl(
   oge: Pick<DurumOggesi, 'post_kind' | 'payload'>,
 ): DurumAjansDavetPayload | null {
@@ -136,7 +107,6 @@ export function DurumMedyaHttpsMi(url: string | null | undefined): boolean {
  * Lightbox / siyah medya sahnesi açılmamalı.
  */
 export function DurumMetinGonderisiMi(oge: DurumOggesi): boolean {
-  if (DurumOyunKazanciPayloadAl(oge)) return false;
   if (DurumAjansDavetPayloadAl(oge)) return false;
   if (DurumMuzikPayloadAl(oge)) return false;
   if (oge.media_type === 'audio') return false;
@@ -248,25 +218,6 @@ export async function DurumOlustur(input: {
   if (error) return { ok: false, hata: error.message };
   const row = data as { ok?: boolean; id?: string };
   return { ok: !!row?.ok, id: row?.id };
-}
-
-export async function DurumOyunKazanciOlustur(input: {
-  gameCode: string;
-  roundId: string;
-  caption?: string;
-}): Promise<{ ok: boolean; id?: string; already?: boolean; hata?: string }> {
-  const { data, error } = await supabase.rpc('durum_oyun_kazanci_olustur', {
-    p_game_code: input.gameCode,
-    p_round_id: input.roundId,
-    p_caption: input.caption ?? null,
-  });
-  if (error) return { ok: false, hata: error.message };
-  const row = data as { ok?: boolean; id?: string; already?: boolean };
-  return {
-    ok: !!row?.ok,
-    id: row?.id,
-    already: !!row?.already,
-  };
 }
 
 export async function DurumAjansDavetOlustur(

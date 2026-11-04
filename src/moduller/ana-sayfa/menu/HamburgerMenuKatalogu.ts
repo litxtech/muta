@@ -34,6 +34,26 @@ const IOS_PAKETINDE_OLMAYAN = new Set(['ai_muzik']);
 
 export const HAMBURGER_MENU_KATALOGU: readonly HamburgerKatalogOgesi[] = ([
   {
+    itemKey: 'tamuso_chain',
+    icon: 'musical-notes-outline',
+    tint: RenkTokenlari.magenta,
+    baslikKey: 'chain.baslik',
+    altKey: 'chain.menuAlt',
+    href: '/performans/izle',
+    defaultGroup: 'yayin',
+    defaultSort: 15,
+  },
+  {
+    itemKey: 'tamuso_chain_siralama',
+    icon: 'podium-outline',
+    tint: RenkTokenlari.accent,
+    baslikKey: 'chain.siralamaMenu',
+    altKey: 'chain.siralamaMenuAlt',
+    href: '/performans/siralama',
+    defaultGroup: 'yayin',
+    defaultSort: 16,
+  },
+  {
     itemKey: 'blog',
     icon: 'reader-outline',
     tint: RenkTokenlari.accent,

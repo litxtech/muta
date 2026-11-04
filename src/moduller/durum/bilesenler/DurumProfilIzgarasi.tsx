@@ -13,12 +13,10 @@ import {
   DurumMedyaHttpsMi,
   DurumMuzikPayloadAl,
   DurumAjansDavetPayloadAl,
-  DurumOyunKazanciPayloadAl,
   DurumSesPayloadAl,
 } from '../islemler/DurumIslemleri';
 import { DurumMuzikKarti } from './DurumMuzikKarti';
 import { DurumSesKarti } from './DurumSesKarti';
-import { DurumOyunKazanciKart } from './DurumOyunKazanciKart';
 import { DurumAjansDavetKarti } from './DurumAjansDavetKarti';
 import { DurumVideoOnizleme } from './DurumVideoOnizleme';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
@@ -91,7 +89,6 @@ export function DurumProfilIzgarasi({
           {items
             .filter((oge) => oge && typeof oge.id === 'string' && oge.id.length > 0)
             .map((oge) => {
-            const kazanc = DurumOyunKazanciPayloadAl(oge);
             const ajansDavet = DurumAjansDavetPayloadAl(oge);
             const muzik = DurumMuzikPayloadAl(oge);
             const ses = DurumSesPayloadAl(oge);
@@ -104,13 +101,9 @@ export function DurumProfilIzgarasi({
                   onUzunBas ? () => onUzunBas(oge) : undefined
                 }
                 accessibilityRole="imagebutton"
-                accessibilityLabel={
-                  kazanc ? t('durumX.oyunKazanciDurumu') : t('durumX.durumGonderisi')
-                }
+                accessibilityLabel={t('durumX.durumGonderisi')}
               >
-                {kazanc ? (
-                  <DurumOyunKazanciKart payload={kazanc} compact />
-                ) : ajansDavet ? (
+                {ajansDavet ? (
                   <DurumAjansDavetKarti payload={ajansDavet} compact />
                 ) : muzik ? (
                   <DurumMuzikKarti payload={muzik} compact />
@@ -150,7 +143,7 @@ export function DurumProfilIzgarasi({
                     </Text>
                   </View>
                 )}
-                {oge.media_type === 'video' && !kazanc && !ses ? (
+                {oge.media_type === 'video' && !ses ? (
                   <View style={styles.videoBadge} pointerEvents="none">
                     <Ionicons name="play" size={12} color="#fff" />
                   </View>

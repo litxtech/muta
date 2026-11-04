@@ -25,7 +25,6 @@ import {
 import {
   AktifGorevleriGetir,
   GorevIlerlemelerimiGetir,
-  GorevIlerlet,
   GorevOdulAl,
   type Gorev,
   type GorevIlerleme,
@@ -143,18 +142,6 @@ export default function OperasyonHubEkrani() {
     return { hazir, tamam, aktif: missions.length };
   }, [missions, progress]);
 
-  const ilerlet = (code: string) => {
-    islemiDene('oy_kullan', async () => {
-      if (!missionsOn) {
-        Alert.alert(t('platform.alertKapali'), t('platform.alertGorevKapali'));
-        return;
-      }
-      const r = await GorevIlerlet(code);
-      if (!r.ok) Alert.alert(t('platform.alertGorev'), r.hata);
-      await load();
-    });
-  };
-
   const odul = (code: string) => {
     islemiDene('oy_kullan', async () => {
       const r = await GorevOdulAl(code);
@@ -187,13 +174,11 @@ export default function OperasyonHubEkrani() {
                   {eventsOn ? t('platform.etkinlikAcik') : t('platform.etkinlikKapali')}
                 </Text>
               </View>
-              <View
-                style={[styles.bayrak, missionsOn ? styles.bayrakAcik : styles.bayrakKapali]}
-              >
-                <Text style={styles.bayrakYazi}>
-                  {missionsOn ? t('platform.gorevAcik') : t('platform.gorevKapali')}
-                </Text>
-              </View>
+              {missionsOn ? (
+                <View style={[styles.bayrak, styles.bayrakAcik]}>
+                  <Text style={styles.bayrakYazi}>{t('platform.gorevAcik')}</Text>
+                </View>
+              ) : null}
           </View>
 
           <TamusoBanner placement="GAME_CENTER_TOP" screen="GAME_CENTER" />
@@ -203,16 +188,20 @@ export default function OperasyonHubEkrani() {
               <Text style={AdminStil.kpiN}>{events.length}</Text>
               <Text style={AdminStil.kpiL}>{t('platform.kpiEtkinlik')}</Text>
             </View>
-            <View style={AdminStil.kpi}>
-              <Text style={AdminStil.kpiN}>{gorevOzet.aktif}</Text>
-              <Text style={AdminStil.kpiL}>{t('platform.kpiGorev')}</Text>
-            </View>
-            <View style={AdminStil.kpi}>
-              <Text style={[AdminStil.kpiN, { color: RenkTokenlari.accent }]}>
-                {gorevOzet.hazir}
-              </Text>
-              <Text style={AdminStil.kpiL}>{t('platform.kpiOdul')}</Text>
-            </View>
+            {missionsOn ? (
+              <>
+                <View style={AdminStil.kpi}>
+                  <Text style={AdminStil.kpiN}>{gorevOzet.aktif}</Text>
+                  <Text style={AdminStil.kpiL}>{t('platform.kpiGorev')}</Text>
+                </View>
+                <View style={AdminStil.kpi}>
+                  <Text style={[AdminStil.kpiN, { color: RenkTokenlari.accent }]}>
+                    {gorevOzet.hazir}
+                  </Text>
+                  <Text style={AdminStil.kpiL}>{t('platform.kpiOdul')}</Text>
+                </View>
+              </>
+            ) : null}
             <View style={AdminStil.kpi}>
               <Text style={[AdminStil.kpiN, { color: RenkTokenlari.mint }]}>{badgeCount}</Text>
               <Text style={AdminStil.kpiL}>{t('platform.kpiRozet')}</Text>
@@ -266,14 +255,10 @@ export default function OperasyonHubEkrani() {
             })
           )}
 
-          <Text style={AdminStil.sectionLabel}>{t('platform.gorevler')}</Text>
-          {!missionsOn ? (
-            <View style={AdminStil.kart}>
-              <Text style={AdminStil.kartAlt}>
-                {t('platform.gorevKapaliBody')}
-              </Text>
-            </View>
-          ) : missions.length === 0 ? (
+          {!missionsOn ? null : (
+            <Text style={AdminStil.sectionLabel}>{t('platform.gorevler')}</Text>
+          )}
+          {!missionsOn ? null : missions.length === 0 ? (
             <BosDurum
               icon="flag-outline"
               title={t('platform.gorevBosBaslik')}
@@ -300,11 +285,7 @@ export default function OperasyonHubEkrani() {
                   <View style={styles.barBg}>
                     <View style={[styles.barFill, { width: `${oran * 100}%` }]} />
                   </View>
-                  {!done ? (
-                    <Pressable style={styles.gorevBtn} onPress={() => ilerlet(item.code)}>
-                      <Text style={styles.gorevBtnYazi}>{t('platform.ilerlet')}</Text>
-                    </Pressable>
-                  ) : !claimed ? (
+                  {!done ? null : !claimed ? (
                     <Pressable
                       style={[styles.gorevBtn, styles.gorevBtnOdul]}
                       onPress={() => odul(item.code)}

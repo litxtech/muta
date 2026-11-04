@@ -12,6 +12,7 @@ import { useTemayaAboneOl } from '../../../tasarim-sistemi/tema/useTemayaAboneOl
 import { useCeviri } from '../../../i18n/useCeviri';
 import { useDil } from '../../../i18n/DilSaglayici';
 import { ilerlemeDolguStili, rtlMetinStili, ltrAlanStili } from '../../../i18n/rtl';
+import { PremiumAvatarCercevesi } from '../../kullanici-profili/avatar-cerceve/PremiumAvatarCercevesi';
 
 export type HamburgerProfilVeri = {
   displayName: string;
@@ -39,13 +40,8 @@ export function HamburgerProfilKarti({ profil, onPress }: Props) {
   const barPct = Math.min(100, Math.max(2, Math.round(ozet.oran * 100)));
 
   const avatarBlok = (
-    <LinearGradient
-      colors={[...RenkTokenlari.gradientPrimary]}
-      style={styles.avatarRing}
-    >
-      <View
-        style={[styles.avatarIc, { backgroundColor: RenkTokenlari.bgElevated }]}
-      >
+    <View style={styles.avatarRing}>
+      <PremiumAvatarCercevesi level={profil?.level} size={52} variant="kucuk">
         {avatar ? (
           <Image
             source={{ uri: avatar }}
@@ -60,8 +56,8 @@ export function HamburgerProfilKarti({ profil, onPress }: Props) {
             <Text style={styles.avatarHarf}>{harf}</Text>
           </LinearGradient>
         )}
-      </View>
-    </LinearGradient>
+      </PremiumAvatarCercevesi>
+    </View>
   );
 
   const copyBlok = (
@@ -236,18 +232,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   avatarRing: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    padding: 2,
     flexShrink: 0,
-    overflow: 'hidden',
-  },
-  avatarIc: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    overflow: 'hidden',
   },
   // Android: Image için sabit ölçü + borderRadius (yüzde kırpma güvenilmez)
   avatar: {

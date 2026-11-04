@@ -86,9 +86,9 @@ export const ANA_TAB_YENIDEN_EVENT = 'tamuso.anaTabYeniden';
 
 /** iOS ve web: yüzen oval kapsül. Android: tam genişlik kare kabuk. */
 const OVAL_TAB = YUZEN_OVAL_TAB;
-const ICON_SIZE = OVAL_TAB ? 24 : 26;
-const CREATE_SIZE = OVAL_TAB ? 26 : 30;
-const AVATAR = OVAL_TAB ? 24 : 26;
+const ICON_SIZE = 22;
+const CREATE_SIZE = OVAL_TAB ? 26 : 28;
+const AVATAR = 22;
 const PILL_RADIUS = 28;
 
 function tabsIcindeMi(segments: string[]): boolean {
@@ -190,7 +190,9 @@ function YuzenTabBarIc() {
         const isProfile = name === 'profile';
         const isMessages = name === 'messages';
         const color = secili
-          ? RenkTokenlari.primarySoft
+          ? acikTema
+            ? RenkTokenlari.primary
+            : RenkTokenlari.primarySoft
           : RenkTokenlari.textMuted;
         const badge =
           isMessages && !secili && mesajOkunmamis > 0 ? mesajOkunmamis : 0;
@@ -245,9 +247,7 @@ function YuzenTabBarIc() {
                   style={[
                     styles.avatar,
                     {
-                      borderColor: secili
-                        ? RenkTokenlari.primarySoft
-                        : 'transparent',
+                      borderColor: secili ? color : 'transparent',
                       borderWidth: secili ? 2 : 0,
                     },
                   ]}
@@ -268,6 +268,17 @@ function YuzenTabBarIc() {
                 </View>
               ) : null}
             </View>
+            {isCreate ? null : (
+              <Text
+                numberOfLines={1}
+                style={[
+                  styles.etiket,
+                  { color, fontWeight: secili ? '700' : '500' },
+                ]}
+              >
+                {label}
+              </Text>
+            )}
           </Pressable>
         );
       })}
@@ -414,11 +425,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconWrap: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 20,
+    borderRadius: 14,
+  },
+  etiket: {
+    fontSize: 10,
+    lineHeight: 12,
+    marginTop: 1,
+    maxWidth: '100%',
+    paddingHorizontal: 2,
   },
   iosSeciliHalka: {
     backgroundColor: 'rgba(232, 64, 145, 0.16)',
@@ -459,8 +477,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    top: OVAL_TAB ? 0 : -2,
-    right: OVAL_TAB ? 0 : -6,
+    top: -4,
+    right: 0,
     minWidth: 18,
     height: 18,
     borderRadius: 9,

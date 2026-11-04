@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
+  VARSAYILAN_TEMA,
   kullaniciTemaKodunuAl,
   paletiAl,
   temaKoduMu,
@@ -48,16 +49,16 @@ export function TemaSaglayici({ children }: { children: React.ReactNode }) {
         if (temaKoduMu(kayit)) {
           temayiKur(kayit);
         } else {
-          // İlk açılış: zorunlu seçim yok — varsayılan koyu
-          temayiKur('koyu');
+          // İlk açılış: zorunlu seçim yok — varsayılan açık (beyaz / lavanta)
+          temayiKur(VARSAYILAN_TEMA);
           await Promise.all([
-            AsyncStorage.setItem(GORUNUM_DEPO_ANAHTAR, 'koyu'),
+            AsyncStorage.setItem(GORUNUM_DEPO_ANAHTAR, VARSAYILAN_TEMA),
             AsyncStorage.setItem(GORUNUM_SECILDI_ANAHTAR, '1'),
           ]);
         }
         setSecimGerekli(false);
       } catch {
-        temayiKur('koyu');
+        temayiKur(VARSAYILAN_TEMA);
         setSecimGerekli(false);
       } finally {
         if (!iptal) setHazir(true);

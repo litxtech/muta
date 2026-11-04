@@ -10,12 +10,6 @@ import {
   type LedgerSatiri,
 } from '../cuzdan/okuma/CuzdanLedgeriniGetir';
 import type { HediyeGecmisiKaydi } from '../hediyeler/okuma/HediyeGecmisiniGetir';
-import {
-  OyunDurumEtiketi,
-  OyunSiraYazi,
-  type OyunGecmisiKaydi,
-} from '../oyunlar/ortak/servisler/OyunGecmisiniGetir';
-import type { OyunOyuncuIstatistik } from '../oyunlar/ortak/servisler/OyunIstatistikServisi';
 import i18n from '../../i18n';
 import { DilNormalizeEt, DIL_LOCALE_MAP } from '../../i18n/diller';
 
@@ -26,8 +20,6 @@ export type HesapHareketleriBelgeGirdi = {
   diamonds?: number;
   ledger: LedgerSatiri[];
   hediyeler: HediyeGecmisiKaydi[];
-  oyunlar?: OyunGecmisiKaydi[];
-  oyunOzet?: OyunOyuncuIstatistik | null;
 };
 
 /** Excel / CSV satırı */
@@ -159,35 +151,6 @@ export function HesapHareketExcelSatirlari(
     });
   }
 
-  for (const o of girdi.oyunlar ?? []) {
-    const t = tarihParcala(o.baslangic);
-    const kazancMi = o.sira === 1 || o.coinOdul > 0;
-    const durum = OyunDurumEtiketi(o.durum);
-    satirlar.push({
-      _ts: new Date(o.baslangic).getTime(),
-      tarih: t.tarih,
-      saat: t.saat,
-      islem: i18n.t('belge.oyunIslem', { ad: o.oyunAdi }),
-      aciklama: i18n.t('belge.oyunAciklama', {
-        sira: OyunSiraYazi(o.sira),
-        xp: sayi(o.xp),
-        kupa: `${o.kupa >= 0 ? '+' : ''}${o.kupa}`,
-      }),
-      karsiTaraf: '—',
-      yer: o.odaBaslik ?? '—',
-      tutar:
-        o.coinOdul !== 0
-          ? `${o.coinOdul >= 0 ? '+' : ''}${sayi(o.coinOdul)}`
-          : '—',
-      birim: o.coinOdul !== 0 ? i18n.t('belge.coinBirim') : '—',
-      bakiyeSonrasi: '—',
-      durum: kazancMi
-        ? i18n.t('belge.durumKazanc', { durum })
-        : durum,
-      islemNo: o.session_id.slice(0, 13).toUpperCase(),
-    });
-  }
-
   return satirlar
     .sort((a, b) => b._ts - a._ts)
     .map((row) => {
@@ -290,28 +253,6 @@ export function HesapHareketleriBelgesiOlustur(
     },
   ];
 
-  if (girdi.oyunOzet) {
-    const o = girdi.oyunOzet;
-    ozetSatirlar.push(
-      {
-        etiket: i18n.t('belge.oynananOyun'),
-        deger: String(o.totalGames),
-      },
-      {
-        etiket: i18n.t('belge.birincilikKazanc'),
-        deger: String(o.wins),
-      },
-      {
-        etiket: i18n.t('belge.kazanmaOraniEtiket'),
-        deger: i18n.t('belge.kazanmaOrani', { n: o.winRate }),
-      },
-      {
-        etiket: i18n.t('belge.lig'),
-        deger: o.leagueLabel,
-      },
-    );
-  }
-
   const hareketBolumu: BelgeSatiri[] = girdi.ledger.slice(0, 120).map((r) => {
     const t = tarihParcala(r.created_at);
     return {
@@ -336,19 +277,6 @@ export function HesapHareketleriBelgesiOlustur(
     };
   });
 
-  const oyunBolumu: BelgeSatiri[] = (girdi.oyunlar ?? []).slice(0, 80).map((o) => {
-    const t = tarihParcala(o.baslangic);
-    return {
-      etiket: `${t.tam} · ${o.oyunAdi}${o.odaBaslik ? ` · ${o.odaBaslik}` : ''}`,
-      deger: i18n.t('belge.oyunSatir', {
-        sira: OyunSiraYazi(o.sira),
-        durum: OyunDurumEtiketi(o.durum),
-        odul: sayi(o.coinOdul),
-        xp: o.xp,
-      }),
-    };
-  });
-
   return {
     baslik: i18n.t('belge.hesapHareketleri'),
     altBaslik: `${ad}${kod ? ` · ${kod}` : ''} · Tamuso`,
@@ -369,13 +297,6 @@ export function HesapHareketleriBelgesiOlustur(
         satirlar: hediyeBolumu.length
           ? hediyeBolumu
           : [{ etiket: i18n.t('belge.durum'), deger: i18n.t('belge.henuzHediyeYok') }],
-      },
-      {
-        baslik: i18n.t('belge.oyunGecmisi'),
-        ozet: i18n.t('belge.oyunGecmisiOzet', { n: girdi.oyunlar?.length ?? 0 }),
-        satirlar: oyunBolumu.length
-          ? oyunBolumu
-          : [{ etiket: i18n.t('belge.durum'), deger: i18n.t('belge.henuzOyunYok') }],
       },
     ],
     not: i18n.t('belge.belgeNot'),

@@ -23,14 +23,6 @@ import {
   type HediyeGecmisiKaydi,
 } from '../../src/moduller/hediyeler/okuma/HediyeGecmisiniGetir';
 import {
-  OyunGecmisiniGetir,
-  type OyunGecmisiKaydi,
-} from '../../src/moduller/oyunlar/ortak/servisler/OyunGecmisiniGetir';
-import {
-  OyunOyuncuIstatistikGetir,
-  type OyunOyuncuIstatistik,
-} from '../../src/moduller/oyunlar/ortak/servisler/OyunIstatistikServisi';
-import {
   AyAnahtari,
   AyaGoreGrupla,
   AyBaslikSatiri,
@@ -68,8 +60,6 @@ export default function HesapHareketleriEkrani() {
 
   const [ledger, setLedger] = useState<LedgerSatiri[]>([]);
   const [hediyeler, setHediyeler] = useState<HediyeGecmisiKaydi[]>([]);
-  const [oyunlar, setOyunlar] = useState<OyunGecmisiKaydi[]>([]);
-  const [oyunStats, setOyunStats] = useState<OyunOyuncuIstatistik | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState(false);
 
@@ -165,22 +155,14 @@ export default function HesapHareketleriEkrani() {
     if (belgeBusy) return;
     setBelgeBusy(true);
     try {
-      const [ledgerBuyuk, hediyeBuyuk, oyunBuyuk, oyunOzet] = await Promise.all([
+      const [ledgerBuyuk, hediyeBuyuk] = await Promise.all([
         CuzdanLedgeriniGetir(Math.max(250, LIMIT)).catch(() => ledger),
         user?.id
           ? HediyeGecmisiniGetir(user.id, 200).catch(() => hediyeler)
           : Promise.resolve(hediyeler),
-        user?.id
-          ? OyunGecmisiniGetir(user.id, 120).catch(() => oyunlar)
-          : Promise.resolve(oyunlar),
-        user?.id
-          ? OyunOyuncuIstatistikGetir(user.id).catch(() => oyunStats)
-          : Promise.resolve(oyunStats),
       ]);
 
       setHediyeler(hediyeBuyuk);
-      setOyunlar(oyunBuyuk);
-      setOyunStats(oyunOzet ?? null);
 
       setExcelGirdi({
         sahipAdi: profile?.display_name ?? profile?.username,
@@ -194,8 +176,6 @@ export default function HesapHareketleriEkrani() {
           return true;
         }),
         hediyeler: hediyeBuyuk,
-        oyunlar: oyunBuyuk,
-        oyunOzet: oyunOzet ?? null,
       });
       setBelgeAcik(true);
     } finally {
@@ -206,8 +186,6 @@ export default function HesapHareketleriEkrani() {
     birim,
     hediyeler,
     ledger,
-    oyunStats,
-    oyunlar,
     profile?.display_name,
     profile?.public_user_id,
     profile?.username,

@@ -3,6 +3,8 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import type { DirektMesaj } from '../okuma/MesajlariGetir';
 import { MesajViewOnceAc } from '../islemler/MesajViewOnceAc';
+import { supabase } from '../../../lib/supabase';
+import { OzelMedyaRefMi, OzelMedyaUrlAl } from '../../../ortak/medya/R2Depo';
 import { mesajKartCamStil, MesajKartTokenlari } from '../tasarim/MesajKartTokenlari';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import { RenkTokenlari } from '../../../tasarim-sistemi/RenkTokenlari';
@@ -36,6 +38,8 @@ export function MesajViewOnceKarti({
     void (async () => {
       setBusy(true);
       const r = await MesajViewOnceAc(item.id);
+      const ham = r.ok && 'media_url' in r.sonuc ? r.sonuc.media_url : null;
+      const medyaUrl = OzelMedyaRefMi(ham) ? await OzelMedyaUrlAl(supabase, ham) : ham;
       setBusy(false);
       if (!r.ok) return;
       const s = r.sonuc;
@@ -48,14 +52,14 @@ export function MesajViewOnceKarti({
       }
       if (
         (s.state === 'OPENING' || s.state === 'AVAILABLE') &&
-        s.media_url
+        medyaUrl
       ) {
         if (s.state === 'OPENING') {
           onDurumGuncelle?.({
             view_once_opened_at: s.opened_at ?? new Date().toISOString(),
           });
         }
-        onAcildi?.(s.media_url, isVideo ? 'video' : 'image');
+        onAcildi?.(medyaUrl, isVideo ? 'video' : 'image');
       }
     })();
   };

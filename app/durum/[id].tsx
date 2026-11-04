@@ -26,12 +26,10 @@ import {
   DurumGoruntulemeKaydet,
   DurumMedyaHttpsMi,
   DurumMetinGonderisiMi,
-  DurumOyunKazanciPayloadAl,
   DurumSesPayloadAl,
   DurumSil,
   type DurumOggesi,
 } from '../../src/moduller/durum/islemler/DurumIslemleri';
-import { DurumOyunKazanciKart } from '../../src/moduller/durum/bilesenler/DurumOyunKazanciKart';
 import { DurumSesKarti } from '../../src/moduller/durum/bilesenler/DurumSesKarti';
 import { DurumCaptionAcilir } from '../../src/moduller/durum/bilesenler/DurumCaptionAcilir';
 import { DurumTarihSaat } from '../../src/moduller/durum/islemler/DurumZaman';
@@ -271,14 +269,6 @@ export default function DurumDetayEkrani() {
               ]}
             >
               {(() => {
-                const kazanc = DurumOyunKazanciPayloadAl(oge);
-                if (kazanc) {
-                  return (
-                    <View style={styles.kartWrap}>
-                      <DurumOyunKazanciKart payload={kazanc} />
-                    </View>
-                  );
-                }
                 const ses = DurumSesPayloadAl(oge);
                 if (ses || oge.media_type === 'audio') {
                   return (
@@ -409,18 +399,16 @@ export default function DurumDetayEkrani() {
               <View style={styles.ustSag}>
                 {oge.is_mine ? (
                   <>
-                    {oge.post_kind !== 'game_win' ? (
-                      <Pressable
-                        style={styles.ikonBtn}
-                        onPress={() =>
-                          router.push(`/durum/duzenle?id=${oge.id}` as any)
-                        }
-                        hitSlop={8}
-                        accessibilityLabel={t('ortak.duzenle')}
-                      >
-                        <Ionicons name="create-outline" size={20} color={ikonRenk} />
-                      </Pressable>
-                    ) : null}
+                    <Pressable
+                      style={styles.ikonBtn}
+                      onPress={() =>
+                        router.push(`/durum/duzenle?id=${oge.id}` as any)
+                      }
+                      hitSlop={8}
+                      accessibilityLabel={t('ortak.duzenle')}
+                    >
+                      <Ionicons name="create-outline" size={20} color={ikonRenk} />
+                    </Pressable>
                     <Pressable style={styles.ikonBtn} onPress={sil} hitSlop={8}>
                       <Ionicons name="trash-outline" size={20} color={ikonRenk} />
                     </Pressable>
@@ -603,7 +591,7 @@ export default function DurumDetayEkrani() {
                       {t('profil.bildir')}
                     </Text>
                   </Pressable>
-                ) : oge.post_kind !== 'game_win' ? (
+                ) : (
                   <Pressable
                     style={styles.aksiyon}
                     onPress={() =>
@@ -618,18 +606,6 @@ export default function DurumDetayEkrani() {
                         metinGonderisi && { color: RenkTokenlari.text },
                       ]}
                     >{t('ortak.duzenle')}</Text>
-                  </Pressable>
-                ) : (
-                  <Pressable style={styles.aksiyon} onPress={sil} hitSlop={10}>
-                    <Ionicons name="trash-outline" size={26} color={ikonRenk} />
-                    <Text
-                      style={[
-                        styles.aksiyonYazi,
-                        metinGonderisi && { color: RenkTokenlari.text },
-                      ]}
-                    >
-                      {t('ortak.kaldir')}
-                    </Text>
                   </Pressable>
                 )}
               </View>

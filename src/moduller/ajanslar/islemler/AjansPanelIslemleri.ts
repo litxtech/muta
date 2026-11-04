@@ -317,26 +317,6 @@ export async function AdminAjansBasvuruReddet(
 /** Ücretli satış (paid_sale) sunucuda reddedilir; yüklemeler alıcının ödül coin bakiyesine yazılır. */
 export type AjansCoinYuklemeTuru = 'promotion' | 'operational_correction';
 
-export async function AjansCoinTransfer(input: {
-  agencyId: string;
-  toUserId: string;
-  coins: number;
-  idempotencyKey: string;
-  loadType: AjansCoinYuklemeTuru;
-  reason?: string | null;
-}): Promise<{ ok: boolean; hata?: string }> {
-  const { error } = await supabase.rpc('ajans_coin_transfer', {
-    p_agency_id: input.agencyId,
-    p_to_user_id: input.toUserId,
-    p_coins: input.coins,
-    p_idempotency_key: input.idempotencyKey,
-    p_load_type: input.loadType,
-    p_reason: input.reason?.trim() || null,
-  });
-  if (error) return { ok: false, hata: error.message };
-  return { ok: true };
-}
-
 export async function AjansHostBasvurusunuOnayla(
   applicationId: string,
 ): Promise<{ ok: boolean; user_id?: string; hata?: string }> {
@@ -358,38 +338,6 @@ export async function AjansHostBasvurusunuReddet(
   });
   if (error) return { ok: false, hata: error.message };
   return { ok: true };
-}
-
-export async function AjansUyeOdaKur(input: {
-  agencyId: string;
-  userId: string;
-  title: string;
-  mode?: string;
-  maxSeats?: number;
-}): Promise<{ ok: boolean; room_id?: string; hata?: string; mevcut_oda?: boolean }> {
-  const { data, error } = await supabase.rpc('ajans_uye_oda_kur', {
-    p_agency_id: input.agencyId,
-    p_user_id: input.userId,
-    p_title: input.title,
-    p_mode: input.mode ?? 'party',
-    p_max_seats: input.maxSeats ?? 8,
-  });
-  if (error) return { ok: false, hata: error.message };
-  const d = data as {
-    ok?: boolean;
-    room_id?: string;
-    hata?: string;
-    mevcut_oda?: boolean;
-  } | null;
-  if (!d?.ok) {
-    return {
-      ok: false,
-      room_id: d?.room_id,
-      hata: d?.hata ?? i18n.t('olusturTab.odaAcilamadi'),
-      mevcut_oda: !!d?.mevcut_oda,
-    };
-  }
-  return { ok: true, room_id: d.room_id };
 }
 
 export function LimitKalan(

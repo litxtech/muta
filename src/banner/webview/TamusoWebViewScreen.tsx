@@ -79,7 +79,7 @@ export function TamusoWebViewScreen() {
   if (!initialCheck.ok || !initialCheck.url) {
     return (
       <Screen>
-        <View style={[styles.errorWrap, { paddingTop: insets.top + 24 }]}>
+        <View style={styles.errorWrap}>
           <Text style={styles.errorTitle}>{t('webview.sayfaAcilamadi')}</Text>
           <Text style={styles.errorBody}>{error}</Text>
           <Pressable
@@ -97,7 +97,7 @@ export function TamusoWebViewScreen() {
   if (!WebView) {
     return (
       <Screen>
-        <View style={[styles.errorWrap, { paddingTop: insets.top + 24 }]}>
+        <View style={styles.errorWrap}>
           {openingExternal && !error ? (
             <>
               <ActivityIndicator color={RenkTokenlari.primary} />

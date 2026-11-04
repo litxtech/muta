@@ -10,7 +10,6 @@ import {
   YaricapTokenlari,
 } from '../../../tasarim-sistemi/BoslukVeYaricapTokenlari';
 import { useCeviri } from '../../../i18n/useCeviri';
-import { OzellikBilgiDugmesi } from '../../../bilesenler/bilgi/OzellikBilgiDugmesi';
 
 type Props = {
   canliSayisi: number;
@@ -33,21 +32,26 @@ export function KesfetMarkaBasligi({ canliSayisi, onGeri }: Props) {
         </Pressable>
 
         <View style={styles.markaBlok}>
-          <Text style={styles.fisilti}>{t('kesfet.fisilti')}</Text>
+          <Text style={styles.fisilti} numberOfLines={1}>
+            {t('kesfet.fisilti')}
+          </Text>
           <View style={styles.baslikSatir}>
             <Text style={styles.baslik} numberOfLines={1} ellipsizeMode="tail">
               {t('kesfet.sahneBul')}
             </Text>
-            <OzellikBilgiDugmesi konu="kesfet" />
           </View>
-          <Text style={styles.slogan}>{t('kesfet.slogan')}</Text>
+          <Text style={styles.slogan} numberOfLines={2} ellipsizeMode="tail">
+            {t('kesfet.slogan')}
+          </Text>
         </View>
 
         <View style={styles.canliRozet}>
           <AnaSayfaCanliNokta boyut={6} />
           <View style={styles.canliMetin}>
             <Text style={styles.canliSayi}>{canliSayisi}</Text>
-            <Text style={styles.canliEtiket}>{t('kesfet.canliEtiket')}</Text>
+            <Text style={styles.canliEtiket} numberOfLines={1}>
+              {t('kesfet.canliEtiket')}
+            </Text>
           </View>
         </View>
       </View>
@@ -76,6 +80,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: RenkTokenlari.border,
     marginTop: 2,
+    flexShrink: 0,
   },
   markaBlok: {
     flex: 1,
@@ -122,6 +127,7 @@ const styles = StyleSheet.create({
     borderRadius: YaricapTokenlari.md,
     minWidth: 78,
     marginTop: 2,
+    flexShrink: 0,
   },
   canliMetin: {
     gap: 2,

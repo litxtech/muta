@@ -162,26 +162,6 @@ function paylasimRozetAl(
       : null);
   if (!shared) return null;
 
-  const meta = (shared.meta ?? {}) as Record<string, unknown>;
-  const postKind =
-    typeof meta.post_kind === 'string' ? meta.post_kind : null;
-  const payload =
-    meta.payload && typeof meta.payload === 'object'
-      ? (meta.payload as Record<string, unknown>)
-      : null;
-
-  if (postKind === 'game_win' || payload?.game_title) {
-    const title =
-      (typeof payload?.game_title === 'string' && payload.game_title) ||
-      'Oyun';
-    const win = Number(payload?.total_win ?? 0);
-    return {
-      kind: 'game_win',
-      title,
-      subtitle: win > 0 ? `+${Math.round(win)}` : null,
-    };
-  }
-
   if (shared.type === 'shared_post') {
     return {
       kind: 'shared_post',
@@ -976,11 +956,9 @@ export function HikayeIzleyici({
                 <View style={styles.paylasimRozet} pointerEvents="none">
                   <Ionicons
                     name={
-                      paylasimRozet.kind === 'game_win'
-                        ? 'trophy-outline'
-                        : paylasimRozet.kind === 'shared_live'
-                          ? 'radio-outline'
-                          : 'share-outline'
+                      paylasimRozet.kind === 'shared_live'
+                        ? 'radio-outline'
+                        : 'share-outline'
                     }
                     size={14}
                     color="#fff"

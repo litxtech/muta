@@ -13,13 +13,11 @@ import {
   DurumAjansDavetPayloadAl,
   DurumMedyaHttpsMi,
   DurumMuzikPayloadAl,
-  DurumOyunKazanciPayloadAl,
   DurumSesPayloadAl,
   type DurumOggesi,
 } from '../../islemler/DurumIslemleri';
 import { DurumMuzikKarti } from '../../bilesenler/DurumMuzikKarti';
 import { DurumSesKarti } from '../../bilesenler/DurumSesKarti';
-import { DurumOyunKazanciKart } from '../../bilesenler/DurumOyunKazanciKart';
 import { DurumAjansDavetKarti } from '../../bilesenler/DurumAjansDavetKarti';
 import { DurumVideoOnizleme } from '../../bilesenler/DurumVideoOnizleme';
 import { RenkTokenlari } from '../../../../tasarim-sistemi/RenkTokenlari';
@@ -98,14 +96,12 @@ function PaylasilanGonderiKartiIc({
     onizleme.media_type !== 'video' &&
     onizleme.media_type !== 'text' &&
     onizleme.media_type !== 'audio' &&
-    onizleme.post_kind !== 'game_win' &&
     onizleme.post_kind !== 'music' &&
     onizleme.post_kind !== 'agency_invite';
   const isText =
     !isAudio &&
     (onizleme.media_type === 'text' ||
       (!https &&
-        onizleme.post_kind !== 'game_win' &&
         onizleme.post_kind !== 'music' &&
         onizleme.post_kind !== 'agency_invite'));
 
@@ -113,7 +109,6 @@ function PaylasilanGonderiKartiIc({
     post_kind: onizleme.post_kind ?? 'media',
     payload: onizleme.payload ?? {},
   } as DurumOggesi;
-  const kazanc = DurumOyunKazanciPayloadAl(fakeOge);
   const ajansDavet = DurumAjansDavetPayloadAl(fakeOge);
   const muzik = DurumMuzikPayloadAl(fakeOge);
   const ses = DurumSesPayloadAl({
@@ -179,11 +174,7 @@ function PaylasilanGonderiKartiIc({
           </View>
         </Pressable>
 
-        {kazanc ? (
-          <View style={styles.medyaWrap}>
-            <DurumOyunKazanciKart payload={kazanc} />
-          </View>
-        ) : ajansDavet ? (
+        {ajansDavet ? (
           <View style={styles.medyaWrap}>
             <DurumAjansDavetKarti payload={ajansDavet} />
           </View>

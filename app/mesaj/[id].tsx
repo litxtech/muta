@@ -1463,8 +1463,12 @@ export default function MesajDetayEkrani() {
               <Ionicons name="chevron-back" size={24} color={RenkTokenlari.text} />
             </Pressable>
             <View style={styles.topCopy}>
-              <Text style={styles.topFisilti}>{t('mesajSohbet.yeniSohbetFisilti')}</Text>
-              <Text style={styles.topTitle}>{t('mesajSohbet.kullaniciAra')}</Text>
+              <Text style={styles.topFisilti} numberOfLines={1}>
+                {t('mesajSohbet.yeniSohbetFisilti')}
+              </Text>
+              <Text style={styles.topTitle} numberOfLines={1}>
+                {t('mesajSohbet.kullaniciAra')}
+              </Text>
             </View>
             <View style={styles.backBtn} />
           </View>
@@ -1487,8 +1491,12 @@ export default function MesajDetayEkrani() {
               <Ionicons name="chevron-back" size={24} color={RenkTokenlari.text} />
             </Pressable>
             <View style={styles.topCopy}>
-              <Text style={styles.topTitle}>{t('mesajSohbet.sohbetBulunamadi')}</Text>
-              <Text style={styles.topFisilti}>{t('mesajSohbet.sohbetBulunamadiAlt')}</Text>
+              <Text style={styles.topTitle} numberOfLines={1}>
+                {t('mesajSohbet.sohbetBulunamadi')}
+              </Text>
+              <Text style={styles.topFisilti} numberOfLines={2}>
+                {t('mesajSohbet.sohbetBulunamadiAlt')}
+              </Text>
             </View>
             <View style={styles.backBtn} />
           </View>
@@ -1531,7 +1539,7 @@ export default function MesajDetayEkrani() {
                   <MaviTikRozeti size={16} />
                 ) : null}
               </View>
-              <Text style={styles.topFisilti}>
+              <Text style={styles.topFisilti} numberOfLines={1}>
                 {mahkemeMi
                   ? mahkemeKapali
                     ? t('mesajSohbet.mahkemeKapaliFisilti')
@@ -1990,6 +1998,7 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   topCopy: {
     flex: 1,
@@ -2009,6 +2018,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     justifyContent: 'flex-end',
+    flexShrink: 0,
   },
   aramaBtn: {
     width: 36,

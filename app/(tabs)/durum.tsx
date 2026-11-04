@@ -33,7 +33,6 @@ import {
   type DurumOggesi,
 } from '../../src/moduller/durum/islemler/DurumIslemleri';
 import { useCeviri } from '../../src/i18n/useCeviri';
-import { OzellikBilgiDugmesi } from '../../src/bilesenler/bilgi/OzellikBilgiDugmesi';
 import { useDurumAkisRealtime } from '../../src/moduller/durum/gercek-zamanli/useDurumAkisRealtime';
 import { useHediyeMagaza } from '../../src/moduller/hediyeler/islemler/useHediyeMagaza';
 import { HediyeMagazaBaglamasi } from '../../src/moduller/hediyeler/bilesenler/HediyeMagazaBaglamasi';
@@ -425,13 +424,11 @@ export default function DurumAkisEkrani() {
           style?: 'cancel' | 'destructive' | 'default';
           onPress?: () => void;
         }[] = [];
-        if (oge.post_kind !== 'game_win') {
-          buttons.push({
+        buttons.push(
+          {
             text: t('ortak.duzenle'),
             onPress: () => router.push(`/durum/duzenle?id=${oge.id}` as any),
-          });
-        }
-        buttons.push(
+          },
           {
             text: t('cevrimdisi.kaydetCevrimdisi'),
             onPress: () => cevrimdisiKaydet(oge),
@@ -565,7 +562,6 @@ export default function DurumAkisEkrani() {
             <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
               {t('durum.baslik')}
             </Text>
-            <OzellikBilgiDugmesi konu="gonderi" />
           </View>
           <Pressable
             style={styles.paylasBtn}

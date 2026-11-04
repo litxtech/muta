@@ -196,9 +196,9 @@ const styles = StyleSheet.create({
   cip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    height: 30,
-    paddingHorizontal: 11,
+    gap: 7,
+    height: 36,
+    paddingHorizontal: 14,
     borderRadius: YaricapTokenlari.pill,
     borderWidth: StyleSheet.hairlineWidth,
   },
@@ -206,14 +206,14 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.22)',
   },
   bayrak: {
-    fontSize: 12,
-    lineHeight: 15,
+    fontSize: 15,
+    lineHeight: 18,
   },
   yazi: {
     ...TipografiTokenlari.caption,
     color: RenkTokenlari.text,
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 13,
   },
   yaziSecili: {
     color: '#fff',

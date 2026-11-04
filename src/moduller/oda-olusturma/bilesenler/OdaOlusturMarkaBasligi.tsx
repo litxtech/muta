@@ -41,9 +41,17 @@ export function OdaOlusturMarkaBasligi({
           </Pressable>
         ) : null}
         <View style={styles.markaBlok}>
-          <Text style={styles.fisilti}>{fisiltiMetin}</Text>
-          <Text style={styles.baslik}>{baslikMetin}</Text>
-          {ozet ? <Text style={styles.alt}>{ozet}</Text> : null}
+          <Text style={styles.fisilti} numberOfLines={1}>
+            {fisiltiMetin}
+          </Text>
+          <Text style={styles.baslik} numberOfLines={2} ellipsizeMode="tail">
+            {baslikMetin}
+          </Text>
+          {ozet ? (
+            <Text style={styles.alt} numberOfLines={2} ellipsizeMode="tail">
+              {ozet}
+            </Text>
+          ) : null}
         </View>
       </View>
     </View>
@@ -71,6 +79,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
     marginTop: 4,
+    flexShrink: 0,
   },
   geriPressed: {
     opacity: 0.85,

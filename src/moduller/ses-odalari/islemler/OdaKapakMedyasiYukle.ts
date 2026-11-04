@@ -74,8 +74,7 @@ export async function OdaKapakUriIleYukle(
       };
     }
 
-    const { data: pub } = supabase.storage.from('profile-media').getPublicUrl(up.path);
-    return { ok: true, url: `${pub.publicUrl}?t=${Date.now()}` };
+    return { ok: true, url: `${up.publicUrl}?t=${Date.now()}` };
   } catch (e) {
     return {
       ok: false,

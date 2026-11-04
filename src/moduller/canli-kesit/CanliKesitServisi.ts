@@ -246,6 +246,7 @@ async function yukle(taslak: KesitTaslak, onOran?: (n: number) => void): Promise
       upsert: deneme > 0,
       maxBytes: taslak.maxBayt,
       sikistir: false,
+      depo: 'supabase',
     });
     if (up.ok) {
       const { data: pub } = supabase.storage.from(HIKAYE_BUCKET).getPublicUrl(yol);

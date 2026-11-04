@@ -88,6 +88,7 @@ eas-*.log
 
 # Lighthouse / tsc / gecici olcum ciktilari
 .lh-*.json
-tsc-out.txt
-tsc-admin.txt
+tsc-*.txt
+tmp-*.js
+eas-*-tmp.json
 *.tsbuildinfo
