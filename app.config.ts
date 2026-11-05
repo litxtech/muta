@@ -44,6 +44,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   icon: './assets/icon.png',
   userInterfaceStyle: 'dark',
   scheme: SCHEME,
+    buildNumber: "37",
   ios: {
     supportsTablet: false,
     usesAppleSignIn: true,
