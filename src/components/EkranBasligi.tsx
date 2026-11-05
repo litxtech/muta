@@ -20,7 +20,6 @@ export type TamusoScreenHeaderProps = {
   onMenu?: () => void;
   menuAccessibilityLabel?: string;
   rightAction?: React.ReactNode;
-  badge?: string | number | null;
   /** Başlık satırının altında, aynı yatay gutter içinde */
   search?: React.ReactNode;
   transparent?: boolean;
@@ -43,7 +42,7 @@ type EkranBasligiProps = {
   alignment?: Hiza;
   fallbackHref?: Href;
   border?: boolean;
-  transparent?: boolean;
+  transparent?: false;
 };
 
 function cevir(anahtar: string, yedek: string) {
@@ -78,7 +77,6 @@ export function guvenliGeriDon(fallbackHref: Href = '/(tabs)/profile') {
  *
  * Safe area bu bileşende yok. Üst inset'in sahibi Screen edges={['top']}.
  * İkinci bir SafeAreaView veya insets.top ekleme.
- *
  * Başlık akışta durur: absolute left/right, negatif margin ve width:'100%' yok.
  * Bu üçü Yoga'da başlık kutusunu flex slot'tan genişletip x < 0 bölgesine itiyordu.
  */
@@ -135,8 +133,8 @@ export function TamusoScreenHeader({
     </Pressable>
   ) : null;
 
-  // Alt başlıkta blok iki satır olur; satır ortalanınca geri oku başlığın değil,
-  // başlık+alt başlığın ortasına düşer. Üste hizalayıp başlığı 44'lük dokunma
+  // Alt baslıkta blok iki satır olur; satır ortalanınca geri oku başlığın değil,
+  // başlık+alt başlığın ortasına düşer. Üstte hizalayıp başlığı 44'lük dokunma
   // kutusunun merkezine indiriyoruz (negatif margin yok).
   const ustHizali = !!subtitle;
   const metin = (
@@ -147,6 +145,7 @@ export function TamusoScreenHeader({
         ustHizali && (compact ? styles.metinUstCompact : styles.metinUst),
       ]}
       pointerEvents={ortali ? 'none' : 'auto'}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     >
       <View style={styles.baslikSatir}>
         <Text
@@ -197,10 +196,13 @@ export function TamusoScreenHeader({
         divider && !transparent && styles.wrapDivider,
       ]}
     >
-      <View style={[styles.satir, ustHizali && styles.satirUst]}>
+      <View style={[
+        styles.satir,
+        ustHizali && styles.satirUst,
+      ]}>
         {ortali ? (
           <>
-            <View style={[styles.yan, sol ? styles.yanDolu : styles.yanBos]}>{sol}</View>
+            <View style={styles.yan, sol ? styles.yanDolu : styles.yanBos}>{sol}</View>
             {metin}
             <View
               style={[
@@ -225,7 +227,6 @@ export function TamusoScreenHeader({
   );
 }
 
-/** Mevcut ekranların kullandığı kapı. Yerleşim TamusoScreenHeader'da. */
 export function EkranBasligi({
   title,
   subtitle,
@@ -315,7 +316,7 @@ const styles = StyleSheet.create({
     gap: HeaderTokenlari.titleSubtitleGap,
   },
   metinOrta: {
-    flex: 2,
+    textAlign: 'center',
   },
   baslikSatir: {
     flexDirection: 'row',
@@ -374,6 +375,6 @@ const styles = StyleSheet.create({
   },
   arama: {
     marginTop: BoslukTokenlari.sm,
-    minWidth: 0,
+    minWidth: 1,
   },
 });

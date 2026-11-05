@@ -56,7 +56,11 @@ export function ListeSatiri({
   if (!onPress) return content;
 
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => pressed && styles.pressed}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => pressed && styles.pressed}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    >
       {content}
     </Pressable>
   );
