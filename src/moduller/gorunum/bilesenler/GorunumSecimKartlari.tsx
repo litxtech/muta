@@ -6,7 +6,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { TipografiTokenlari } from '../../../tasarim-sistemi/TipografiTokenlari';
 import {
@@ -76,19 +75,12 @@ export function GorunumSecimKartlari({ onSec, katalogMu = false }: Props) {
             },
           ]}
         >
-          <LinearGradient
-            colors={[...ornek.gradientNight]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={katalogMu ? styles.gridSwatch : styles.swatch}
+          <View
+            style={[
+              katalogMu ? styles.gridSwatch : styles.swatch,
+              { backgroundColor: ornek.bg },
+            ]}
           >
-            <View
-              style={[
-                styles.swatchNokta,
-                katalogMu && styles.swatchNoktaBuyuk,
-                { backgroundColor: ornek.primary },
-              ]}
-            />
             {secili ? (
               <View
                 style={[styles.onay, { backgroundColor: ornek.primary }]}
@@ -100,7 +92,7 @@ export function GorunumSecimKartlari({ onSec, katalogMu = false }: Props) {
                 />
               </View>
             ) : null}
-          </LinearGradient>
+          </View>
           <View style={katalogMu ? styles.gridCopy : undefined}>
             <Text
               style={[
@@ -236,16 +228,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-  },
-  swatchNokta: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  swatchNoktaBuyuk: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
   },
   onay: {
     ...StyleSheet.absoluteFill,
